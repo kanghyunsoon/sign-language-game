@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "sampleFps": 10,
+  "confidence": {
+    "candidate": 0.8,
+    "maintain": 0.6,
+    "handDetection": 0.7
+  },
+  "timingMs": {
+    "minimumCollectionHold": 2000,
+    "candidateStart": 300,
+    "recognitionConfirm": 800,
+    "successfulHold": 2000,
+    "temporaryFailureGrace": 200,
+    "gestureEnd": 300,
+    "sameLabelReset": 300,
+    "transitionBoundary": 300
+  },
+  "trainingSegment": {
+    "minimumHandDetectionRatio": 0.9,
+    "requireStableHandedness": true,
+    "excludeTransitionFrames": true
+  }
+}
