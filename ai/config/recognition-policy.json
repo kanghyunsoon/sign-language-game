@@ -1,24 +1,30 @@
 {
-  "version": 1,
+  "version": 2,
   "sampleFps": 10,
   "confidence": {
     "candidate": 0.8,
     "maintain": 0.6,
-    "handDetection": 0.7
+    "handDetection": 0.7,
+    "windowAverage": 0.8
   },
   "timingMs": {
-    "minimumCollectionHold": 2000,
+    "minimumVideoCollectionHold": 1200,
     "candidateStart": 300,
-    "recognitionConfirm": 800,
-    "successfulHold": 2000,
+    "confirmationWindow": 1200,
     "temporaryFailureGrace": 200,
     "gestureEnd": 300,
     "sameLabelReset": 300,
     "transitionBoundary": 300
   },
+  "frameAggregation": {
+    "minimumValidFrameRatio": 0.8,
+    "useCaptureTimestamp": true,
+    "resetOnTargetChange": true
+  },
   "trainingSegment": {
     "minimumHandDetectionRatio": 0.9,
     "requireStableHandedness": true,
-    "excludeTransitionFrames": true
+    "excludeTransitionFrames": true,
+    "allowStillImages": true
   }
 }
