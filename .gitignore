@@ -30,5 +30,6 @@ HELP.md
 .env
 *.env.local
 
-### Claude Code (로컬 전용) ###
+### Claude Code / Spec Kit (로컬 전용) ###
 .claude/
+.specify/
