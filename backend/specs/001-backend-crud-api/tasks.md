@@ -60,11 +60,11 @@ plan.md Project Structure를 따름 — 프론트엔드 없는 단일 Spring Boo
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] `OpenApiConfig`(`OpenAPI` Bean: title/description, `SecurityScheme "bearerAuth"`(HTTP bearer/JWT), 도메인별 Tag 목록 `Auth/Users/Learning/GameRooms/Ranking` 사전 선언) 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/config/OpenApiConfig.java`
+- [X] T010 [US1] `OpenApiConfig`(`OpenAPI` Bean: title/description, `SecurityScheme "bearerAuth"`(HTTP bearer/JWT), 도메인별 Tag 목록 `Auth/Users/Learning/GameRooms/Ranking` 사전 선언) 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/config/OpenApiConfig.java`
 
 ### Tests for User Story 1 (구현 검증)
 
-- [ ] T011 [P] [US1] `/v3/api-docs` 응답에 `bearerAuth` 시큐리티 스킴과 5개 도메인 Tag가 포함되는지 검증하는 통합 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/common/config/OpenApiConfigTest.java`
+- [X] T011 [P] [US1] `/v3/api-docs` 응답에 `bearerAuth` 시큐리티 스킴과 5개 도메인 Tag가 포함되는지 검증하는 통합 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/common/config/OpenApiConfigTest.java`
 
 **Checkpoint**: API 문서화 인프라 완료 — Swagger UI(`/swagger-ui/index.html`)에서 Authorize 가능. 이후 스토리에서 엔드포인트가 추가될 때마다 자동 반영되는지는 각 스토리 완료 시 재확인(quickstart.md §1).
 
