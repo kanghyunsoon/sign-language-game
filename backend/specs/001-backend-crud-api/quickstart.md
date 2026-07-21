@@ -78,9 +78,6 @@ curl -X POST http://localhost:8080/wrong-answers -H "Authorization: Bearer $ACCE
 
 curl "http://localhost:8080/wrong-answers?category=CONSONANT" -H "Authorization: Bearer $ACCESS_TOKEN"
 # → 방금 신고한 오답이 최신순 목록에 포함되는지 확인
-
-curl -X POST http://localhost:8080/test-results -H "Authorization: Bearer $ACCESS_TOKEN" \
-  -H "Content-Type: application/json" -d '{"category":"CONSONANT","totalCount":10,"correctCount":7}'
 ```
 
 ## 4. User Story 4 — 게임방 생성 → 입장 → 준비 → 시작 → 결과 저장

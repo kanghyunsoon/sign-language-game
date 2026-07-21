@@ -3,7 +3,8 @@ info:
   title: 학습 콘텐츠 / 테스트·오답노트 API (learning)
   version: "1.0.0"
   description: >
-    카테고리별 콘텐츠 조회, 오답 신고/조회, 테스트 결과 보고. spec.md User Story 3 / FR-015~FR-018 대응.
+    카테고리별 콘텐츠 조회, 오답 신고/조회. spec.md User Story 3 / FR-015~FR-017 대응.
+    테스트 결과 저장(FR-018)은 오답노트만 노출하면 되고 결과 자체를 조회할 계획이 없어 1차 범위에서 제외.
 tags:
   - name: Learning
 paths:
@@ -70,24 +71,6 @@ paths:
                 items:
                   $ref: '#/components/schemas/WrongAnswerResponse'
 
-  /test-results:
-    post:
-      tags: [Learning]
-      summary: 테스트 결과 보고
-      operationId: reportTestResult
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TestResultRequest'
-      responses:
-        "201":
-          description: >
-            결과 저장 (FR-018). 정답 수 기반 펫 경험치 반영은 1차 범위 제외(Out of Scope).
-
 components:
   securitySchemes:
     bearerAuth:
@@ -119,11 +102,3 @@ components:
         sign:
           $ref: '#/components/schemas/SignResponse'
         wrongAt: { type: string, format: date-time }
-    TestResultRequest:
-      type: object
-      required: [category, totalCount, correctCount]
-      properties:
-        category:
-          $ref: '#/components/schemas/SignCategory'
-        totalCount: { type: integer, minimum: 0 }
-        correctCount: { type: integer, minimum: 0 }

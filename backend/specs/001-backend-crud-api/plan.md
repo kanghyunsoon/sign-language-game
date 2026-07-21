@@ -80,9 +80,9 @@ backend/suhwa/
 │   │   │   ├── auth/              # RefreshToken 엔티티/로그인·재발급·로그아웃 (User Story 2)
 │   │   │   │   ├── domain/ dto/ repository/ service/
 │   │   │   │   └── controller/    # AuthApi + AuthController
-│   │   │   ├── learning/          # Sign, WrongAnswerLog / 콘텐츠 조회·오답 신고·오답노트·테스트 결과 (User Story 3)
+│   │   │   ├── learning/          # Sign, WrongAnswerLog / 콘텐츠 조회·오답 신고·오답노트 (User Story 3)
 │   │   │   │   ├── domain/ dto/ repository/ service/
-│   │   │   │   └── controller/    # LearningApi + LearningController (Sign 조회, 오답 신고/조회, 테스트 결과 보고)
+│   │   │   │   └── controller/    # LearningApi + LearningController (Sign 조회, 오답 신고/조회)
 │   │   │   ├── game/              # GameRoom, GameSession / 생성·입장·나가기·준비·시작·결과 (User Story 4)
 │   │   │   │   ├── domain/ dto/ repository/ service/ scheduler/  # scheduler: CLOSED 방 5분 정리 배치
 │   │   │   │   └── controller/    # GameRoomApi + GameRoomController
