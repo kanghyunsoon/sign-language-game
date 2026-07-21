@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.venv/
+
+ai/models/
+ai/data/raw/
+ai/data/processed/
+ai/data/rejected/
+*.jsonl
+*.npz
