@@ -29,8 +29,8 @@ plan.md Project Structure를 따름 — 프론트엔드 없는 단일 Spring Boo
 
 **Purpose**: 프로젝트 기본 구조 및 DB 스키마 준비
 
-- [ ] T001 [P] `backend/suhwa/src/main/java/backend/ssafy/suhwa/` 아래 도메인 패키지 스켈레톤 생성: `common/{config,security,exception,dto}`, `user/{domain,dto,repository,service,controller}`, `auth/{domain,dto,repository,service,controller}`, `learning/{domain,dto,repository,service,controller}`, `game/{domain,dto,repository,service,controller,scheduler}`, `ranking/{dto,repository,service,controller}`, `growth/{domain,repository}` — 그리고 동일 구조를 `backend/suhwa/src/test/java/backend/ssafy/suhwa/`에 미러링
-- [ ] T002 [P] `data-model.md` 기준으로 로컬/개발 MySQL 스키마 적용 — `backend/jira-crud-backlog.md`의 기존 DDL에 `game_rooms.guest_user_id`, `game_rooms.host_ready`, `game_rooms.guest_ready`, `game_rooms.updated_at` 컬럼을 추가해 반영
+- [X] T001 [P] `backend/suhwa/src/main/java/backend/ssafy/suhwa/` 아래 도메인 패키지 스켈레톤 생성: `common/{config,security,exception,dto}`, `user/{domain,dto,repository,service,controller}`, `auth/{domain,dto,repository,service,controller}`, `learning/{domain,dto,repository,service,controller}`, `game/{domain,dto,repository,service,controller,scheduler}`, `ranking/{dto,repository,service,controller}`, `growth/{domain,repository}` — 그리고 동일 구조를 `backend/suhwa/src/test/java/backend/ssafy/suhwa/`에 미러링
+- [X] T002 [P] `data-model.md` 기준으로 로컬/개발 MySQL 스키마 적용 — `backend/jira-crud-backlog.md`의 기존 DDL에 `game_rooms.guest_user_id`, `game_rooms.host_ready`, `game_rooms.guest_ready`, `game_rooms.updated_at` 컬럼을 추가해 반영
 
 ---
 
@@ -40,13 +40,13 @@ plan.md Project Structure를 따름 — 프론트엔드 없는 단일 Spring Boo
 
 **⚠️ CRITICAL**: 이 단계 완료 전에는 어떤 User Story 작업도 시작하지 않는다.
 
-- [ ] T003 [P] `BaseTimeEntity`(`@MappedSuperclass`, `@EntityListeners(AuditingEntityListener.class)`, `createdAt`/`updatedAt`) 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/domain/BaseTimeEntity.java`, `SuhwaApplication.java`에 `@EnableJpaAuditing` 추가
-- [ ] T004 [P] 공통 `ErrorResponse` DTO + `GlobalExceptionHandler`(`@RestControllerAdvice`) 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/exception/`
-- [ ] T005 [P] `User` 엔티티(email/passwordHash/nickname/profileImageUrl/winCount/lossCount/deletedAt, `BaseTimeEntity` 상속) + `UserRepository` 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/user/domain/User.java`, `backend/suhwa/src/main/java/backend/ssafy/suhwa/user/repository/UserRepository.java` — 거의 모든 도메인이 FK로 참조하므로 Foundational에 배치
-- [ ] T006 [P] `JwtTokenProvider`(access token 발급/파싱) 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/security/JwtTokenProvider.java`
-- [ ] T007 `JwtAuthenticationFilter`(`Authorization: Bearer` 파싱 후 `SecurityContext` 설정) 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/security/JwtAuthenticationFilter.java` (T006 의존)
-- [ ] T008 `SecurityConfig`(`SecurityFilterChain`: `/auth/signup`,`/auth/login`,`/auth/refresh`,`/swagger-ui/**`,`/v3/api-docs/**` permitAll, 그 외 인증 필요, JWT 필터 등록) 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/config/SecurityConfig.java` (T007 의존)
-- [ ] T009 [P] `@LoginUser` 커스텀 어노테이션 + `CurrentUserArgumentResolver`(`SecurityContext`에서 인증된 `userId` 추출) 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/security/CurrentUserArgumentResolver.java` — 인증이 필요한 모든 컨트롤러가 사용
+- [X] T003 [P] `BaseTimeEntity`(`@MappedSuperclass`, `@EntityListeners(AuditingEntityListener.class)`, `createdAt`/`updatedAt`) 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/domain/BaseTimeEntity.java`, `SuhwaApplication.java`에 `@EnableJpaAuditing` 추가
+- [X] T004 [P] 공통 `ErrorResponse` DTO + `GlobalExceptionHandler`(`@RestControllerAdvice`) 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/exception/`
+- [X] T005 [P] `User` 엔티티(email/passwordHash/nickname/profileImageUrl/winCount/lossCount/deletedAt, `BaseTimeEntity` 상속) + `UserRepository` 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/user/domain/User.java`, `backend/suhwa/src/main/java/backend/ssafy/suhwa/user/repository/UserRepository.java` — 거의 모든 도메인이 FK로 참조하므로 Foundational에 배치
+- [X] T006 [P] `JwtTokenProvider`(access token 발급/파싱) 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/security/JwtTokenProvider.java`
+- [X] T007 `JwtAuthenticationFilter`(`Authorization: Bearer` 파싱 후 `SecurityContext` 설정) 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/security/JwtAuthenticationFilter.java` (T006 의존)
+- [X] T008 `SecurityConfig`(`SecurityFilterChain`: `/auth/signup`,`/auth/login`,`/auth/refresh`,`/swagger-ui/**`,`/v3/api-docs/**` permitAll, 그 외 인증 필요, JWT 필터 등록) 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/config/SecurityConfig.java` (T007 의존)
+- [X] T009 [P] `@LoginUser` 커스텀 어노테이션 + `CurrentUserArgumentResolver`(`SecurityContext`에서 인증된 `userId` 추출) 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/security/CurrentUserArgumentResolver.java` — 인증이 필요한 모든 컨트롤러가 사용
 
 **Checkpoint**: Foundation ready — 이제 User Story 구현을 시작할 수 있다.
 
