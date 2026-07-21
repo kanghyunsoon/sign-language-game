@@ -65,7 +65,7 @@
 {
   "schemaVersion": "1.0.0",
   "sampleId": "roboflow-giyeok-0001",
-  "source": "roboflow",
+  "source": "public-dataset",
   "participantId": null,
   "sessionId": null,
   "groupId": "giyeok-0001",
@@ -80,11 +80,12 @@
   },
   "quality": {
     "valid": true,
-    "reason": null
+    "reasons": [],
+    "evaluationEligible": true
   },
   "extractor": {
     "libraryVersion": "0.10.14",
-    "modelAssetVersion": "team-managed-version",
+    "modelAssetSha256": "fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1",
     "runningMode": "IMAGE"
   }
 }
@@ -118,13 +119,13 @@
 ### 5.3 산출물
 
 ```text
-data/raw/{source}/frames.jsonl
-data/processed/{datasetVersion}/frames.npz
-data/processed/{datasetVersion}/dataset-manifest.json
-data/rejected/{datasetVersion}/rejected-samples.jsonl
+{outputRoot}/raw/frames.jsonl
+{outputRoot}/processed/frames.npz
+{outputRoot}/rejected/frames.jsonl
+{outputRoot}/manifest.json
 ```
 
-검출 실패 데이터는 조용히 삭제하지 않고 실패 이유를 남긴다. 이미지와 영상 원본은 Git에 커밋하지 않는다.
+`outputRoot`는 데이터셋 버전별로 새 경로를 사용한다. 검출 실패 데이터는 조용히 삭제하지 않고 실패 이유를 남긴다. 이미지와 영상 원본, JSONL, NPZ, MediaPipe 모델 파일은 Git에 커밋하지 않는다. 실행 명령과 상세 필드 설명은 `ai/README.md`를 따른다.
 
 ## 6. 데이터셋 구성 파이프라인
 
