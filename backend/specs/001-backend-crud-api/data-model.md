@@ -66,6 +66,19 @@ spec.md의 Key Entities와 `backend/jira-crud-backlog.md`의 기존 DB 스키마
 
 **검증 규칙**: 존재하지 않는 `sign_id`로 신고 시 거부(Edge Case).
 
+## TestResult (`test_results`) — *(신규, 갭 보완)*
+
+contracts/learning-api.yaml의 `POST /test-results`(FR-018)를 구현하는 과정에서 대응하는 테이블이 이 문서에 정의되어 있지 않음을 발견해 추가했다. 문제별 상세 로그는 남기지 않고 카테고리/총 문제 수/정답 수만 저장하는 최소 형태다. 정답 수 기반 펫 경험치 반영은 Out of Scope이므로 이 테이블은 그 외 용도로 사용하지 않는다.
+
+| 필드 | 타입 | 제약 | 설명 |
+|---|---|---|---|
+| id | BIGINT (PK) | | |
+| user_id | BIGINT (FK → users.id) | NOT NULL, ON DELETE RESTRICT | |
+| category | ENUM('CONSONANT','VOWEL','NUMBER','WORD') | NOT NULL | |
+| total_count | INT | NOT NULL | |
+| correct_count | INT | NOT NULL | |
+| created_at | DATETIME | NOT NULL | |
+
 ## GameRoom (`game_rooms`)
 
 1:1 대전 매칭 전용, 임시 리소스. **`updated_at` 컬럼을 새로 추가**해 CLOSED 전환 시각 및 좀비 방 판별 기준(후속 WebSocket 단계에서 사용)으로 재사용한다 — 별도 `closed_at` 컬럼은 두지 않는다(연구 결정 사항 3번 참고).

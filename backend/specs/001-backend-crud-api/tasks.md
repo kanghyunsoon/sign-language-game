@@ -104,19 +104,19 @@ plan.md Project Structure를 따름 — 프론트엔드 없는 단일 Spring Boo
 
 ### Implementation for User Story 3
 
-- [ ] T022 [P] [US3] `Sign` 엔티티(category/label/referenceMediaUrl/tip/isActive) + `SignRepository`(category+is_active 조회) 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/learning/domain/Sign.java`, `backend/suhwa/src/main/java/backend/ssafy/suhwa/learning/repository/SignRepository.java`
-- [ ] T023 [P] [US3] `WrongAnswerLog` 엔티티(userId/signId/wrongAt) + `WrongAnswerLogRepository`(user+category 최근 5개, Sign 조인 `ORDER BY wrong_at DESC LIMIT 5`) 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/learning/domain/WrongAnswerLog.java`, `backend/suhwa/src/main/java/backend/ssafy/suhwa/learning/repository/WrongAnswerLogRepository.java`
-- [ ] T024 [P] [US3] DTO 생성(`SignResponse`/`WrongAnswerRequest`/`WrongAnswerResponse`/`TestResultRequest`) — `contracts/learning-api.yaml` 기준 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/learning/dto/`
-- [ ] T025 [US3] `SignService` 구현(카테고리별 활성 콘텐츠 조회 FR-015) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/learning/service/SignService.java` (T022 의존)
-- [ ] T026 [US3] `WrongAnswerService` 구현(오답 신고 시 존재하지 않는 sign_id 거부 Edge Case, 신고 FR-016, 카테고리별 최근 5개 조회 FR-017) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/learning/service/WrongAnswerService.java` (T022, T023 의존)
-- [ ] T027 [US3] `TestResultService` 구현(총 문제 수/정답 수 기록 FR-018 — 펫 경험치 반영 로직 없음, Out of Scope) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/learning/service/TestResultService.java`
-- [ ] T028 [US3] `LearningApi` 인터페이스 + `LearningController` 구현(`GET /signs`, `POST/GET /wrong-answers`, `POST /test-results`) — `contracts/learning-api.yaml` 기준 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/learning/controller/` (T025, T026, T027, T009 의존)
+- [X] T022 [P] [US3] `Sign` 엔티티(category/label/referenceMediaUrl/tip/isActive) + `SignRepository`(category+is_active 조회) 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/learning/domain/Sign.java`, `backend/suhwa/src/main/java/backend/ssafy/suhwa/learning/repository/SignRepository.java`
+- [X] T023 [P] [US3] `WrongAnswerLog` 엔티티(userId/signId/wrongAt) + `WrongAnswerLogRepository`(user+category 최근 5개, Sign 조인 `ORDER BY wrong_at DESC LIMIT 5`) 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/learning/domain/WrongAnswerLog.java`, `backend/suhwa/src/main/java/backend/ssafy/suhwa/learning/repository/WrongAnswerLogRepository.java`
+- [X] T024 [P] [US3] DTO 생성(`SignResponse`/`WrongAnswerRequest`/`WrongAnswerResponse`/`TestResultRequest`) — `contracts/learning-api.yaml` 기준 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/learning/dto/`
+- [X] T025 [US3] `SignService` 구현(카테고리별 활성 콘텐츠 조회 FR-015) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/learning/service/SignService.java` (T022 의존)
+- [X] T026 [US3] `WrongAnswerService` 구현(오답 신고 시 존재하지 않는 sign_id 거부 Edge Case, 신고 FR-016, 카테고리별 최근 5개 조회 FR-017) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/learning/service/WrongAnswerService.java` (T022, T023 의존)
+- [X] T027 [US3] `TestResultService` 구현(총 문제 수/정답 수 기록 FR-018 — 펫 경험치 반영 로직 없음, Out of Scope) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/learning/service/TestResultService.java`
+- [X] T028 [US3] `LearningApi` 인터페이스 + `LearningController` 구현(`GET /signs`, `POST/GET /wrong-answers`, `POST /test-results`) — `contracts/learning-api.yaml` 기준 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/learning/controller/` (T025, T026, T027, T009 의존)
 
 ### Tests for User Story 3 (구현 검증)
 
-- [ ] T029 [P] [US3] `WrongAnswerLogRepository` 카테고리별 최근 5개 조회 쿼리 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/learning/repository/WrongAnswerLogRepositoryTest.java`
-- [ ] T030 [P] [US3] `LearningController`(콘텐츠 조회, 오답 신고/조회, 테스트 결과 보고) MockMvc 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/learning/controller/LearningControllerTest.java`
-- [ ] T031 [US3] 오답 신고 → 오답노트 조회 반영 확인 통합 테스트(quickstart.md §3) in `backend/suhwa/src/test/java/backend/ssafy/suhwa/learning/LearningIntegrationTest.java`
+- [X] T029 [P] [US3] `WrongAnswerLogRepository` 카테고리별 최근 5개 조회 쿼리 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/learning/repository/WrongAnswerLogRepositoryTest.java`
+- [X] T030 [P] [US3] `LearningController`(콘텐츠 조회, 오답 신고/조회, 테스트 결과 보고) MockMvc 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/learning/controller/LearningControllerTest.java`
+- [X] T031 [US3] 오답 신고 → 오답노트 조회 반영 확인 통합 테스트(quickstart.md §3) in `backend/suhwa/src/test/java/backend/ssafy/suhwa/learning/LearningIntegrationTest.java`
 
 **Checkpoint**: User Story 1~3 독립적으로 완전히 동작·검증 가능.
 
