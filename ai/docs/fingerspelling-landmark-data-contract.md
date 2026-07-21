@@ -2,7 +2,7 @@
 
 ## 문서 상태
 
-- 문서 버전: 0.1.0
+- 문서 버전: 0.2.0
 - 스키마 버전: `1.0.0`
 - 상태: 초안
 - 적용 범위: 웹 프론트엔드와 AI 서버 사이의 실시간 지문자 데이터 전송 및 학습 데이터 수집
@@ -43,8 +43,7 @@
 | Task | MediaPipe Hand Landmarker |
 | 실행 모드 | `VIDEO` |
 | 최대 손 개수 | `1` |
-| 전송 목표 FPS | `10` |
-| 허용 입력 FPS | `8` 이상 `15` 이하 |
+| 전송 FPS | `10` |
 | 최소 손 검출 신뢰도 | `0.5` |
 | 최소 손 존재 신뢰도 | `0.5` |
 | 최소 추적 신뢰도 | `0.5` |
@@ -114,16 +113,32 @@
 | `sessionId` | UUID 문자열 | O | 세션 내 모든 메시지에서 동일 |
 | `mode` | 문자열 | O | `inference` 또는 `collection` |
 | `recognitionMode` | 문자열 | O | 현재는 `jamo`만 허용 |
-| `targetFps` | 정수 | O | 기본값 `10`, 범위 `8~15` |
+| `targetFps` | 정수 | O | 현재 버전은 `10`만 허용 |
 | `source.frameWidth` | 정수 | O | MediaPipe 입력 영상의 실제 너비 |
 | `source.frameHeight` | 정수 | O | MediaPipe 입력 영상의 실제 높이 |
-| `source.rotationDegrees` | 정수 | O | `0`, `90`, `180`, `270` 중 하나 |
+| `source.rotationDegrees` | 정수 | O | 정방향 보정 후 `0`만 허용 |
 | `source.inputMirrored` | 불리언 | O | 현재 버전은 `false`만 허용 |
 | `source.cameraFacing` | 문자열 | O | `user`, `environment`, `unknown` |
 | `mediaPipe.libraryVersion` | 문자열 | O | 프론트에서 사용한 라이브러리 버전 |
 | `mediaPipe.modelAssetVersion` | 문자열 | O | 팀이 배포한 모델 파일 버전 |
 
 `modelAssetVersion`은 파일명이나 해시처럼 팀이 동일 모델 파일을 식별할 수 있는 값이어야 한다. `latest`처럼 결과가 달라질 수 있는 값은 사용하지 않는다.
+
+### 5.2 세션 종료 메시지
+
+카메라 사용을 끝낼 때 마지막 프레임 이후 `session.end`를 한 번 전송한다.
+
+```json
+{
+  "schemaVersion": "1.0.0",
+  "messageType": "session.end",
+  "sessionId": "0190f744-8f64-7b17-a032-8a4c12d9b701",
+  "endTimestampMs": 12500,
+  "reason": "completed"
+}
+```
+
+`reason`은 `completed`, `camera_closed`, `permission_revoked`, `client_error` 중 하나다. WebSocket이 먼저 끊어져 메시지를 보내지 못한 경우 AI 서버가 연결 종료 시각으로 세션을 닫는다.
 
 ## 6. 랜드마크 프레임 메시지
 
@@ -136,6 +151,7 @@
   "sessionId": "0190f744-8f64-7b17-a032-8a4c12d9b701",
   "sequenceNumber": 42,
   "captureTimestampMs": 4200,
+  "frameStatus": "detected",
   "hand": {
     "handedness": "Right",
     "handednessScore": 0.982341,
@@ -162,11 +178,12 @@
   "sessionId": "0190f744-8f64-7b17-a032-8a4c12d9b701",
   "sequenceNumber": 43,
   "captureTimestampMs": 4300,
+  "frameStatus": "not_detected",
   "hand": null
 }
 ```
 
-손이 검출되지 않았다고 프레임 전송 자체를 생략하면 유지시간과 일시적 인식 실패를 정확히 계산할 수 없다. 샘플링 시점에 손이 없으면 반드시 `hand: null`을 전송한다.
+손이 검출되지 않았다고 프레임 전송 자체를 생략하면 유지시간과 일시적 인식 실패를 정확히 계산할 수 없다. MediaPipe를 실행했지만 손이 없으면 `frameStatus: "not_detected"`, 프론트엔드 처리 지연으로 MediaPipe를 실행하지 못했으면 `frameStatus: "dropped"`와 `hand: null`을 전송한다.
 
 ### 6.3 필드 정의
 
@@ -177,7 +194,8 @@
 | `sessionId` | UUID 문자열 | O | 시작 메시지의 값과 동일 |
 | `sequenceNumber` | 0 이상 정수 | O | 첫 프레임은 `0`, 샘플링 시점마다 1 증가 |
 | `captureTimestampMs` | 0 이상 정수 | O | 세션 시작 기준 경과 시간, 이전 값보다 커야 함 |
-| `hand` | 객체 또는 `null` | O | 미검출이면 `null` |
+| `frameStatus` | 문자열 | O | `detected`, `not_detected`, `dropped` 중 하나 |
+| `hand` | 객체 또는 `null` | O | `detected`일 때 객체, 그 외에는 `null` |
 | `hand.handedness` | 문자열 | 조건부 O | `Left` 또는 `Right` |
 | `hand.handednessScore` | 실수 | 조건부 O | `0.0~1.0` |
 | `hand.landmarks` | `21 x 3` 실수 배열 | 조건부 O | 정규화된 이미지 좌표 |
@@ -226,7 +244,8 @@
 - 네트워크 전송 시각과 AI 서버 수신 시각을 사용하지 않는다.
 - 시각은 이전 프레임보다 반드시 커야 한다.
 - 10 FPS 기준 정상 프레임 간격은 약 100ms다.
-- 프레임 간격이 250ms를 초과하면 AI 서버는 중간 구간을 미검출로 처리한다.
+- 연속된 미검출 또는 누락이 200ms 이하면 일시적 실패로 처리한다.
+- 연속된 미검출 또는 누락이 200ms를 초과하면 후보 유지시간을 중단한다.
 - 서버는 타임스탬프를 기준으로 10 FPS 고정 간격으로 재샘플링한다.
 
 ### 7.2 시퀀스 번호
@@ -236,6 +255,18 @@
 - 중복된 번호는 폐기한다.
 - 이전 번호보다 작은 메시지는 폐기한다.
 - 번호가 누락되어도 세션은 종료하지 않는다.
+
+### 7.3 지문자 시간 판정
+
+| 항목 | 기준값 | 의미 |
+| --- | ---: | --- |
+| 최소 유효 유지시간 | 1,200ms | 학습 가능한 안정 자세의 최소 길이 |
+| 후보 시작시간 | 300ms | 동일 클래스가 후보가 되기 위한 시간 |
+| 인식 확정시간 | 600ms | 후보를 서비스 결과로 확정하는 시간 |
+| 일시적 실패 허용시간 | 200ms | 순간 미검출 또는 처리 누락 허용시간 |
+| 동작 종료시간 | 300ms | 다른 자세 또는 미검출이 지속되는 종료 기준 |
+
+최소 유효 유지시간과 인식 확정시간은 목적이 다르다. 학습 데이터는 안정된 자세 1,200ms 이상을 요구하고, 서비스는 동일 후보가 600ms 유지되면 사용자 입력으로 확정한다.
 
 ## 8. 학습 데이터 수집 메시지
 
@@ -331,12 +362,12 @@ data/raw/{sessionId}/
 5. 21개 3차원 좌표를 63차원으로 펼친다.
 6. 직전 프레임과의 좌표 차이 63차원을 계산한다.
 7. 손 검출 여부 1차원을 추가한다.
-8. 2초 길이인 20프레임 윈도우를 생성한다.
+8. 1.2초 길이인 12프레임 윈도우를 생성한다.
 
 모델 `v1`의 입력 형태는 다음과 같다.
 
 ```text
-[batchSize, 20, 127]
+[batchSize, 12, 127]
 
 127 = 정규화 월드 좌표 63 + 프레임 간 좌표 차이 63 + 손 검출 여부 1
 ```
@@ -349,7 +380,7 @@ data/raw/{sessionId}/
 
 | 구간 | 생성 기준 |
 | --- | --- |
-| 지문자 클래스 | 목표 자세가 안정된 2초 이상의 구간 |
+| 지문자 클래스 | 목표 자세가 안정된 1.2초 이상의 구간 |
 | `transition` | 서로 다른 지문자 사이의 이동 구간 |
 | `none` | 손은 검출되지만 정의된 지문자 자세가 아닌 구간 |
 | 손 미검출 | 별도 클래스 학습보다 손 검출 여부 규칙에 우선 사용 |
@@ -373,7 +404,7 @@ data/raw/{sessionId}/
     "displayName": "ㄱ",
     "confidence": 0.9172
   },
-  "holdDurationMs": 700,
+  "holdDurationMs": 500,
   "confirmed": false,
   "modelVersion": "fingerspelling-v1.0.0"
 }
@@ -430,7 +461,8 @@ AI 서버는 다음 조건을 검사한다.
 - [ ] 손 개수를 1개로 제한한다.
 - [ ] 목표 10 FPS로 샘플링한다.
 - [ ] 모든 프레임에 단조 증가하는 타임스탬프와 시퀀스 번호를 붙인다.
-- [ ] 손이 없을 때도 `hand: null` 프레임을 보낸다.
+- [ ] 모든 프레임에 `frameStatus`를 기록한다.
+- [ ] 손 미검출 또는 처리 누락에도 `hand: null` 프레임을 보낸다.
 - [ ] 21개의 `landmarks`와 `worldLandmarks`를 원본 순서로 보낸다.
 - [ ] 추론 프레임에 라벨을 넣지 않는다.
 - [ ] 수집 라벨은 `segment.start`와 `segment.end`로만 보낸다.
@@ -441,7 +473,7 @@ AI 서버는 다음 조건을 검사한다.
 - [ ] 세션과 프레임 스키마를 검증한다.
 - [ ] 타임스탬프 기준으로 10 FPS 재샘플링한다.
 - [ ] 왼손과 오른손을 동일 기준으로 정규화한다.
-- [ ] 2초, 20프레임 모델 입력 윈도우를 생성한다.
+- [ ] 1.2초, 12프레임 모델 입력 윈도우를 생성한다.
 - [ ] 참가자 단위로 학습, 검증, 테스트 데이터를 분리한다.
 - [ ] 원본 프레임과 가공 데이터를 별도 경로에 저장한다.
 - [ ] 확정되지 않은 후보와 최종 확정 결과를 구분해 응답한다.
