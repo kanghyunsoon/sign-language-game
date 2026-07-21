@@ -1,0 +1,49 @@
+import type { BattleBodyTransform, BattleLetterState, ServerBattleMessage } from "./battleTransportTypes";
+
+const TYPES = new Set(["START_MATCH", "MATCH_STARTED", "GAME_START", "SPAWN_LETTER", "REMOVE_LETTER_ACCEPTED", "REMOVE_LETTER_REJECTED", "SCORE_UPDATED", "COMBO_UPDATED", "ATTACK_CREATED", "ATTACK_APPLIED", "MATCH_FINISHED", "PLAYER_DISCONNECTED", "PLAYER_RECONNECTED", "BODY_TRANSFORM_BATCH", "BOARD_SNAPSHOT", "LETTER_SPAWNED_SYNC", "LETTER_STATE_SYNC", "LETTER_REMOVED_SYNC"]);
+const STATES = new Set<BattleLetterState>(["FALLING", "SETTLED", "REMOVING", "REMOVED"]);
+
+export class BattleMessageParseError extends Error {}
+
+export function parseBattleMessage(data: string | unknown): ServerBattleMessage {
+  let value: unknown = data;
+  if (typeof data === "string") {
+    try { value = JSON.parse(data) as unknown; } catch { throw new BattleMessageParseError("Battle message is not valid JSON."); }
+  }
+  const message = object(value, "message");
+  const type = string(message.type, "type");
+  if (!TYPES.has(type)) throw new BattleMessageParseError(`Unsupported battle message type: ${type}`);
+  number(message.sequence, "sequence");
+  if (type === "BODY_TRANSFORM_BATCH" || type === "BOARD_SNAPSHOT") array(message.bodies, "bodies").forEach(parseBody);
+  if (type === "LETTER_SPAWNED_SYNC") parseBody(object(message.body, "body"));
+  if (type === "LETTER_STATE_SYNC" && !STATES.has(string(message.state, "state") as BattleLetterState)) throw new BattleMessageParseError("Invalid letter state.");
+  validateRequired(message, type);
+  return message as unknown as ServerBattleMessage;
+}
+
+function parseBody(value: unknown): BattleBodyTransform {
+  const body = object(value, "body");
+  string(body.id, "body.id"); string(body.symbol, "body.symbol");
+  for (const key of ["x", "y", "angle", "velocityX", "velocityY", "angularVelocity"] as const) number(body[key], `body.${key}`);
+  if (!STATES.has(string(body.state, "body.state") as BattleLetterState)) throw new BattleMessageParseError("Invalid body state.");
+  return body as unknown as BattleBodyTransform;
+}
+
+function validateRequired(message: Record<string, unknown>, type: string): void {
+  const common: Record<string, readonly string[]> = {
+    MATCH_STARTED: ["matchId", "roomId", "playerIds", "startAt"], GAME_START: ["matchId", "roomId", "playerIds", "startAt"],
+    SPAWN_LETTER: ["matchId", "playerId", "letterId", "spawnIndex", "symbol", "spawnAt", "normalizedX", "initialAngle"],
+    REMOVE_LETTER_ACCEPTED: ["playerId", "letterId", "symbol", "score", "combo", "maxCombo", "removedCount", "acceptedAt"],
+    REMOVE_LETTER_REJECTED: ["code", "message", "rejectedAt"], SCORE_UPDATED: ["playerId", "score"], COMBO_UPDATED: ["playerId", "combo", "maxCombo"],
+    ATTACK_CREATED: ["attackId", "attackerPlayerId", "targetPlayerId", "attackType", "amount", "sourceCombo", "createdAt"], ATTACK_APPLIED: ["attackId", "attackerPlayerId", "targetPlayerId", "attackType", "amount", "sourceCombo", "createdAt"],
+    MATCH_FINISHED: ["matchId", "reason", "finishedAt"], PLAYER_DISCONNECTED: ["playerId"], PLAYER_RECONNECTED: ["playerId"],
+    BODY_TRANSFORM_BATCH: ["matchId", "playerId", "sentAt", "bodies"], BOARD_SNAPSHOT: ["matchId", "playerId", "sentAt", "bodies"],
+    LETTER_SPAWNED_SYNC: ["matchId", "playerId", "body"], LETTER_STATE_SYNC: ["matchId", "playerId", "letterId", "state"], LETTER_REMOVED_SYNC: ["matchId", "playerId", "letterId"],
+  };
+  for (const key of common[type] ?? []) if (!(key in message)) throw new BattleMessageParseError(`Missing ${key}.`);
+}
+
+function object(value: unknown, name: string): Record<string, unknown> { if (!value || typeof value !== "object" || Array.isArray(value)) throw new BattleMessageParseError(`${name} must be an object.`); return value as Record<string, unknown>; }
+function string(value: unknown, name: string): string { if (typeof value !== "string" || value.length === 0) throw new BattleMessageParseError(`${name} must be a non-empty string.`); return value; }
+function number(value: unknown, name: string): number { if (typeof value !== "number" || !Number.isFinite(value)) throw new BattleMessageParseError(`${name} must be finite.`); return value; }
+function array(value: unknown, name: string): readonly unknown[] { if (!Array.isArray(value)) throw new BattleMessageParseError(`${name} must be an array.`); return value; }

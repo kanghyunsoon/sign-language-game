@@ -1,0 +1,25 @@
+import type { HandBone } from "./types";
+
+export const HAND_BONES = [
+  { id: "palm-thumb", startIndex: 0, endIndex: 1, finger: "PALM" },
+  { id: "thumb-1", startIndex: 1, endIndex: 2, finger: "THUMB" },
+  { id: "thumb-2", startIndex: 2, endIndex: 3, finger: "THUMB" },
+  { id: "thumb-3", startIndex: 3, endIndex: 4, finger: "THUMB" },
+  { id: "palm-index", startIndex: 0, endIndex: 5, finger: "PALM" },
+  { id: "index-1", startIndex: 5, endIndex: 6, finger: "INDEX" },
+  { id: "index-2", startIndex: 6, endIndex: 7, finger: "INDEX" },
+  { id: "index-3", startIndex: 7, endIndex: 8, finger: "INDEX" },
+  { id: "palm-middle", startIndex: 5, endIndex: 9, finger: "PALM" },
+  { id: "middle-1", startIndex: 9, endIndex: 10, finger: "MIDDLE" },
+  { id: "middle-2", startIndex: 10, endIndex: 11, finger: "MIDDLE" },
+  { id: "middle-3", startIndex: 11, endIndex: 12, finger: "MIDDLE" },
+  { id: "palm-ring", startIndex: 9, endIndex: 13, finger: "PALM" },
+  { id: "ring-1", startIndex: 13, endIndex: 14, finger: "RING" },
+  { id: "ring-2", startIndex: 14, endIndex: 15, finger: "RING" },
+  { id: "ring-3", startIndex: 15, endIndex: 16, finger: "RING" },
+  { id: "palm-pinky", startIndex: 13, endIndex: 17, finger: "PALM" },
+  { id: "pinky-1", startIndex: 17, endIndex: 18, finger: "PINKY" },
+  { id: "pinky-2", startIndex: 18, endIndex: 19, finger: "PINKY" },
+  { id: "pinky-3", startIndex: 19, endIndex: 20, finger: "PINKY" },
+  { id: "palm-base", startIndex: 0, endIndex: 17, finger: "PALM" },
+] as const satisfies readonly HandBone[];

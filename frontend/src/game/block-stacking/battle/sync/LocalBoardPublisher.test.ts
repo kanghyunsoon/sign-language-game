@@ -1,0 +1,10 @@
+import { describe, expect, it } from "vitest";
+import { MockBattleTransport } from "../transport/MockBattleTransport";
+import { DEFAULT_BATTLE_SYNC_CONFIG } from "./InterpolationConfig";
+import { LocalBoardPublisher } from "./LocalBoardPublisher";
+const state = { id: "a", symbol: "ㄱ", x: 50, y: 50, angle: 0, velocityX: 1, velocityY: 0, angularVelocity: 0, settled: false };
+describe("LocalBoardPublisher", () => {
+  it("does not publish transforms every frame", async () => { const t = new MockBattleTransport(); await t.connect({ url: "ws://x", roomId: "r", playerId: "p" }); const p = new LocalBoardPublisher(t, { ...DEFAULT_BATTLE_SYNC_CONFIG, snapshotPublishIntervalMs: 1000 }, "m", "p"); p.update(0, [state], 100, 100); p.update(10, [state], 100, 100); expect(t.sent).toHaveLength(1); });
+  it("only includes moving bodies in transform batches", async () => { const t = new MockBattleTransport(); await t.connect({ url: "ws://x", roomId: "r", playerId: "p" }); const p = new LocalBoardPublisher(t, { ...DEFAULT_BATTLE_SYNC_CONFIG, snapshotPublishIntervalMs: 1000 }, "m", "p"); p.update(0, [{ ...state, settled: true }], 100, 100); p.update(100, [{ ...state, settled: true }], 100, 100); expect(t.sent).toHaveLength(1); });
+  it("publishes a periodic full snapshot", async () => { const t = new MockBattleTransport(); await t.connect({ url: "ws://x", roomId: "r", playerId: "p" }); const p = new LocalBoardPublisher(t, DEFAULT_BATTLE_SYNC_CONFIG, "m", "p"); p.update(0, [state], 100, 100); p.update(1000, [state], 100, 100); expect(t.sent.map((m) => m.type)).toEqual(["BOARD_SNAPSHOT", "BOARD_SNAPSHOT"]); });
+});

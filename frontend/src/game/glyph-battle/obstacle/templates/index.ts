@@ -1,0 +1,13 @@
+export { GIYEOK_TEMPLATE } from "./giyeok";
+export { NIEUN_TEMPLATE } from "./nieun";
+export { MIEUM_TEMPLATE } from "./mieum";
+export { IEUNG_TEMPLATE } from "./ieung";
+export { SIOT_TEMPLATE } from "./siot";
+export { JIEUT_TEMPLATE } from "./jieut";
+export { A_TEMPLATE } from "./a";
+export { EO_TEMPLATE } from "./eo";
+export { O_TEMPLATE } from "./o";
+export { U_TEMPLATE } from "./u";
+export { EU_TEMPLATE } from "./eu";
+export { I_TEMPLATE } from "./i";
+export * from "./expanded";
