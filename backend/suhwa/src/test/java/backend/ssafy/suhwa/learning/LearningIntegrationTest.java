@@ -65,4 +65,32 @@ class LearningIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].sign.id").value(sign.getId()));
     }
+
+    @Test
+    void listSigns_missingCategoryParam_returns400NotUnauthenticated() throws Exception {
+        User user = userRepository.save(User.builder()
+                .email("learning-test-" + System.nanoTime() + "@test.com")
+                .passwordHash("hash")
+                .nickname("테스터")
+                .build());
+        String token = jwtTokenProvider.createAccessToken(user.getId());
+
+        mockMvc.perform(get("/signs").header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void listSigns_invalidCategoryEnum_returns400NotUnauthenticated() throws Exception {
+        User user = userRepository.save(User.builder()
+                .email("learning-test-" + System.nanoTime() + "@test.com")
+                .passwordHash("hash")
+                .nickname("테스터")
+                .build());
+        String token = jwtTokenProvider.createAccessToken(user.getId());
+
+        mockMvc.perform(get("/signs")
+                        .header("Authorization", "Bearer " + token)
+                        .param("category", "INVALID"))
+                .andExpect(status().isBadRequest());
+    }
 }
