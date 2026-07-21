@@ -45,3 +45,23 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+// 로컬 개발 편의: .env가 있으면 읽어서 bootRun/test 태스크의 환경 변수로 주입한다.
+// (.env는 gitignore 대상이며, 실제 배포 환경에서는 플랫폼이 환경 변수를 직접 주입한다.)
+def envFile = file('.env')
+if (envFile.exists()) {
+    def envVars = [:]
+    envFile.eachLine { line ->
+        line = line.trim()
+        if (line && !line.startsWith('#') && line.contains('=')) {
+            def parts = line.split('=', 2)
+            envVars[parts[0].trim()] = parts[1].trim()
+        }
+    }
+    tasks.withType(Test).configureEach {
+        environment(envVars)
+    }
+    tasks.named('bootRun') {
+        environment(envVars)
+    }
+}
