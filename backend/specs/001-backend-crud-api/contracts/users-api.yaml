@@ -1,0 +1,67 @@
+openapi: 3.0.3
+info:
+  title: 회원 프로필 API (users)
+  version: "1.0.0"
+  description: >
+    내 프로필 조회/수정, 회원 탈퇴. spec.md User Story 2 / FR-011~FR-014 대응.
+tags:
+  - name: Users
+paths:
+  /users/me:
+    get:
+      tags: [Users]
+      summary: 내 프로필 조회
+      operationId: getMyProfile
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: 프로필 조회 성공 (FR-011)
+          content:
+            application/json:
+              schema:
+                $ref: 'auth-api.yaml#/components/schemas/UserProfileResponse'
+
+    patch:
+      tags: [Users]
+      summary: 내 프로필 수정
+      operationId: updateMyProfile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        "200":
+          description: 수정 성공, 변경된 프로필 반환 (FR-012)
+          content:
+            application/json:
+              schema:
+                $ref: 'auth-api.yaml#/components/schemas/UserProfileResponse'
+
+    delete:
+      tags: [Users]
+      summary: 회원 탈퇴
+      operationId: withdraw
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: >
+            탈퇴 처리 완료 - Soft Delete, 이메일 변형, 보유 재발급 토큰 전체 무효화 (FR-013, FR-014)
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    UpdateProfileRequest:
+      type: object
+      properties:
+        nickname: { type: string, maxLength: 50 }
+        profileImageUrl: { type: string, nullable: true }
