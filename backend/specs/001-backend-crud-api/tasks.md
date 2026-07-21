@@ -130,23 +130,23 @@ plan.md Project Structure를 따름 — 프론트엔드 없는 단일 Spring Boo
 
 ### Implementation for User Story 4
 
-- [ ] T032 [P] [US4] `GameRoom` 엔티티(roomCode/hostUserId/guestUserId/hostReady/guestReady/status, `BaseTimeEntity` 상속으로 `updated_at` 확보) + `GameRoomRepository`(room_code 조회, CLOSED+5분 경과 방 조회) 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/domain/GameRoom.java`, `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/repository/GameRoomRepository.java`
-- [ ] T033 [P] [US4] `GameSession` 엔티티(player1Id/player2Id/player1Score/player2Score/winnerId nullable/startedAt/endedAt) + `GameSessionRepository` 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/domain/GameSession.java`, `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/repository/GameSessionRepository.java`
-- [ ] T034 [P] [US4] DTO 생성(`GameRoomResponse`/`JoinRoomRequest`/`ReadyRequest`/`GameResultRequest`/`GameResultResponse`) — `contracts/game-rooms-api.yaml` 기준(결과 요청은 `hostScore`/`guestScore` 역할 기반, `winnerUserId` 없음) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/dto/`
-- [ ] T035 [US4] `GameRoomService.create`/`join` 구현(room_code 생성+UNIQUE 충돌 시 재시도 research.md#5, 정원 초과·IN_PROGRESS 방 입장 거부 FR-020) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/service/GameRoomService.java` (T032, T005 의존)
-- [ ] T036 [US4] `GameRoomService.leave` 구현(WAITING: 명시적 퇴장 즉시 처리 FR-021, 방장이면 위임 FR-022, 마지막 인원이면 CLOSED FR-023; IN_PROGRESS: 위임 없이 즉시 CLOSED+결과 미저장 FR-021/023) — HTTP 타입 없이 `roomId`/`userId` 순수 파라미터만 사용(research.md#9) in 같은 파일 (T035 의존)
-- [ ] T037 [US4] `GameRoomService.setReady`/`start` 구현(준비 상태 갱신 FR-025, `hostReady && guestReady`일 때만 시작 허용 후 IN_PROGRESS 전환 FR-026) in 같은 파일 (T036 의존)
-- [ ] T038 [US4] `GameRoomService.reportResult` 구현 — **`room.status == IN_PROGRESS`일 때만 처리 허용, 그 외(중복 보고로 이미 CLOSED / FR-023 나가기로 무효화되어 CLOSED 모두 포함)는 사유 구분 없이 예외로 거부(409, FR-028)**(data-model.md GameSession 검증 규칙 참고). 통과 시 host_user_id→player1_id, guest_user_id→player2_id 고정 매핑, 두 점수 비교로 서버가 winner 계산·동점 시 null, `game_sessions` 저장+`users.win_count`/`loss_count` 갱신을 트랜잭션으로 처리, 방 CLOSED 전환(FR-027/029) in 같은 파일 (T033, T037, T005 의존)
-- [ ] T039 [US4] `GameRoomApi` 인터페이스 + `GameRoomController` 구현(생성/입장/나가기/준비/시작/결과 6개 엔드포인트, 요청자가 방 참가자인지 검증 후 서비스에 `userId` 전달) — `contracts/game-rooms-api.yaml` 기준 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/controller/` (T038, T009 의존)
-- [ ] T040 [US4] `GameRoomCleanupScheduler`(`@Scheduled` + `@EnableScheduling`, `status = CLOSED AND updated_at < now() - 5분` 방 삭제, research.md#3) 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/scheduler/GameRoomCleanupScheduler.java` (T032 의존)
+- [X] T032 [P] [US4] `GameRoom` 엔티티(roomCode/hostUserId/guestUserId/hostReady/guestReady/status, `BaseTimeEntity` 상속으로 `updated_at` 확보) + `GameRoomRepository`(room_code 조회, CLOSED+5분 경과 방 조회) 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/domain/GameRoom.java`, `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/repository/GameRoomRepository.java`
+- [X] T033 [P] [US4] `GameSession` 엔티티(player1Id/player2Id/player1Score/player2Score/winnerId nullable/startedAt/endedAt) + `GameSessionRepository` 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/domain/GameSession.java`, `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/repository/GameSessionRepository.java`
+- [X] T034 [P] [US4] DTO 생성(`GameRoomResponse`/`JoinRoomRequest`/`ReadyRequest`/`GameResultRequest`/`GameResultResponse`) — `contracts/game-rooms-api.yaml` 기준(결과 요청은 `hostScore`/`guestScore` 역할 기반, `winnerUserId` 없음) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/dto/`
+- [X] T035 [US4] `GameRoomService.create`/`join` 구현(room_code 생성+UNIQUE 충돌 시 재시도 research.md#5, 정원 초과·IN_PROGRESS 방 입장 거부 FR-020) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/service/GameRoomService.java` (T032, T005 의존)
+- [X] T036 [US4] `GameRoomService.leave` 구현(WAITING: 명시적 퇴장 즉시 처리 FR-021, 방장이면 위임 FR-022, 마지막 인원이면 CLOSED FR-023; IN_PROGRESS: 위임 없이 즉시 CLOSED+결과 미저장 FR-021/023) — HTTP 타입 없이 `roomId`/`userId` 순수 파라미터만 사용(research.md#9) in 같은 파일 (T035 의존)
+- [X] T037 [US4] `GameRoomService.setReady`/`start` 구현(준비 상태 갱신 FR-025, `hostReady && guestReady`일 때만 시작 허용 후 IN_PROGRESS 전환 FR-026) in 같은 파일 (T036 의존)
+- [X] T038 [US4] `GameRoomService.reportResult` 구현 — **`room.status == IN_PROGRESS`일 때만 처리 허용, 그 외(중복 보고로 이미 CLOSED / FR-023 나가기로 무효화되어 CLOSED 모두 포함)는 사유 구분 없이 예외로 거부(409, FR-028)**(data-model.md GameSession 검증 규칙 참고). 통과 시 host_user_id→player1_id, guest_user_id→player2_id 고정 매핑, 두 점수 비교로 서버가 winner 계산·동점 시 null, `game_sessions` 저장+`users.win_count`/`loss_count` 갱신을 트랜잭션으로 처리, 방 CLOSED 전환(FR-027/029) in 같은 파일 (T033, T037, T005 의존)
+- [X] T039 [US4] `GameRoomApi` 인터페이스 + `GameRoomController` 구현(생성/입장/나가기/준비/시작/결과 6개 엔드포인트, 요청자가 방 참가자인지 검증 후 서비스에 `userId` 전달) — `contracts/game-rooms-api.yaml` 기준 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/controller/` (T038, T009 의존)
+- [X] T040 [US4] `GameRoomCleanupScheduler`(`@Scheduled` + `@EnableScheduling`, `status = CLOSED AND updated_at < now() - 5분` 방 삭제, research.md#3) 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/scheduler/GameRoomCleanupScheduler.java` (T032 의존)
 
 ### Tests for User Story 4 (구현 검증)
 
-- [ ] T041 [P] [US4] `GameRoomRepository` room_code 조회/정원·상태 필터 쿼리 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/repository/GameRoomRepositoryTest.java`
-- [ ] T042 [P] [US4] `GameRoomService` 상태 전이 규칙 테스트(WAITING 나가기=위임, IN_PROGRESS 나가기=즉시 CLOSED+무효화, ready 게이트, 승자 계산/동점 처리, `status != IN_PROGRESS`인 방에 대한 결과 보고 거부 — 중복 보고 케이스와 무효화된 방 케이스 둘 다 검증 FR-028) in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/service/GameRoomServiceTest.java`
-- [ ] T043 [P] [US4] `GameRoomController` 6개 엔드포인트 및 403/404/409 응답 MockMvc 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/controller/GameRoomControllerTest.java`
-- [ ] T044 [US4] 생성→입장→준비→시작→결과보고(중복 포함) 전체 흐름 통합 테스트(quickstart.md §4) in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/GameRoomLifecycleIntegrationTest.java`
-- [ ] T045 [P] [US4] `GameRoomCleanupScheduler`가 CLOSED+5분 경과 방만 삭제하고 나머지는 건드리지 않는지 검증하는 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/scheduler/GameRoomCleanupSchedulerTest.java`
+- [X] T041 [P] [US4] `GameRoomRepository` room_code 조회/정원·상태 필터 쿼리 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/repository/GameRoomRepositoryTest.java`
+- [X] T042 [P] [US4] `GameRoomService` 상태 전이 규칙 테스트(WAITING 나가기=위임, IN_PROGRESS 나가기=즉시 CLOSED+무효화, ready 게이트, 승자 계산/동점 처리, `status != IN_PROGRESS`인 방에 대한 결과 보고 거부 — 중복 보고 케이스와 무효화된 방 케이스 둘 다 검증 FR-028) in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/service/GameRoomServiceTest.java`
+- [X] T043 [P] [US4] `GameRoomController` 6개 엔드포인트 및 403/404/409 응답 MockMvc 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/controller/GameRoomControllerTest.java`
+- [X] T044 [US4] 생성→입장→준비→시작→결과보고(중복 포함) 전체 흐름 통합 테스트(quickstart.md §4) in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/GameRoomLifecycleIntegrationTest.java`
+- [X] T045 [P] [US4] `GameRoomCleanupScheduler`가 CLOSED+5분 경과 방만 삭제하고 나머지는 건드리지 않는지 검증하는 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/scheduler/GameRoomCleanupSchedulerTest.java`
 
 **Checkpoint**: User Story 1~4 독립적으로 완전히 동작·검증 가능.
 
