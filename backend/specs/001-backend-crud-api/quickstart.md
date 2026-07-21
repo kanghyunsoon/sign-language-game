@@ -6,7 +6,7 @@
 
 1. Java 17, MySQL(로컬 또는 컨테이너) 준비.
 2. `backend/suhwa/env.sample`을 참고해 `.env` 또는 환경변수 설정(`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`).
-3. `backend/jira-crud-backlog.md`의 DDL로 스키마를 생성하되, [data-model.md](./data-model.md)의 `game_rooms.updated_at` 컬럼 추가 사항을 반영한다.
+3. [data-model.md](./data-model.md)의 엔티티 정의를 기준으로 스키마를 생성한다(각 테이블의 필드/제약/FK는 data-model.md에 정리되어 있다).
 4. 애플리케이션 실행:
 
    ```bash
