@@ -4,7 +4,7 @@
   "confidence": {
     "candidate": 0.8,
     "maintain": 0.6,
-    "handDetection": 0.7,
+    "handDetection": 0.5,
     "windowAverage": 0.8
   },
   "timingMs": {
