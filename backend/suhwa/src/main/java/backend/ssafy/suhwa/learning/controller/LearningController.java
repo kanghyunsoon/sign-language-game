@@ -2,11 +2,9 @@ package backend.ssafy.suhwa.learning.controller;
 
 import backend.ssafy.suhwa.learning.domain.SignCategory;
 import backend.ssafy.suhwa.learning.dto.SignResponse;
-import backend.ssafy.suhwa.learning.dto.TestResultRequest;
 import backend.ssafy.suhwa.learning.dto.WrongAnswerRequest;
 import backend.ssafy.suhwa.learning.dto.WrongAnswerResponse;
 import backend.ssafy.suhwa.learning.service.SignService;
-import backend.ssafy.suhwa.learning.service.TestResultService;
 import backend.ssafy.suhwa.learning.service.WrongAnswerService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +18,6 @@ public class LearningController implements LearningApi {
 
     private final SignService signService;
     private final WrongAnswerService wrongAnswerService;
-    private final TestResultService testResultService;
 
     @Override
     public ResponseEntity<List<SignResponse>> listSigns(SignCategory category) {
@@ -39,12 +36,5 @@ public class LearningController implements LearningApi {
     @Override
     public ResponseEntity<List<WrongAnswerResponse>> listWrongAnswers(Long userId, SignCategory category) {
         return ResponseEntity.ok(wrongAnswerService.getRecentWrongAnswers(userId, category));
-    }
-
-    @Override
-    public ResponseEntity<Void> reportTestResult(Long userId, TestResultRequest request) {
-        testResultService.reportTestResult(
-                userId, request.category(), request.totalCount(), request.correctCount());
-        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 }

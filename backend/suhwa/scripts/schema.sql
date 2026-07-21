@@ -68,26 +68,6 @@ CREATE TABLE IF NOT EXISTS signs (
   COMMENT='학습 콘텐츠(자음/모음/숫자/단어)';
 
 -- ============================================
--- 3-1. test_results — (신규) 테스트 결과 요약. data-model.md에는 FR-018(테스트 결과 보고)에
---    대응하는 테이블이 정의되어 있지 않았음 — contracts/learning-api.yaml의
---    POST /test-results 구현 과정에서 발견한 누락으로, 문제별 상세 로그 없이
---    카테고리/총 문제 수/정답 수만 저장하는 최소 형태로 추가함(정답 수 기반 펫 경험치
---    반영은 Out of Scope이므로 그 외 용도로는 사용하지 않음).
--- ============================================
-CREATE TABLE IF NOT EXISTS test_results (
-    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id         BIGINT NOT NULL,
-    category        ENUM('CONSONANT','VOWEL','NUMBER','WORD') NOT NULL,
-    total_count     INT NOT NULL,
-    correct_count   INT NOT NULL,
-    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_test_result_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT,
-    INDEX idx_test_results_user (user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='테스트 결과 요약 (FR-018)';
-
--- ============================================
 -- 4. wrong_answer_logs — 오답 발생 로그(카테고리별 최근 5개 조회용, 비율 계산 없음)
 -- ============================================
 CREATE TABLE IF NOT EXISTS wrong_answer_logs (

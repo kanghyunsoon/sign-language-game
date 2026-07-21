@@ -4,7 +4,6 @@ import backend.ssafy.suhwa.common.config.OpenApiConfig;
 import backend.ssafy.suhwa.common.security.LoginUser;
 import backend.ssafy.suhwa.learning.domain.SignCategory;
 import backend.ssafy.suhwa.learning.dto.SignResponse;
-import backend.ssafy.suhwa.learning.dto.TestResultRequest;
 import backend.ssafy.suhwa.learning.dto.WrongAnswerRequest;
 import backend.ssafy.suhwa.learning.dto.WrongAnswerResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,9 +38,4 @@ public interface LearningApi {
     @GetMapping("/wrong-answers")
     ResponseEntity<List<WrongAnswerResponse>> listWrongAnswers(
             @LoginUser Long userId, @RequestParam SignCategory category);
-
-    @Operation(summary = "테스트 결과 보고", description = "정답 수 기반 펫 경험치 반영은 1차 범위 제외(Out of Scope)")
-    @ApiResponse(responseCode = "201", description = "결과 저장 (FR-018)")
-    @PostMapping("/test-results")
-    ResponseEntity<Void> reportTestResult(@LoginUser Long userId, @RequestBody @Valid TestResultRequest request);
 }

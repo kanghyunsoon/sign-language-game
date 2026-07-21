@@ -11,10 +11,8 @@ import backend.ssafy.suhwa.common.exception.BusinessException;
 import backend.ssafy.suhwa.common.exception.ErrorCode;
 import backend.ssafy.suhwa.learning.domain.Sign;
 import backend.ssafy.suhwa.learning.domain.SignCategory;
-import backend.ssafy.suhwa.learning.dto.TestResultRequest;
 import backend.ssafy.suhwa.learning.dto.WrongAnswerRequest;
 import backend.ssafy.suhwa.learning.service.SignService;
-import backend.ssafy.suhwa.learning.service.TestResultService;
 import backend.ssafy.suhwa.learning.service.WrongAnswerService;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -44,9 +42,6 @@ class LearningControllerTest {
 
     @MockitoBean
     private WrongAnswerService wrongAnswerService;
-
-    @MockitoBean
-    private TestResultService testResultService;
 
     @BeforeEach
     void setAuthenticatedUser() {
@@ -93,14 +88,5 @@ class LearningControllerTest {
 
         mockMvc.perform(get("/wrong-answers").param("category", "VOWEL"))
                 .andExpect(status().isOk());
-    }
-
-    @Test
-    void reportTestResult_returns201() throws Exception {
-        mockMvc.perform(post("/test-results")
-                        .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(
-                                new TestResultRequest(SignCategory.WORD, 10, 7))))
-                .andExpect(status().isCreated());
     }
 }
