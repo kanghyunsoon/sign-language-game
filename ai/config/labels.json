@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "status": "draft",
+  "status": "fixed",
   "referenceSource": "https://sldict.korean.go.kr/",
   "recognitionModes": {
     "jamo": [

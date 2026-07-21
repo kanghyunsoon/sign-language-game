@@ -2,11 +2,11 @@
 
 ## 문서 상태
 
-- 문서 버전: 0.1.0
+- 문서 버전: 1.0.0
 - 데이터 스키마 버전: `1.0.0`
 - 대상: 웹 프론트엔드 개발자, AI 서버 개발자
 - 원본 규격: [지문자 MediaPipe 랜드마크 데이터 규격](./fingerspelling-landmark-data-contract.md)
-- 상태: 프론트엔드 협의용 초안
+- 상태: 확정
 
 이 문서는 프론트엔드가 카메라 영상에서 MediaPipe 손 랜드마크를 추출하고 AI 서버로 전송하기 위해 필요한 구현 기준만 정리한다. 원본 사진과 영상은 AI 서버로 보내지 않는다.
 
@@ -21,8 +21,9 @@
 | 전송 목표 주기 | 100ms |
 | 전송 목표 FPS | 10 FPS |
 | 프레임 특징점 | `landmarks [21, 3]`, `worldLandmarks [21, 3]` |
-| 모델 관찰 구간 | 1.2초, 12프레임 |
-| 서비스 확정시간 | 600ms |
+| 모델 입력 | 프레임별 `worldLandmarks` 63차원 |
+| 서비스 집계 구간 | 실제 타임스탬프 기준 1,200ms |
+| 최소 유효 프레임 비율 | 80% |
 | 일시적 실패 허용 | 200ms |
 | 원본 영상 전송 | 금지 |
 
@@ -42,9 +43,9 @@
 ### AI 서버
 
 - 메시지 스키마와 순서를 검증한다.
-- 10 FPS 기준으로 프레임을 재샘플링한다.
+- 각 유효 프레임을 63차원으로 정규화해 독립적으로 추론한다.
 - 좌우 손, 위치, 크기를 정규화한다.
-- 최근 12프레임을 학습과 동일한 방식으로 전처리한다.
+- 목표 클래스의 프레임별 신뢰도를 실제 타임스탬프 기준 1,200ms 동안 집계한다.
 - 후보, 유지시간 및 확정 결과를 반환한다.
 
 ## 3. 세션 흐름
@@ -54,6 +55,7 @@
   -> MediaPipe 초기화
   -> WebSocket 연결
   -> session.start 전송
+  -> target.set 전송
   -> landmark.frame 반복 전송
   <- prediction.result 반복 수신
   -> session.end 전송
@@ -171,6 +173,14 @@ interface LandmarkFrameMessage {
   hand: HandPayload | null;
 }
 
+interface TargetSetMessage {
+  schemaVersion: SchemaVersion;
+  messageType: "target.set";
+  sessionId: string;
+  targetLabelId: string;
+  setTimestampMs: number;
+}
+
 interface SessionEndMessage {
   schemaVersion: SchemaVersion;
   messageType: "session.end";
@@ -186,11 +196,15 @@ interface PredictionResultMessage {
   sequenceNumber: number;
   captureTimestampMs: number;
   status: "none" | "transition" | "candidate" | "confirmed";
+  targetLabelId: string;
   prediction: {
     labelId: string;
     displayName: string;
     confidence: number;
   } | null;
+  targetConfidence: number;
+  windowAverageConfidence: number;
+  validFrameRatio: number;
   holdDurationMs: number;
   confirmed: boolean;
   modelVersion: string;
@@ -231,7 +245,23 @@ interface PredictionResultMessage {
 
 `sessionId`는 카메라 세션마다 새 UUID를 생성한다. 재연결했을 때 이전 버퍼를 이어 쓰지 않고 새 세션을 시작한다.
 
-### 6.1 세션 종료 메시지
+### 6.1 목표 지문자 설정
+
+추론을 시작하거나 문제의 목표 지문자가 바뀌면 프레임보다 먼저 `target.set`을 전송한다. 서버는 이 메시지를 받으면 이전 후보와 집계 구간을 초기화한다.
+
+```json
+{
+  "schemaVersion": "1.0.0",
+  "messageType": "target.set",
+  "sessionId": "0190f744-8f64-7b17-a032-8a4c12d9b701",
+  "targetLabelId": "consonant_giyeok",
+  "setTimestampMs": 1000
+}
+```
+
+`targetLabelId`에는 지문자 31개 ID만 사용할 수 있다. `none`, `transition`, 숫자 ID는 보낼 수 없다.
+
+### 6.2 세션 종료 메시지
 
 카메라 사용이 끝나면 마지막 프레임 이후 한 번 전송한다.
 
@@ -381,12 +411,16 @@ JSON 전송 시 모든 좌표는 유한한 숫자여야 한다. `NaN`, `Infinity
   "sequenceNumber": 48,
   "captureTimestampMs": 4800,
   "status": "confirmed",
+  "targetLabelId": "consonant_giyeok",
   "prediction": {
     "labelId": "consonant_giyeok",
     "displayName": "ㄱ",
     "confidence": 0.9172
   },
-  "holdDurationMs": 600,
+  "targetConfidence": 0.9172,
+  "windowAverageConfidence": 0.8841,
+  "validFrameRatio": 0.9167,
+  "holdDurationMs": 1200,
   "confirmed": true,
   "modelVersion": "fingerspelling-v1.0.0"
 }
@@ -395,6 +429,7 @@ JSON 전송 시 모든 좌표는 유한한 숫자여야 한다. `NaN`, `Infinity
 - `candidate`: 화면에 후보로 표시할 수 있지만 입력값으로 확정하지 않는다.
 - `confirmed`: 문자 입력값으로 한 번 반영한다.
 - `none`, `transition`: `prediction`은 `null`이다.
+- `windowAverageConfidence`와 `validFrameRatio`는 현재 1.2초 집계 구간의 값이다.
 - 같은 확정 결과가 반복 수신돼도 한 동작에서 한 번만 입력한다.
 - 동일 문자를 다시 입력하려면 서버가 전환 또는 해제 상태를 확인한 뒤 새 확정 결과를 보낸다.
 
@@ -439,6 +474,7 @@ AI 서버가 `error` 메시지를 보내면 `code`에 따라 처리한다.
 - [ ] MediaPipe Hand Landmarker가 `VIDEO`, 한 손 모드로 실행된다.
 - [ ] 프리뷰만 좌우 반전되고 MediaPipe 입력 영상은 반전되지 않는다.
 - [ ] `session.start`가 첫 프레임보다 먼저 전송된다.
+- [ ] 추론 시작과 목표 변경 시 `target.set`을 프레임보다 먼저 전송한다.
 - [ ] 10 FPS에 맞춰 시퀀스 번호와 촬영 타임스탬프가 증가한다.
 - [ ] `detected`, `not_detected`, `dropped`가 구분된다.
 - [ ] 검출 프레임에 각 21개의 이미지 및 월드 좌표가 들어간다.
@@ -452,12 +488,13 @@ AI 서버가 `error` 메시지를 보내면 `code`에 따라 처리한다.
 ## 15. 프론트엔드 수동 검증 시나리오
 
 1. 손을 보이지 않고 2초간 유지했을 때 `not_detected` 프레임이 약 20개 전송되는지 확인한다.
-2. 손을 보인 상태에서 1.2초 유지했을 때 12개 이상의 검출 프레임이 전송되는지 확인한다.
+2. 손을 보인 상태에서 1.2초 유지했을 때 유효 프레임 비율이 80% 이상이면 확정되는지 확인한다.
 3. 브라우저 처리를 의도적으로 지연했을 때 누락 구간이 `dropped`로 표시되는지 확인한다.
 4. 프리뷰를 좌우 반전해도 전송 좌표가 변경되지 않는지 확인한다.
 5. 왼손과 오른손에서 handedness와 점 21개가 모두 전송되는지 확인한다.
 6. WebSocket 재연결 후 세션 ID가 바뀌고 시퀀스 번호가 0부터 시작하는지 확인한다.
 7. 서버가 `candidate`를 보낼 때 문자가 입력되지 않고 `confirmed`에서 한 번만 입력되는지 확인한다.
+8. 목표를 바꿔 `target.set`을 다시 전송했을 때 이전 유지시간이 초기화되는지 확인한다.
 
 ## 16. 프론트엔드 전달 전 미확정 항목
 
