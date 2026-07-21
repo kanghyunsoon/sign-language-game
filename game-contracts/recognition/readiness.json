@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "modelVersion": "jamo-31-v1",
+  "confirmationAuthority": "FRONTEND_TEMPORAL_DECODER",
+  "evaluation": {
+    "sampleCount": 2790,
+    "sampling": "30 evenly-spaced sequences per symbol and capture session",
+    "trainingIndependent": false,
+    "warning": "The legacy model used a random sequence split across all three sessions. These results are a provisional safety gate, not independent model certification."
+  },
+  "criteria": {
+    "minimumConfirmationRate": 0.85,
+    "minimumCompetitivePrecision": 0.90
+  },
+  "classes": [
+    { "symbol": "ㄱ", "threshold": 0.5, "precision": 0.9512, "recall": 0.8778, "confirmationRate": 0.8667, "competitiveEligible": true },
+    { "symbol": "ㄴ", "threshold": 0.5, "precision": 1.0, "recall": 0.9667, "confirmationRate": 0.9556, "competitiveEligible": true },
+    { "symbol": "ㄷ", "threshold": 0.5, "precision": 0.9775, "recall": 0.9778, "confirmationRate": 0.9667, "competitiveEligible": true },
+    { "symbol": "ㄹ", "threshold": 0.5, "precision": 0.9524, "recall": 0.8889, "confirmationRate": 0.8889, "competitiveEligible": true },
+    { "symbol": "ㅁ", "threshold": 0.5, "precision": 0.9670, "recall": 0.9889, "confirmationRate": 0.9778, "competitiveEligible": true },
+    { "symbol": "ㅂ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅅ", "threshold": 0.9999, "precision": 0.4709, "recall": 0.9889, "confirmationRate": 0.0, "competitiveEligible": false, "reason": "ㅠ is classified as ㅅ; no precision-preserving threshold exists" },
+    { "symbol": "ㅇ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅈ", "threshold": 0.5, "precision": 1.0, "recall": 0.8778, "confirmationRate": 0.8667, "competitiveEligible": true },
+    { "symbol": "ㅊ", "threshold": 0.5, "precision": 0.9570, "recall": 0.9889, "confirmationRate": 0.9889, "competitiveEligible": true },
+    { "symbol": "ㅋ", "threshold": 0.5, "precision": 0.9885, "recall": 0.9556, "confirmationRate": 0.9556, "competitiveEligible": true },
+    { "symbol": "ㅌ", "threshold": 0.6576, "precision": 0.9032, "recall": 0.9889, "confirmationRate": 0.9333, "competitiveEligible": true },
+    { "symbol": "ㅍ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅎ", "threshold": 0.5, "precision": 1.0, "recall": 0.9889, "confirmationRate": 0.9889, "competitiveEligible": true },
+    { "symbol": "ㅏ", "threshold": 0.5, "precision": 0.95, "recall": 0.8444, "confirmationRate": 0.8444, "competitiveEligible": false, "reason": "confirmation rate below 85%" },
+    { "symbol": "ㅑ", "threshold": 0.5, "precision": 0.9195, "recall": 0.9222, "confirmationRate": 0.8889, "competitiveEligible": true },
+    { "symbol": "ㅓ", "threshold": 0.5, "precision": 0.9259, "recall": 0.8556, "confirmationRate": 0.8333, "competitiveEligible": false, "reason": "confirmation rate below 85%" },
+    { "symbol": "ㅕ", "threshold": 0.5356, "precision": 0.9014, "recall": 0.8111, "confirmationRate": 0.7111, "competitiveEligible": false, "reason": "confused with ㅖ" },
+    { "symbol": "ㅗ", "threshold": 0.6117, "precision": 0.9022, "recall": 0.9667, "confirmationRate": 0.9222, "competitiveEligible": true },
+    { "symbol": "ㅛ", "threshold": 0.5, "precision": 0.9390, "recall": 0.8667, "confirmationRate": 0.8556, "competitiveEligible": true },
+    { "symbol": "ㅜ", "threshold": 0.5, "precision": 0.9570, "recall": 0.9889, "confirmationRate": 0.9889, "competitiveEligible": true },
+    { "symbol": "ㅠ", "threshold": 0.9999, "precision": 0.0, "recall": 0.0, "confirmationRate": 0.0, "competitiveEligible": false, "reason": "all 90 sampled sequences classify as ㅅ" },
+    { "symbol": "ㅡ", "threshold": 0.5, "precision": 0.9670, "recall": 0.9889, "confirmationRate": 0.9778, "competitiveEligible": true },
+    { "symbol": "ㅣ", "threshold": 0.5, "precision": 0.9889, "recall": 0.9889, "confirmationRate": 0.9889, "competitiveEligible": true },
+    { "symbol": "ㅐ", "threshold": 0.5, "precision": 0.9, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅒ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅔ", "threshold": 0.5, "precision": 0.9730, "recall": 0.8444, "confirmationRate": 0.8, "competitiveEligible": false, "reason": "confirmation rate below 85%" },
+    { "symbol": "ㅖ", "threshold": 0.5808, "precision": 0.9074, "recall": 0.7111, "confirmationRate": 0.5444, "competitiveEligible": false, "reason": "confused with ㅕ" },
+    { "symbol": "ㅢ", "threshold": 0.5, "precision": 0.9570, "recall": 0.9889, "confirmationRate": 0.9889, "competitiveEligible": true },
+    { "symbol": "ㅚ", "threshold": 0.5, "precision": 0.9877, "recall": 0.8889, "confirmationRate": 0.8889, "competitiveEligible": true },
+    { "symbol": "ㅟ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true }
+  ]
+}

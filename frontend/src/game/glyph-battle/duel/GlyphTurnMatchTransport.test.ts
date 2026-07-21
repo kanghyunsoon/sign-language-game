@@ -1,0 +1,12 @@
+import { describe, expect, it, vi } from "vitest";
+import { StompGlyphTurnMatchTransport } from "./GlyphTurnMatchTransport";
+import { GlyphTurnCommandGateway } from "./GlyphTurnCommandGateway";
+import type { StompClientLike } from "../../block-stacking/battle/transport/StompBattleTransport";
+
+const playerId = "10000000-0000-4000-8000-000000000001"; const matchId = "40000000-0000-4000-8000-000000000001";
+class Client implements StompClientLike { listeners = new Map<string, (frame:{body:string}) => void>(); sent:string[]=[]; connect(_h:Readonly<Record<string,string>>, ok:()=>void){ok();} disconnect=vi.fn(); subscribe(destination:string, listener:(frame:{body:string})=>void){this.listeners.set(destination,listener);return{unsubscribe:vi.fn()};} send(destination:string,_h:Readonly<Record<string,string>>,body:string){this.sent.push(`${destination}|${body}`);} emit(destination:string,event:unknown){this.listeners.get(destination)?.({body:JSON.stringify(event)});} }
+describe("StompGlyphTurnMatchTransport",()=>{
+  it("uses the common player queue and match topic, then sends only a choice command",async()=>{const client=new Client();const transport=new StompGlyphTurnMatchTransport(()=>client);await transport.connect({url:"ws://game",roomId:"room",playerId,matchId});expect(client.listeners.has(`/queue/game/player/${playerId}`)).toBe(true);expect(client.listeners.has(`/topic/game/match/${matchId}`)).toBe(true);new GlyphTurnCommandGateway(matchId,transport,()=>100).choose("ㄱ",1);expect(client.sent[0]).toContain("GLYPH_TURN_CHOICE_COMMAND");});
+  it("ignores normal match events received through the shared player queue",async()=>{const client=new Client();const transport=new StompGlyphTurnMatchTransport(()=>client);await transport.connect({url:"ws://game",roomId:"room",playerId,matchId});client.emit(`/queue/game/player/${playerId}`, {type:"LINE_RACE_MATCH_SNAPSHOT",matchId,sequence:1});expect(transport.getConnectionState()).toBe("CONNECTED");});
+  it("does not deliver a malformed lock that exposes a symbol",async()=>{const client=new Client();const transport=new StompGlyphTurnMatchTransport(()=>client);const events:string[]=[];transport.subscribe(event=>events.push(event.type));await transport.connect({url:"ws://game",roomId:"room",playerId,matchId});client.emit(`/topic/game/match/${matchId}`, {type:"GLYPH_TURN_CHOICE_LOCKED",eventId:"70000000-0000-4000-8000-000000000001",matchId,sequence:1,occurredAt:1,turn:1,playerId:"you",symbol:"ㅊ"});expect(events).toEqual([]);expect(transport.getConnectionState()).toBe("ERROR");});
+});

@@ -1,0 +1,2 @@
+import {describe,expect,it} from "vitest";import {LineRaceInterpolationBuffer} from "./LineRaceInterpolationBuffer";
+describe("LineRaceInterpolationBuffer",()=>{it("smooths small corrections and snaps large divergence",()=>{const value=new LineRaceInterpolationBuffer(200,100);value.reset(10,0);value.push(50,100);expect(value.valueAt(200)).toBe(30);expect(value.valueAt(300)).toBe(50);value.push(300,400);expect(value.valueAt(400)).toBe(300);});});

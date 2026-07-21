@@ -1,0 +1,91 @@
+.recognitionWorkspace { display: grid; grid-template-columns: minmax(280px, 1.2fr) minmax(250px, .8fr); gap: 14px; margin-top: 16px; }
+.side { display: grid; gap: 12px; align-content: start; }
+.panel { background: rgba(255,255,255,.92); border: 1px solid rgba(103,64,87,.18); border-radius: 16px; padding: 14px; color: #3f2635; }
+.panel h2 { margin: 0 0 10px; font-size: 1rem; }
+.placeholder { min-height: 140px; display: grid; place-items: center; background: #f4edf2; border-radius: 12px; }
+.cards { display: grid; grid-auto-rows: 176px; gap: 10px; }
+.card { display: grid; place-items: center; gap: 4px; min-height: 78px; border: 2px solid #d8bdcb; border-radius: 12px; background: #fff; transition: transform .15s, border-color .15s; }
+.card strong, .incomingSymbol { font-size: 2rem; }
+.card span { font-size: .72rem; }
+.movePanel { display: grid; align-content: start; }
+.moveHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.moveHeader h2,.moveHeader span { margin: 0; }
+.moveHeader span { color: #6d6a64; font-size: .62rem; font-weight: 900; letter-spacing: .12em; }
+.moveHeader > strong { padding: 4px 8px; border: 1px solid #292929; border-radius: 999px; font-size: .65rem; }
+.turnPrompt { min-height: 1.2em; margin: 3px 0 7px !important; color: #55514b; }
+.movePanel .card { align-content: center; height: 176px; min-height: 176px; padding: 12px 10px; border: 2px solid #292929; border-radius: 10px; background: #faf8f1; box-shadow: 3px 3px 0 #29292918; }
+.movePanel .card > .cardGlyphText { display: grid; width: 92px; height: 78px; place-items: center; color: #33202b; font-family: Gulim, "굴림", "Malgun Gothic", "맑은 고딕", sans-serif; font-size: 4.35rem; font-weight: 400; line-height: 1; font-synthesis: none; }
+.movePanel .card h3 { margin: 0; font-size: 1.12rem; line-height: 1.15; }
+.movePanel .card small { max-width: 100%; overflow: hidden; color: #4f4943; font-size: .82rem; font-weight: 800; line-height: 1.3; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.movePanel .card em { color: #68615a; font-size: .74rem; font-style: normal; font-weight: 700; }
+.roleATTACK { border-top-color: #bc304e !important; }
+.roleGUARD { border-top-color: #7448a3 !important; }
+.roleFOCUS { border-top-color: #168797 !important; }
+.roleFINISHER { border-top-color: #c87513 !important; }
+.turnStatus { display: grid; justify-items: center; align-content: center; text-align: center; }
+.turnStatus > span { color: #77716a; font-size: .62rem; font-weight: 900; letter-spacing: .1em; }
+.hiddenChoice { display: grid; width: 60px; height: 78px; margin: 5px; place-items: center; border: 3px double #292929; border-radius: 6px 12px 5px 10px; background: repeating-linear-gradient(135deg,#f7f4ec,#f7f4ec 6px,#dedad1 7px,#f7f4ec 9px); transform: rotate(1deg); }
+.hiddenChoice strong { font-size: 2rem; }
+.hiddenChoice[data-locked="true"] { animation: choice-lock .26s ease-out; box-shadow: 4px 4px 0 #292929; }
+.recognized { transform: translateY(-4px); border-color: #e34783; }
+.cooldown { opacity: .56; }
+.consumed { animation: cardPulse .4s ease; }
+.statusGrid { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; margin: 0; }
+.statusGrid dt { color: #76576a; }
+.statusGrid dd { margin: 0; font-weight: 700; }
+.error { padding: 8px; border-radius: 8px; color: #8d1d39; background: #ffe8ee; }
+.keyboard { margin-top: 12px; padding-top: 10px; border-top: 1px solid #eadde4; }
+.keyboard > div { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 7px; }
+.keyboard button { min-width: 36px; min-height: 34px; }
+@keyframes cardPulse { 50% { transform: scale(.88); opacity: .55; } }
+@media (max-width: 860px) { .recognitionWorkspace { grid-template-columns: 1fr; } .cards { grid-template-columns: repeat(2,minmax(0,1fr)) !important; grid-auto-rows: 164px; } .movePanel .card { height: 164px; min-height: 164px; } }
+/* User-facing action feedback. Technical probabilities stay in the DEV details block. */
+.actionBanner { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 5px 10px; min-height: 54px; padding: 8px 12px; border: 2px solid #bfd1df; border-radius: 10px; background: #fff; box-shadow: 0 3px 10px #17324d12; }
+.actionBanner > div { display: grid; min-width: 0; gap: 1px; }
+.actionBanner strong { font-size: .86rem; }
+.actionBanner span { overflow: hidden; font-size: .73rem; text-overflow: ellipsis; white-space: nowrap; }
+.actionRECOGNIZING,.actionACTION_PENDING { border-style: dashed; border-color: #3276b1; background: #eef7ff; }
+.actionRECOGNIZING svg,.actionCONFIRMING svg,.actionACTION_PENDING svg { animation: recognition-spin 1.2s linear infinite; }
+.actionCONFIRMING { border-color: #7652aa; background: #f6f0ff; transform: scale(1.012); }
+.actionHAND_NOT_VISIBLE { border-style: dotted; color: #526477; background: #f5f7f9; }
+.actionSUCCESS { border-color: #27815a; background: #edfff6; }
+.actionSUCCESS { animation: feedback-pop .28s ease-out; }
+.actionREJECTED,.actionAMBIGUOUS { border-color: #bd7b2b; background: #fff8e9; }
+.actionRELEASE_REQUIRED { border-color: #7957a6; background: #f7f1ff; }
+.actionDISCONNECTED { border-color: #b64545; background: #fff1f1; }
+.actionRESULT_UNKNOWN { border-color: #5f7890; background: #f1f6fa; color: #29465f; }
+.progressTrack { grid-column: 1 / -1; height: 5px; overflow: hidden; border-radius: 999px; background: #cbddeb; }
+.progressTrack i { display: block; height: 100%; border-radius: inherit; background: #2572b5; transition: width 120ms ease; }
+.actionRing { --recognition-progress: 0deg; display: grid; width: 38px; height: 38px; place-items: center; border-radius: 50%; background: conic-gradient(#2a77b8 var(--recognition-progress), #d8e5ef 0); position: relative; }
+.actionRing::after { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: #fff; }
+.actionRing svg { position: relative; z-index: 1; }
+.card { position: relative; overflow: hidden; }
+.target { border-width: 2px !important; border-style: solid !important; border-color: #276da8 !important; box-shadow: inset 0 0 0 2px #d8edff; }
+.confirmed { border-color: #704da0 !important; transform: translateY(-2px); }
+.pending { border-style: dashed !important; }
+.cardProgress { position: absolute; bottom: 0; left: 0; height: 4px; background: #2677b7; transition: width 120ms ease; }
+.cardCharge { width: 0; animation-name: card-charge; animation-timing-function: cubic-bezier(.2,.8,.2,1); animation-fill-mode: forwards; }
+.incomingTarget { display: grid; justify-items: center; gap: 2px; padding: 6px; border: 2px solid transparent; border-radius: 9px; }
+.counterBadge { padding: 2px 6px; border-radius: 999px; background: #244f75; color: #fff; font-size: .62rem; font-weight: 900; }
+.counterSuccess { border-color: #27815a !important; background: #edfff6; }
+.counterRing { --counter-progress: 360deg; display: grid; width: 64px; height: 64px; place-items: center; border-radius: 50%; background: conic-gradient(#ef8a22 var(--counter-progress), #e8d8c7 0); }
+.counterRing::before { content: ""; grid-area: 1/1; width: 52px; height: 52px; border-radius: 50%; background: #fff; }
+.counterRing strong { grid-area: 1/1; z-index: 1; }
+.raceHud { display: grid; grid-template-columns: auto auto auto; align-items: center; gap: 4px 12px; min-width: min(520px,60vw); padding: 6px 10px; border: 1px solid #bfd1df; border-radius: 10px; background: #fff; }
+.raceHud b { justify-self: end; font-size: 1.05rem; }
+.raceHud p { grid-column: 1/-1; margin: 0; color: #615d56; font-size: .67rem; }
+.raceHud[data-final-ten="true"] { border-color: #d95252; background: #fff1f1; animation: final-ten-pulse .8s ease-in-out infinite alternate; }
+.distanceBars { grid-column: 1/-1; display: grid; gap: 3px; }
+.distanceBars i { display: block; height: 5px; border-radius: 5px; transition: width .18s linear; }
+.distanceBars i[data-runner="me"] { background: #2779b8; }
+.distanceBars i[data-runner="opponent"] { background: #d15a68; }
+@keyframes recognition-spin { to { transform: rotate(360deg); } }
+@keyframes feedback-pop { 50% { transform: scale(1.025); } }
+@keyframes choice-lock { 50% { transform: rotateY(90deg) scale(1.07); } }
+@keyframes card-charge { to { width: 100%; } }
+@keyframes final-ten-pulse { to { box-shadow: 0 0 0 3px #d9525233; } }
+@media (prefers-reduced-motion: reduce) {
+  .actionRECOGNIZING svg,.actionCONFIRMING svg,.actionACTION_PENDING svg,.actionSUCCESS,.raceHud[data-final-ten="true"] { animation: none; }
+  .actionCONFIRMING { transform: none; }
+  .card,.progressTrack i,.distanceBars i { transition: none; }
+}
