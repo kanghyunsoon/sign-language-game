@@ -160,16 +160,16 @@ plan.md Project Structure를 따름 — 프론트엔드 없는 단일 Spring Boo
 
 ### Implementation for User Story 5
 
-- [ ] T046 [US5] `UserRepository`에 랭킹 쿼리 메서드 추가(`deleted_at IS NULL`, `win_count DESC, loss_count ASC` Top5, 본인 순위 계산 — research.md#6) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/user/repository/UserRepository.java` (T005 의존)
-- [ ] T047 [P] [US5] DTO 생성(`RankingEntry`/`RankingResponse`) — `contracts/ranking-api.yaml` 기준 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/ranking/dto/`
-- [ ] T048 [US5] `RankingService` 구현(Top5 + 요청자 본인 순위 조합, 동점자는 패 수 적은 순 FR-032) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/ranking/service/RankingService.java` (T046 의존)
-- [ ] T049 [US5] `RankingApi` 인터페이스 + `RankingController` 구현(`GET /rankings`) — `contracts/ranking-api.yaml` 기준 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/ranking/controller/` (T048, T009 의존)
+- [X] T046 [US5] `UserRepository`에 랭킹 쿼리 메서드 추가(`deleted_at IS NULL`, `win_count DESC, loss_count ASC` Top5, 본인 순위 계산 — research.md#6) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/user/repository/UserRepository.java` (T005 의존)
+- [X] T047 [P] [US5] DTO 생성(`RankingEntry`/`RankingResponse`) — `contracts/ranking-api.yaml` 기준 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/ranking/dto/`
+- [X] T048 [US5] `RankingService` 구현(Top5 + 요청자 본인 순위 조합, 동점자는 패 수 적은 순 FR-032) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/ranking/service/RankingService.java` (T046 의존)
+- [X] T049 [US5] `RankingApi` 인터페이스 + `RankingController` 구현(`GET /rankings`) — `contracts/ranking-api.yaml` 기준 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/ranking/controller/` (T048, T009 의존)
 
 ### Tests for User Story 5 (구현 검증)
 
-- [ ] T050 [P] [US5] 랭킹 쿼리 테스트(Top5 정렬, 동점자 패수 적은 순, 탈퇴 유저 제외) in `backend/suhwa/src/test/java/backend/ssafy/suhwa/ranking/repository/RankingQueryTest.java`
-- [ ] T051 [P] [US5] `RankingController` MockMvc 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/ranking/controller/RankingControllerTest.java`
-- [ ] T052 [US5] 여러 계정 승/패 데이터 기반 Top5+본인순위+탈퇴제외 통합 테스트(quickstart.md §5) in `backend/suhwa/src/test/java/backend/ssafy/suhwa/ranking/RankingIntegrationTest.java`
+- [X] T050 [P] [US5] 랭킹 쿼리 테스트(Top5 정렬, 동점자 패수 적은 순, 탈퇴 유저 제외) in `backend/suhwa/src/test/java/backend/ssafy/suhwa/ranking/repository/RankingQueryTest.java`
+- [X] T051 [P] [US5] `RankingController` MockMvc 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/ranking/controller/RankingControllerTest.java`
+- [X] T052 [US5] 여러 계정 승/패 데이터 기반 Top5+본인순위+탈퇴제외 통합 테스트(quickstart.md §5) in `backend/suhwa/src/test/java/backend/ssafy/suhwa/ranking/RankingIntegrationTest.java`
 
 **Checkpoint**: User Story 1~5 전부 독립적으로 완전히 동작·검증 가능.
 
