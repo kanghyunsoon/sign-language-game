@@ -179,9 +179,9 @@ plan.md Project Structure를 따름 — 프론트엔드 없는 단일 Spring Boo
 
 **Purpose**: 어떤 User Story에도 속하지 않는 항목. 성장 요소(펫)·출석체크는 이번 1차 범위에서 **데이터 구조(엔티티)만** 준비하고 API/서비스/컨트롤러는 만들지 않는다(spec.md Out of Scope). 다른 어떤 단계와도 의존 관계가 없어 언제 수행해도 무방하다.
 
-- [ ] T053 [P] `UserPet` 엔티티(userId UNIQUE, name/level/exp, `BaseTimeEntity` 상속) + `UserPetRepository` 생성(서비스·컨트롤러 없음) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/growth/domain/UserPet.java`, `backend/suhwa/src/main/java/backend/ssafy/suhwa/growth/repository/UserPetRepository.java`
-- [ ] T054 [P] `Attendance` 엔티티(userId+attendanceDate UNIQUE, streakCount) + `AttendanceRepository` 생성(서비스·컨트롤러 없음) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/growth/domain/Attendance.java`, `backend/suhwa/src/main/java/backend/ssafy/suhwa/growth/repository/AttendanceRepository.java`
-- [ ] T055 [P] `UserPet`/`Attendance` 매핑 오류 없이 JPA 컨텍스트가 로드되는지 확인하는 테스트(quickstart.md §6) in `backend/suhwa/src/test/java/backend/ssafy/suhwa/growth/GrowthEntityMappingTest.java`
+- [X] T053 [P] `UserPet` 엔티티(userId UNIQUE, name/level/exp, `BaseTimeEntity` 상속) + `UserPetRepository` 생성(서비스·컨트롤러 없음) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/growth/domain/UserPet.java`, `backend/suhwa/src/main/java/backend/ssafy/suhwa/growth/repository/UserPetRepository.java`
+- [X] T054 [P] `Attendance` 엔티티(userId+attendanceDate UNIQUE, streakCount) + `AttendanceRepository` 생성(서비스·컨트롤러 없음) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/growth/domain/Attendance.java`, `backend/suhwa/src/main/java/backend/ssafy/suhwa/growth/repository/AttendanceRepository.java`
+- [X] T055 [P] `UserPet`/`Attendance` 매핑 오류 없이 JPA 컨텍스트가 로드되는지 확인하는 테스트(quickstart.md §6) in `backend/suhwa/src/test/java/backend/ssafy/suhwa/growth/GrowthEntityMappingTest.java`
 
 ---
 
@@ -189,10 +189,10 @@ plan.md Project Structure를 따름 — 프론트엔드 없는 단일 Spring Boo
 
 **Purpose**: 전체 스토리에 걸친 마무리 점검
 
-- [ ] T056 `./gradlew test` 전체 통과 확인(plan.md Summary의 기능 완료 기준)
-- [ ] T057 `quickstart.md` §1~§6 전체 시나리오 수동/curl 검증
-- [ ] T058 [P] Swagger UI에서 구현된 17개 REST 엔드포인트(T027/`POST /test-results` 제거로 18→17)가 모두 올바른 도메인 Tag로 노출되는지 최종 확인(SC-001)
-- [ ] T059 각 서비스가 던지는 예외를 `GlobalExceptionHandler`가 빠짐없이 처리하는지 점검(404/403/409 등 계약된 응답 코드와 일치하는지 `contracts/*.yaml` 대조)
+- [X] T056 `./gradlew test` 전체 통과 확인(plan.md Summary의 기능 완료 기준) — 57개 테스트 통과
+- [X] T057 `quickstart.md` §1~§6 전체 시나리오 수동/curl 검증 — bootRun 후 회원가입/로그인/미인증 401/랭킹/게임방 생성 등 직접 확인, 나머지는 통합 테스트로 커버. 검증 중 미인증 요청이 403을 반환하는 버그 발견·수정(SecurityConfig AuthenticationEntryPoint 추가)
+- [X] T058 [P] Swagger UI에서 구현된 17개 REST 엔드포인트(T027/`POST /test-results` 제거로 18→17)가 모두 올바른 도메인 Tag로 노출되는지 최종 확인(SC-001) — `/v3/api-docs` 직접 조회로 17개 전부 확인
+- [X] T059 각 서비스가 던지는 예외를 `GlobalExceptionHandler`가 빠짐없이 처리하는지 점검(404/403/409 등 계약된 응답 코드와 일치하는지 `contracts/*.yaml` 대조) — 모든 BusinessException throw 지점을 계약과 대조, 누락 없음
 
 ---
 
