@@ -25,6 +25,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
     compileOnly 'org.projectlombok:lombok'
     runtimeOnly 'com.mysql:mysql-connector-j'
     annotationProcessor 'org.projectlombok:lombok'
@@ -33,6 +36,7 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-websocket-test'
+    testRuntimeOnly 'com.h2database:h2'
     testCompileOnly 'org.projectlombok:lombok'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testAnnotationProcessor 'org.projectlombok:lombok'
@@ -40,4 +44,24 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+// 로컬 개발 편의: .env가 있으면 읽어서 bootRun/test 태스크의 환경 변수로 주입한다.
+// (.env는 gitignore 대상이며, 실제 배포 환경에서는 플랫폼이 환경 변수를 직접 주입한다.)
+def envFile = file('.env')
+if (envFile.exists()) {
+    def envVars = [:]
+    envFile.eachLine { line ->
+        line = line.trim()
+        if (line && !line.startsWith('#') && line.contains('=')) {
+            def parts = line.split('=', 2)
+            envVars[parts[0].trim()] = parts[1].trim()
+        }
+    }
+    tasks.withType(Test).configureEach {
+        environment(envVars)
+    }
+    tasks.named('bootRun') {
+        environment(envVars)
+    }
 }
