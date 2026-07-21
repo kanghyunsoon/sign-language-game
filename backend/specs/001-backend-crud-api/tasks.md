@@ -78,19 +78,19 @@ plan.md Project Structure를 따름 — 프론트엔드 없는 단일 Spring Boo
 
 ### Implementation for User Story 2
 
-- [ ] T012 [P] [US2] `RefreshToken` 엔티티(userId/token/expiresAt/revokedAt) + `RefreshTokenRepository` 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/auth/domain/RefreshToken.java`, `backend/suhwa/src/main/java/backend/ssafy/suhwa/auth/repository/RefreshTokenRepository.java`
-- [ ] T013 [P] [US2] DTO 생성(`SignupRequest`/`LoginRequest`/`RefreshRequest`/`TokenResponse`, `UserProfileResponse`/`UpdateProfileRequest`) — `contracts/auth-api.yaml`, `contracts/users-api.yaml` 기준 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/auth/dto/`, `backend/suhwa/src/main/java/backend/ssafy/suhwa/user/dto/`
-- [ ] T014 [US2] `UserService` 구현(가입 시 이메일 중복 검증+BCrypt 해싱 FR-005/006, 프로필 조회/수정 FR-011/012, 탈퇴 시 Soft Delete+이메일 변형+보유 refresh 토큰 일괄 무효화 FR-013/014) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/user/service/UserService.java` (T005, T012 의존)
-- [ ] T015 [US2] `AuthService` 구현(로그인 시 탈퇴 계정 차단 FR-010, 토큰 발급+저장 FR-007, 재발급 시 `revoked_at IS NULL AND expires_at > now()` 검증 FR-008, 로그아웃 시 토큰 무효화 FR-009) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/auth/service/AuthService.java` (T006, T012, T005 의존)
-- [ ] T016 [P] [US2] `UserApi` 인터페이스 + `UserController` 구현(`GET/PATCH/DELETE /users/me`) — `contracts/users-api.yaml` 기준 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/user/controller/` (T014, T009 의존)
-- [ ] T017 [P] [US2] `AuthApi` 인터페이스 + `AuthController` 구현(`POST /auth/signup|login|refresh|logout` — `logout`은 `bearerAuth`이며 요청 본문 없이 인증된 사용자 식별이 필요하므로 `@LoginUser` 사용) — `contracts/auth-api.yaml` 기준 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/auth/controller/` (T015, T009 의존)
+- [X] T012 [P] [US2] `RefreshToken` 엔티티(userId/token/expiresAt/revokedAt) + `RefreshTokenRepository` 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/auth/domain/RefreshToken.java`, `backend/suhwa/src/main/java/backend/ssafy/suhwa/auth/repository/RefreshTokenRepository.java`
+- [X] T013 [P] [US2] DTO 생성(`SignupRequest`/`LoginRequest`/`RefreshRequest`/`TokenResponse`, `UserProfileResponse`/`UpdateProfileRequest`) — `contracts/auth-api.yaml`, `contracts/users-api.yaml` 기준 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/auth/dto/`, `backend/suhwa/src/main/java/backend/ssafy/suhwa/user/dto/`
+- [X] T014 [US2] `UserService` 구현(가입 시 이메일 중복 검증+BCrypt 해싱 FR-005/006, 프로필 조회/수정 FR-011/012, 탈퇴 시 Soft Delete+이메일 변형+보유 refresh 토큰 일괄 무효화 FR-013/014) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/user/service/UserService.java` (T005, T012 의존)
+- [X] T015 [US2] `AuthService` 구현(로그인 시 탈퇴 계정 차단 FR-010, 토큰 발급+저장 FR-007, 재발급 시 `revoked_at IS NULL AND expires_at > now()` 검증 FR-008, 로그아웃 시 토큰 무효화 FR-009) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/auth/service/AuthService.java` (T006, T012, T005 의존)
+- [X] T016 [P] [US2] `UserApi` 인터페이스 + `UserController` 구현(`GET/PATCH/DELETE /users/me`) — `contracts/users-api.yaml` 기준 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/user/controller/` (T014, T009 의존)
+- [X] T017 [P] [US2] `AuthApi` 인터페이스 + `AuthController` 구현(`POST /auth/signup|login|refresh|logout` — `logout`은 `bearerAuth`이며 요청 본문 없이 인증된 사용자 식별이 필요하므로 `@LoginUser` 사용) — `contracts/auth-api.yaml` 기준 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/auth/controller/` (T015, T009 의존)
 
 ### Tests for User Story 2 (구현 검증)
 
-- [ ] T018 [P] [US2] `RefreshTokenRepository` 유효성 조회 쿼리 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/auth/repository/RefreshTokenRepositoryTest.java`
-- [ ] T019 [P] [US2] `AuthController`(signup/login/refresh/logout) MockMvc 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/auth/controller/AuthControllerTest.java`
-- [ ] T020 [P] [US2] `UserController`(get/patch/delete profile) MockMvc 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/user/controller/UserControllerTest.java`
-- [ ] T021 [US2] 가입→로그인→갱신→로그아웃→로그인차단, 탈퇴→재가입 전체 흐름 통합 테스트(quickstart.md §2) in `backend/suhwa/src/test/java/backend/ssafy/suhwa/user/UserLifecycleIntegrationTest.java`
+- [X] T018 [P] [US2] `RefreshTokenRepository` 유효성 조회 쿼리 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/auth/repository/RefreshTokenRepositoryTest.java`
+- [X] T019 [P] [US2] `AuthController`(signup/login/refresh/logout) MockMvc 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/auth/controller/AuthControllerTest.java`
+- [X] T020 [P] [US2] `UserController`(get/patch/delete profile) MockMvc 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/user/controller/UserControllerTest.java`
+- [X] T021 [US2] 가입→로그인→갱신→로그아웃→로그인차단, 탈퇴→재가입 전체 흐름 통합 테스트(quickstart.md §2) in `backend/suhwa/src/test/java/backend/ssafy/suhwa/user/UserLifecycleIntegrationTest.java`
 
 **Checkpoint**: User Story 1+2 독립적으로 완전히 동작·검증 가능.
 
