@@ -2,6 +2,7 @@ package backend.ssafy.suhwa.game.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import backend.ssafy.suhwa.common.config.JpaAuditingConfig;
 import backend.ssafy.suhwa.game.domain.GameRoom;
 import backend.ssafy.suhwa.game.domain.GameRoomStatus;
 import java.time.LocalDateTime;
@@ -10,10 +11,12 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 
 @DataJpaTest
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
+@Import(JpaAuditingConfig.class)
 class GameRoomRepositoryTest {
 
     @Autowired
