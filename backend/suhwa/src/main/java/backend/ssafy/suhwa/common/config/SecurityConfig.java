@@ -25,7 +25,10 @@ public class SecurityConfig {
     private static final String[] PERMIT_ALL_PATHS = {
             "/auth/signup", "/auth/login", "/auth/refresh",
             "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
-            "/actuator/health"
+            "/actuator/health",
+            // 브라우저 표준 EventSource는 커스텀 Authorization 헤더를 보낼 수 없어 JWT 인증이
+            // 불가능하다. 대신 ticket 쿼리 파라미터로 접근을 제어한다(FR-022, research.md #8).
+            "/game-rooms/subscribe"
     };
 
     private final JwtTokenProvider jwtTokenProvider;
