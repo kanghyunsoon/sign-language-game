@@ -339,6 +339,8 @@ def _writeModelPackage(
     };
     torch.save(checkpoint, stagingRoot / "checkpoint.pt");
     model.eval();
+
+    # Keep the exporter behavior stable across supported PyTorch 2.x releases.
     torch.onnx.export(
         model,
         torch.zeros(1, config.model.inputSize, dtype=torch.float32),
@@ -348,6 +350,7 @@ def _writeModelPackage(
         dynamic_axes={"features": {0: "batchSize"}, "logits": {0: "batchSize"}},
         opset_version=config.runtime.onnxOpsetVersion,
         do_constant_folding=True,
+        dynamo=False,
     );
 
     metrics = {
