@@ -19,6 +19,8 @@
 | 시간과 신뢰도 | `ai/config/recognition-policy.json` | FPS, 임계값, 유지시간, 실패 허용시간 |
 | 전송 메시지 | `ai/docs/fingerspelling-landmark-data-contract.md` | 프론트엔드와 AI 서버 사이의 JSON 규격 |
 | 프론트 구현 | `ai/docs/frontend-fingerspelling-integration-guide.md` | MediaPipe 실행 및 WebSocket 흐름 |
+| 학습 설정 | `ai/config/training.json` | 모델 구조, 최적화, 조기 종료, 임계값 보정 |
+| 학습 실행 | `ai/docs/fingerspelling-training-guide.md` | GPU/Jupyter 실행, 산출물, 평가 기준 |
 | 전체 처리 흐름 | 이 문서 | 파이프라인 경계, 산출물, 배포 흐름 |
 
 문서와 설정값이 다르면 JSON 설정 파일을 우선하고 문서 불일치로 처리한다. 모델 패키지는 사용한 설정 파일의 버전과 해시를 manifest에 기록한다.
@@ -166,13 +168,22 @@ GPU 실행환경은 CUDA, 프레임워크, Python 버전을 고정한 컨테이�
 ```text
 artifacts/fingerspelling/{modelVersion}/
   model.onnx
+  checkpoint.pt
   labels.json
   preprocessing.json
   recognition-policy.json
+  training.json
   thresholds.json
   metrics.json
+  history.jsonl
+  validation-confusion-matrix.csv
+  training-report.html
+  training-report.md
+  report-data.json
   model-manifest.json
 ```
+
+`test-confusion-matrix.csv`는 모델 선택이 끝난 최종 후보를 `--evaluate-test`로 평가한 경우에만 생성한다.
 
 `model-manifest.json`에는 데이터셋 버전, Git 커밋, 모델 입력 형태 `[batchSize, 63]`, 클래스 순서, MediaPipe 버전과 각 설정 파일 해시를 기록한다. 서비스는 manifest와 다른 스키마의 입력을 거부한다.
 

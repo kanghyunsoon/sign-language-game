@@ -63,6 +63,8 @@ class ImagePreprocessingPipelineTest(unittest.TestCase):
             self.assertEqual(manifest["inputSampleCount"], 33);
             self.assertEqual(manifest["acceptedSampleCount"], 32);
             self.assertEqual(manifest["rejectedByReason"], {"evaluation_participant_required": 1});
+            self.assertIn("labelsCanonicalSha256", manifest["identity"]);
+            self.assertIn("preprocessingConfigCanonicalSha256", manifest["identity"]);
             rawRecords = _readJsonLines(outputRoot / "raw" / "frames.jsonl");
             rejectedRecords = _readJsonLines(outputRoot / "rejected" / "frames.jsonl");
             self.assertEqual(len(rawRecords), 33);

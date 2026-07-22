@@ -1,6 +1,6 @@
-# 지문자 AI 데이터 전처리
+# 지문자 AI 파이프라인
 
-사진 폴더에서 MediaPipe Hand Landmarker 특징점을 추출하고, 프레임 분류 모델에 사용할 63차원 NPZ 데이터셋을 생성한다. 사진은 강제로 리사이징하지 않으며 EXIF 방향만 보정한다.
+사진에서 MediaPipe 특징점을 추출하고, 63차원 NPZ 데이터셋 생성부터 단일 프레임 MLP 학습과 ONNX 추론까지 수행한다. 사진은 강제로 리사이징하지 않으며 EXIF 방향만 보정한다.
 
 ## 실행 환경
 
@@ -8,6 +8,7 @@
 - MediaPipe `0.10.21`
 - NumPy `1.26.4`
 - Pillow `10.4.0`
+- 학습 시 PyTorch `2.5` 이상 `3.0` 미만, ONNX `1.17` 이상 `2.0` 미만, ONNX Runtime `1.20` 이상 `2.0` 미만
 
 Windows PowerShell에서 다음 순서로 환경을 준비한다.
 
@@ -18,6 +19,14 @@ python -m venv .venv
 python -m pip install --upgrade pip
 python -m pip install -e .
 ```
+
+학습 또는 ONNX 추론 환경은 다음 의존성을 추가한다.
+
+```powershell
+python -m pip install -r requirements-training.txt
+```
+
+학습 서버에 호환되는 PyTorch 2.x와 JupyterLab이 이미 있으면 기존 버전을 유지한다. 위 명령은 허용 범위 안의 PyTorch를 낮추지 않으며 JupyterLab을 별도로 설치하지 않는다.
 
 PowerShell 실행 정책으로 활성화가 막히면 활성화 없이 `.\.venv\Scripts\python.exe`를 사용해도 된다.
 
@@ -93,10 +102,45 @@ NPZ의 문자열 배열은 pickle이 필요 없는 고정 문자열 dtype으로 
 
 모든 기준값은 `config/preprocessing.json`에서 관리한다.
 
+## 학습 실행
+
+GPU 서버에는 전처리 결과 폴더 전체 또는 최소한 `processed/frames.npz`와 `manifest.json`을 같은 구조로 전달한다. 저장소의 `ai` 폴더에서 실행한다.
+
+```powershell
+fingerspelling-data train `
+  --dataset "C:\data\Signlanguage-processed-v1" `
+  --output "C:\artifacts\fingerspelling-v1.0.0" `
+  --model-version "fingerspelling-v1.0.0"
+```
+
+`config/training.json`의 `device`가 `auto`이므로 CUDA가 있으면 GPU, 없으면 CPU를 사용한다. 실행 전 `python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"`로 현재 Jupyter 커널의 GPU 연결을 확인한다. 서버가 `CUDA_VISIBLE_DEVICES`로 물리 GPU를 제한한 경우 할당받은 장치는 코드에서 `cuda:0`으로 보이므로 물리 인덱스를 코드에 다시 지정하지 않는다.
+
+학습기는 다음 조건을 시작 전에 검사한다.
+
+- NPZ 배열 형식, 유한한 `float32 [N, 63]`, 클래스 순서와 label index 일치
+- sample ID 중복, 참가자 및 원본 그룹의 split 누수
+- `train`, `validation`, `test` 존재와 manifest 수량 일치
+- labels 및 전처리 설정의 의미 기반 JSON 해시
+
+학습 결과는 별도 임시 경로에서 모두 생성한 뒤 출력 폴더로 교체한다. 기존 결과를 의도적으로 교체할 때만 `--overwrite`를 사용한다. 상세 실행과 평가 기준은 `docs/fingerspelling-training-guide.md`를 따른다.
+
+## 단일 프레임 추론
+
+63개 값의 JSON 배열 또는 `{"features": [...]}` 객체를 입력한다.
+
+```powershell
+fingerspelling-data predict `
+  --package "C:\artifacts\fingerspelling-v1.0.0" `
+  --features "C:\data\one-frame.json" `
+  --top-k 3
+```
+
+추론기는 모델 패키지의 파일 해시와 입력 형태를 검증하고, 예측 클래스·신뢰도·클래스 임계값·상위 후보를 반환한다. 1.2초 유지 판정은 이 명령의 책임이 아니며 이후 서비스 집계 파이프라인에서 처리한다.
+
 ## 테스트
 
 ```powershell
 python -m unittest discover -s tests -v
 ```
 
-테스트는 클래스 순서, 폴더 메타데이터, 좌표 정규화, 평가 split 보호, JSONL과 NPZ 산출물을 검증한다.
+테스트는 클래스 순서, 폴더 메타데이터, 좌표 정규화, 평가 split 보호, NPZ 계약, 학습, ONNX 패키지와 추론을 검증한다.
