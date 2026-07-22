@@ -39,6 +39,7 @@ class DatasetConfig:
     splits: tuple[str, ...];
     imageExtensions: tuple[str, ...];
     requireParticipantForEvaluation: bool;
+    minimumAcceptedTrainSamplesPerClass: int;
 
 
 @dataclass(frozen=True)
@@ -68,6 +69,8 @@ def loadPreprocessingConfig(path: Path) -> PreprocessingConfig:
         raise ValueError("Photo preprocessing requires numHands=1.");
     if normalization["applyRotationNormalization"]:
         raise ValueError("Rotation normalization is not part of schema 1.0.0.");
+    if int(dataset["minimumAcceptedTrainSamplesPerClass"]) < 1:
+        raise ValueError("minimumAcceptedTrainSamplesPerClass must be at least one.");
 
     return PreprocessingConfig(
         schemaVersion=payload["schemaVersion"],
@@ -96,6 +99,7 @@ def loadPreprocessingConfig(path: Path) -> PreprocessingConfig:
             splits=tuple(str(split) for split in dataset["splits"]),
             imageExtensions=tuple(str(extension).lower() for extension in dataset["imageExtensions"]),
             requireParticipantForEvaluation=bool(dataset["requireParticipantForEvaluation"]),
+            minimumAcceptedTrainSamplesPerClass=int(dataset["minimumAcceptedTrainSamplesPerClass"]),
         ),
     );
 

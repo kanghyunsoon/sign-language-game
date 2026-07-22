@@ -4,7 +4,7 @@ from dataclasses import dataclass;
 from pathlib import Path;
 import re;
 
-from .config import DatasetConfig;
+from .config import DatasetConfig, calculateSha256;
 from .labels import LabelDefinition;
 
 
@@ -22,6 +22,8 @@ class ImageSample:
     source: str;
     participantId: str | None;
     groupId: str;
+    imageSha256: str;
+    sampleId: str;
 
 
 def discoverSamples(
@@ -56,6 +58,7 @@ def discoverSamples(
                 if imagePath.suffix.lower() not in config.imageExtensions:
                     continue;
                 participantId, source, groupId = parseSampleIdentity(imagePath);
+                imageSha256 = calculateSha256(imagePath);
                 samples.append(
                     ImageSample(
                         path=imagePath,
@@ -66,11 +69,14 @@ def discoverSamples(
                         source=source,
                         participantId=participantId,
                         groupId=groupId,
+                        imageSha256=imageSha256,
+                        sampleId=imageSha256[:20],
                     ),
                 );
 
     if not samples:
         raise ValueError(f"No supported images found below: {inputRoot}");
+    _validateDuplicateImages(samples);
     _validateParticipantSplits(samples);
     return samples, warnings;
 
@@ -101,3 +107,17 @@ def _validateParticipantSplits(samples: list[ImageSample]) -> None:
     };
     if leakedParticipants:
         raise ValueError(f"Participants must not span multiple splits: {leakedParticipants}");
+
+
+def _validateDuplicateImages(samples: list[ImageSample]) -> None:
+    pathsByHash: dict[str, list[str]] = {};
+    for sample in samples:
+        pathsByHash.setdefault(sample.imageSha256, []).append(sample.relativePath);
+    duplicateGroups = [paths for paths in pathsByHash.values() if len(paths) > 1];
+    if not duplicateGroups:
+        return;
+
+    examples = [" | ".join(paths) for paths in duplicateGroups[:10]];
+    omittedCount = max(len(duplicateGroups) - len(examples), 0);
+    suffix = f"; and {omittedCount} more groups" if omittedCount else "";
+    raise ValueError(f"Duplicate image contents are not allowed: {'; '.join(examples)}{suffix}");

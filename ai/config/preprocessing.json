@@ -26,6 +26,7 @@
   "dataset": {
     "splits": ["train", "validation", "test"],
     "imageExtensions": [".jpg", ".jpeg", ".png", ".webp", ".bmp"],
-    "requireParticipantForEvaluation": true
+    "requireParticipantForEvaluation": true,
+    "minimumAcceptedTrainSamplesPerClass": 1
   }
 }
