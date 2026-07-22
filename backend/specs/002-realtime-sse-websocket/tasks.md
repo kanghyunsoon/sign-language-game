@@ -209,16 +209,16 @@ description: "Task list for 실시간 로비/게임방 알림(SSE)과 WebRTC 시
 
 ### Implementation for User Story 9
 
-- [ ] T032 [P] [US9] `LobbyRoomSummary`/`LobbyRoomList` DTO 생성 — `contracts/realtime-sse-api.yaml` 기준 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/dto/`
-- [ ] T033 [US9] `LobbySubscriberRegistry`(`ConcurrentHashMap<String sessionId, SseEmitter>`) 신규 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/LobbySubscriberRegistry.java`
-- [ ] T034 [US9] `LobbyBroadcastService`(현재 WAITING 방 목록 스냅샷 조회 + 등록된 모든 emitter에 `event: snapshot`/`event: update` 전송) 신규 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/LobbyBroadcastService.java` (T032, T033 의존)
-- [ ] T035 [US9] `LobbySseController`(`GET /game-rooms/subscribe`, `SseEmitter` 응답에 `X-Accel-Buffering: no` 헤더, `onCompletion/onTimeout/onError` 시 `LobbySubscriberRegistry`에서 제거) 신규 생성 — 이 단계에서는 티켓 없이도 임시로 동작 가능하게 두고 엄격한 거부는 US13에서 강화 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/controller/LobbySseController.java` (T033, T034 의존)
-- [ ] T036 [US9] 15초 주기 SSE 하트비트(빈 이벤트 `send`)를 `ThreadPoolTaskScheduler`(US5에서 등록된 빈) 기반으로 발송하는 스케줄 작업 추가 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/LobbyBroadcastService.java`(T034에 이어서, research.md #9)
+- [X] T032 [P] [US9] `LobbyRoomSummary`/`LobbyRoomList` DTO 생성 — `contracts/realtime-sse-api.yaml` 기준 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/dto/`
+- [X] T033 [US9] `LobbySubscriberRegistry`(`ConcurrentHashMap<String sessionId, SseEmitter>`) 신규 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/LobbySubscriberRegistry.java`
+- [X] T034 [US9] `LobbyBroadcastService`(현재 WAITING 방 목록 스냅샷 조회 + 등록된 모든 emitter에 `event: snapshot`/`event: update` 전송) 신규 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/LobbyBroadcastService.java` (T032, T033 의존)
+- [X] T035 [US9] `LobbySseController`(`GET /game-rooms/subscribe`, `SseEmitter` 응답에 `X-Accel-Buffering: no` 헤더, `onCompletion/onTimeout/onError` 시 `LobbySubscriberRegistry`에서 제거) 신규 생성 — 이 단계에서는 티켓 없이도 임시로 동작 가능하게 두고 엄격한 거부는 US13에서 강화 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/controller/LobbySseController.java` (T033, T034 의존)
+- [X] T036 [US9] 15초 주기 SSE 하트비트(빈 이벤트 `send`)를 `ThreadPoolTaskScheduler`(US5에서 등록된 빈) 기반으로 발송하는 스케줄 작업 추가 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/LobbyBroadcastService.java`(T034에 이어서, research.md #9)
 
 ### Tests for User Story 9 (구현 검증)
 
-- [ ] T037 [P] [US9] `LobbyBroadcastService`가 방 목록 스냅샷을 올바르게 만들고 등록된 emitter 전체에 전송하는지 단위 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/realtime/LobbyBroadcastServiceTest.java`
-- [ ] T038 [US9] `GET /game-rooms/subscribe` 연결 시 스냅샷 수신, 연결 종료 시 레지스트리에서 제거되는지 검증하는 통합 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/realtime/controller/LobbySseControllerTest.java` (T035 의존)
+- [X] T037 [P] [US9] `LobbyBroadcastService`가 방 목록 스냅샷을 올바르게 만들고 등록된 emitter 전체에 전송하는지 단위 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/realtime/LobbyBroadcastServiceTest.java`
+- [X] T038 [US9] `GET /game-rooms/subscribe` 연결 시 스냅샷 수신, 연결 종료 시 레지스트리에서 제거되는지 검증하는 통합 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/realtime/controller/LobbySseControllerTest.java` (T035 의존)
 
 **Checkpoint**: US9 독립적으로 완전히 동작·검증 가능(Part A + US9만으로).
 

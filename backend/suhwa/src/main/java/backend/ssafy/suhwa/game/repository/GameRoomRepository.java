@@ -14,4 +14,6 @@ public interface GameRoomRepository extends JpaRepository<GameRoom, Long> {
     boolean existsByRoomCode(String roomCode);
 
     List<GameRoom> findByStatusAndUpdatedAtBefore(GameRoomStatus status, LocalDateTime threshold);
+
+    List<GameRoom> findByStatus(GameRoomStatus status);
 }
