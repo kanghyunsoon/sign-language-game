@@ -7,6 +7,8 @@ import backend.ssafy.suhwa.game.domain.GameRoomStatus;
 import backend.ssafy.suhwa.game.domain.GameSession;
 import backend.ssafy.suhwa.game.dto.GameResultResponse;
 import backend.ssafy.suhwa.game.dto.GameRoomResponse;
+import backend.ssafy.suhwa.game.realtime.LobbyBroadcastService;
+import backend.ssafy.suhwa.game.realtime.RoomRealtimeNotifier;
 import backend.ssafy.suhwa.game.repository.GameRoomRepository;
 import backend.ssafy.suhwa.game.repository.GameSessionRepository;
 import backend.ssafy.suhwa.user.domain.User;
@@ -16,6 +18,8 @@ import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * roomId/userId 등 순수 도메인 파라미터만 받고 HttpServletRequest/DTO 등 HTTP 종속 타입은
@@ -34,6 +38,8 @@ public class GameRoomService {
     private final GameRoomRepository gameRoomRepository;
     private final GameSessionRepository gameSessionRepository;
     private final UserRepository userRepository;
+    private final RoomRealtimeNotifier roomRealtimeNotifier;
+    private final LobbyBroadcastService lobbyBroadcastService;
 
     @Transactional
     public GameRoomResponse create(Long hostUserId) {
@@ -47,6 +53,12 @@ public class GameRoomService {
     @Transactional
     public GameRoomResponse join(String roomCode, Long userId) {
         GameRoom room = getRoomByCode(roomCode);
+        // 이미 이 방의 참가자인 재입장 요청은 인원수를 늘리지 않고 현재 상태를 그대로 반환한다
+        // (FR-020, research.md #14-1 — 그렇지 않으면 guest 재입장이 ROOM_FULL로 오거부되거나
+        // host 본인의 재호출이 host/guest를 같은 사람으로 만들어버리는 결함이 있었다).
+        if (room.isParticipant(userId)) {
+            return GameRoomResponse.from(room);
+        }
         if (room.getStatus() != GameRoomStatus.WAITING) {
             throw new BusinessException(ErrorCode.ROOM_NOT_WAITING);
         }
@@ -62,21 +74,34 @@ public class GameRoomService {
         GameRoom room = getRoom(roomId);
         requireParticipant(room, userId);
 
+        Long newHostUserId = null;
         if (room.getStatus() == GameRoomStatus.IN_PROGRESS) {
             // 진행 중 나가기는 위임 없이 즉시 CLOSED, 결과는 저장하지 않음(FR-021/023)
             room.close();
-            return;
-        }
-
-        if (room.isHost(userId)) {
+        } else if (room.isHost(userId)) {
             if (room.getGuestUserId() != null) {
                 room.delegateHostToGuest();
+                newHostUserId = room.getHostUserId();
             } else {
                 room.close();
             }
         } else {
             room.removeGuest();
         }
+
+        // leave()는 REST 명시적 나가기와 WebSocket 유예/확인대기 타이머 만료 양쪽 모두에서
+        // 호출되는 단일 진입점이다 — 브로드캐스트를 이 안에 두면 두 호출자 모두에서 자동으로
+        // 동작한다(research.md #12). 커밋 전에 브로드캐스트하면 알림을 받은 클라이언트가 곧바로
+        // 방 상태를 재조회했을 때 아직 반영되지 않은 값을 읽는 경쟁 조건이 생기므로, 트랜잭션이
+        // 실제로 커밋된 이후에만 호출되도록 등록한다.
+        Long finalNewHostUserId = newHostUserId;
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                roomRealtimeNotifier.notifyPeerLeft(roomId, userId, finalNewHostUserId);
+                lobbyBroadcastService.broadcastUpdate();
+            }
+        });
     }
 
     @Transactional
