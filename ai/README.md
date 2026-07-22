@@ -40,6 +40,8 @@ Signlanguage/
 - 클래스 폴더는 `config/labels.json`의 자모 모델 클래스 32개와 일치해야 한다.
 - 직접 촬영 파일에는 익명 참가자 토큰 `p-...`를 세 번째 `__` 구간에 기록한다.
 - 참가자 ID가 없는 공개 데이터는 최종 `validation`과 `test`에서 자동 제외된다.
+- 동일한 이미지 내용은 파일명이나 split이 달라도 중복으로 허용하지 않는다.
+- `train`에는 32개 클래스마다 `config/preprocessing.json`에서 정한 최소 승인 수량이 필요하다.
 - 지원 확장자는 JPG, JPEG, PNG, WEBP, BMP다.
 
 ## 모델 준비
@@ -61,7 +63,7 @@ fingerspelling-data preprocess `
   --dataset-version "fingerspelling-photo-v1"
 ```
 
-출력 폴더가 비어 있지 않으면 기존 데이터를 보호하기 위해 중단한다. 의도적으로 다시 생성할 때만 `--overwrite`를 추가한다.
+출력 폴더가 비어 있지 않으면 기존 데이터를 보호하기 위해 중단한다. 의도적으로 다시 생성할 때만 `--overwrite`를 추가한다. 재생성은 별도 임시 경로에서 완료한 뒤 기존 출력과 교체하므로 모델 검증, 특징점 추출 또는 클래스 검사에 실패하면 기존 결과를 유지한다.
 
 ## 산출물
 
@@ -76,7 +78,7 @@ Signlanguage-processed-v1/
 - `raw/frames.jsonl`: 이미지별 원본 랜드마크, 라벨, 참가자, 출처, 품질과 추출기 정보
 - `processed/frames.npz`: 정규화된 `features [N, 63]`와 라벨 및 split 메타데이터
 - `rejected/frames.jsonl`: 검출 실패, 작은 손, 평가 참가자 정보 부재 등 제외 사유
-- `manifest.json`: 입력·승인·제외 수량, 클래스 순서, 설정 및 모델 해시
+- `manifest.json`: 입력·승인·제외 수량, 전체 및 train 클래스별 수량, 클래스 순서, 설정 및 모델 해시
 
 NPZ의 문자열 배열은 pickle이 필요 없는 고정 문자열 dtype으로 저장한다. GPU 서버로는 원본 사진 대신 `processed/frames.npz`와 `manifest.json`을 전달한다.
 
