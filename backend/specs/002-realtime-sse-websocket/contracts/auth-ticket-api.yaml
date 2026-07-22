@@ -1,0 +1,51 @@
+openapi: 3.0.3
+info:
+  title: 실시간 인증 티켓 발급 API (auth, 확장)
+  version: "1.0.0"
+  description: >
+    001 스펙의 auth-api.yaml을 확장한다(별도 파일로 유지 — 001 계약은 변경하지 않음).
+    spec.md User Story 8 / FR-008 대응. 발급된 티켓은 로비 SSE 연결(realtime-sse-api.yaml)과
+    방 내 WebSocket 핸드셰이크(realtime-websocket-messages.md, /ws/game-rooms/{roomId}?ticket=...)
+    양쪽 모두에서 쿼리 파라미터로 1회 소비된다 — 브라우저 표준 EventSource/WebSocket API 둘 다
+    커스텀 인증 헤더를 지원하지 않기 때문(FR-023, FR-024).
+tags:
+  - name: Auth
+paths:
+  /auth/sse-ticket:
+    post:
+      tags: [Auth]
+      summary: 실시간 연결 전용 단기 티켓 발급
+      operationId: issueRealtimeTicket
+      security:
+        - bearerAuth: []
+      responses:
+        "201":
+          description: 짧은 유효 시간(설정값)을 가진 1회용 티켓 발급 (FR-008)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RealtimeTicketResponse'
+        "401":
+          description: 인증되지 않은 요청 (FR-001과 동일한 오류 형식)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    RealtimeTicketResponse:
+      type: object
+      properties:
+        ticket: { type: string, description: "로비 SSE 연결 또는 방 내 WebSocket 핸드셰이크 시 ?ticket= 쿼리 파라미터로 전달" }
+        expiresInSeconds: { type: integer, example: 30 }
+    ErrorResponse:
+      type: object
+      properties:
+        code: { type: string }
+        message: { type: string }
