@@ -42,3 +42,9 @@ game:
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:}
+
+webrtc:
+  stun-urls: ${WEBRTC_STUN_URLS:}
+  turn-url: ${WEBRTC_TURN_URL:}
+  turn-username: ${WEBRTC_TURN_USERNAME:}
+  turn-credential: ${WEBRTC_TURN_CREDENTIAL:}

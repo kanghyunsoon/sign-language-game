@@ -115,8 +115,24 @@ public class GameRoomWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
+        RoomSocketMessage parsed;
+        try {
+            parsed = objectMapper.readValue(message.getPayload(), RoomSocketMessage.class);
+        } catch (Exception e) {
+            // 파싱할 수 없는 메시지는 조용히 무시한다 — 계약(realtime-websocket-messages.md)에
+            // 없는 형식에 대한 오류 응답은 별도로 정의돼 있지 않다.
+            return;
+        }
+
+        // 영상 통화 연결 신호(offer/answer/ICE candidate)는 서버가 내용을 파싱하지 않고 같은 방
+        // 상대방에게 그대로 중계한다(FR-025/026, research.md #13).
+        if ("SIGNAL".equals(parsed.type())) {
+            notifier.relaySignal(roomId, userId, parsed.payload());
+            return;
+        }
+
         // TODO: WebSocket 메시지 송수신 로직 구현 위치 (다른 담당자 작업 예정)
-        // 이 핸들러의 메시지 타입 분기(SIGNAL 이후, 게임 진행 관련 type)에 추가될 예정.
+        // 이 핸들러의 메시지 타입 분기(게임 진행 관련 type)에 추가될 예정.
     }
 
     private boolean isStillParticipant(Long roomId, Long userId) {
