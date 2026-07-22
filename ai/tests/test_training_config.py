@@ -15,6 +15,8 @@ class TrainingConfigTest(unittest.TestCase):
         self.assertEqual(config.model.hiddenSizes, (256, 128));
         self.assertEqual(config.earlyStopping.monitor, "macroF1");
         self.assertEqual(config.calibration.defaultThreshold, 0.8);
+        self.assertEqual(config.reporting.weakClassLimit, 5);
+        self.assertEqual(config.reporting.minimumValidationMacroF1, 0.8);
 
     def testRejectsInvalidThresholdOrder(self) -> None:
         aiRoot = Path(__file__).resolve().parents[1];
