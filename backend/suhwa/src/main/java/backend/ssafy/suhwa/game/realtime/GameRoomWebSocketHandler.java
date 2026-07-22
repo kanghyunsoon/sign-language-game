@@ -59,8 +59,13 @@ public class GameRoomWebSocketHandler extends TextWebSocketHandler {
         RoomLiveState room = registry.getOrCreateRoom(roomId);
         ParticipantLiveState participant = room.getOrCreateParticipant(userId);
 
-        boolean reconnect = participant.getPendingTask() != null;
+        // pendingTask는 최초 확인 대기 타이머와 재접속 유예 타이머가 공유하는 필드다(research.md
+        // #12). confirmed였다가(=이미 한 번 연결에 성공한 뒤) 지금 pendingTask가 있다는 것만
+        // "재접속"을 의미한다 — 최초 연결도 join()이 걸어둔 확인 대기 타이머 때문에 pendingTask가
+        // 항상 있으므로, pendingTask 존재 여부만으로 판단하면 최초 연결까지 재접속으로 오인한다.
+        boolean reconnect = participant.isConfirmed() && participant.getPendingTask() != null;
         participant.cancelPending();
+        participant.setConfirmed(true);
 
         WebSocketSession previous = participant.getSession();
         if (previous != null && previous.isOpen() && !previous.getId().equals(session.getId())) {

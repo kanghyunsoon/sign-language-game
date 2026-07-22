@@ -8,14 +8,21 @@ import backend.ssafy.suhwa.game.domain.GameSession;
 import backend.ssafy.suhwa.game.dto.GameResultResponse;
 import backend.ssafy.suhwa.game.dto.GameRoomResponse;
 import backend.ssafy.suhwa.game.realtime.LobbyBroadcastService;
+import backend.ssafy.suhwa.game.realtime.ParticipantLiveState;
+import backend.ssafy.suhwa.game.realtime.RoomLiveState;
+import backend.ssafy.suhwa.game.realtime.RoomParticipantRegistry;
 import backend.ssafy.suhwa.game.realtime.RoomRealtimeNotifier;
 import backend.ssafy.suhwa.game.repository.GameRoomRepository;
 import backend.ssafy.suhwa.game.repository.GameSessionRepository;
 import backend.ssafy.suhwa.user.domain.User;
 import backend.ssafy.suhwa.user.repository.UserRepository;
 import java.security.SecureRandom;
+import java.time.Instant;
 import java.time.LocalDateTime;
-import lombok.RequiredArgsConstructor;
+import java.util.concurrent.ScheduledFuture;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -26,7 +33,6 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
  * 받지 않는다(research.md #9) — 향후 WebSocket 연결 해제 핸들러가 leave 등을 그대로 재사용할 수 있도록.
  */
 @Service
-@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class GameRoomService {
 
@@ -40,6 +46,35 @@ public class GameRoomService {
     private final UserRepository userRepository;
     private final RoomRealtimeNotifier roomRealtimeNotifier;
     private final LobbyBroadcastService lobbyBroadcastService;
+    private final RoomParticipantRegistry roomParticipantRegistry;
+    private final TaskScheduler taskScheduler;
+    private final long joinConfirmationSeconds;
+    private final GameRoomService self;
+
+    public GameRoomService(
+            GameRoomRepository gameRoomRepository,
+            GameSessionRepository gameSessionRepository,
+            UserRepository userRepository,
+            RoomRealtimeNotifier roomRealtimeNotifier,
+            LobbyBroadcastService lobbyBroadcastService,
+            RoomParticipantRegistry roomParticipantRegistry,
+            TaskScheduler taskScheduler,
+            @Value("${game.room.join-confirmation-seconds}") long joinConfirmationSeconds,
+            @Lazy GameRoomService self) {
+        this.gameRoomRepository = gameRoomRepository;
+        this.gameSessionRepository = gameSessionRepository;
+        this.userRepository = userRepository;
+        this.roomRealtimeNotifier = roomRealtimeNotifier;
+        this.lobbyBroadcastService = lobbyBroadcastService;
+        this.roomParticipantRegistry = roomParticipantRegistry;
+        this.taskScheduler = taskScheduler;
+        this.joinConfirmationSeconds = joinConfirmationSeconds;
+        // 예약된 확인 대기 타이머가 만료 시 leave()를 호출할 때 self-invocation(this.leave(...))으로
+        // 부르면 @Transactional 프록시를 우회해 트랜잭션이 전혀 시작되지 않는다(afterCommit에서
+        // TransactionSynchronizationManager 호출 시 "Transaction synchronization is not active"로
+        // 실패). 프록시를 통해 호출되도록 지연 주입된 자기 자신을 거친다.
+        this.self = self;
+    }
 
     @Transactional
     public GameRoomResponse create(Long hostUserId) {
@@ -47,9 +82,13 @@ public class GameRoomService {
                 .roomCode(generateUniqueRoomCode())
                 .hostUserId(hostUserId)
                 .build();
-        GameRoomResponse response = GameRoomResponse.from(gameRoomRepository.save(room));
+        GameRoom saved = gameRoomRepository.save(room);
+        GameRoomResponse response = GameRoomResponse.from(saved);
+        Long roomId = saved.getId();
         // 새 방이 로비 목록에 나타나므로 커밋 후 구독자에게 알린다(FR-010, research.md #9-1).
         afterCommit(lobbyBroadcastService::broadcastUpdate);
+        // 방장이 15초 안에 실시간 연결을 확립하지 않으면 방치된 것으로 간주해 자동 정리한다(FR-029/030).
+        afterCommit(() -> registerPendingConfirmation(roomId, hostUserId));
         return response;
     }
 
@@ -71,8 +110,12 @@ public class GameRoomService {
         }
         room.assignGuest(userId);
         GameRoomResponse response = GameRoomResponse.from(room);
+        Long roomId = room.getId();
         // 실제로 신규 참가자가 배정된 경로에서만 인원수가 바뀌므로 커밋 후 브로드캐스트한다.
         afterCommit(lobbyBroadcastService::broadcastUpdate);
+        // 게스트도 호스트와 동일하게 15초 확인 대기 타이머 대상이다(FR-029/030). 재입장(위의 이른
+        // 반환)은 이 경로를 타지 않으므로 타이머가 연장되지 않는다.
+        afterCommit(() -> registerPendingConfirmation(roomId, userId));
         return response;
     }
 
@@ -239,6 +282,20 @@ public class GameRoomService {
             sb.append(ROOM_CODE_CHARS.charAt(RANDOM.nextInt(ROOM_CODE_CHARS.length())));
         }
         return sb.toString();
+    }
+
+    /**
+     * create()/join()의 신규 배정 경로에서 참가자를 confirmed=false로 등록하고, 확인 대기 시간
+     * 안에 WebSocket 핸드셰이크가 오지 않으면 leave()를 호출하는 타이머를 예약한다(FR-029,
+     * US15/T066, research.md #14). 핸드셰이크 성공 시 GameRoomWebSocketHandler가 이 타이머를
+     * 취소하고 confirmed=true로 전환한다.
+     */
+    private void registerPendingConfirmation(Long roomId, Long userId) {
+        RoomLiveState room = roomParticipantRegistry.getOrCreateRoom(roomId);
+        ParticipantLiveState participant = room.getOrCreateParticipant(userId);
+        Instant deadline = Instant.now().plusSeconds(joinConfirmationSeconds);
+        ScheduledFuture<?> task = taskScheduler.schedule(() -> self.leave(roomId, userId), deadline);
+        participant.schedulePending(deadline, task);
     }
 
     /**

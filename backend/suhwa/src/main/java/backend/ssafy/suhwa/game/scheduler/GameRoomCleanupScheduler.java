@@ -2,6 +2,8 @@ package backend.ssafy.suhwa.game.scheduler;
 
 import backend.ssafy.suhwa.game.domain.GameRoom;
 import backend.ssafy.suhwa.game.domain.GameRoomStatus;
+import backend.ssafy.suhwa.game.realtime.RoomLiveState;
+import backend.ssafy.suhwa.game.realtime.RoomParticipantRegistry;
 import backend.ssafy.suhwa.game.repository.GameRoomRepository;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -22,12 +24,15 @@ public class GameRoomCleanupScheduler {
     private static final Duration CLOSED_RETENTION = Duration.ofMinutes(5);
 
     private final GameRoomRepository gameRoomRepository;
+    private final RoomParticipantRegistry roomParticipantRegistry;
     private final long waitingRoomRetentionMinutes;
 
     public GameRoomCleanupScheduler(
             GameRoomRepository gameRoomRepository,
+            RoomParticipantRegistry roomParticipantRegistry,
             @Value("${game.room.waiting-room-retention-minutes}") long waitingRoomRetentionMinutes) {
         this.gameRoomRepository = gameRoomRepository;
+        this.roomParticipantRegistry = roomParticipantRegistry;
         this.waitingRoomRetentionMinutes = waitingRoomRetentionMinutes;
     }
 
@@ -38,10 +43,21 @@ public class GameRoomCleanupScheduler {
         List<GameRoom> targets = new ArrayList<>();
         targets.addAll(gameRoomRepository.findByStatusAndUpdatedAtBefore(
                 GameRoomStatus.CLOSED, now.minus(CLOSED_RETENTION)));
-        targets.addAll(gameRoomRepository.findByStatusAndUpdatedAtBefore(
-                GameRoomStatus.WAITING, now.minusMinutes(waitingRoomRetentionMinutes)));
+        for (GameRoom room : gameRoomRepository.findByStatusAndUpdatedAtBefore(
+                GameRoomStatus.WAITING, now.minusMinutes(waitingRoomRetentionMinutes))) {
+            // 보관 기간을 넘겼어도 실시간 연결이 살아있는(confirmed) 참가자가 있으면 방치가 아니다
+            // (FR-030, US15/T069) — DB 타임스탬프만으로는 이 상태를 알 수 없어 레지스트리를 함께 본다.
+            if (!hasConfirmedLiveParticipant(room.getId())) {
+                targets.add(room);
+            }
+        }
         if (!targets.isEmpty()) {
             gameRoomRepository.deleteAll(targets);
         }
+    }
+
+    private boolean hasConfirmedLiveParticipant(Long roomId) {
+        RoomLiveState state = roomParticipantRegistry.getRoom(roomId);
+        return state != null && state.hasConfirmedParticipant();
     }
 }

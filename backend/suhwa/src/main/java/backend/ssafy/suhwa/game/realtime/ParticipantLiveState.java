@@ -11,10 +11,20 @@ import org.springframework.web.socket.WebSocketSession;
  */
 public class ParticipantLiveState {
 
+    private boolean confirmed;
     private WebSocketSession session;
     private boolean readyCache;
     private Instant pendingDeadline;
     private ScheduledFuture<?> pendingTask;
+
+    /** create()/join() 직후 false로 시작해, 첫 핸드셰이크 성공 시 true로 전환된 뒤 계속 유지된다(FR-029). */
+    public synchronized boolean isConfirmed() {
+        return confirmed;
+    }
+
+    public synchronized void setConfirmed(boolean confirmed) {
+        this.confirmed = confirmed;
+    }
 
     public synchronized WebSocketSession getSession() {
         return session;

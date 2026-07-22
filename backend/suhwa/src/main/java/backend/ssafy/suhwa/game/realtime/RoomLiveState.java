@@ -25,6 +25,11 @@ public class RoomLiveState {
         return participants.isEmpty();
     }
 
+    /** 확인 대기 중이거나 재접속 유예 중이어도 한 번이라도 연결에 성공한(confirmed) 참가자가 있는지(FR-030). */
+    public boolean hasConfirmedParticipant() {
+        return participants.values().stream().anyMatch(ParticipantLiveState::isConfirmed);
+    }
+
     /** ConcurrentHashMap의 keySet은 약한 일관성을 가져 순회 중 수정에도 예외를 던지지 않는다. */
     public Set<Long> participantIds() {
         return participants.keySet();
