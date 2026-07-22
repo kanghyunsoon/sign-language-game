@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import backend.ssafy.suhwa.auth.service.AuthService;
+import backend.ssafy.suhwa.auth.service.RealtimeTicketService;
 import backend.ssafy.suhwa.common.exception.BusinessException;
 import backend.ssafy.suhwa.common.exception.ErrorCode;
 import backend.ssafy.suhwa.user.domain.User;
@@ -38,6 +39,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private RealtimeTicketService realtimeTicketService;
 
     @AfterEach
     void clearSecurityContext() {
@@ -99,5 +103,20 @@ class AuthControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(authService).logout(anyLong());
+    }
+
+    @Test
+    void issueRealtimeTicket_returns201() throws Exception {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(1L, null, java.util.List.of()));
+        given(realtimeTicketService.issue(anyLong())).willReturn("opaque-ticket");
+        given(realtimeTicketService.ticketTtlSeconds()).willReturn(30L);
+
+        mockMvc.perform(post("/auth/sse-ticket"))
+                .andExpect(status().isCreated())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .jsonPath("$.ticket").value("opaque-ticket"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .jsonPath("$.expiresInSeconds").value(30));
     }
 }

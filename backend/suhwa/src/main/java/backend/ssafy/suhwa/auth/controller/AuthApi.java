@@ -1,6 +1,7 @@
 package backend.ssafy.suhwa.auth.controller;
 
 import backend.ssafy.suhwa.auth.dto.LoginRequest;
+import backend.ssafy.suhwa.auth.dto.RealtimeTicketResponse;
 import backend.ssafy.suhwa.auth.dto.RefreshRequest;
 import backend.ssafy.suhwa.auth.dto.SignupRequest;
 import backend.ssafy.suhwa.auth.dto.TokenResponse;
@@ -42,4 +43,11 @@ public interface AuthApi {
     @ApiResponse(responseCode = "204", description = "로그아웃 처리, 재발급 토큰 무효화 (FR-009)")
     @PostMapping("/auth/logout")
     ResponseEntity<Void> logout(@LoginUser Long userId);
+
+    @Operation(summary = "실시간 연결 전용 단기 인증 티켓 발급")
+    @SecurityRequirement(name = OpenApiConfig.BEARER_SCHEME_NAME)
+    @ApiResponse(responseCode = "201", description = "짧은 유효 시간(설정값)을 가진 1회용 티켓 발급 (FR-008)")
+    @ApiResponse(responseCode = "401", description = "인증되지 않은 요청 (FR-001과 동일한 오류 형식)")
+    @PostMapping("/auth/sse-ticket")
+    ResponseEntity<RealtimeTicketResponse> issueRealtimeTicket(@LoginUser Long userId);
 }

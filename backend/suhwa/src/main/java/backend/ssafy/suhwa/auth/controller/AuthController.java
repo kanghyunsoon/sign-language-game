@@ -1,10 +1,12 @@
 package backend.ssafy.suhwa.auth.controller;
 
 import backend.ssafy.suhwa.auth.dto.LoginRequest;
+import backend.ssafy.suhwa.auth.dto.RealtimeTicketResponse;
 import backend.ssafy.suhwa.auth.dto.RefreshRequest;
 import backend.ssafy.suhwa.auth.dto.SignupRequest;
 import backend.ssafy.suhwa.auth.dto.TokenResponse;
 import backend.ssafy.suhwa.auth.service.AuthService;
+import backend.ssafy.suhwa.auth.service.RealtimeTicketService;
 import backend.ssafy.suhwa.user.domain.User;
 import backend.ssafy.suhwa.user.dto.UserProfileResponse;
 import backend.ssafy.suhwa.user.service.UserService;
@@ -19,6 +21,7 @@ public class AuthController implements AuthApi {
 
     private final AuthService authService;
     private final UserService userService;
+    private final RealtimeTicketService realtimeTicketService;
 
     @Override
     public ResponseEntity<UserProfileResponse> signup(SignupRequest request) {
@@ -42,5 +45,13 @@ public class AuthController implements AuthApi {
     public ResponseEntity<Void> logout(Long userId) {
         authService.logout(userId);
         return ResponseEntity.noContent().build();
+    }
+
+    @Override
+    public ResponseEntity<RealtimeTicketResponse> issueRealtimeTicket(Long userId) {
+        String ticket = realtimeTicketService.issue(userId);
+        RealtimeTicketResponse response =
+                new RealtimeTicketResponse(ticket, realtimeTicketService.ticketTtlSeconds());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

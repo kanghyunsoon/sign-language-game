@@ -36,3 +36,4 @@ jwt:
 game:
   room:
     waiting-room-retention-minutes: ${GAME_ROOM_WAITING_RETENTION_MINUTES:30}
+    realtime-ticket-ttl: ${REALTIME_TICKET_TTL_SECONDS:30}
