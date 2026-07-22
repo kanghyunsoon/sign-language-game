@@ -51,12 +51,23 @@ class DatasetDiscoveryTest(unittest.TestCase):
     def testRejectsParticipantSplitLeakage(self) -> None:
         with tempfile.TemporaryDirectory() as tempDirectory:
             root = Path(tempDirectory);
-            for split in ("train", "valid"):
+            for index, split in enumerate(("train", "valid")):
                 imagePath = root / split / "vowel_a" / f"vowel_a__{split}__p-local-001__capture-001.jpg";
                 imagePath.parent.mkdir(parents=True);
-                imagePath.write_bytes(b"photo");
+                imagePath.write_bytes(f"photo-{index}".encode("ascii"));
 
             with self.assertRaisesRegex(ValueError, "must not span"):
+                discoverSamples(root, self.labels, self.config.dataset);
+
+    def testRejectsDuplicateImageContentsAcrossSplits(self) -> None:
+        with tempfile.TemporaryDirectory() as tempDirectory:
+            root = Path(tempDirectory);
+            for split, participantId in (("train", "p-local-001"), ("test", "p-local-004")):
+                imagePath = root / split / "vowel_a" / f"vowel_a__{split}__{participantId}__capture-001.jpg";
+                imagePath.parent.mkdir(parents=True);
+                imagePath.write_bytes(b"identical-photo");
+
+            with self.assertRaisesRegex(ValueError, "Duplicate image contents"):
                 discoverSamples(root, self.labels, self.config.dataset);
 
 
