@@ -10,6 +10,7 @@ import backend.ssafy.suhwa.game.domain.GameRoomStatus;
 import backend.ssafy.suhwa.game.dto.GameResultResponse;
 import backend.ssafy.suhwa.game.dto.GameRoomResponse;
 import backend.ssafy.suhwa.game.realtime.LobbyBroadcastService;
+import backend.ssafy.suhwa.game.realtime.RoomParticipantRegistry;
 import backend.ssafy.suhwa.game.realtime.RoomRealtimeNotifier;
 import backend.ssafy.suhwa.game.repository.GameRoomRepository;
 import backend.ssafy.suhwa.game.repository.GameSessionRepository;
@@ -21,6 +22,7 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.test.context.TestPropertySource;
 
 @DataJpaTest
@@ -45,7 +47,9 @@ class GameRoomServiceTest {
     void setUp() {
         gameRoomService = new GameRoomService(
                 gameRoomRepository, gameSessionRepository, userRepository,
-                Mockito.mock(RoomRealtimeNotifier.class), Mockito.mock(LobbyBroadcastService.class));
+                Mockito.mock(RoomRealtimeNotifier.class), Mockito.mock(LobbyBroadcastService.class),
+                new RoomParticipantRegistry(), Mockito.mock(TaskScheduler.class), 15L,
+                Mockito.mock(GameRoomService.class));
         hostId = userRepository.save(User.builder()
                 .email("host-" + System.nanoTime() + "@test.com").passwordHash("h").nickname("host").build())
                 .getId();

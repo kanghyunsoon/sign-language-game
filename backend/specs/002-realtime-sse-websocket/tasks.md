@@ -338,17 +338,17 @@ description: "Task list for 실시간 로비/게임방 알림(SSE)과 WebRTC 시
 
 ### Implementation for User Story 15
 
-- [ ] T065 [US15] `ParticipantLiveState`에 `confirmed`(boolean, 초기 `false`) 필드 추가 — `pendingDeadline`/`pendingTask`는 US11에서 이미 존재하는 필드를 재사용(최초 확인 대기 15초와 재접속 유예 5~10초가 같은 필드를 공유, research.md #12) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/RoomParticipantRegistry.java`
-- [ ] T066 [US15] `GameRoomService.create()`/`join()`(신규 배정 경로)이 커밋 직후 `RoomParticipantRegistry`에 해당 참가자를 `confirmed=false`로 등록하고 15초 확인 대기 타이머(`pendingTask` → 만료 시 `leave(roomId, userId)` 호출)를 예약하도록 연결 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/service/GameRoomService.java` (T065 의존, research.md #14)
-- [ ] T067 [US15] `GameRoomHandshakeInterceptor`/`GameRoomWebSocketHandler`가 핸드셰이크 성공 시 해당 참가자가 미확정(`confirmed=false`)이었다면 확인 대기 타이머를 취소하고 `confirmed=true`로 전환하도록 보강(재접속과 동일 코드 경로) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/GameRoomHandshakeInterceptor.java` (T066 의존)
-- [ ] T068 [US15] `application.yaml`/`env.sample`에 `game.room.join-confirmation-seconds: ${GAME_ROOM_JOIN_CONFIRMATION_SECONDS:15}` 반영
-- [ ] T069 [US15] `GameRoomCleanupScheduler`가 삭제 대상 후보 WAITING 방마다 `RoomParticipantRegistry`를 조회해 `confirmed=true`인 살아있는 참가자가 하나라도 있으면 삭제 대상에서 제외하도록 보강(FR-030) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/scheduler/GameRoomCleanupScheduler.java` (T065 의존, research.md #4)
+- [X] T065 [US15] `ParticipantLiveState`에 `confirmed`(boolean, 초기 `false`) 필드 추가 — `pendingDeadline`/`pendingTask`는 US11에서 이미 존재하는 필드를 재사용(최초 확인 대기 15초와 재접속 유예 5~10초가 같은 필드를 공유, research.md #12) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/RoomParticipantRegistry.java`
+- [X] T066 [US15] `GameRoomService.create()`/`join()`(신규 배정 경로)이 커밋 직후 `RoomParticipantRegistry`에 해당 참가자를 `confirmed=false`로 등록하고 15초 확인 대기 타이머(`pendingTask` → 만료 시 `leave(roomId, userId)` 호출)를 예약하도록 연결 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/service/GameRoomService.java` (T065 의존, research.md #14)
+- [X] T067 [US15] `GameRoomHandshakeInterceptor`/`GameRoomWebSocketHandler`가 핸드셰이크 성공 시 해당 참가자가 미확정(`confirmed=false`)이었다면 확인 대기 타이머를 취소하고 `confirmed=true`로 전환하도록 보강(재접속과 동일 코드 경로) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/GameRoomHandshakeInterceptor.java` (T066 의존)
+- [X] T068 [US15] `application.yaml`/`env.sample`에 `game.room.join-confirmation-seconds: ${GAME_ROOM_JOIN_CONFIRMATION_SECONDS:15}` 반영
+- [X] T069 [US15] `GameRoomCleanupScheduler`가 삭제 대상 후보 WAITING 방마다 `RoomParticipantRegistry`를 조회해 `confirmed=true`인 살아있는 참가자가 하나라도 있으면 삭제 대상에서 제외하도록 보강(FR-030) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/scheduler/GameRoomCleanupScheduler.java` (T065 의존, research.md #4)
 
 ### Tests for User Story 15 (구현 검증)
 
-- [ ] T070 [US15] 호스트가 15초 안에 연결하지 않으면 방이 종료되고(게스트 없음), 게스트가 15초 안에 연결하지 않으면 자리가 비워지며, 호스트가 연결하지 않았지만 게스트가 있으면 위임되는 3가지 시나리오를 검증하는 통합 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/realtime/JoinConfirmationTimeoutIntegrationTest.java` (T066 의존)
-- [ ] T071 [US15] 확인 대기 중에도 정원 계산/실시간 목록 인원수에 포함되는지, 재입장 호출이 타이머를 연장시키지 않는지 검증하는 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/realtime/JoinConfirmationTimeoutIntegrationTest.java`(같은 파일에 케이스 추가) (T066, T047 의존)
-- [ ] T072 [US15] 실시간 연결이 살아있는(confirmed) WAITING 방은 보관 기간을 넘겨도 정리 스케줄러가 삭제하지 않는지 검증하는 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/scheduler/GameRoomCleanupSchedulerTest.java`(기존 파일에 케이스 추가) (T069 의존)
+- [X] T070 [US15] 호스트가 15초 안에 연결하지 않으면 방이 종료되고(게스트 없음), 게스트가 15초 안에 연결하지 않으면 자리가 비워지며, 호스트가 연결하지 않았지만 게스트가 있으면 위임되는 3가지 시나리오를 검증하는 통합 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/realtime/JoinConfirmationTimeoutIntegrationTest.java` (T066 의존)
+- [X] T071 [US15] 확인 대기 중에도 정원 계산/실시간 목록 인원수에 포함되는지, 재입장 호출이 타이머를 연장시키지 않는지 검증하는 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/realtime/JoinConfirmationTimeoutIntegrationTest.java`(같은 파일에 케이스 추가) (T066, T047 의존)
+- [X] T072 [US15] 실시간 연결이 살아있는(confirmed) WAITING 방은 보관 기간을 넘겨도 정리 스케줄러가 삭제하지 않는지 검증하는 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/scheduler/GameRoomCleanupSchedulerTest.java`(기존 파일에 케이스 추가) (T069 의존)
 
 **Checkpoint**: US9~US15(Part B 전체) 독립적으로 완전히 동작·검증 가능.
 
