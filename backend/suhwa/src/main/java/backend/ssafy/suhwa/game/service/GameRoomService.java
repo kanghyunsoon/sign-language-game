@@ -7,6 +7,7 @@ import backend.ssafy.suhwa.game.domain.GameRoomStatus;
 import backend.ssafy.suhwa.game.domain.GameSession;
 import backend.ssafy.suhwa.game.dto.GameResultResponse;
 import backend.ssafy.suhwa.game.dto.GameRoomResponse;
+import backend.ssafy.suhwa.game.realtime.LobbyBroadcastService;
 import backend.ssafy.suhwa.game.repository.GameRoomRepository;
 import backend.ssafy.suhwa.game.repository.GameSessionRepository;
 import backend.ssafy.suhwa.user.domain.User;
@@ -16,6 +17,8 @@ import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * roomId/userId 등 순수 도메인 파라미터만 받고 HttpServletRequest/DTO 등 HTTP 종속 타입은
@@ -34,6 +37,7 @@ public class GameRoomService {
     private final GameRoomRepository gameRoomRepository;
     private final GameSessionRepository gameSessionRepository;
     private final UserRepository userRepository;
+    private final LobbyBroadcastService lobbyBroadcastService;
 
     @Transactional
     public GameRoomResponse create(Long hostUserId) {
@@ -41,12 +45,22 @@ public class GameRoomService {
                 .roomCode(generateUniqueRoomCode())
                 .hostUserId(hostUserId)
                 .build();
-        return GameRoomResponse.from(gameRoomRepository.save(room));
+        GameRoomResponse response = GameRoomResponse.from(gameRoomRepository.save(room));
+        // 새 방이 로비 목록에 나타나므로 커밋 후 구독자에게 알린다(FR-010, research.md #9-1).
+        afterCommit(lobbyBroadcastService::broadcastUpdate);
+        return response;
     }
 
     @Transactional
     public GameRoomResponse join(String roomCode, Long userId) {
         GameRoom room = getRoomByCode(roomCode);
+        // 이미 이 방의 참가자인 재입장 요청은 인원수를 늘리지 않고 현재 상태를 그대로 반환한다
+        // (FR-020, research.md #14-1 — 그렇지 않으면 guest 재입장이 ROOM_FULL로 오거부되거나
+        // host 본인의 재호출이 host/guest를 같은 사람으로 만들어버리는 결함이 있었다). 인원수
+        // 변화가 없으므로 로비 브로드캐스트도 하지 않는다.
+        if (room.isParticipant(userId)) {
+            return GameRoomResponse.from(room);
+        }
         if (room.getStatus() != GameRoomStatus.WAITING) {
             throw new BusinessException(ErrorCode.ROOM_NOT_WAITING);
         }
@@ -54,7 +68,10 @@ public class GameRoomService {
             throw new BusinessException(ErrorCode.ROOM_FULL);
         }
         room.assignGuest(userId);
-        return GameRoomResponse.from(room);
+        GameRoomResponse response = GameRoomResponse.from(room);
+        // 실제로 신규 참가자가 배정된 경로에서만 인원수가 바뀌므로 커밋 후 브로드캐스트한다.
+        afterCommit(lobbyBroadcastService::broadcastUpdate);
+        return response;
     }
 
     @Transactional
@@ -195,5 +212,19 @@ public class GameRoomService {
             sb.append(ROOM_CODE_CHARS.charAt(RANDOM.nextInt(ROOM_CODE_CHARS.length())));
         }
         return sb.toString();
+    }
+
+    /**
+     * 트랜잭션이 실제로 커밋된 후에만 action을 실행한다 — 커밋 전에 실시간 알림을 보내면,
+     * 알림을 받은 클라이언트가 곧바로 상태를 재조회했을 때 아직 반영되지 않은 값을 읽는
+     * 경쟁 조건이 생긴다.
+     */
+    private void afterCommit(Runnable action) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                action.run();
+            }
+        });
     }
 }

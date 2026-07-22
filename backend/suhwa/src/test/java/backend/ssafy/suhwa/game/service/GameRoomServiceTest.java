@@ -9,12 +9,14 @@ import backend.ssafy.suhwa.game.domain.GameRoom;
 import backend.ssafy.suhwa.game.domain.GameRoomStatus;
 import backend.ssafy.suhwa.game.dto.GameResultResponse;
 import backend.ssafy.suhwa.game.dto.GameRoomResponse;
+import backend.ssafy.suhwa.game.realtime.LobbyBroadcastService;
 import backend.ssafy.suhwa.game.repository.GameRoomRepository;
 import backend.ssafy.suhwa.game.repository.GameSessionRepository;
 import backend.ssafy.suhwa.user.domain.User;
 import backend.ssafy.suhwa.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
@@ -40,7 +42,9 @@ class GameRoomServiceTest {
 
     @BeforeEach
     void setUp() {
-        gameRoomService = new GameRoomService(gameRoomRepository, gameSessionRepository, userRepository);
+        gameRoomService = new GameRoomService(
+                gameRoomRepository, gameSessionRepository, userRepository,
+                Mockito.mock(LobbyBroadcastService.class));
         hostId = userRepository.save(User.builder()
                 .email("host-" + System.nanoTime() + "@test.com").passwordHash("h").nickname("host").build())
                 .getId();
