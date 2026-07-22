@@ -2,6 +2,7 @@ package backend.ssafy.suhwa.game.realtime;
 
 import backend.ssafy.suhwa.auth.service.RealtimeTicketService;
 import backend.ssafy.suhwa.game.domain.GameRoom;
+import backend.ssafy.suhwa.game.domain.GameRoomStatus;
 import backend.ssafy.suhwa.game.repository.GameRoomRepository;
 import java.net.URI;
 import java.util.Map;
@@ -54,7 +55,9 @@ public class GameRoomHandshakeInterceptor implements HandshakeInterceptor {
         }
 
         Optional<GameRoom> room = gameRoomRepository.findById(roomId);
-        if (room.isEmpty() || !room.get().isParticipant(userId.get())) {
+        // CLOSED된 방은 이미 종료된 게임이라, 예전 참가자였더라도 새 실시간 연결을 열 수 없어야 한다.
+        if (room.isEmpty() || !room.get().isParticipant(userId.get())
+                || room.get().getStatus() == GameRoomStatus.CLOSED) {
             response.setStatusCode(HttpStatus.FORBIDDEN);
             return false;
         }

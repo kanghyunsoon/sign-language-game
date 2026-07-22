@@ -1,6 +1,7 @@
 package backend.ssafy.suhwa.game.realtime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import backend.ssafy.suhwa.auth.service.RealtimeTicketService;
 import backend.ssafy.suhwa.common.security.JwtTokenProvider;
@@ -141,6 +142,17 @@ class GameRoomWebSocketHandlerTest {
                 .isNull();
 
         assertThat(gameRoomRepository.findById(room.id()).orElseThrow().getHostUserId()).isEqualTo(guestId);
+    }
+
+    @Test
+    void handshake_rejectsAlreadyClosedRoom() throws Exception {
+        GameRoomResponse room = gameRoomService.create(hostId);
+        gameRoomService.leave(room.id(), hostId);
+        assertThat(gameRoomRepository.findById(room.id()).orElseThrow().getStatus())
+                .isEqualTo(GameRoomStatus.CLOSED);
+
+        assertThatThrownBy(() -> connect(room.id(), hostId, new LinkedBlockingQueue<>()))
+                .isInstanceOf(Exception.class);
     }
 
     @Test

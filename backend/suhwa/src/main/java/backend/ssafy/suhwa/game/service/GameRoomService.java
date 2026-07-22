@@ -73,6 +73,12 @@ public class GameRoomService {
     public void leave(Long roomId, Long userId) {
         GameRoom room = getRoom(roomId);
         requireParticipant(room, userId);
+        // 이미 CLOSED된 방에 leave()가 또 호출되는 경우(결과 보고 후 중복 호출, 유예 타이머의
+        // 뒤늦은 발동 등)는 아무 것도 바뀐 게 없으므로 조용히 무시한다 — 그렇지 않으면 끝난
+        // 방의 host/guest를 계속 고쳐 쓰고, 실시간 알림도 매번 다시 나가게 된다.
+        if (room.getStatus() == GameRoomStatus.CLOSED) {
+            return;
+        }
 
         Long newHostUserId = null;
         if (room.getStatus() == GameRoomStatus.IN_PROGRESS) {

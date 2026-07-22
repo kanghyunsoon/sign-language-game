@@ -107,6 +107,29 @@ class GameRoomServiceTest {
     }
 
     @Test
+    void leave_calledAgainAfterRoomAlreadyClosed_isNoop() {
+        GameRoomResponse room = gameRoomService.create(hostId);
+        gameRoomService.join(room.roomCode(), guestId);
+
+        gameRoomService.leave(room.id(), hostId);
+        GameRoom afterFirstLeave = gameRoomRepository.findById(room.id()).orElseThrow();
+        assertThat(afterFirstLeave.getHostUserId()).isEqualTo(guestId);
+        assertThat(afterFirstLeave.getGuestUserId()).isNull();
+
+        // 이미 CLOSED가 아니라 위임으로 WAITING 그대로인 상태이므로 한 번 더 닫아 CLOSED로 만든다.
+        gameRoomService.leave(room.id(), guestId);
+        assertThat(gameRoomRepository.findById(room.id()).orElseThrow().getStatus())
+                .isEqualTo(GameRoomStatus.CLOSED);
+
+        // CLOSED된 방에 같은 사용자가 leave()를 또 호출해도 host/guest가 더 이상 바뀌면 안 된다.
+        gameRoomService.leave(room.id(), guestId);
+        GameRoom afterRedundantLeave = gameRoomRepository.findById(room.id()).orElseThrow();
+        assertThat(afterRedundantLeave.getStatus()).isEqualTo(GameRoomStatus.CLOSED);
+        assertThat(afterRedundantLeave.getHostUserId()).isEqualTo(guestId);
+        assertThat(afterRedundantLeave.getGuestUserId()).isNull();
+    }
+
+    @Test
     void waitingLeave_guestLeaves_freesSlotWithoutClosingRoom() {
         GameRoomResponse room = gameRoomService.create(hostId);
         gameRoomService.join(room.roomCode(), guestId);
