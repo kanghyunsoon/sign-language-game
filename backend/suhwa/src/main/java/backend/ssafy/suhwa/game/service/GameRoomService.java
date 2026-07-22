@@ -128,7 +128,11 @@ public class GameRoomService {
             throw new BusinessException(ErrorCode.NOT_ALL_READY);
         }
         room.start();
-        return GameRoomResponse.from(room);
+        GameRoomResponse response = GameRoomResponse.from(room);
+        // 참가자들에게 GAME_STARTED를 방 WebSocket으로 알린다(FR-021). leave()와 같은 이유로
+        // 트랜잭션이 실제로 커밋된 이후에만 알리도록 등록한다.
+        afterCommit(() -> roomRealtimeNotifier.notifyGameStarted(roomId));
+        return response;
     }
 
     @Transactional
@@ -220,5 +224,19 @@ public class GameRoomService {
             sb.append(ROOM_CODE_CHARS.charAt(RANDOM.nextInt(ROOM_CODE_CHARS.length())));
         }
         return sb.toString();
+    }
+
+    /**
+     * 트랜잭션이 실제로 커밋된 후에만 action을 실행한다 — 커밋 전에 실시간 알림을 보내면,
+     * 알림을 받은 클라이언트가 곧바로 상태를 재조회했을 때 아직 반영되지 않은 값을 읽는
+     * 경쟁 조건이 생긴다.
+     */
+    private void afterCommit(Runnable action) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                action.run();
+            }
+        });
     }
 }

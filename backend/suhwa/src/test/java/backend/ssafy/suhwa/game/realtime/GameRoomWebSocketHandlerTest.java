@@ -142,4 +142,22 @@ class GameRoomWebSocketHandlerTest {
 
         assertThat(gameRoomRepository.findById(room.id()).orElseThrow().getHostUserId()).isEqualTo(guestId);
     }
+
+    @Test
+    void startGame_broadcastsGameStartedToBothParticipants() throws Exception {
+        GameRoomResponse room = gameRoomService.create(hostId);
+        gameRoomService.join(room.roomCode(), guestId);
+        gameRoomService.setReady(room.id(), hostId, true);
+        gameRoomService.setReady(room.id(), guestId, true);
+
+        BlockingQueue<String> hostMessages = new LinkedBlockingQueue<>();
+        BlockingQueue<String> guestMessages = new LinkedBlockingQueue<>();
+        connect(room.id(), hostId, hostMessages);
+        connect(room.id(), guestId, guestMessages);
+
+        gameRoomService.start(room.id(), hostId);
+
+        assertThat(hostMessages.poll(3, TimeUnit.SECONDS)).contains("GAME_STARTED");
+        assertThat(guestMessages.poll(3, TimeUnit.SECONDS)).contains("GAME_STARTED");
+    }
 }
