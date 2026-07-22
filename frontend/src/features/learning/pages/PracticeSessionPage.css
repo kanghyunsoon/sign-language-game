@@ -1,0 +1,855 @@
+.practice-session-page {
+  width: min(100%, 1920px);
+  min-height: 100vh;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: #3f2b20;
+  background: #faf7f1;
+}
+
+/* 메인페이지와 동일한 네비게이션바 */
+
+.header {
+  position: relative;
+  z-index: 5;
+  height: 86px;
+  flex: 0 0 86px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #e7d9c7;
+  background: rgba(255, 250, 242, 0.94);
+  box-shadow: 0 4px 18px rgba(85, 57, 37, 0.05);
+}
+
+.nav {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 58px;
+}
+
+.nav a {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  color: #7d6d61;
+  font-size: 17px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.nav a.active {
+  color: #3f2b20;
+}
+
+.nav a.active::after {
+  position: absolute;
+  right: 0;
+  bottom: 17px;
+  left: 0;
+  height: 4px;
+  border-radius: 999px;
+  background: #d947bc;
+  content: "";
+}
+
+.mypage-button {
+  position: absolute;
+  top: 20px;
+  right: 58px;
+  width: 155px;
+  height: 44px;
+  border: 1px solid #dbc8b1;
+  border-radius: 999px;
+  color: #5f402b;
+  font-size: 16px;
+  font-weight: 800;
+  background: #fffaf2;
+  cursor: pointer;
+}
+
+/* 연습 진행 화면 전체 */
+
+.practice-session-main {
+  position: relative;
+  flex: 1;
+  min-height: calc(100vh - 86px);
+  padding: 48px 56px 42px;
+  background:
+    linear-gradient(
+      180deg,
+      #faf7f1 0%,
+      #faf7f1 52%,
+      #f3efe7 52%,
+      #f3efe7 100%
+    );
+}
+
+/* 상단 진행률 */
+
+.practice-progress-area {
+  width: min(1320px, calc(100% - 80px));
+  margin: 0 auto 26px;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.practice-progress-track {
+  height: 11px;
+  flex: 1;
+  overflow: hidden;
+  border: 1px solid #ebe4dc;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow:
+    inset 0 1px 3px rgba(63, 43, 32, 0.08),
+    0 2px 6px rgba(63, 43, 32, 0.04);
+}
+
+.practice-progress-bar {
+  height: 100%;
+  border-radius: inherit;
+  background: #342922;
+  transition: width 0.3s ease;
+}
+
+.practice-progress-back-button,
+.practice-progress-count {
+  min-width: 78px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  color: #625950;
+  font-size: 14px;
+  font-weight: 800;
+  text-align: center;
+  background: #ffffff;
+  box-shadow: 0 7px 18px rgba(63, 43, 32, 0.1);
+}
+
+.practice-session-panel-complete {
+  filter: blur(4px);
+  opacity: 0.5;
+  pointer-events: none;
+  user-select: none;
+}
+
+.practice-completion-overlay {
+  position: absolute;
+  top: 104px;
+  right: 0;
+  bottom: 20px;
+  left: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 26px;
+  background: rgba(250, 247, 241, 0.32);
+}
+
+.practice-completion-card {
+  width: min(600px, calc(100vw - 40px));
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 28px 34px 24px;
+  border-radius: 24px;
+  text-align: center;
+  background: #ffffff;
+  box-shadow: 0 20px 42px rgba(59, 42, 35, 0.2);
+}
+
+.practice-completion-character {
+  width: 160px;
+  height: 160px;
+  object-fit: contain;
+}
+
+.practice-completion-card h2 {
+  margin: 10px 0 7px;
+  color: #4c4037;
+  font-size: 20px;
+  line-height: 1.45;
+}
+
+.practice-completion-card > p {
+  margin: 0;
+  color: #91867d;
+  font-size: 15px;
+}
+
+.practice-completion-stats {
+  width: 100%;
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.practice-completion-stats > div {
+  min-height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 5px;
+  border-radius: 14px;
+  background: #faf9f6;
+}
+
+.practice-completion-stats strong {
+  color: #43372f;
+  font-size: 17px;
+}
+
+.practice-completion-stats span {
+  color: #aaa097;
+  font-size: 11px;
+}
+
+.practice-completion-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.practice-completion-actions button,
+.practice-completion-actions a {
+  min-width: 145px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 13px;
+  color: #62574e;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(63, 43, 32, 0.12);
+  cursor: pointer;
+}
+
+.practice-completion-actions a {
+  color: #ffffff;
+  background: #7c6a5b;
+  box-shadow:
+    0 6px 0 #5d5045,
+    0 12px 20px rgba(63, 43, 32, 0.2);
+}
+
+.practice-completion-actions button:hover,
+.practice-completion-actions a:hover {
+  transform: translateY(-2px);
+}
+
+.practice-progress-back-button {
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform 0.2s ease;
+}
+
+.practice-progress-back-button:hover {
+  transform: translateY(-2px);
+}
+
+/* 좌우 카드를 감싸는 큰 흰색 패널 */
+
+.practice-session-panel {
+  width: min(1280px, calc(100% - 120px));
+  min-height: 640px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 72px;
+  padding: 24px 68px;
+  border-radius: 34px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 24px 50px rgba(59, 42, 35, 0.13);
+}
+
+/* 좌우 카드 공통 */
+
+.practice-answer-panel,
+.practice-camera-panel {
+  min-width: 0;
+  min-height: 590px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 25px;
+  background: #ffffff;
+  box-shadow: 0 10px 26px rgba(63, 43, 32, 0.1);
+}
+
+.practice-panel-label {
+  position: relative;
+  min-height: 70px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 0 28px;
+  border-bottom: 1px solid #eee7de;
+  color: #3f2b20;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.practice-answer-panel .practice-panel-label::before,
+.practice-camera-panel .practice-panel-label::before {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  font-size: 15px;
+}
+
+.practice-answer-panel .practice-panel-label::before {
+  background: #eff7d9;
+  content: "✋";
+}
+
+.practice-camera-panel .practice-panel-label::before {
+  background: #eaf4fc;
+  content: "📷";
+}
+
+.practice-answer-panel .practice-panel-label::after {
+  position: absolute;
+  right: 24px;
+  padding: 8px 13px;
+  border-radius: 999px;
+  color: #88908c;
+  font-size: 12px;
+  font-weight: 800;
+  background: #f2f5f4;
+  content: "기초 자음";
+}
+
+/* 왼쪽 정답 동작 카드 */
+
+.practice-answer-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px 24px 14px;
+}
+
+.practice-answer-guide {
+  position: relative;
+  flex: 1;
+  min-height: 440px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: 16px 22px 18px;
+  border-radius: 22px;
+  background: #eee7dc;
+}
+
+.practice-current-symbol {
+  position: absolute;
+  top: 28px;
+  left: 28px;
+  z-index: 2;
+  width: 62px;
+  height: 62px;
+  display: grid;
+  place-items: center;
+  border-radius: 17px;
+  color: #485052;
+  font-size: 31px;
+  font-weight: 900;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(63, 43, 32, 0.1);
+}
+
+/* 정답 이미지가 들어갈 원형 영역 */
+
+.practice-answer-placeholder {
+  width: 310px;
+  height: 310px;
+  flex: 0 0 310px;
+  margin-top: 0;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+/* < 디귿 > */
+
+.practice-item-navigation {
+  width: 100%;
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: 48px 1fr 48px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.practice-item-navigation strong {
+  color: #3f2b20;
+  font-size: 23px;
+  line-height: 1;
+  text-align: center;
+}
+
+.practice-item-navigation button {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: #3f2b20;
+  font-size: 30px;
+  line-height: 1;
+  background: transparent;
+  cursor: pointer;
+}
+
+.practice-item-navigation button:last-child {
+  justify-self: end;
+}
+
+.practice-item-navigation button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.practice-item-navigation button:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+/* 디귿 아래 손동작 설명 */
+
+.practice-item-description {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  color: #8a7e73;
+  font-size: 13px;
+  line-height: 1.65;
+  text-align: center;
+  word-break: keep-all;
+}
+
+.practice-item-description p {
+  margin: 0;
+  white-space: nowrap;
+}
+
+/* 왼쪽 하단 주의 문구 */
+
+.practice-caution {
+  min-height: 78px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid #eadf9f;
+  border-radius: 16px;
+  color: #6f665b;
+  font-size: 13px;
+  line-height: 1.65;
+  background: #fff9dc;
+}
+
+.practice-caution-icon {
+  width: 21px;
+  height: 21px;
+  flex: 0 0 21px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+  background: #d7b85f;
+}
+
+.practice-caution p {
+  margin: 0;
+}
+
+/* 오른쪽 카메라 카드 */
+
+.practice-camera-panel {
+  padding-bottom: 20px;
+}
+
+.practice-camera-placeholder {
+  position: relative;
+  flex: 1;
+  min-height: 445px;
+  margin: 18px 20px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 21px;
+  color: transparent;
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(135, 148, 154, 0.26) 0%,
+      rgba(47, 59, 64, 0.93) 55%,
+      #29353a 100%
+    );
+}
+
+.practice-camera-placeholder {
+  position: relative;
+  flex: 1;
+  min-height: 445px;
+  margin: 18px 20px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 21px;
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(135, 148, 154, 0.26) 0%,
+      rgba(47, 59, 64, 0.93) 55%,
+      #29353a 100%
+    );
+}
+
+.practice-camera-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scaleX(-1);
+  transition: opacity 0.2s ease;
+}
+
+.practice-camera-placeholder.camera-active
+  .practice-camera-video {
+  opacity: 1;
+}
+
+.practice-camera-live {
+  position: absolute;
+  top: 17px;
+  left: 17px;
+  z-index: 4;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 900;
+  background: rgba(27, 37, 41, 0.72);
+}
+
+.practice-camera-guide-text {
+  position: absolute;
+  right: 20px;
+  bottom: 24px;
+  left: 20px;
+  z-index: 4;
+  color: #d9dfe1;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  pointer-events: none;
+}
+
+.practice-camera-message {
+  position: relative;
+  z-index: 2;
+  max-width: 250px;
+  margin: 0;
+  padding: 16px 20px;
+  color: #d9dfe1;
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: center;
+  word-break: keep-all;
+}
+
+/* 카메라 인식 결과 */
+
+.practice-feedback {
+  min-height: 74px;
+  margin: 0 20px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  flex-direction: column;
+  padding: 13px 18px;
+  border-radius: 16px;
+  color: #8b8178;
+  font-size: 13px;
+  line-height: 1.55;
+  background: #f2eee7;
+}
+
+.practice-feedback::before {
+  color: #3f2b20;
+  font-size: 16px;
+  font-weight: 900;
+  content: "좋아요! 거의 정확해요";
+}
+
+.practice-camera-button {
+  width: 145px;
+  height: 46px;
+  align-self: flex-end;
+  margin: 0 20px 0;
+  border: 0;
+  border-radius: 14px;
+  color: #66594e;
+  font-size: 15px;
+  font-weight: 800;
+  background: #fffce8;
+  box-shadow: 0 8px 18px rgba(63, 43, 32, 0.09);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.practice-camera-button:hover {
+  transform: translateY(-2px);
+}
+
+/* 하단 버튼 */
+
+.practice-bottom-navigation {
+  width: min(1440px, calc(100% - 100px));
+  margin: 34px auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 30px;
+}
+
+.practice-exit-button {
+  width: 145px;
+  height: 46px;
+  flex: 0 0 46px;
+  align-self: flex-start;
+  margin: 0 24px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 15px;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 800;
+  text-decoration: none;
+  background: #857361;
+  box-shadow:
+    0 8px 0 #625448,
+    0 14px 24px rgba(63, 43, 32, 0.2);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.practice-exit-button:hover {
+  transform: translateY(-2px);
+}
+
+.practice-exit-button:active {
+  transform: translateY(4px);
+  box-shadow:
+    0 3px 0 #625448,
+    0 8px 14px rgba(63, 43, 32, 0.16);
+}
+
+.practice-bottom-navigation button {
+  width: 145px;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 15px;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 800;
+  text-decoration: none;
+  background: #857361;
+  box-shadow:
+    0 8px 0 #625448,
+    0 14px 24px rgba(63, 43, 32, 0.2);
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.practice-bottom-navigation button {
+  color: #66594e;
+  background: #fffce8;
+  box-shadow: 0 8px 18px rgba(63, 43, 32, 0.09);
+}
+
+.practice-bottom-navigation button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.practice-bottom-navigation button:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow:
+    0 3px 0 #625448,
+    0 8px 14px rgba(63, 43, 32, 0.16);
+}
+
+.practice-bottom-navigation button:nth-child(2):active {
+  box-shadow: 0 5px 12px rgba(63, 43, 32, 0.08);
+}
+
+.practice-bottom-navigation button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* 잘못된 주소 */
+
+.practice-session-error {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 18px;
+  color: #3f2b20;
+  background: #faf7f1;
+}
+
+.practice-session-error a {
+  color: #5f402b;
+  font-weight: 800;
+}
+
+/* 태블릿 */
+
+@media (max-width: 1180px) {
+  .practice-session-main {
+    padding-right: 24px;
+    padding-left: 24px;
+  }
+
+  .practice-progress-area {
+    width: 94vw;
+  }
+
+  .practice-session-panel {
+    width: 94vw;
+    gap: 30px;
+    padding-right: 32px;
+    padding-left: 32px;
+  }
+
+  .practice-answer-placeholder {
+    width: 270px;
+    height: 270px;
+    flex-basis: 270px;
+  }
+}
+
+/* 모바일 */
+
+@media (max-width: 760px) {
+  .practice-item-description p {
+    white-space: normal;
+  }
+
+  .header {
+    height: auto;
+    min-height: 72px;
+    padding: 0 16px;
+  }
+
+  .nav {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 24px;
+    overflow-x: auto;
+    padding-right: 110px;
+  }
+
+  .nav a {
+    font-size: 14px;
+  }
+
+  .mypage-button {
+    right: 14px;
+    width: 94px;
+    height: 38px;
+    font-size: 13px;
+  }
+
+  .practice-session-main {
+    min-height: calc(100vh - 72px);
+    padding: 24px 16px 32px;
+  }
+
+  .practice-progress-area {
+    width: 100%;
+    gap: 10px;
+  }
+
+  .practice-progress-back-button,
+  .practice-progress-count {
+    min-width: 62px;
+    padding: 8px 10px;
+  }
+
+  .practice-session-panel {
+    width: 100%;
+    min-height: auto;
+    grid-template-columns: 1fr;
+    gap: 22px;
+    padding: 20px;
+    border-radius: 25px;
+  }
+
+  .practice-answer-panel,
+  .practice-camera-panel {
+    min-height: 520px;
+  }
+
+  .practice-answer-guide {
+    min-height: 420px;
+  }
+
+  .practice-answer-placeholder {
+    width: 240px;
+    height: 240px;
+    flex-basis: 240px;
+  }
+
+  .practice-camera-placeholder {
+    min-height: 360px;
+  }
+
+  .practice-bottom-navigation {
+    width: 100%;
+    gap: 12px;
+  }
+
+  .practice-bottom-navigation button {
+    width: 145px;
+  }
+}
