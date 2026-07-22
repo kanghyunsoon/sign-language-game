@@ -104,6 +104,33 @@ class GameRoomServiceTest {
     }
 
     @Test
+    void setReady_succeedsWhileWaiting() {
+        GameRoom room = gameRoomService.create(hostId);
+
+        GameRoom updated = gameRoomService.setReady(room.getId(), hostId, true);
+
+        assertThat(updated.isHostReady()).isTrue();
+    }
+
+    @Test
+    void setReady_rejectedWhenInProgress() {
+        GameRoom room = createReadyRoom();
+        gameRoomService.start(room.getId(), hostId);
+
+        assertThatThrownBy(() -> gameRoomService.setReady(room.getId(), hostId, false))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void setReady_rejectedWhenClosed() {
+        GameRoom room = gameRoomService.create(hostId);
+        gameRoomService.leave(room.getId(), hostId);
+
+        assertThatThrownBy(() -> gameRoomService.setReady(room.getId(), hostId, true))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
     void start_rejectsWhenNotAllReady() {
         GameRoom room = gameRoomService.create(hostId);
         gameRoomService.join(room.getRoomCode(), guestId);
