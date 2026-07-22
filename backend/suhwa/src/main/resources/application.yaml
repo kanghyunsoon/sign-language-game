@@ -32,3 +32,7 @@ jwt:
   secret: ${JWT_SECRET}
   access-token-expiration-ms: ${JWT_ACCESS_EXPIRATION_MS:3600000}
   refresh-token-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:1209600000}
+
+game:
+  room:
+    waiting-room-retention-minutes: ${GAME_ROOM_WAITING_RETENTION_MINUTES:30}
