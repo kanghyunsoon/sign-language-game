@@ -29,8 +29,8 @@ description: "Task list for 실시간 로비/게임방 알림(SSE)과 WebRTC 시
 
 **Purpose**: 신규 패키지 스켈레톤 준비. 001에서 이미 갖춰진 인프라(JWT, Security, Scheduling, Swagger)는 재사용하므로 별도 Setup 작업이 거의 없다.
 
-- [ ] T001 [P] 신규 패키지 스켈레톤 생성: `game/realtime/{controller}`, `webrtc/{config,controller}` — 그리고 동일 구조를 `backend/suhwa/src/test/java/backend/ssafy/suhwa/`에 미러링(`game/realtime/`, `webrtc/controller/`)
-- [ ] T002 [P] `env.sample`에 이번 스펙에서 추가되는 환경변수 자리만 미리 마련(값은 각 스토리에서 채움): `CORS_ALLOWED_ORIGINS`, `GAME_ROOM_WAITING_RETENTION_MINUTES`, `REALTIME_TICKET_TTL_SECONDS`, `GAME_ROOM_LEAVE_GRACE_SECONDS`, `GAME_ROOM_JOIN_CONFIRMATION_SECONDS`, `WEBRTC_STUN_URLS`, `WEBRTC_TURN_URL`, `WEBRTC_TURN_USERNAME`, `WEBRTC_TURN_CREDENTIAL`
+- [X] T001 [P] 신규 패키지 스켈레톤 생성: `game/realtime/{controller}`, `webrtc/{config,controller}` — 그리고 동일 구조를 `backend/suhwa/src/test/java/backend/ssafy/suhwa/`에 미러링(`game/realtime/`, `webrtc/controller/`)
+- [X] T002 [P] `env.sample`에 이번 스펙에서 추가되는 환경변수 자리만 미리 마련(값은 각 스토리에서 채움): `CORS_ALLOWED_ORIGINS`, `GAME_ROOM_WAITING_RETENTION_MINUTES`, `REALTIME_TICKET_TTL_SECONDS`, `GAME_ROOM_LEAVE_GRACE_SECONDS`, `GAME_ROOM_JOIN_CONFIRMATION_SECONDS`, `WEBRTC_STUN_URLS`, `WEBRTC_TURN_URL`, `WEBRTC_TURN_USERNAME`, `WEBRTC_TURN_CREDENTIAL`
 
 ---
 
@@ -368,11 +368,11 @@ description: "Task list for 실시간 로비/게임방 알림(SSE)과 WebRTC 시
 
 **Purpose**: 전체 스토리에 걸친 마무리 점검
 
-- [ ] T076 `./gradlew test` 전체 통과 확인
-- [ ] T077 `quickstart.md` §1~§16 전체 시나리오 수동 검증(Part A §1~§8 완료 게이트 재확인 후 Part B §9~§16 순서대로)
-- [ ] T078 [P] Swagger UI에서 신규 REST 엔드포인트(`POST /auth/sse-ticket`, `GET /webrtc/ice-servers`)가 올바른 도메인 Tag로 노출되는지 확인
-- [ ] T079 각 신규 서비스가 던지는 예외를 `GlobalExceptionHandler`가 빠짐없이 처리하는지 점검(`ACCESS_DENIED`, `CONCURRENT_UPDATE_CONFLICT` 포함 계약 대조)
-- [ ] T080 [P] `RoomRealtimeNotifier`가 다루는 6종 메시지(`PEER_DISCONNECTED`/`PEER_RECONNECTED`/`PEER_LEFT`/`GAME_STARTED`/`SIGNAL`/`ERROR`) 전부에 실제 호출 지점이 존재하는지 코드 레벨로 최종 확인(research.md #9-1, #12)
+- [X] T076 `./gradlew test` 전체 통과 확인
+- [X] T077 `quickstart.md` §1~§16 전체 시나리오 수동 검증(Part A §1~§8 완료 게이트 재확인 후 Part B §9~§16 순서대로)
+- [X] T078 [P] Swagger UI에서 신규 REST 엔드포인트(`POST /auth/sse-ticket`, `GET /webrtc/ice-servers`)가 올바른 도메인 Tag로 노출되는지 확인
+- [X] T079 각 신규 서비스가 던지는 예외를 `GlobalExceptionHandler`가 빠짐없이 처리하는지 점검(`ACCESS_DENIED`, `CONCURRENT_UPDATE_CONFLICT` 포함 계약 대조)
+- [X] T080 [P] `RoomRealtimeNotifier`가 다루는 6종 메시지(`PEER_DISCONNECTED`/`PEER_RECONNECTED`/`PEER_LEFT`/`GAME_STARTED`/`SIGNAL`/`ERROR`) 전부에 실제 호출 지점이 존재하는지 코드 레벨로 최종 확인(research.md #9-1, #12)
 
 ---
 
