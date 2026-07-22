@@ -8,6 +8,7 @@ import backend.ssafy.suhwa.game.domain.GameSession;
 import backend.ssafy.suhwa.game.dto.GameResultResponse;
 import backend.ssafy.suhwa.game.dto.GameRoomResponse;
 import backend.ssafy.suhwa.game.realtime.LobbyBroadcastService;
+import backend.ssafy.suhwa.game.realtime.RoomRealtimeNotifier;
 import backend.ssafy.suhwa.game.repository.GameRoomRepository;
 import backend.ssafy.suhwa.game.repository.GameSessionRepository;
 import backend.ssafy.suhwa.user.domain.User;
@@ -37,6 +38,7 @@ public class GameRoomService {
     private final GameRoomRepository gameRoomRepository;
     private final GameSessionRepository gameSessionRepository;
     private final UserRepository userRepository;
+    private final RoomRealtimeNotifier roomRealtimeNotifier;
     private final LobbyBroadcastService lobbyBroadcastService;
 
     @Transactional
@@ -78,22 +80,41 @@ public class GameRoomService {
     public void leave(Long roomId, Long userId) {
         GameRoom room = getRoom(roomId);
         requireParticipant(room, userId);
-
-        if (room.getStatus() == GameRoomStatus.IN_PROGRESS) {
-            // 진행 중 나가기는 위임 없이 즉시 CLOSED, 결과는 저장하지 않음(FR-021/023)
-            room.close();
+        // 이미 CLOSED된 방에 leave()가 또 호출되는 경우(결과 보고 후 중복 호출, 유예 타이머의
+        // 뒤늦은 발동 등)는 아무 것도 바뀐 게 없으므로 조용히 무시한다 — 그렇지 않으면 끝난
+        // 방의 host/guest를 계속 고쳐 쓰고, 실시간 알림도 매번 다시 나가게 된다.
+        if (room.getStatus() == GameRoomStatus.CLOSED) {
             return;
         }
 
-        if (room.isHost(userId)) {
+        Long newHostUserId = null;
+        if (room.getStatus() == GameRoomStatus.IN_PROGRESS) {
+            // 진행 중 나가기는 위임 없이 즉시 CLOSED, 결과는 저장하지 않음(FR-021/023)
+            room.close();
+        } else if (room.isHost(userId)) {
             if (room.getGuestUserId() != null) {
                 room.delegateHostToGuest();
+                newHostUserId = room.getHostUserId();
             } else {
                 room.close();
             }
         } else {
             room.removeGuest();
         }
+
+        // leave()는 REST 명시적 나가기와 WebSocket 유예/확인대기 타이머 만료 양쪽 모두에서
+        // 호출되는 단일 진입점이다 — 브로드캐스트를 이 안에 두면 두 호출자 모두에서 자동으로
+        // 동작한다(research.md #12). 커밋 전에 브로드캐스트하면 알림을 받은 클라이언트가 곧바로
+        // 방 상태를 재조회했을 때 아직 반영되지 않은 값을 읽는 경쟁 조건이 생기므로, 트랜잭션이
+        // 실제로 커밋된 이후에만 호출되도록 등록한다.
+        Long finalNewHostUserId = newHostUserId;
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                roomRealtimeNotifier.notifyPeerLeft(roomId, userId, finalNewHostUserId);
+                lobbyBroadcastService.broadcastUpdate();
+            }
+        });
     }
 
     @Transactional
@@ -121,8 +142,11 @@ public class GameRoomService {
         }
         room.start();
         GameRoomResponse response = GameRoomResponse.from(room);
-        // 방이 IN_PROGRESS로 전환되며 로비의 WAITING 목록에서 사라지므로 커밋 후 브로드캐스트한다.
+        // 방이 IN_PROGRESS로 전환되며 로비의 WAITING 목록에서 사라지므로 커밋 후 브로드캐스트하고,
+        // 동시에 참가자들에게 GAME_STARTED를 방 WebSocket으로 알린다(FR-021). leave()와 같은 이유로
+        // 트랜잭션이 실제로 커밋된 이후에만 두 알림 모두 실행되도록 등록한다.
         afterCommit(lobbyBroadcastService::broadcastUpdate);
+        afterCommit(() -> roomRealtimeNotifier.notifyGameStarted(roomId));
         return response;
     }
 

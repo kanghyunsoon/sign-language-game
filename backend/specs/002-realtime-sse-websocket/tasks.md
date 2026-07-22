@@ -250,21 +250,21 @@ description: "Task list for 실시간 로비/게임방 알림(SSE)과 WebRTC 시
 
 ### Implementation for User Story 11
 
-- [ ] T041 [P] [US11] `RoomParticipantRegistry`(`ConcurrentHashMap<Long roomId, RoomLiveState>`) + `RoomLiveState`/`ParticipantLiveState`(session, readyCache, pendingDeadline, pendingTask 필드 — data-model.md 참고) 신규 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/RoomParticipantRegistry.java`
-- [ ] T042 [US11] `RoomRealtimeNotifier` 인터페이스+구현체(`PEER_DISCONNECTED`/`PEER_RECONNECTED`/`PEER_LEFT`/`GAME_STARTED`/`SIGNAL` 메시지를 `RoomParticipantRegistry`의 세션들에 전송) 신규 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/RoomRealtimeNotifier.java` (T041 의존)
-- [ ] T043 [US11] `GameRoomHandshakeInterceptor`(티켓 검증 + `RoomParticipantRegistry` 조회로 참가자 여부 확인, 이 단계에서는 기본 성공/실패만 — 엄격한 거부 케이스는 US13에서 보강) 신규 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/GameRoomHandshakeInterceptor.java` (T027, T041 의존)
-- [ ] T044 [US11] `RealtimeWebSocketConfig`(`WebSocketConfigurer`, `/ws/game-rooms/{roomId}` 등록 + 인터셉터 연결) 신규 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/RealtimeWebSocketConfig.java` (T043 의존)
-- [ ] T045 [US11] `GameRoomWebSocketHandler`(`TextWebSocketHandler`) — 연결 성공 시 세션 등록, `afterConnectionClosed`가 비정상 종료면 유예 타이머(5~10초, `pendingDeadline`/`pendingTask`) 등록해 만료 시 `GameRoomService.leave(roomId, userId)` 호출, 재연결 시 타이머 취소 신규 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/GameRoomWebSocketHandler.java` (T041, T042 의존, research.md #12)
-- [ ] T046 [US11] `application.yaml`/`env.sample`에 `game.room.leave-grace-seconds: ${GAME_ROOM_LEAVE_GRACE_SECONDS:7}` 반영
-- [ ] T047 [US11] `GameRoomService.join()`에 재입장 인식 추가: `room.isParticipant(userId)`이면 인원수 변경 없이 즉시 현재 상태 반환(FR-020) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/service/GameRoomService.java` (research.md #14-1 — 001 `join()`의 기존 결함 수정)
-- [ ] T048 [US11] `GameRoomService.leave()`가 `RoomRealtimeNotifier`를 주입받아 커밋 직후 `PEER_LEFT` 브로드캐스트를 트리거하도록 연결(REST 컨트롤러/WebSocket 유예 타이머 어느 쪽에서 호출되든 이 한 곳에서만 실행) + 같은 커밋 직후 `LobbyBroadcastService`도 호출(FR-010) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/service/GameRoomService.java` (T042, T034 의존, research.md #12)
+- [X] T041 [P] [US11] `RoomParticipantRegistry`(`ConcurrentHashMap<Long roomId, RoomLiveState>`) + `RoomLiveState`/`ParticipantLiveState`(session, readyCache, pendingDeadline, pendingTask 필드 — data-model.md 참고) 신규 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/RoomParticipantRegistry.java`
+- [X] T042 [US11] `RoomRealtimeNotifier` 인터페이스+구현체(`PEER_DISCONNECTED`/`PEER_RECONNECTED`/`PEER_LEFT`/`GAME_STARTED`/`SIGNAL` 메시지를 `RoomParticipantRegistry`의 세션들에 전송) 신규 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/RoomRealtimeNotifier.java` (T041 의존)
+- [X] T043 [US11] `GameRoomHandshakeInterceptor`(티켓 검증 + `RoomParticipantRegistry` 조회로 참가자 여부 확인, 이 단계에서는 기본 성공/실패만 — 엄격한 거부 케이스는 US13에서 보강) 신규 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/GameRoomHandshakeInterceptor.java` (T027, T041 의존)
+- [X] T044 [US11] `RealtimeWebSocketConfig`(`WebSocketConfigurer`, `/ws/game-rooms/{roomId}` 등록 + 인터셉터 연결) 신규 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/RealtimeWebSocketConfig.java` (T043 의존)
+- [X] T045 [US11] `GameRoomWebSocketHandler`(`TextWebSocketHandler`) — 연결 성공 시 세션 등록, `afterConnectionClosed`가 비정상 종료면 유예 타이머(5~10초, `pendingDeadline`/`pendingTask`) 등록해 만료 시 `GameRoomService.leave(roomId, userId)` 호출, 재연결 시 타이머 취소 신규 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/GameRoomWebSocketHandler.java` (T041, T042 의존, research.md #12)
+- [X] T046 [US11] `application.yaml`/`env.sample`에 `game.room.leave-grace-seconds: ${GAME_ROOM_LEAVE_GRACE_SECONDS:7}` 반영
+- [X] T047 [US11] `GameRoomService.join()`에 재입장 인식 추가: `room.isParticipant(userId)`이면 인원수 변경 없이 즉시 현재 상태 반환(FR-020) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/service/GameRoomService.java` (research.md #14-1 — 001 `join()`의 기존 결함 수정)
+- [X] T048 [US11] `GameRoomService.leave()`가 `RoomRealtimeNotifier`를 주입받아 커밋 직후 `PEER_LEFT` 브로드캐스트를 트리거하도록 연결(REST 컨트롤러/WebSocket 유예 타이머 어느 쪽에서 호출되든 이 한 곳에서만 실행) + 같은 커밋 직후 `LobbyBroadcastService`도 호출(FR-010) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/service/GameRoomService.java` (T042, T034 의존, research.md #12)
 
 ### Tests for User Story 11 (구현 검증)
 
-- [ ] T049 [P] [US11] `RoomParticipantRegistry`/`ParticipantLiveState` 등록·조회·제거 단위 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/realtime/RoomParticipantRegistryTest.java` (T041 의존)
-- [ ] T050 [US11] `StandardWebSocketClient`로 연결 → 강제 종료 → 유예 시간 내 재접속 시 취소, 유예 시간 초과 시 `leave()` 호출(방장 위임/종료) 검증하는 통합 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/realtime/GameRoomWebSocketHandlerTest.java` (T045 의존)
-- [ ] T051 [US11] 명시적 `POST /leave` 호출 시 유예 시간 없이 즉시 `PEER_LEFT`가 상대방에게 전송되는지 검증하는 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/realtime/GameRoomWebSocketHandlerTest.java`(같은 파일에 케이스 추가) (T048 의존)
-- [ ] T052 [US11] 이미 참가 중인 사용자가 같은 방에 `POST /join`을 다시 호출해도 `ROOM_FULL`이 아니라 기존 상태를 그대로 반환하는지(인원수 미증가) 검증하는 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/service/GameRoomServiceTest.java`(기존 파일에 케이스 추가) (T047 의존)
+- [X] T049 [P] [US11] `RoomParticipantRegistry`/`ParticipantLiveState` 등록·조회·제거 단위 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/realtime/RoomParticipantRegistryTest.java` (T041 의존)
+- [X] T050 [US11] `StandardWebSocketClient`로 연결 → 강제 종료 → 유예 시간 내 재접속 시 취소, 유예 시간 초과 시 `leave()` 호출(방장 위임/종료) 검증하는 통합 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/realtime/GameRoomWebSocketHandlerTest.java` (T045 의존)
+- [X] T051 [US11] 명시적 `POST /leave` 호출 시 유예 시간 없이 즉시 `PEER_LEFT`가 상대방에게 전송되는지 검증하는 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/realtime/GameRoomWebSocketHandlerTest.java`(같은 파일에 케이스 추가) (T048 의존)
+- [X] T052 [US11] 이미 참가 중인 사용자가 같은 방에 `POST /join`을 다시 호출해도 `ROOM_FULL`이 아니라 기존 상태를 그대로 반환하는지(인원수 미증가) 검증하는 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/service/GameRoomServiceTest.java`(기존 파일에 케이스 추가) (T047 의존)
 
 **Checkpoint**: US9~US11 독립적으로 완전히 동작·검증 가능.
 
