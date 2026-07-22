@@ -472,7 +472,7 @@ async function handleCameraClick() {
     <div className="practice-session-page">
       <header className="header">
         <nav className="nav" aria-label="주요 메뉴">
-          <Link to="/">
+          <Link to="/main">
             메인페이지
           </Link>
 

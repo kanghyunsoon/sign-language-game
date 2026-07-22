@@ -1,0 +1,166 @@
+/* 로그인 전 페이지 전체 영역 */
+.pre-login-page {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: #5e514b;
+  background: #f7f3ee;
+}
+
+.pre-login-canvas {
+  position: relative;
+  width: min(100vw, 160vh);
+  aspect-ratio: 8 / 5;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* 배경 장식 공통 */
+.pre-login-background-decoration {
+  position: absolute;
+  z-index: 0;
+  display: block;
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* 목업의 왼쪽 아래 장식 */
+.pre-login-decoration-left {
+  bottom: 0;
+  left: 0;
+  width: 19.5%;
+}
+
+/* 목업의 오른쪽 위 장식 */
+.pre-login-decoration-right {
+  top: 0;
+  right: 0;
+  width: 44%;
+}
+
+/* 중앙 콘텐츠 카드 */
+.pre-login-card {
+  position: absolute;
+  top: 17.8333%;
+  left: 50%;
+  z-index: 1;
+  width: 82.2917%;
+  height: 67.5%;
+  overflow: hidden;
+  border: 1px solid rgba(109, 83, 69, 0.07);
+  border-radius: min(1.4583vw, 2.3333vh);
+  background: rgba(255, 253, 249, 0.91);
+  box-shadow: 0 min(1.1458vw, 1.8333vh)
+    min(3.0208vw, 4.8333vh)
+    rgba(72, 48, 35, 0.1);
+  backdrop-filter: blur(4px);
+  transform: translateX(-50%);
+}
+
+/* 수달 이미지 전체 영역 */
+.pre-login-image-area {
+  position: absolute;
+  top: 6.7901%;
+  left: 2.2152%;
+  width: 44.3038%;
+  height: 86.4198%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 수달 캐릭터 이미지 */
+.pre-login-image {
+  width: 85.7143%;
+  height: 75.7143%;
+  object-fit: contain;
+  filter: drop-shadow(
+    0 min(0.9375vw, 1.5vh)
+    min(1.875vw, 3vh)
+    rgba(72, 48, 35, 0.09)
+  );
+}
+
+/* 서비스 소개 콘텐츠 영역 */
+.pre-login-content {
+  position: absolute;
+  inset: 0 4.2405% 0 52.0886%;
+}
+
+/* 서비스 이름 */
+.pre-login-title {
+  position: absolute;
+  top: 27.9012%;
+  left: 0;
+  margin: 0;
+  color: #6d5345;
+  font-size: min(6.7708vw, 10.8333vh);
+  font-weight: 700;
+  line-height: 0.8;
+  letter-spacing: min(-0.325vw, -0.52vh);
+  white-space: nowrap;
+  text-shadow:
+    0 min(0.3125vw, 0.5vh) 0 #ffffff,
+    min(0.2604vw, 0.4167vh) 0 0 #ffffff,
+    min(-0.2604vw, -0.4167vh) 0 0 #ffffff,
+    0 min(-0.2604vw, -0.4167vh) 0 #ffffff;
+}
+
+/* 서비스 소개 문구 */
+.pre-login-description {
+  position: absolute;
+  top: 54.5679%;
+  left: 4.1209%;
+  margin: 0;
+  color: #5e514b;
+  font-size: min(1.5625vw, 2.5vh);
+  font-weight: 700;
+  line-height: 1.1667;
+  letter-spacing: min(-0.0208vw, -0.0333vh);
+  word-break: keep-all;
+}
+
+/* 지금 시작하기 버튼 */
+.pre-login-button {
+  position: absolute;
+  right: 0;
+  bottom: 10.6173%;
+  width: min(14.8438vw, 23.75vh);
+  height: min(2.8125vw, 4.5vh);
+  padding: 0;
+  border: 0;
+  border-radius: min(0.7292vw, 1.1667vh);
+  color: #ffffff;
+  font-size: min(0.9896vw, 1.5833vh);
+  font-weight: 900;
+  background: #6d5345;
+  box-shadow:
+    0 min(0.3646vw, 0.5833vh) 0 #584237,
+    0 min(0.7292vw, 1.1667vh)
+      min(1.25vw, 2vh)
+      rgba(72, 48, 35, 0.15);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+/* 지금 시작하기 버튼에 마우스를 올린 상태 */
+.pre-login-button:hover {
+  background: #5c453a;
+  transform: translateY(-2px);
+}
+
+/* 지금 시작하기 버튼을 누른 상태 */
+.pre-login-button:active {
+  box-shadow:
+    0 3px 0 #584237,
+    0 8px 15px rgba(72, 48, 35, 0.13);
+  transform: translateY(4px);
+}
