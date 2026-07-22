@@ -20,7 +20,8 @@ public class SecurityConfig {
 
     private static final String[] PERMIT_ALL_PATHS = {
             "/auth/signup", "/auth/login", "/auth/refresh",
-            "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**"
+            "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
+            "/actuator/health"
     };
 
     private final JwtTokenProvider jwtTokenProvider;
