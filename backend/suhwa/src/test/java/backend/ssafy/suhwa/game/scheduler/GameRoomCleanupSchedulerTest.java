@@ -23,7 +23,7 @@ class GameRoomCleanupSchedulerTest {
 
     @Test
     void cleanup_deletesOnlyStaleClosedRooms() {
-        GameRoomCleanupScheduler scheduler = new GameRoomCleanupScheduler(gameRoomRepository);
+        GameRoomCleanupScheduler scheduler = new GameRoomCleanupScheduler(gameRoomRepository, 30);
 
         GameRoom staleClosed = gameRoomRepository.save(
                 GameRoom.builder().roomCode("STALE1").hostUserId(1L).build());
@@ -41,11 +41,40 @@ class GameRoomCleanupSchedulerTest {
         entityManager.flush();
         entityManager.clear();
 
-        scheduler.cleanupClosedRooms();
+        scheduler.cleanupStaleRooms();
 
         assertThat(gameRoomRepository.findById(staleClosed.getId())).isEmpty();
         assertThat(gameRoomRepository.findById(recentClosed.getId())).isPresent();
         assertThat(gameRoomRepository.findById(waiting.getId())).isPresent();
+    }
+
+    @Test
+    void cleanup_deletesStaleWaitingRoomsButKeepsRecentWaitingAndInProgress() {
+        GameRoomCleanupScheduler scheduler = new GameRoomCleanupScheduler(gameRoomRepository, 30);
+
+        GameRoom staleWaiting = gameRoomRepository.save(
+                GameRoom.builder().roomCode("SWAIT1").hostUserId(1L).build());
+        gameRoomRepository.saveAndFlush(staleWaiting);
+        backdateUpdatedAt(staleWaiting.getId(), LocalDateTime.now().minusMinutes(31));
+
+        GameRoom recentWaiting = gameRoomRepository.save(
+                GameRoom.builder().roomCode("RWAIT1").hostUserId(2L).build());
+
+        GameRoom staleInProgress = gameRoomRepository.save(
+                GameRoom.builder().roomCode("SPROG1").hostUserId(3L).build());
+        staleInProgress.start();
+        gameRoomRepository.saveAndFlush(staleInProgress);
+        backdateUpdatedAt(staleInProgress.getId(), LocalDateTime.now().minusMinutes(60));
+        entityManager.flush();
+        entityManager.clear();
+
+        scheduler.cleanupStaleRooms();
+
+        assertThat(gameRoomRepository.findById(staleWaiting.getId())).isEmpty();
+        assertThat(gameRoomRepository.findById(recentWaiting.getId())).isPresent();
+        assertThat(gameRoomRepository.findById(staleInProgress.getId()))
+                .as("IN_PROGRESS 방은 아무리 오래돼도 정리 대상이 아니어야 한다")
+                .isPresent();
     }
 
     /**

@@ -110,13 +110,13 @@ description: "Task list for 실시간 로비/게임방 알림(SSE)과 WebRTC 시
 
 ### Implementation for User Story 4
 
-- [ ] T013 [P] [US4] `GameRoomRepository`에 `findByStatusAndUpdatedAtBefore(WAITING, threshold)` 조회 메서드 추가(기존 CLOSED용과 대칭) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/repository/GameRoomRepository.java`
-- [ ] T014 [US4] `GameRoomCleanupScheduler`가 CLOSED 삭제에 더해 `game.room.waiting-room-retention` 설정값 기준으로 방치된 WAITING 방도 같은 배치에서 삭제하도록 확장, `IN_PROGRESS`는 절대 포함하지 않음 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/scheduler/GameRoomCleanupScheduler.java` (T013 의존, research.md #4)
-- [ ] T015 [P] [US4] `application.yaml`에 `game.room.waiting-room-retention` 설정 키(`${GAME_ROOM_WAITING_RETENTION_MINUTES:30}`) 추가
+- [X] T013 [P] [US4] `GameRoomRepository`에 `findByStatusAndUpdatedAtBefore(WAITING, threshold)` 조회 메서드 추가(기존 CLOSED용과 대칭) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/repository/GameRoomRepository.java` — 이미 상태를 파라미터로 받는 범용 메서드로 구현돼 있어 추가 변경 불필요, 재사용만 함
+- [X] T014 [US4] `GameRoomCleanupScheduler`가 CLOSED 삭제에 더해 `game.room.waiting-room-retention-minutes` 설정값 기준으로 방치된 WAITING 방도 같은 배치에서 삭제하도록 확장, `IN_PROGRESS`는 절대 포함하지 않음 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/scheduler/GameRoomCleanupScheduler.java` (T013 의존, research.md #4)
+- [X] T015 [P] [US4] `application.yaml`/`env.sample`에 `game.room.waiting-room-retention-minutes`(`${GAME_ROOM_WAITING_RETENTION_MINUTES:30}`) 추가
 
 ### Tests for User Story 4 (구현 검증)
 
-- [ ] T016 [US4] 보관 기간 초과 WAITING 방은 삭제되고, 보관 기간 이내 WAITING/IN_PROGRESS/최근 CLOSED 방은 유지되는지 검증하는 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/scheduler/GameRoomCleanupSchedulerTest.java`(기존 파일에 케이스 추가) (T014 의존)
+- [X] T016 [US4] 보관 기간 초과 WAITING 방은 삭제되고, 보관 기간 이내 WAITING/IN_PROGRESS/최근 CLOSED 방은 유지되는지 검증하는 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/scheduler/GameRoomCleanupSchedulerTest.java`(기존 파일에 케이스 추가) (T014 의존)
 
 **Checkpoint**: US1~US4 독립적으로 완전히 동작·검증 가능.
 
