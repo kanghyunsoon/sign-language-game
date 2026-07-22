@@ -358,9 +358,9 @@ description: "Task list for 실시간 로비/게임방 알림(SSE)과 WebRTC 시
 
 **Purpose**: 어떤 단일 User Story에도 속하지 않지만 Part B 전체(인메모리 실시간 상태)가 성립하기 위한 안전장치. US9~US15 중 아무 때나(구현 순서상 US11 착수 시점 이후 아무 때나) 수행해도 무방하다.
 
-- [ ] T073 [P] `GameRoomRepository`에 `status IN (WAITING, IN_PROGRESS)` 방을 일괄 `CLOSED`로 갱신하는 벌크 업데이트 쿼리 추가 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/repository/GameRoomRepository.java`
-- [ ] T074 `GameRoomStartupReconciler`(`ApplicationReadyEvent` 리스너, 기동 직후 1회 T073 쿼리 실행) 신규 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/scheduler/GameRoomStartupReconciler.java` (T073 의존, research.md #4)
-- [ ] T075 [P] 서버 재시작 시 WAITING/IN_PROGRESS 방이 모두 CLOSED로 전환되는지 검증하는 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/scheduler/GameRoomStartupReconcilerTest.java` (T074 의존)
+- [X] T073 [P] `GameRoomRepository`에 `status IN (WAITING, IN_PROGRESS)` 방을 일괄 `CLOSED`로 갱신하는 벌크 업데이트 쿼리 추가 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/repository/GameRoomRepository.java`
+- [X] T074 `GameRoomStartupReconciler`(`ApplicationReadyEvent` 리스너, 기동 직후 1회 T073 쿼리 실행) 신규 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/scheduler/GameRoomStartupReconciler.java` (T073 의존, research.md #4)
+- [X] T075 [P] 서버 재시작 시 WAITING/IN_PROGRESS 방이 모두 CLOSED로 전환되는지 검증하는 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/scheduler/GameRoomStartupReconcilerTest.java` (T074 의존)
 
 ---
 
