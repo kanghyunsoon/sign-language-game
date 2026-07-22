@@ -9,6 +9,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -42,6 +43,10 @@ public class GameRoom extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private GameRoomStatus status;
+
+    @Version
+    @Column(nullable = false)
+    private Long version;
 
     @Builder
     public GameRoom(String roomCode, Long hostUserId) {
