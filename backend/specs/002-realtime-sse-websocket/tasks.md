@@ -232,11 +232,11 @@ description: "Task list for 실시간 로비/게임방 알림(SSE)과 WebRTC 시
 
 ### Implementation for User Story 10
 
-- [ ] T039 [US10] `GameRoomService.create()`/`join()`(재입장이 아니라 실제로 신규 배정된 경로에서만)이 커밋 직후 `LobbyBroadcastService`를 호출해 로비 목록 변경을 브로드캐스트하도록 연결 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/service/GameRoomService.java` (T034 의존, research.md #9-1)
+- [X] T039 [US10] `GameRoomService.create()`/`join()`(재입장이 아니라 실제로 신규 배정된 경로에서만)이 커밋 직후 `LobbyBroadcastService`를 호출해 로비 목록 변경을 브로드캐스트하도록 연결 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/service/GameRoomService.java` (T034 의존, research.md #9-1)
 
 ### Tests for User Story 10 (구현 검증)
 
-- [ ] T040 [US10] 방 생성/입장 시 로비 SSE 세션에 3초 이내 `event: update`가 도착하는지, `POST /game-rooms/join` 응답에 `participantCount`/`capacity`/`status`가 정확히 포함되는지 검증하는 통합 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/GameRoomLobbyBroadcastIntegrationTest.java` (T039 의존)
+- [X] T040 [US10] 방 생성/입장 시 로비 SSE 세션에 3초 이내 `event: update`가 도착하는지, `POST /game-rooms/join` 응답에 `participantCount`/`capacity`/`status`가 정확히 포함되는지 검증하는 통합 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/GameRoomLobbyBroadcastIntegrationTest.java` (T039 의존)
 
 **Checkpoint**: US9~US10 독립적으로 완전히 동작·검증 가능.
 

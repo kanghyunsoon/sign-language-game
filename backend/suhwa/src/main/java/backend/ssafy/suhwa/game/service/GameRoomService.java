@@ -47,7 +47,10 @@ public class GameRoomService {
                 .roomCode(generateUniqueRoomCode())
                 .hostUserId(hostUserId)
                 .build();
-        return GameRoomResponse.from(gameRoomRepository.save(room));
+        GameRoomResponse response = GameRoomResponse.from(gameRoomRepository.save(room));
+        // 새 방이 로비 목록에 나타나므로 커밋 후 구독자에게 알린다(FR-010, research.md #9-1).
+        afterCommit(lobbyBroadcastService::broadcastUpdate);
+        return response;
     }
 
     @Transactional
@@ -55,7 +58,8 @@ public class GameRoomService {
         GameRoom room = getRoomByCode(roomCode);
         // 이미 이 방의 참가자인 재입장 요청은 인원수를 늘리지 않고 현재 상태를 그대로 반환한다
         // (FR-020, research.md #14-1 — 그렇지 않으면 guest 재입장이 ROOM_FULL로 오거부되거나
-        // host 본인의 재호출이 host/guest를 같은 사람으로 만들어버리는 결함이 있었다).
+        // host 본인의 재호출이 host/guest를 같은 사람으로 만들어버리는 결함이 있었다). 인원수
+        // 변화가 없으므로 로비 브로드캐스트도 하지 않는다.
         if (room.isParticipant(userId)) {
             return GameRoomResponse.from(room);
         }
@@ -66,7 +70,10 @@ public class GameRoomService {
             throw new BusinessException(ErrorCode.ROOM_FULL);
         }
         room.assignGuest(userId);
-        return GameRoomResponse.from(room);
+        GameRoomResponse response = GameRoomResponse.from(room);
+        // 실제로 신규 참가자가 배정된 경로에서만 인원수가 바뀌므로 커밋 후 브로드캐스트한다.
+        afterCommit(lobbyBroadcastService::broadcastUpdate);
+        return response;
     }
 
     @Transactional
@@ -135,8 +142,10 @@ public class GameRoomService {
         }
         room.start();
         GameRoomResponse response = GameRoomResponse.from(room);
-        // 참가자들에게 GAME_STARTED를 방 WebSocket으로 알린다(FR-021). leave()와 같은 이유로
-        // 트랜잭션이 실제로 커밋된 이후에만 알리도록 등록한다.
+        // 방이 IN_PROGRESS로 전환되며 로비의 WAITING 목록에서 사라지므로 커밋 후 브로드캐스트하고,
+        // 동시에 참가자들에게 GAME_STARTED를 방 WebSocket으로 알린다(FR-021). leave()와 같은 이유로
+        // 트랜잭션이 실제로 커밋된 이후에만 두 알림 모두 실행되도록 등록한다.
+        afterCommit(lobbyBroadcastService::broadcastUpdate);
         afterCommit(() -> roomRealtimeNotifier.notifyGameStarted(roomId));
         return response;
     }
