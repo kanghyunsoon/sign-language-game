@@ -8,9 +8,9 @@ import "./PreLoginPage.css";
 export function PreLoginPage() {
   const navigate = useNavigate();
 
-  // 지금 시작하기 버튼을 누르면 메인 이동
+  // 지금 시작하기 버튼을 누르면 로그인 화면으로 이동
   function handleStartClick() {
-    navigate("/main");
+    navigate("/login");
   }
 
   return (

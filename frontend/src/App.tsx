@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MainPage } from "./features/home/pages/MainPage"; 
 import { PreLoginPage } from "./features/home/pages/PreLoginPage";
+import { LoginPage } from "./features/auth/pages/LoginPage";
+import { SignUpPage } from "./features/auth/pages/SignUpPage";
 import { PracticeHomePage } from "./features/learning/pages/PracticeHomePage";
 import { StandaloneGameHarness } from "./game";
 
@@ -11,6 +13,11 @@ export function App() {
         {/* 로그인 전 서비스 소개 화면 */}
         <Route path="/" element={<PreLoginPage />} />
 
+        {/* 로그인 화면 */}
+        <Route path="/login" element={<LoginPage />} />
+
+        {/* 회원가입 화면 */}
+        <Route path="/signup" element={<SignUpPage />} />
         {/* 로그인 후 메인 화면 */}
         <Route path="/main" element={<MainPage />} />
 

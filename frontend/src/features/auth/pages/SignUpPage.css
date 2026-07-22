@@ -1,0 +1,230 @@
+/* 회원가입 페이지 전체 영역 */
+.signup-page {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: #5e514b;
+  background: #f7f3ee;
+}
+
+
+.signup-canvas {
+  position: relative;
+  width: min(100vw, 160vh);
+  aspect-ratio: 8 / 5;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* 배경 장식 공통 */
+.signup-background-decoration {
+  position: absolute;
+  z-index: 0;
+  display: block;
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+}
+
+.signup-decoration-left {
+  bottom: 0;
+  left: 0;
+  width: 19.5%;
+}
+
+.signup-decoration-right {
+  top: 0;
+  right: 0;
+  width: 44%;
+}
+
+/* 회원가입 카드 */
+.signup-card {
+  position: absolute;
+  top: 17.8333%;
+  left: 50%;
+  z-index: 1;
+  width: 82.2917%;
+  height: 67.5%;
+  overflow: hidden;
+  border: 1px solid rgba(109, 83, 69, 0.07);
+  border-radius: min(1.4583vw, 2.3333vh);
+  background: rgba(255, 253, 249, 0.91);
+  box-shadow:
+    0 min(1.1458vw, 1.8333vh)
+    min(3.0208vw, 4.8333vh)
+    rgba(72, 48, 35, 0.1);
+  backdrop-filter: blur(4px);
+  transform: translateX(-50%);
+}
+
+/* 왼쪽 이미지 영역 */
+.signup-image-area {
+  position: absolute;
+  top: 6.7901%;
+  left: 2.2152%;
+  width: 44.3038%;
+  height: 86.4198%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.signup-image {
+  width: 85.7143%;
+  height: 75.7143%;
+  object-fit: contain;
+  filter: drop-shadow(
+    0 min(0.9375vw, 1.5vh)
+    min(1.875vw, 3vh)
+    rgba(72, 48, 35, 0.09)
+  );
+}
+
+/* 오른쪽 회원가입 영역 */
+.signup-content {
+  position: absolute;
+  top: 3.5%;
+  right: 6.5%;
+  bottom: 3.5%;
+  left: 54.5%;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+}
+
+.signup-eyebrow {
+  margin-top: 0;
+  color: #a99b90;
+  font-size: min(1.0417vw, 1.6667vh);
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.signup-title {
+  margin: min(0.7813vw, 1.25vh) 0 min(0.7813vw, 1.25vh);
+  color: #3f2b20;
+  font-size: min(3.3854vw, 5.4167vh);
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: min(-0.1563vw, -0.25vh);
+}
+
+.signup-form {
+  width: 100%;
+  margin-top: min(1.0417vw, 1.6667vh);
+}
+
+.signup-field {
+  display: flex;
+  flex-direction: column;
+  gap: min(0.4688vw, 0.75vh);
+  margin-bottom: min(0.625vw, 1vh);
+}
+
+.signup-field > span {
+  color: #4d4038;
+  font-size: min(0.9896vw, 1.5833vh);
+  font-weight: 900;
+}
+
+.signup-field input {
+  width: 100%;
+  height: min(3.0208vw, 4.8333vh);
+  padding: 0 min(1.0417vw, 1.6667vh);
+  border: 1px solid #d8cbbd;
+  border-radius: min(0.625vw, 1vh);
+  color: #4b3d35;
+  font-family: inherit;
+  font-size: min(0.8854vw, 1.4167vh);
+  background: rgba(255, 255, 255, 0.76);
+  box-sizing: border-box;
+  outline: none;
+}
+
+.signup-field input::placeholder {
+  color: #b8aea6;
+  font-size: min(0.8333vw, 1.3333vh);
+}
+
+.signup-field input:focus {
+  border-color: #9a806f;
+  box-shadow:
+    0 0 0 min(0.1563vw, 0.25vh)
+    rgba(109, 83, 69, 0.08);
+}
+
+.signup-agreement {
+  display: flex;
+  align-items: center;
+  gap: min(0.4688vw, 0.75vh);
+  margin-top: min(0.2083vw, 0.3333vh);
+  color: #74675f;
+  font-size: min(0.7813vw, 1.25vh);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.signup-agreement input {
+  width: min(0.9375vw, 1.5vh);
+  height: min(0.9375vw, 1.5vh);
+  accent-color: #6d5345;
+}
+
+.signup-submit-button {
+  width: 100%;
+  height: min(3.0208vw, 4.8333vh);
+  margin-top: min(0.7292vw, 1.1667vh);
+  border: 0;
+  border-radius: min(0.7292vw, 1.1667vh);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: min(0.9896vw, 1.5833vh);
+  font-weight: 900;
+  background: #6d5345;
+  box-shadow:
+    0 min(0.3646vw, 0.5833vh) 0 #584237,
+    0 min(0.7292vw, 1.1667vh)
+    min(1.25vw, 2vh)
+    rgba(72, 48, 35, 0.15);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.signup-submit-button:hover {
+  background: #5c453a;
+  transform: translateY(-2px);
+}
+
+.signup-submit-button:active {
+  box-shadow:
+    0 3px 0 #584237,
+    0 8px 15px rgba(72, 48, 35, 0.13);
+  transform: translateY(4px);
+}
+
+.signup-login-guide {
+  margin: auto 0 0;
+  color: #958a82;
+  font-size: min(0.7813vw, 1.25vh);
+  font-weight: 800;
+}
+
+.signup-login-guide a {
+  margin-left: min(0.5208vw, 0.8333vh);
+  color: #6d5345;
+  font-size: min(0.7813vw, 1.25vh);
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.signup-login-guide a:hover {
+  text-decoration: underline;
+}
