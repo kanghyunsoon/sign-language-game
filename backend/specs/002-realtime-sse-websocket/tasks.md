@@ -187,15 +187,15 @@ description: "Task list for 실시간 로비/게임방 알림(SSE)과 WebRTC 시
 
 ### Implementation for User Story 8
 
-- [ ] T026 [P] [US8] `RealtimeTicketResponse` DTO 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/auth/dto/RealtimeTicketResponse.java`
-- [ ] T027 [US8] `RealtimeTicketService`(`ConcurrentHashMap<String, TicketEntry(userId, expiresAt)>` 기반 발급/1회 소비(consume)/만료 청소) 신규 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/auth/service/RealtimeTicketService.java` (research.md #8)
-- [ ] T028 [US8] `AuthApi`/`AuthController`에 `POST /auth/sse-ticket`(bearerAuth) 추가 — `contracts/auth-ticket-api.yaml` 기준 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/auth/controller/` (T026, T027 의존)
-- [ ] T029 [P] [US8] `application.yaml`/`env.sample`에 `game.room.realtime-ticket-ttl: ${REALTIME_TICKET_TTL_SECONDS:30}` 반영
+- [X] T026 [P] [US8] `RealtimeTicketResponse` DTO 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/auth/dto/RealtimeTicketResponse.java`
+- [X] T027 [US8] `RealtimeTicketService`(`ConcurrentHashMap<String, TicketEntry(userId, expiresAt)>` 기반 발급/1회 소비(consume)/만료 청소) 신규 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/auth/service/RealtimeTicketService.java` (research.md #8)
+- [X] T028 [US8] `AuthApi`/`AuthController`에 `POST /auth/sse-ticket`(bearerAuth) 추가 — `contracts/auth-ticket-api.yaml` 기준 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/auth/controller/` (T026, T027 의존)
+- [X] T029 [P] [US8] `application.yaml`/`env.sample`에 `game.room.realtime-ticket-ttl: ${REALTIME_TICKET_TTL_SECONDS:30}` 반영
 
 ### Tests for User Story 8 (구현 검증)
 
-- [ ] T030 [P] [US8] `RealtimeTicketService` 발급/1회 소비 후 재사용 거부/만료 후 거부 단위 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/auth/service/RealtimeTicketServiceTest.java` (T027 의존)
-- [ ] T031 [US8] `POST /auth/sse-ticket` MockMvc 테스트(인증 필요, 201 응답 스키마) in `backend/suhwa/src/test/java/backend/ssafy/suhwa/auth/controller/AuthControllerTest.java`(기존 파일에 케이스 추가) (T028 의존)
+- [X] T030 [P] [US8] `RealtimeTicketService` 발급/1회 소비 후 재사용 거부/만료 후 거부 단위 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/auth/service/RealtimeTicketServiceTest.java` (T027 의존)
+- [X] T031 [US8] `POST /auth/sse-ticket` MockMvc 테스트(인증 필요, 201 응답 스키마) in `backend/suhwa/src/test/java/backend/ssafy/suhwa/auth/controller/AuthControllerTest.java`(기존 파일에 케이스 추가) (T028 의존)
 
 **Checkpoint**: 🚧 **Part A 완료 게이트(SC-001)** — US1~US8 전부 `./gradlew test` 통과 및 quickstart.md §1~§8 수동 검증 완료 전에는 절대 Phase 11(User Story 9)로 넘어가지 않는다.
 
