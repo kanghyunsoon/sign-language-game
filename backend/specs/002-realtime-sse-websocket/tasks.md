@@ -278,11 +278,11 @@ description: "Task list for 실시간 로비/게임방 알림(SSE)과 WebRTC 시
 
 ### Implementation for User Story 12
 
-- [ ] T053 [US12] `GameRoomService.start()`가 커밋 직후 `RoomRealtimeNotifier.notifyGameStarted(roomId)`(FR-021)와 `LobbyBroadcastService`의 "목록에서 제거" 브로드캐스트(FR-022)를 모두 호출하도록 연결 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/service/GameRoomService.java` (T042, T034 의존, research.md #9-1)
+- [X] T053 [US12] `GameRoomService.start()`가 커밋 직후 `RoomRealtimeNotifier.notifyGameStarted(roomId)`(FR-021)와 `LobbyBroadcastService`의 "목록에서 제거" 브로드캐스트(FR-022)를 모두 호출하도록 연결 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/service/GameRoomService.java` (T042, T034 의존, research.md #9-1)
 
 ### Tests for User Story 12 (구현 검증)
 
-- [ ] T054 [US12] 양쪽 준비 완료 후 `POST /start` 성공 시 두 WebSocket 클라이언트 모두 `GAME_STARTED` 수신, 로비 SSE 세션에서는 해당 방이 다음 `update`에서 사라지는지 검증하는 통합 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/GameRoomStartBroadcastIntegrationTest.java` (T053 의존)
+- [X] T054 [US12] 양쪽 준비 완료 후 `POST /start` 성공 시 두 WebSocket 클라이언트 모두 `GAME_STARTED` 수신, 로비 SSE 세션에서는 해당 방이 다음 `update`에서 사라지는지 검증하는 통합 테스트 — 별도 파일 대신 기존 `GameRoomWebSocketHandlerTest`(WS 수신)와 `GameRoomLobbyBroadcastIntegrationTest`(로비 제거)에 케이스 추가로 반영 (T053 의존)
 
 **Checkpoint**: US9~US12 독립적으로 완전히 동작·검증 가능.
 
@@ -296,13 +296,13 @@ description: "Task list for 실시간 로비/게임방 알림(SSE)과 WebRTC 시
 
 ### Implementation for User Story 13
 
-- [ ] T055 [US13] `LobbySseController`가 유효하지 않거나 이미 소비/만료된 티켓이면 401(`ErrorResponse` 형식)로 연결 자체를 거부하도록 엄격화 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/controller/LobbySseController.java` (T035, T027 의존)
-- [ ] T056 [US13] `GameRoomHandshakeInterceptor`가 참가자가 아닌 `userId`의 핸드셰이크를 명시적으로 거부하고, 메시지 수신 시마다 여전히 참가자인지 재검증(참가자 아니게 된 이후 메시지는 `ERROR` 응답 후 차단)하도록 보강 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/GameRoomHandshakeInterceptor.java`, `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/GameRoomWebSocketHandler.java` (T043, T045 의존)
+- [X] T055 [US13] `LobbySseController`가 유효하지 않거나 이미 소비/만료된 티켓이면 401(`ErrorResponse` 형식)로 연결 자체를 거부하도록 엄격화 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/controller/LobbySseController.java` (T035, T027 의존)
+- [X] T056 [US13] `GameRoomHandshakeInterceptor`가 참가자가 아닌 `userId`의 핸드셰이크를 명시적으로 거부하고, 메시지 수신 시마다 여전히 참가자인지 재검증(참가자 아니게 된 이후 메시지는 `ERROR` 응답 후 차단)하도록 보강 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/GameRoomHandshakeInterceptor.java`, `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/GameRoomWebSocketHandler.java` (T043, T045 의존)
 
 ### Tests for User Story 13 (구현 검증)
 
-- [ ] T057 [P] [US13] 티켓 없이/만료된 티켓으로 `/game-rooms/subscribe` 연결 시도 시 401 거부 검증 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/realtime/controller/LobbySseControllerTest.java`(기존 파일에 케이스 추가) (T055 의존)
-- [ ] T058 [P] [US13] 방 참가자가 아닌 사용자의 핸드셰이크 거부, 참가자였다가 나간 이후 메시지 전송 시 차단되는지 검증 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/realtime/GameRoomHandshakeInterceptorTest.java` (T056 의존)
+- [X] T057 [P] [US13] 티켓 없이/만료된 티켓으로 `/game-rooms/subscribe` 연결 시도 시 401 거부 검증 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/realtime/controller/LobbySseControllerTest.java`(기존 파일에 케이스 추가) (T055 의존)
+- [X] T058 [P] [US13] 방 참가자가 아닌 사용자의 핸드셰이크 거부, 참가자였다가 나간 이후 메시지 전송 시 차단되는지 검증 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/realtime/GameRoomHandshakeInterceptorTest.java` (T056 의존)
 
 **Checkpoint**: US9~US13 독립적으로 완전히 동작·검증 가능.
 
