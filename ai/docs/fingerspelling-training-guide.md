@@ -32,8 +32,10 @@ NPZ에는 `features`, `labelIndices`, `labelIds`, `sampleIds`, `participantIds`,
 - train 통계 기반 표준화는 모델 내부 버퍼에 포함하므로 ONNX 추론에도 동일하게 적용된다.
 - 클래스 불균형은 train 클래스 빈도의 역수 기반 가중 Cross Entropy로 보정한다.
 - validation Macro F1을 기준으로 최고 checkpoint를 선택하고 조기 종료한다.
-- 최고 모델 선택 후에만 test를 한 번 평가한다.
+- 일반 실험은 train과 validation만 평가한다.
+- 모델과 설정을 확정한 최종 후보에서만 `--evaluate-test`를 지정해 test를 한 번 평가한다.
 - validation logits에 temperature scaling을 적용하고, 보정값을 `thresholds.json`에 저장한다.
+- 학습이 끝날 때 HTML, Markdown, JSON 리포트를 자동 생성한다.
 
 모든 하이퍼파라미터는 `ai/config/training.json`에서 관리한다.
 
@@ -82,6 +84,27 @@ fingerspelling-data train \
 
 기존 출력이 있으면 기본적으로 중단한다. 의도적으로 교체할 때만 `--overwrite`를 사용한다. CI나 Git 저장소 밖에서 실행해 commit을 자동 감지할 수 없으면 `--git-commit <SHA>`를 명시한다.
 
+이전 모델과 비교하려면 검증된 모델 패키지를 지정한다. 비교는 두 모델의 validation 지표만 사용한다.
+
+```bash
+fingerspelling-data train \
+  --dataset "/data/Signlanguage-processed-v1" \
+  --output "/data/artifacts/fingerspelling-v1.1.0" \
+  --model-version "fingerspelling-v1.1.0" \
+  --baseline-package "/data/artifacts/fingerspelling-v1.0.0"
+```
+
+모델과 하이퍼파라미터를 더 이상 선택하지 않는 최종 후보에서만 test를 실행한다.
+
+```bash
+fingerspelling-data train \
+  --dataset "/data/Signlanguage-processed-v1" \
+  --output "/data/artifacts/fingerspelling-v1.1.0-final" \
+  --model-version "fingerspelling-v1.1.0-final" \
+  --baseline-package "/data/artifacts/fingerspelling-v1.0.0" \
+  --evaluate-test
+```
+
 ## 6. Jupyter 학습
 
 `ai/notebooks/train-fingerspelling.ipynb`는 CLI와 같은 `runTraining` 함수를 호출한다. 노트북에는 학습 구현을 복사하지 않고 경로와 모델 버전만 지정하므로 로컬 코드와 서버 코드가 달라지지 않는다.
@@ -90,7 +113,8 @@ fingerspelling-data train \
 2. Jupyter에서 저장소의 `ai` 디렉터리를 작업 경로로 연다.
 3. 노트북의 `datasetRoot`, `outputRoot`, `modelVersion`만 수정한다.
 4. GPU 확인 셀 이후 전체 셀을 순서대로 실행한다.
-5. `metrics.json`과 confusion matrix를 검토한 뒤 모델 채택 여부를 결정한다.
+5. `training-report.html`을 먼저 검토하고, 필요할 때 `metrics.json`과 confusion matrix를 확인한다.
+6. 최종 후보가 확정되기 전에는 노트북의 `evaluateTest`를 `False`로 유지한다.
 
 ## 7. 산출물
 
@@ -106,15 +130,19 @@ fingerspelling-v1.0.0/
   metrics.json
   history.jsonl
   validation-confusion-matrix.csv
-  test-confusion-matrix.csv
+  training-report.html
+  training-report.md
+  report-data.json
   model-manifest.json
 ```
+
+`--evaluate-test`를 지정한 실행에만 `test-confusion-matrix.csv`가 추가된다. `model-manifest.json`의 `testEvaluated`와 `metrics.json`의 `testEvaluated`로 test 사용 여부를 추적할 수 있다.
 
 `model-manifest.json`은 데이터셋 버전과 identity, Git commit, 클래스 순서, 입력·출력 형태, PyTorch/CUDA/장치 정보, 각 산출물 SHA-256을 기록한다. 실제 서비스에는 최소 `model.onnx`, `model-manifest.json`, `thresholds.json`, `labels.json`, `preprocessing.json`을 함께 배포한다.
 
 ## 8. 평가 기준
 
-`metrics.json`은 validation과 test 각각에 대해 다음 값을 기록한다.
+`metrics.json`은 train과 validation에 대해 다음 값을 기록하며, 최종 후보 실행에서는 test 지표도 추가한다.
 
 - Accuracy, Macro Precision, Macro Recall, Macro F1
 - 클래스별 Precision, Recall, F1, False Accept Rate, support
@@ -123,6 +151,19 @@ fingerspelling-v1.0.0/
 - 손실과 전체 표본 수
 
 현재 전처리 데이터는 `train 2,669`, `validation 72`, `test 76`이다. 평가 split이 클래스당 약 2개 수준이므로 전체 파이프라인 검증에는 사용할 수 있지만 최종 성능과 클래스별 임계값을 확정하기에는 부족하다. 클래스별 validation 표본이 `training.json`의 최소 수량보다 적으면 해당 임계값은 과적합 보정 대신 기본값 `0.80`을 유지한다.
+
+### 자동 리포트 판정
+
+`training-report.html`은 사람이 가장 먼저 읽는 리포트고, `training-report.md`는 GitLab이나 Jira 공유용, `report-data.json`은 자동 비교와 후속 대시보드용이다. 첫 화면에는 다음 정보만 우선 배치한다.
+
+- 후보 모델, 추가 검증 필요, 사용 부적합 중 하나의 판정
+- Validation Accuracy, Macro F1, NONE 오수락률, 학습 시간
+- Recall이 낮은 문자와 각 문자의 주요 혼동 대상
+- 혼동이 많이 발생한 실제 문자와 예측 문자 조합
+- 검증 표본 부족, 과적합 가능성, 기준 미달 경고
+- `--baseline-package`를 사용한 경우 이전 모델 대비 변화
+
+판정 기준과 표시 개수는 `config/training.json`의 `reporting`에서 관리한다. 클래스별 검증 표본이 `calibration.minimumValidationSamplesPerClass`보다 하나라도 적으면 성능 수치와 관계없이 `추가 검증 필요`로 표시한다. 표본이 충분한 경우에만 Macro F1, 클래스별 Recall, NONE 오수락률 기준으로 후보 여부를 판정한다.
 
 최종 모델 채택 전에는 새로운 참가자로 validation과 test를 보강하고, 최소한 다음을 확인한다.
 

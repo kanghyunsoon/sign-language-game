@@ -177,9 +177,13 @@ artifacts/fingerspelling/{modelVersion}/
   metrics.json
   history.jsonl
   validation-confusion-matrix.csv
-  test-confusion-matrix.csv
+  training-report.html
+  training-report.md
+  report-data.json
   model-manifest.json
 ```
+
+`test-confusion-matrix.csv`는 모델 선택이 끝난 최종 후보를 `--evaluate-test`로 평가한 경우에만 생성한다.
 
 `model-manifest.json`에는 데이터셋 버전, Git 커밋, 모델 입력 형태 `[batchSize, 63]`, 클래스 순서, MediaPipe 버전과 각 설정 파일 해시를 기록한다. 서비스는 manifest와 다른 스키마의 입력을 거부한다.
 
