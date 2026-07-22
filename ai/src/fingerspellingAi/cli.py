@@ -40,6 +40,17 @@ def createParser() -> argparse.ArgumentParser:
     trainParser.add_argument("--recognition-policy", type=Path, default=moduleRoot / "config" / "recognition-policy.json");
     trainParser.add_argument("--training-config", type=Path, default=moduleRoot / "config" / "training.json");
     trainParser.add_argument("--git-commit", default=None);
+    trainParser.add_argument(
+        "--evaluate-test",
+        action="store_true",
+        help="Evaluate the held-out test split for a final candidate.",
+    );
+    trainParser.add_argument(
+        "--baseline-package",
+        type=Path,
+        default=None,
+        help="Compare validation metrics with an existing model package.",
+    );
     trainParser.add_argument("--overwrite", action="store_true");
 
     predictParser = subparsers.add_parser("predict", help="Run ONNX inference for one 63-value feature vector.");
@@ -68,6 +79,8 @@ def main() -> None:
             trainingConfigPath=args.training_config,
             gitCommit=args.git_commit or _detectGitCommit(moduleRoot),
             overwrite=args.overwrite,
+            evaluateTest=args.evaluate_test,
+            baselinePackage=args.baseline_package,
             progressCallback=_printTrainingProgress,
         );
         print(json.dumps(manifest, ensure_ascii=False, indent=2));

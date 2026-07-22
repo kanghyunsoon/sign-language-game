@@ -46,6 +46,16 @@ class RuntimeConfig:
 
 
 @dataclass(frozen=True)
+class ReportingConfig:
+    weakClassLimit: int;
+    confusionPairLimit: int;
+    minimumValidationMacroF1: float;
+    minimumClassRecall: float;
+    maximumNoneFalseAcceptRate: float;
+    maximumGeneralizationGap: float;
+
+
+@dataclass(frozen=True)
 class TrainingConfig:
     schemaVersion: str;
     seed: int;
@@ -55,6 +65,7 @@ class TrainingConfig:
     earlyStopping: EarlyStoppingConfig;
     calibration: CalibrationConfig;
     runtime: RuntimeConfig;
+    reporting: ReportingConfig;
 
 
 def loadTrainingConfig(path: Path) -> TrainingConfig:
@@ -64,6 +75,7 @@ def loadTrainingConfig(path: Path) -> TrainingConfig:
     earlyStopping = payload["earlyStopping"];
     calibration = payload["calibration"];
     runtime = payload["runtime"];
+    reporting = payload.get("reporting", {});
     config = TrainingConfig(
         schemaVersion=str(payload["schemaVersion"]),
         seed=int(payload["seed"]),
@@ -96,6 +108,14 @@ def loadTrainingConfig(path: Path) -> TrainingConfig:
             numWorkers=int(runtime["numWorkers"]),
             pinMemory=bool(runtime["pinMemory"]),
             onnxOpsetVersion=int(runtime["onnxOpsetVersion"]),
+        ),
+        reporting=ReportingConfig(
+            weakClassLimit=int(reporting.get("weakClassLimit", 5)),
+            confusionPairLimit=int(reporting.get("confusionPairLimit", 8)),
+            minimumValidationMacroF1=float(reporting.get("minimumValidationMacroF1", 0.8)),
+            minimumClassRecall=float(reporting.get("minimumClassRecall", 0.6)),
+            maximumNoneFalseAcceptRate=float(reporting.get("maximumNoneFalseAcceptRate", 0.05)),
+            maximumGeneralizationGap=float(reporting.get("maximumGeneralizationGap", 0.15)),
         ),
     );
     _validateTrainingConfig(config);
@@ -135,3 +155,13 @@ def _validateTrainingConfig(config: TrainingConfig) -> None:
         raise ValueError("Number of workers cannot be negative.");
     if not 12 <= config.runtime.onnxOpsetVersion <= 20:
         raise ValueError("ONNX opset version must be between 12 and 20.");
+    if config.reporting.weakClassLimit < 1 or config.reporting.confusionPairLimit < 1:
+        raise ValueError("Report class and confusion limits must be positive.");
+    reportRates = (
+        config.reporting.minimumValidationMacroF1,
+        config.reporting.minimumClassRecall,
+        config.reporting.maximumNoneFalseAcceptRate,
+        config.reporting.maximumGeneralizationGap,
+    );
+    if any(rate < 0.0 or rate > 1.0 for rate in reportRates):
+        raise ValueError("Report metric criteria must be within [0, 1].");

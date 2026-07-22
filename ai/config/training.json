@@ -30,5 +30,13 @@
     "numWorkers": 0,
     "pinMemory": true,
     "onnxOpsetVersion": 17
+  },
+  "reporting": {
+    "weakClassLimit": 5,
+    "confusionPairLimit": 8,
+    "minimumValidationMacroF1": 0.8,
+    "minimumClassRecall": 0.6,
+    "maximumNoneFalseAcceptRate": 0.05,
+    "maximumGeneralizationGap": 0.15
   }
 }

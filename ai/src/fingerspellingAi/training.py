@@ -7,6 +7,7 @@ import os;
 from pathlib import Path;
 import random;
 import shutil;
+import time;
 from typing import Any;
 import uuid;
 
@@ -16,8 +17,10 @@ from torch import nn;
 from torch.utils.data import DataLoader, TensorDataset;
 
 from .config import calculateSha256;
+from .labels import loadModelLabels;
 from .metrics import calculateClassificationMetrics, calibrateClassThresholds;
 from .model import FingerspellingMlp, calculateFeatureStatistics;
+from .reporting import writeTrainingReports;
 from .trainingConfig import TrainingConfig, loadTrainingConfig;
 from .trainingData import TrainingDataset, loadTrainingDataset;
 
@@ -35,6 +38,8 @@ def runTraining(
     trainingConfigPath: Path,
     gitCommit: str,
     overwrite: bool = False,
+    evaluateTest: bool = False,
+    baselinePackage: Path | None = None,
     progressCallback: TrainingProgressCallback | None = None,
 ) -> dict[str, Any]:
     config = loadTrainingConfig(trainingConfigPath);
@@ -44,7 +49,7 @@ def runTraining(
     _seedRuntime(config.seed);
     stagingRoot = _createStagingRoot(outputRoot);
     try:
-        result = _trainModel(dataset, config, device, progressCallback);
+        result = _trainModel(dataset, config, device, evaluateTest, progressCallback);
         packageManifest = _writeModelPackage(
             stagingRoot=stagingRoot,
             modelVersion=modelVersion,
@@ -57,6 +62,7 @@ def runTraining(
             trainingConfigPath=trainingConfigPath,
             gitCommit=gitCommit,
             device=device,
+            baselinePackage=baselinePackage,
         );
         _publishOutput(stagingRoot, outputRoot);
         return packageManifest;
@@ -69,8 +75,12 @@ def _trainModel(
     dataset: TrainingDataset,
     config: TrainingConfig,
     device: torch.device,
+    evaluateTest: bool,
     progressCallback: TrainingProgressCallback | None,
 ) -> dict[str, Any]:
+    trainingStartedAt = time.perf_counter();
+    if device.type == "cuda":
+        torch.cuda.reset_peak_memory_stats(device);
     splitTensors = {};
     for split in ("train", "validation", "test"):
         indices = dataset.indicesForSplit(split);
@@ -107,6 +117,7 @@ def _trainModel(
     epochsWithoutImprovement = 0;
     history: list[dict[str, float | int]] = [];
     for epoch in range(1, config.optimization.epochs + 1):
+        epochStartedAt = time.perf_counter();
         trainLoss = _trainEpoch(model, loaders["train"], criterion, optimizer, device, config);
         validation = _evaluateModel(model, loaders["validation"], criterion, device, len(dataset.classIds));
         validationProbabilities = _softmaxNumpy(validation["logits"]);
@@ -123,6 +134,7 @@ def _trainModel(
             "validationLoss": float(validation["loss"]),
             "validationAccuracy": float(validationMetrics["accuracy"]),
             "validationMacroF1": float(validationMetrics["macroF1"]),
+            "durationSeconds": time.perf_counter() - epochStartedAt,
         };
         history.append(epochRecord);
         score = (
@@ -146,15 +158,20 @@ def _trainModel(
         raise RuntimeError("Training did not produce a model checkpoint.");
     model.load_state_dict(bestState);
     model.to(device);
+    train = _evaluateModel(model, loaders["train"], criterion, device, len(dataset.classIds));
     validation = _evaluateModel(model, loaders["validation"], criterion, device, len(dataset.classIds));
-    test = _evaluateModel(model, loaders["test"], criterion, device, len(dataset.classIds));
     temperature = _fitTemperature(validation["logits"], validation["labels"]);
+    trainMetrics, _, _ = _calculateSplitMetrics(train, dataset.classIds, temperature);
     validationMetrics, validationConfusion, validationProbabilities = _calculateSplitMetrics(
         validation,
         dataset.classIds,
         temperature,
     );
-    testMetrics, testConfusion, _ = _calculateSplitMetrics(test, dataset.classIds, temperature);
+    testMetrics = None;
+    testConfusion = None;
+    if evaluateTest:
+        test = _evaluateModel(model, loaders["test"], criterion, device, len(dataset.classIds));
+        testMetrics, testConfusion, _ = _calculateSplitMetrics(test, dataset.classIds, temperature);
     thresholds = calibrateClassThresholds(
         validation["labels"],
         validationProbabilities,
@@ -168,10 +185,14 @@ def _trainModel(
         "history": history,
         "temperature": temperature,
         "thresholds": thresholds,
+        "trainMetrics": trainMetrics,
         "validationMetrics": validationMetrics,
         "testMetrics": testMetrics,
         "validationConfusion": validationConfusion,
         "testConfusion": testConfusion,
+        "testEvaluated": evaluateTest,
+        "durationSeconds": time.perf_counter() - trainingStartedAt,
+        "peakGpuMemoryBytes": torch.cuda.max_memory_allocated(device) if device.type == "cuda" else 0,
     };
 
 
@@ -315,6 +336,7 @@ def _writeModelPackage(
     trainingConfigPath: Path,
     gitCommit: str,
     device: torch.device,
+    baselinePackage: Path | None,
 ) -> dict[str, Any]:
     stagingRoot.mkdir(parents=True, exist_ok=False);
     copies = {
@@ -353,11 +375,14 @@ def _writeModelPackage(
         dynamo=False,
     );
 
+    createdAt = datetime.now(timezone.utc).isoformat();
     metrics = {
         "schemaVersion": "1.0.0",
         "modelVersion": modelVersion,
         "bestEpoch": result["bestEpoch"],
         "completedEpochs": result["completedEpochs"],
+        "testEvaluated": result["testEvaluated"],
+        "train": result["trainMetrics"],
         "validation": result["validationMetrics"],
         "test": result["testMetrics"],
     };
@@ -373,7 +398,44 @@ def _writeModelPackage(
     );
     _writeHistory(stagingRoot / "history.jsonl", result["history"]);
     _writeConfusionMatrix(stagingRoot / "validation-confusion-matrix.csv", result["validationConfusion"], dataset.classIds);
-    _writeConfusionMatrix(stagingRoot / "test-confusion-matrix.csv", result["testConfusion"], dataset.classIds);
+    if result["testEvaluated"]:
+        _writeConfusionMatrix(stagingRoot / "test-confusion-matrix.csv", result["testConfusion"], dataset.classIds);
+
+    runtime = {
+        "pythonFramework": "PyTorch",
+        "torchVersion": torch.__version__,
+        "cudaVersion": torch.version.cuda,
+        "trainingDevice": str(device),
+        "deviceName": torch.cuda.get_device_name(device) if device.type == "cuda" else "CPU",
+        "onnxOpsetVersion": config.runtime.onnxOpsetVersion,
+        "durationSeconds": result["durationSeconds"],
+        "peakGpuMemoryBytes": result["peakGpuMemoryBytes"],
+    };
+    datasetMetadata = {
+        "version": dataset.manifest.get("datasetVersion"),
+        "schemaVersion": dataset.manifest.get("schemaVersion"),
+        "sampleCount": len(dataset.features),
+        "acceptedBySplit": dataset.manifest.get("acceptedBySplit"),
+        "identity": dataset.manifest.get("identity"),
+    };
+    displayNames = {label.id: label.displayName for label in loadModelLabels(labelsPath)};
+    report = writeTrainingReports(
+        outputRoot=stagingRoot,
+        modelVersion=modelVersion,
+        createdAt=createdAt,
+        gitCommit=gitCommit,
+        dataset=datasetMetadata,
+        classIds=dataset.classIds,
+        displayNames=displayNames,
+        metrics=metrics,
+        validationConfusion=result["validationConfusion"],
+        thresholds=result["thresholds"],
+        history=result["history"],
+        runtime=runtime,
+        reportingConfig=config.reporting,
+        minimumValidationSamplesPerClass=config.calibration.minimumValidationSamplesPerClass,
+        baselinePackage=baselinePackage,
+    );
 
     artifactNames = [
         "checkpoint.pt",
@@ -386,20 +448,18 @@ def _writeModelPackage(
         "thresholds.json",
         "history.jsonl",
         "validation-confusion-matrix.csv",
-        "test-confusion-matrix.csv",
+        "training-report.html",
+        "training-report.md",
+        "report-data.json",
     ];
+    if result["testEvaluated"]:
+        artifactNames.append("test-confusion-matrix.csv");
     packageManifest = {
         "schemaVersion": "1.0.0",
         "modelVersion": modelVersion,
-        "createdAt": datetime.now(timezone.utc).isoformat(),
+        "createdAt": createdAt,
         "gitCommit": gitCommit,
-        "dataset": {
-            "version": dataset.manifest.get("datasetVersion"),
-            "schemaVersion": dataset.manifest.get("schemaVersion"),
-            "sampleCount": len(dataset.features),
-            "acceptedBySplit": dataset.manifest.get("acceptedBySplit"),
-            "identity": dataset.manifest.get("identity"),
-        },
+        "dataset": datasetMetadata,
         "model": {
             "architecture": "mlp",
             "inputName": "features",
@@ -409,15 +469,13 @@ def _writeModelPackage(
             "classIds": list(dataset.classIds),
             "bestEpoch": result["bestEpoch"],
             "temperature": result["temperature"],
+            "testEvaluated": result["testEvaluated"],
         },
-        "runtime": {
-            "pythonFramework": "PyTorch",
-            "torchVersion": torch.__version__,
-            "cudaVersion": torch.version.cuda,
-            "trainingDevice": str(device),
-            "deviceName": torch.cuda.get_device_name(device) if device.type == "cuda" else "CPU",
-            "onnxOpsetVersion": config.runtime.onnxOpsetVersion,
+        "report": {
+            "status": report["status"],
+            "statusDisplayName": report["statusDisplayName"],
         },
+        "runtime": runtime,
         "artifacts": {
             name: {"path": name, "sha256": calculateSha256(stagingRoot / name)}
             for name in artifactNames
