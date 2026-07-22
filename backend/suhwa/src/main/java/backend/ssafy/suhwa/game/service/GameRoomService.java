@@ -82,6 +82,9 @@ public class GameRoomService {
     public GameRoom setReady(Long roomId, Long userId, boolean isReady) {
         GameRoom room = getRoom(roomId);
         requireParticipant(room, userId);
+        if (room.getStatus() != GameRoomStatus.WAITING) {
+            throw new BusinessException(ErrorCode.ROOM_NOT_WAITING);
+        }
         room.setReady(userId, isReady);
         return room;
     }

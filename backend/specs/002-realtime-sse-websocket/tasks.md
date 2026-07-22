@@ -92,11 +92,11 @@ description: "Task list for 실시간 로비/게임방 알림(SSE)과 WebRTC 시
 
 ### Implementation for User Story 3
 
-- [ ] T011 [US3] `GameRoomService.setReady()` 진입부에 `room.getStatus() != WAITING`이면 `ErrorCode.ROOM_NOT_WAITING`을 던지는 가드 추가 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/service/GameRoomService.java` (research.md #3)
+- [X] T011 [US3] `GameRoomService.setReady()` 진입부에 `room.getStatus() != WAITING`이면 `ErrorCode.ROOM_NOT_WAITING`을 던지는 가드 추가 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/service/GameRoomService.java` (research.md #3)
 
 ### Tests for User Story 3 (구현 검증)
 
-- [ ] T012 [US3] `IN_PROGRESS`/`CLOSED` 방에서 `setReady()` 호출 시 409(`ROOM_NOT_WAITING`) 거부, `WAITING` 방에서는 정상 반영되는지 검증하는 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/service/GameRoomServiceTest.java`(기존 파일에 케이스 추가) (T011 의존)
+- [X] T012 [US3] `IN_PROGRESS`/`CLOSED` 방에서 `setReady()` 호출 시 409(`ROOM_NOT_WAITING`) 거부, `WAITING` 방에서는 정상 반영되는지 검증하는 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/service/GameRoomServiceTest.java`(기존 파일에 케이스 추가) (T011 의존)
 
 **Checkpoint**: US1~US3 독립적으로 완전히 동작·검증 가능.
 
