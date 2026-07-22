@@ -6,6 +6,7 @@ import backend.ssafy.suhwa.game.domain.GameRoom;
 import backend.ssafy.suhwa.game.domain.GameRoomStatus;
 import backend.ssafy.suhwa.game.domain.GameSession;
 import backend.ssafy.suhwa.game.dto.GameResultResponse;
+import backend.ssafy.suhwa.game.dto.GameRoomResponse;
 import backend.ssafy.suhwa.game.repository.GameRoomRepository;
 import backend.ssafy.suhwa.game.repository.GameSessionRepository;
 import backend.ssafy.suhwa.user.domain.User;
@@ -35,16 +36,16 @@ public class GameRoomService {
     private final UserRepository userRepository;
 
     @Transactional
-    public GameRoom create(Long hostUserId) {
+    public GameRoomResponse create(Long hostUserId) {
         GameRoom room = GameRoom.builder()
                 .roomCode(generateUniqueRoomCode())
                 .hostUserId(hostUserId)
                 .build();
-        return gameRoomRepository.save(room);
+        return GameRoomResponse.from(gameRoomRepository.save(room));
     }
 
     @Transactional
-    public GameRoom join(String roomCode, Long userId) {
+    public GameRoomResponse join(String roomCode, Long userId) {
         GameRoom room = getRoomByCode(roomCode);
         if (room.getStatus() != GameRoomStatus.WAITING) {
             throw new BusinessException(ErrorCode.ROOM_NOT_WAITING);
@@ -53,7 +54,7 @@ public class GameRoomService {
             throw new BusinessException(ErrorCode.ROOM_FULL);
         }
         room.assignGuest(userId);
-        return room;
+        return GameRoomResponse.from(room);
     }
 
     @Transactional
@@ -79,18 +80,18 @@ public class GameRoomService {
     }
 
     @Transactional
-    public GameRoom setReady(Long roomId, Long userId, boolean isReady) {
+    public GameRoomResponse setReady(Long roomId, Long userId, boolean isReady) {
         GameRoom room = getRoom(roomId);
         requireParticipant(room, userId);
         if (room.getStatus() != GameRoomStatus.WAITING) {
             throw new BusinessException(ErrorCode.ROOM_NOT_WAITING);
         }
         room.setReady(userId, isReady);
-        return room;
+        return GameRoomResponse.from(room);
     }
 
     @Transactional
-    public GameRoom start(Long roomId, Long userId) {
+    public GameRoomResponse start(Long roomId, Long userId) {
         GameRoom room = getRoom(roomId);
         if (!room.isHost(userId)) {
             throw new BusinessException(ErrorCode.NOT_ROOM_HOST);
@@ -102,7 +103,7 @@ public class GameRoomService {
             throw new BusinessException(ErrorCode.NOT_ALL_READY);
         }
         room.start();
-        return room;
+        return GameRoomResponse.from(room);
     }
 
     @Transactional

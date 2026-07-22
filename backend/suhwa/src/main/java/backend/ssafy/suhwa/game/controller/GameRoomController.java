@@ -19,14 +19,12 @@ public class GameRoomController implements GameRoomApi {
 
     @Override
     public ResponseEntity<GameRoomResponse> createRoom(Long userId) {
-        GameRoomResponse response = GameRoomResponse.from(gameRoomService.create(userId));
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(gameRoomService.create(userId));
     }
 
     @Override
     public ResponseEntity<GameRoomResponse> joinRoom(Long userId, JoinRoomRequest request) {
-        GameRoomResponse response = GameRoomResponse.from(gameRoomService.join(request.roomCode(), userId));
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(gameRoomService.join(request.roomCode(), userId));
     }
 
     @Override
@@ -37,15 +35,12 @@ public class GameRoomController implements GameRoomApi {
 
     @Override
     public ResponseEntity<GameRoomResponse> setReady(Long userId, Long roomId, ReadyRequest request) {
-        GameRoomResponse response =
-                GameRoomResponse.from(gameRoomService.setReady(roomId, userId, request.isReady()));
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(gameRoomService.setReady(roomId, userId, request.isReady()));
     }
 
     @Override
     public ResponseEntity<GameRoomResponse> startGame(Long userId, Long roomId) {
-        GameRoomResponse response = GameRoomResponse.from(gameRoomService.start(roomId, userId));
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(gameRoomService.start(roomId, userId));
     }
 
     @Override
