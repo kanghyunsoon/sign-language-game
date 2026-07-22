@@ -172,4 +172,35 @@ class GameRoomWebSocketHandlerTest {
         assertThat(hostMessages.poll(3, TimeUnit.SECONDS)).contains("GAME_STARTED");
         assertThat(guestMessages.poll(3, TimeUnit.SECONDS)).contains("GAME_STARTED");
     }
+
+    @Test
+    void signalMessage_relayedToRoomPeerOnly_notToOtherRoomParticipants() throws Exception {
+        GameRoomResponse room = gameRoomService.create(hostId);
+        gameRoomService.join(room.roomCode(), guestId);
+
+        BlockingQueue<String> hostMessages = new LinkedBlockingQueue<>();
+        BlockingQueue<String> guestMessages = new LinkedBlockingQueue<>();
+        WebSocketSession hostSession = connect(room.id(), hostId, hostMessages);
+        connect(room.id(), guestId, guestMessages);
+
+        Long otherRoomUserId = userRepository.save(User.builder()
+                        .email("wsother-" + System.nanoTime() + "@test.com").passwordHash("h").nickname("wsother")
+                        .build())
+                .getId();
+        GameRoomResponse otherRoom = gameRoomService.create(otherRoomUserId);
+        BlockingQueue<String> otherRoomMessages = new LinkedBlockingQueue<>();
+        connect(otherRoom.id(), otherRoomUserId, otherRoomMessages);
+
+        hostSession.sendMessage(new TextMessage("{\"type\":\"SIGNAL\",\"payload\":{\"sdp\":\"offer-data\"}}"));
+
+        String received = guestMessages.poll(3, TimeUnit.SECONDS);
+        assertThat(received).contains("SIGNAL").contains("offer-data");
+
+        assertThat(hostMessages.poll(500, TimeUnit.MILLISECONDS))
+                .as("보낸 사람 본인에게는 릴레이되지 않아야 한다")
+                .isNull();
+        assertThat(otherRoomMessages.poll(500, TimeUnit.MILLISECONDS))
+                .as("다른 방 참가자에게는 전달되지 않아야 한다")
+                .isNull();
+    }
 }

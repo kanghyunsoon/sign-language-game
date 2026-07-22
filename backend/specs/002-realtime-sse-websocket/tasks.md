@@ -316,15 +316,15 @@ description: "Task list for 실시간 로비/게임방 알림(SSE)과 WebRTC 시
 
 ### Implementation for User Story 14
 
-- [ ] T059 [P] [US14] `WebRtcProperties`(`@ConfigurationProperties(prefix="webrtc")`, STUN/TURN 목록) 신규 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/webrtc/config/WebRtcProperties.java`
-- [ ] T060 [P] [US14] `application.yaml`/`env.sample`에 `webrtc.stun-urls`/`webrtc.turn-url`/`webrtc.turn-username`/`webrtc.turn-credential` 반영
-- [ ] T061 [US14] `IceServerController`(`GET /webrtc/ice-servers`, bearerAuth) 신규 생성 — `contracts/realtime-sse-api.yaml` 기준 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/webrtc/controller/IceServerController.java` (T059 의존)
-- [ ] T062 [US14] `GameRoomWebSocketHandler`가 수신 메시지 `type: "SIGNAL"`을 파싱해 `RoomRealtimeNotifier`에 위임(같은 방 상대방 세션에만 payload 원본 그대로 전달)하도록 메시지 타입 분기 추가, 그 아래에 `// TODO: WebSocket 메시지 송수신 로직 구현 위치 (다른 담당자 작업 예정)` 마커 삽입 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/GameRoomWebSocketHandler.java`, `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/RoomRealtimeNotifier.java` (T042, T045 의존)
+- [X] T059 [P] [US14] `WebRtcProperties`(`@ConfigurationProperties(prefix="webrtc")`, STUN/TURN 목록) 신규 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/webrtc/config/WebRtcProperties.java`
+- [X] T060 [P] [US14] `application.yaml`/`env.sample`에 `webrtc.stun-urls`/`webrtc.turn-url`/`webrtc.turn-username`/`webrtc.turn-credential` 반영
+- [X] T061 [US14] `IceServerController`(`GET /webrtc/ice-servers`, bearerAuth) 신규 생성 — `contracts/realtime-sse-api.yaml` 기준 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/webrtc/controller/IceServerController.java` (T059 의존)
+- [X] T062 [US14] `GameRoomWebSocketHandler`가 수신 메시지 `type: "SIGNAL"`을 파싱해 `RoomRealtimeNotifier`에 위임(같은 방 상대방 세션에만 payload 원본 그대로 전달)하도록 메시지 타입 분기 추가, 그 아래에 `// TODO: WebSocket 메시지 송수신 로직 구현 위치 (다른 담당자 작업 예정)` 마커 삽입 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/GameRoomWebSocketHandler.java`, `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/realtime/RoomRealtimeNotifier.java` (T042, T045 의존)
 
 ### Tests for User Story 14 (구현 검증)
 
-- [ ] T063 [P] [US14] `GET /webrtc/ice-servers` 응답 스키마 검증 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/webrtc/controller/IceServerControllerTest.java` (T061 의존)
-- [ ] T064 [US14] 같은 방 두 참가자 사이 `SIGNAL` 전달 성공, 다른 방 참가자에게는 미전달 검증하는 통합 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/realtime/GameRoomWebSocketHandlerTest.java`(기존 파일에 케이스 추가) (T062 의존)
+- [X] T063 [P] [US14] `GET /webrtc/ice-servers` 응답 스키마 검증 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/webrtc/controller/IceServerControllerTest.java` (T061 의존)
+- [X] T064 [US14] 같은 방 두 참가자 사이 `SIGNAL` 전달 성공, 다른 방 참가자에게는 미전달 검증하는 통합 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/realtime/GameRoomWebSocketHandlerTest.java`(기존 파일에 케이스 추가) (T062 의존)
 
 **Checkpoint**: US9~US14 독립적으로 완전히 동작·검증 가능.
 
