@@ -9,12 +9,15 @@ import backend.ssafy.suhwa.game.domain.GameRoom;
 import backend.ssafy.suhwa.game.domain.GameRoomStatus;
 import backend.ssafy.suhwa.game.dto.GameResultResponse;
 import backend.ssafy.suhwa.game.dto.GameRoomResponse;
+import backend.ssafy.suhwa.game.realtime.LobbyBroadcastService;
+import backend.ssafy.suhwa.game.realtime.RoomRealtimeNotifier;
 import backend.ssafy.suhwa.game.repository.GameRoomRepository;
 import backend.ssafy.suhwa.game.repository.GameSessionRepository;
 import backend.ssafy.suhwa.user.domain.User;
 import backend.ssafy.suhwa.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
@@ -40,7 +43,9 @@ class GameRoomServiceTest {
 
     @BeforeEach
     void setUp() {
-        gameRoomService = new GameRoomService(gameRoomRepository, gameSessionRepository, userRepository);
+        gameRoomService = new GameRoomService(
+                gameRoomRepository, gameSessionRepository, userRepository,
+                Mockito.mock(RoomRealtimeNotifier.class), Mockito.mock(LobbyBroadcastService.class));
         hostId = userRepository.save(User.builder()
                 .email("host-" + System.nanoTime() + "@test.com").passwordHash("h").nickname("host").build())
                 .getId();
@@ -55,6 +60,27 @@ class GameRoomServiceTest {
         gameRoomService.setReady(room.id(), hostId, true);
         gameRoomService.setReady(room.id(), guestId, true);
         return room;
+    }
+
+    @Test
+    void join_reentryByExistingGuest_doesNotIncreaseParticipantCountOrReject() {
+        GameRoomResponse room = gameRoomService.create(hostId);
+        gameRoomService.join(room.roomCode(), guestId);
+
+        GameRoomResponse rejoined = gameRoomService.join(room.roomCode(), guestId);
+
+        assertThat(rejoined.guestUserId()).isEqualTo(guestId);
+        assertThat(rejoined.participantCount()).isEqualTo(2);
+    }
+
+    @Test
+    void join_reentryByHost_doesNotAssignHostAsGuest() {
+        GameRoomResponse room = gameRoomService.create(hostId);
+
+        GameRoomResponse rejoined = gameRoomService.join(room.roomCode(), hostId);
+
+        assertThat(rejoined.guestUserId()).isNull();
+        assertThat(rejoined.participantCount()).isEqualTo(1);
     }
 
     @Test
@@ -78,6 +104,29 @@ class GameRoomServiceTest {
 
         assertThat(gameRoomRepository.findById(room.id()).orElseThrow().getStatus())
                 .isEqualTo(GameRoomStatus.CLOSED);
+    }
+
+    @Test
+    void leave_calledAgainAfterRoomAlreadyClosed_isNoop() {
+        GameRoomResponse room = gameRoomService.create(hostId);
+        gameRoomService.join(room.roomCode(), guestId);
+
+        gameRoomService.leave(room.id(), hostId);
+        GameRoom afterFirstLeave = gameRoomRepository.findById(room.id()).orElseThrow();
+        assertThat(afterFirstLeave.getHostUserId()).isEqualTo(guestId);
+        assertThat(afterFirstLeave.getGuestUserId()).isNull();
+
+        // 이미 CLOSED가 아니라 위임으로 WAITING 그대로인 상태이므로 한 번 더 닫아 CLOSED로 만든다.
+        gameRoomService.leave(room.id(), guestId);
+        assertThat(gameRoomRepository.findById(room.id()).orElseThrow().getStatus())
+                .isEqualTo(GameRoomStatus.CLOSED);
+
+        // CLOSED된 방에 같은 사용자가 leave()를 또 호출해도 host/guest가 더 이상 바뀌면 안 된다.
+        gameRoomService.leave(room.id(), guestId);
+        GameRoom afterRedundantLeave = gameRoomRepository.findById(room.id()).orElseThrow();
+        assertThat(afterRedundantLeave.getStatus()).isEqualTo(GameRoomStatus.CLOSED);
+        assertThat(afterRedundantLeave.getHostUserId()).isEqualTo(guestId);
+        assertThat(afterRedundantLeave.getGuestUserId()).isNull();
     }
 
     @Test
