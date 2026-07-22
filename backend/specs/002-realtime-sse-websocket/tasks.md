@@ -71,14 +71,14 @@ description: "Task list for 실시간 로비/게임방 알림(SSE)과 WebRTC 시
 
 ### Implementation for User Story 2
 
-- [ ] T006 `data-model.md`의 DDL(`ALTER TABLE game_rooms ADD COLUMN version BIGINT NOT NULL DEFAULT 0;`)을 로컬/개발 DB에 적용
-- [ ] T007 [P] [US2] `GameRoom`에 `@Version private Long version` 필드 추가 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/domain/GameRoom.java` (T006 의존)
-- [ ] T008 [P] [US2] `ErrorCode`에 `CONCURRENT_UPDATE_CONFLICT(409)` 추가 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/exception/ErrorCode.java`
-- [ ] T009 [US2] `GlobalExceptionHandler`에 `ObjectOptimisticLockingFailureException` → `CONCURRENT_UPDATE_CONFLICT` 매핑 핸들러 추가 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/exception/GlobalExceptionHandler.java` (T008 의존, research.md #2)
+- [X] T006 `data-model.md`의 DDL(`ALTER TABLE game_rooms ADD COLUMN version BIGINT NOT NULL DEFAULT 0;`)을 로컬/개발 DB에 적용
+- [X] T007 [P] [US2] `GameRoom`에 `@Version private Long version` 필드 추가 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/domain/GameRoom.java` (T006 의존)
+- [X] T008 [P] [US2] `ErrorCode`에 `CONCURRENT_UPDATE_CONFLICT(409)` 추가 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/exception/ErrorCode.java`
+- [X] T009 [US2] `GlobalExceptionHandler`에 `ObjectOptimisticLockingFailureException` → `CONCURRENT_UPDATE_CONFLICT` 매핑 핸들러 추가 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/exception/GlobalExceptionHandler.java` (T008 의존, research.md #2)
 
 ### Tests for User Story 2 (구현 검증)
 
-- [ ] T010 [US2] 동일 `roomId`에 대한 동시 변경 요청 중 하나만 성공하고 나머지는 409(`CONCURRENT_UPDATE_CONFLICT`)로 거부되는지 검증하는 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/domain/GameRoomOptimisticLockTest.java` (T007, T009 의존)
+- [X] T010 [US2] 동일 `roomId`에 대한 동시 변경 요청 중 하나만 성공하고 나머지는 409(`CONCURRENT_UPDATE_CONFLICT`)로 거부되는지 검증하는 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/domain/GameRoomOptimisticLockTest.java` (T007, T009 의존)
 
 **Checkpoint**: US1~US2 독립적으로 완전히 동작·검증 가능.
 
