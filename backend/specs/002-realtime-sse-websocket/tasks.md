@@ -167,13 +167,13 @@ description: "Task list for 실시간 로비/게임방 알림(SSE)과 WebRTC 시
 
 ### Implementation for User Story 7
 
-- [ ] T022 [P] [US7] `CorsConfig`(`CorsConfigurationSource` 빈, `CORS_ALLOWED_ORIGINS` 콤마 구분 파싱) 신규 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/config/CorsConfig.java` (research.md #7)
-- [ ] T023 [US7] `SecurityConfig`의 `HttpSecurity`에 `.cors(...)` 연결 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/config/SecurityConfig.java` (T022 의존)
-- [ ] T024 [P] [US7] `application.yaml`/`env.sample`에 `cors.allowed-origins: ${CORS_ALLOWED_ORIGINS:}` 반영
+- [X] T022 [P] [US7] `CorsConfig`(`CorsConfigurationSource` 빈, `CORS_ALLOWED_ORIGINS` 콤마 구분 파싱) 신규 생성 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/config/CorsConfig.java` (research.md #7)
+- [X] T023 [US7] `SecurityConfig`의 `HttpSecurity`에 `.cors(...)` 연결 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/config/SecurityConfig.java` (T022 의존)
+- [X] T024 [P] [US7] `application.yaml`/`env.sample`에 `cors.allowed-origins: ${CORS_ALLOWED_ORIGINS:}` 반영
 
 ### Tests for User Story 7 (구현 검증)
 
-- [ ] T025 [US7] 허용 목록에 있는 Origin은 `Access-Control-Allow-Origin` 헤더 포함, 없는 Origin은 미포함인지 검증하는 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/common/config/CorsConfigTest.java` (T023 의존)
+- [X] T025 [US7] 허용 목록에 있는 Origin은 `Access-Control-Allow-Origin` 헤더 포함, 없는 Origin은 미포함인지 검증하는 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/common/config/CorsConfigTest.java` (T023 의존)
 
 **Checkpoint**: US1~US7 독립적으로 완전히 동작·검증 가능.
 
