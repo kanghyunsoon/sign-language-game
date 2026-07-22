@@ -130,11 +130,11 @@ description: "Task list for 실시간 로비/게임방 알림(SSE)과 WebRTC 시
 
 ### Implementation for User Story 5
 
-- [ ] T017 [US5] `SchedulingConfig`에 `ThreadPoolTaskScheduler` 빈(poolSize ≥ 4) 등록 + `SchedulingConfigurer.configureTasks()`로 지정 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/config/SchedulingConfig.java` (research.md #5)
+- [X] T017 [US5] `SchedulingConfig`에 `ThreadPoolTaskScheduler` 빈(poolSize ≥ 4) 등록 + `SchedulingConfigurer.configureTasks()`로 지정 in `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/config/SchedulingConfig.java` (research.md #5)
 
 ### Tests for User Story 5 (구현 검증)
 
-- [ ] T018 [US5] 스케줄러 빈의 풀 크기가 4 이상이고, 오래 걸리는 작업이 있어도 다른 `@Scheduled` 작업의 실행 시각이 밀리지 않는지 검증하는 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/common/config/SchedulingConfigTest.java` (T017 의존)
+- [X] T018 [US5] 스케줄러 빈의 풀 크기가 4 이상이고, 오래 걸리는 작업이 있어도 다른 `@Scheduled` 작업의 실행 시각이 밀리지 않는지 검증하는 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/common/config/SchedulingConfigTest.java` (T017 의존)
 
 **Checkpoint**: US1~US5 독립적으로 완전히 동작·검증 가능.
 
