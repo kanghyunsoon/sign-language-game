@@ -4,6 +4,7 @@
 // import bannerGraphicSvg from "../assets/banner-stats-graphic.svg";
 
 import './MainPage.css'; // 작성한 CSS 불러오기
+import { Link } from "react-router-dom";
 
 // export default function MainPage() {
 export function MainPage() {
@@ -15,8 +16,8 @@ export function MainPage() {
     <div className="page">
       <header className="header">
         <nav className="nav" aria-label="주요 메뉴">
-          <a className="active" href="#">메인페이지</a>
-          <a href="#">연습</a>
+          <a className="active" href="/">메인페이지</a>
+          <Link to="/practice">연습</Link>
           <a href="#">테스트</a>
           <a href="#">사전</a>
           <a href="#">오답노트</a>
