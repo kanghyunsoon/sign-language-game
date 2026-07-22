@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "1.0.0",
+  "seed": 42,
+  "device": "auto",
+  "model": {
+    "inputSize": 63,
+    "hiddenSizes": [256, 128],
+    "dropout": 0.2
+  },
+  "optimization": {
+    "epochs": 200,
+    "batchSize": 128,
+    "learningRate": 0.001,
+    "weightDecay": 0.0001,
+    "classWeighting": "balanced",
+    "gradientClipNorm": 1.0
+  },
+  "earlyStopping": {
+    "monitor": "macroF1",
+    "patience": 25,
+    "minimumDelta": 0.0001
+  },
+  "calibration": {
+    "defaultThreshold": 0.8,
+    "minimumValidationSamplesPerClass": 20,
+    "minimumThreshold": 0.5,
+    "maximumThreshold": 0.95
+  },
+  "runtime": {
+    "numWorkers": 0,
+    "pinMemory": true,
+    "onnxOpsetVersion": 17
+  }
+}

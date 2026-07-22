@@ -110,3 +110,14 @@ def calculateSha256(path: Path) -> str:
         for chunk in iter(lambda: inputFile.read(1024 * 1024), b""):
             digest.update(chunk);
     return digest.hexdigest();
+
+
+def calculateJsonSha256(path: Path) -> str:
+    payload = loadJson(path);
+    canonical = json.dumps(
+        payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8");
+    return hashlib.sha256(canonical).hexdigest();

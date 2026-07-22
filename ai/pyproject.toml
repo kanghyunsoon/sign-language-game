@@ -4,13 +4,20 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fingerspelling-ai"
-version = "0.2.0"
-description = "MediaPipe image preprocessing for Korean fingerspelling"
+version = "0.3.0"
+description = "Korean fingerspelling preprocessing, training, and inference"
 requires-python = ">=3.10,<3.13"
 dependencies = [
   "mediapipe==0.10.21",
   "numpy==1.26.4",
   "Pillow==10.4.0",
+]
+
+[project.optional-dependencies]
+training = [
+  "onnx==1.17.0",
+  "onnxruntime==1.20.1",
+  "torch==2.5.1",
 ]
 
 [project.scripts]

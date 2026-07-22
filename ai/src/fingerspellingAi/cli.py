@@ -1,8 +1,10 @@
-"""Command-line interface for model download and image preprocessing.""";
+"""Command-line interface for preprocessing, training, and inference.""";
 
 import argparse;
 import json;
+import os;
 from pathlib import Path;
+import subprocess;
 import sys;
 from urllib.request import urlopen;
 
@@ -28,6 +30,22 @@ def createParser() -> argparse.ArgumentParser:
     preprocessParser.add_argument("--labels", type=Path, default=moduleRoot / "config" / "labels.json");
     preprocessParser.add_argument("--config", type=Path, default=moduleRoot / "config" / "preprocessing.json");
     preprocessParser.add_argument("--overwrite", action="store_true");
+
+    trainParser = subparsers.add_parser("train", help="Train and package a single-frame classifier.");
+    trainParser.add_argument("--dataset", type=Path, required=True);
+    trainParser.add_argument("--output", type=Path, required=True);
+    trainParser.add_argument("--model-version", required=True);
+    trainParser.add_argument("--labels", type=Path, default=moduleRoot / "config" / "labels.json");
+    trainParser.add_argument("--preprocessing-config", type=Path, default=moduleRoot / "config" / "preprocessing.json");
+    trainParser.add_argument("--recognition-policy", type=Path, default=moduleRoot / "config" / "recognition-policy.json");
+    trainParser.add_argument("--training-config", type=Path, default=moduleRoot / "config" / "training.json");
+    trainParser.add_argument("--git-commit", default=None);
+    trainParser.add_argument("--overwrite", action="store_true");
+
+    predictParser = subparsers.add_parser("predict", help="Run ONNX inference for one 63-value feature vector.");
+    predictParser.add_argument("--package", type=Path, required=True);
+    predictParser.add_argument("--features", type=Path, required=True);
+    predictParser.add_argument("--top-k", type=int, default=3);
     return parser;
 
 
@@ -35,6 +53,32 @@ def main() -> None:
     args = createParser().parse_args();
     if args.command == "download-model":
         _downloadModel(args.output, args.config, args.overwrite);
+        return;
+
+    if args.command == "train":
+        from .training import runTraining;
+
+        manifest = runTraining(
+            datasetRoot=args.dataset,
+            outputRoot=args.output,
+            modelVersion=args.model_version,
+            labelsPath=args.labels,
+            preprocessingConfigPath=args.preprocessing_config,
+            recognitionPolicyPath=args.recognition_policy,
+            trainingConfigPath=args.training_config,
+            gitCommit=args.git_commit or _detectGitCommit(moduleRoot),
+            overwrite=args.overwrite,
+            progressCallback=_printTrainingProgress,
+        );
+        print(json.dumps(manifest, ensure_ascii=False, indent=2));
+        return;
+
+    if args.command == "predict":
+        from .inference import OnnxFrameClassifier, loadFeaturesJson;
+
+        classifier = OnnxFrameClassifier(args.package);
+        prediction = classifier.predict(loadFeaturesJson(args.features), topK=args.top_k);
+        print(json.dumps(prediction, ensure_ascii=False, indent=2));
         return;
 
     manifest = runImagePreprocessing(
@@ -82,3 +126,30 @@ def _verifyModelHash(actualHash: str, expectedHash: str) -> None:
 def _printProgress(current: int, total: int, relativePath: str) -> None:
     if current == 1 or current == total or current % 100 == 0:
         print(f"[{current}/{total}] {relativePath}", file=sys.stderr);
+
+
+def _printTrainingProgress(current: int, total: int, metrics: dict[str, float]) -> None:
+    if current == 1 or current == total or current % 5 == 0:
+        print(
+            f"[{current}/{total}] trainLoss={metrics['trainLoss']:.4f} "
+            f"validationLoss={metrics['validationLoss']:.4f} "
+            f"validationMacroF1={metrics['validationMacroF1']:.4f}",
+            file=sys.stderr,
+        );
+
+
+def _detectGitCommit(moduleRoot: Path) -> str:
+    environmentCommit = os.environ.get("GIT_COMMIT");
+    if environmentCommit:
+        return environmentCommit;
+    try:
+        completed = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=moduleRoot,
+            check=True,
+            capture_output=True,
+            text=True,
+        );
+        return completed.stdout.strip();
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        return "unknown";

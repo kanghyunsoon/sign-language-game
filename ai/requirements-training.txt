@@ -1,0 +1,2 @@
+-e .[training]
+jupyterlab==4.3.4

@@ -14,7 +14,7 @@ import uuid;
 
 import numpy as np;
 
-from .config import PreprocessingConfig, calculateSha256, loadPreprocessingConfig;
+from .config import PreprocessingConfig, calculateJsonSha256, calculateSha256, loadPreprocessingConfig;
 from .dataset import ImageSample, discoverSamples;
 from .extractor import ExtractedHand, HandExtractor, MediaPipeHandExtractor;
 from .labels import LabelDefinition, loadModelLabels;
@@ -40,6 +40,8 @@ def runImagePreprocessing(
     labels = loadModelLabels(labelsPath);
     labelsSha256 = calculateSha256(labelsPath);
     preprocessingConfigSha256 = calculateSha256(configPath);
+    labelsCanonicalSha256 = calculateJsonSha256(labelsPath);
+    preprocessingConfigCanonicalSha256 = calculateJsonSha256(configPath);
     samples, warnings = discoverSamples(inputRoot, labels, config.dataset);
     _validateOutputRoot(inputRoot, outputRoot, overwrite);
     modelSha256 = calculateSha256(modelPath) if modelPath.is_file() else None;
@@ -153,6 +155,8 @@ def runImagePreprocessing(
             "identity": {
                 "labelsSha256": labelsSha256,
                 "preprocessingConfigSha256": preprocessingConfigSha256,
+                "labelsCanonicalSha256": labelsCanonicalSha256,
+                "preprocessingConfigCanonicalSha256": preprocessingConfigCanonicalSha256,
                 "mediaPipeModelSha256": modelSha256,
             },
             "normalization": asdict(config.normalization),

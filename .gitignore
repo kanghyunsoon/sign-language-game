@@ -6,5 +6,6 @@ ai/models/
 ai/data/raw/
 ai/data/processed/
 ai/data/rejected/
+ai/artifacts/
 *.jsonl
 *.npz
