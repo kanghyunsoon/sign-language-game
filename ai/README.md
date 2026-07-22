@@ -8,7 +8,7 @@
 - MediaPipe `0.10.21`
 - NumPy `1.26.4`
 - Pillow `10.4.0`
-- 학습 시 PyTorch `2.5.1`, ONNX `1.17.0`, ONNX Runtime `1.20.1`
+- 학습 시 PyTorch `2.5` 이상 `3.0` 미만, ONNX `1.17` 이상 `2.0` 미만, ONNX Runtime `1.20` 이상 `2.0` 미만
 
 Windows PowerShell에서 다음 순서로 환경을 준비한다.
 
@@ -25,6 +25,8 @@ python -m pip install -e .
 ```powershell
 python -m pip install -r requirements-training.txt
 ```
+
+학습 서버에 호환되는 PyTorch 2.x와 JupyterLab이 이미 있으면 기존 버전을 유지한다. 위 명령은 허용 범위 안의 PyTorch를 낮추지 않으며 JupyterLab을 별도로 설치하지 않는다.
 
 PowerShell 실행 정책으로 활성화가 막히면 활성화 없이 `.\.venv\Scripts\python.exe`를 사용해도 된다.
 
@@ -111,7 +113,7 @@ fingerspelling-data train `
   --model-version "fingerspelling-v1.0.0"
 ```
 
-`config/training.json`의 `device`가 `auto`이므로 CUDA가 있으면 GPU, 없으면 CPU를 사용한다. 실행 전 `python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"`로 현재 Jupyter 커널의 GPU 연결을 확인한다.
+`config/training.json`의 `device`가 `auto`이므로 CUDA가 있으면 GPU, 없으면 CPU를 사용한다. 실행 전 `python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"`로 현재 Jupyter 커널의 GPU 연결을 확인한다. 서버가 `CUDA_VISIBLE_DEVICES`로 물리 GPU를 제한한 경우 할당받은 장치는 코드에서 `cuda:0`으로 보이므로 물리 인덱스를 코드에 다시 지정하지 않는다.
 
 학습기는 다음 조건을 시작 전에 검사한다.
 

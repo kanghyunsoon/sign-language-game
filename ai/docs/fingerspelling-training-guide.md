@@ -50,7 +50,7 @@ print(torch.cuda.is_available())
 print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU")
 ```
 
-저장소의 `ai` 폴더에서 환경을 설치한다.
+저장소의 `ai` 폴더에서 작업별 가상환경을 생성한다. 다른 팀원의 작업 폴더에 있는 가상환경은 조회 외에는 사용하거나 수정하지 않는다.
 
 ```bash
 python -m venv .venv
@@ -58,7 +58,18 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements-training.txt
 ```
 
+학습 의존성은 PyTorch `2.5` 이상 `3.0` 미만을 허용하므로 서버에 설치된 호환 버전을 낮추지 않는다. JupyterLab은 서버가 관리하므로 프로젝트 요구사항에서 설치하거나 버전을 변경하지 않는다.
+
 `torch.cuda.is_available()`이 `False`면 학습을 시작하지 말고 Jupyter 커널과 GPU용 PyTorch 설치 상태를 먼저 수정한다. H200, L40S, V100 중 어떤 장비가 배정되더라도 코드와 설정은 바꾸지 않으며 `device: auto`가 현재 CUDA 장치를 선택한다.
+
+서버가 다음과 같이 물리 GPU를 제한할 수 있다.
+
+```bash
+echo $CUDA_VISIBLE_DEVICES
+# 2
+```
+
+이 경우 물리 GPU 2번만 프로세스에 노출되며 PyTorch에서는 논리 장치 `cuda:0`이 된다. 코드에서 `cuda:2`를 지정하면 존재하지 않는 장치 오류가 발생하므로 `auto` 또는 `cuda:0`을 사용한다.
 
 ## 5. CLI 학습
 
