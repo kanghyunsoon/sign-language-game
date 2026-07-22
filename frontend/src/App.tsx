@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MainPage } from "./features/home/pages/MainPage"; 
+import { PreLoginPage } from "./features/home/pages/PreLoginPage";
 import { PracticeHomePage } from "./features/learning/pages/PracticeHomePage";
 import { StandaloneGameHarness } from "./game";
 
@@ -7,8 +8,11 @@ export function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* '/' 주소(기본 메인 주소)로 들어오면 MainPage를 보여줌 */}
-        <Route path="/" element={<MainPage />} />
+        {/* 로그인 전 서비스 소개 화면 */}
+        <Route path="/" element={<PreLoginPage />} />
+
+        {/* 로그인 후 메인 화면 */}
+        <Route path="/main" element={<MainPage />} />
 
         {/* "/practice" 주소로 들어오면 PracticeHomePage를 보여줌 */}
         <Route path="/practice" element={<PracticeHomePage />} />
