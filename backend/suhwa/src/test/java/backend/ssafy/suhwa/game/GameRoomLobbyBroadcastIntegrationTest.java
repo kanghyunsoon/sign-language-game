@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import backend.ssafy.suhwa.auth.service.RealtimeTicketService;
 import backend.ssafy.suhwa.common.security.JwtTokenProvider;
 import backend.ssafy.suhwa.game.realtime.LobbySubscriberRegistry;
 import backend.ssafy.suhwa.user.domain.User;
@@ -44,6 +45,9 @@ class GameRoomLobbyBroadcastIntegrationTest {
     @Autowired
     private LobbySubscriberRegistry subscriberRegistry;
 
+    @Autowired
+    private RealtimeTicketService realtimeTicketService;
+
     private Long createUser(String label) {
         return userRepository.save(User.builder()
                         .email(label + "-" + System.nanoTime() + "@test.com")
@@ -55,7 +59,8 @@ class GameRoomLobbyBroadcastIntegrationTest {
 
     @Test
     void createRoom_broadcastsUpdateToLobbySubscribers() throws Exception {
-        MvcResult subscribeResult = mockMvc.perform(get("/game-rooms/subscribe"))
+        String ticket = realtimeTicketService.issue(1L);
+        MvcResult subscribeResult = mockMvc.perform(get("/game-rooms/subscribe").param("ticket", ticket))
                 .andExpect(request().asyncStarted())
                 .andReturn();
 
@@ -101,7 +106,8 @@ class GameRoomLobbyBroadcastIntegrationTest {
 
     @Test
     void startGame_broadcastsUpdateRemovingRoomFromWaitingList() throws Exception {
-        MvcResult subscribeResult = mockMvc.perform(get("/game-rooms/subscribe"))
+        String ticket = realtimeTicketService.issue(1L);
+        MvcResult subscribeResult = mockMvc.perform(get("/game-rooms/subscribe").param("ticket", ticket))
                 .andExpect(request().asyncStarted())
                 .andReturn();
 

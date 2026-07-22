@@ -1,7 +1,12 @@
 package backend.ssafy.suhwa.game.realtime;
 
+import backend.ssafy.suhwa.common.exception.ErrorCode;
+import backend.ssafy.suhwa.game.domain.GameRoomStatus;
+import backend.ssafy.suhwa.game.realtime.dto.RoomSocketMessage;
+import backend.ssafy.suhwa.game.repository.GameRoomRepository;
 import backend.ssafy.suhwa.game.service.GameRoomService;
 import java.time.Instant;
+import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,6 +16,7 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * 방 내 실시간 WebSocket 핸들러(순수 TextWebSocketHandler, research.md #10).
@@ -23,19 +29,25 @@ public class GameRoomWebSocketHandler extends TextWebSocketHandler {
     private final RoomParticipantRegistry registry;
     private final RoomRealtimeNotifier notifier;
     private final GameRoomService gameRoomService;
+    private final GameRoomRepository gameRoomRepository;
     private final TaskScheduler taskScheduler;
+    private final ObjectMapper objectMapper;
     private final long leaveGraceSeconds;
 
     public GameRoomWebSocketHandler(
             RoomParticipantRegistry registry,
             RoomRealtimeNotifier notifier,
             GameRoomService gameRoomService,
+            GameRoomRepository gameRoomRepository,
             TaskScheduler taskScheduler,
+            ObjectMapper objectMapper,
             @Value("${game.room.leave-grace-seconds}") long leaveGraceSeconds) {
         this.registry = registry;
         this.notifier = notifier;
         this.gameRoomService = gameRoomService;
+        this.gameRoomRepository = gameRoomRepository;
         this.taskScheduler = taskScheduler;
+        this.objectMapper = objectMapper;
         this.leaveGraceSeconds = leaveGraceSeconds;
     }
 
@@ -87,8 +99,35 @@ public class GameRoomWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     protected void handleTextMessage(@NonNull WebSocketSession session, @NonNull TextMessage message) {
+        Long roomId = roomId(session);
+        Long userId = userId(session);
+
+        // 핸드셰이크 이후 나가기/방 종료로 더 이상 참가자가 아니게 된 세션이 메시지를 보내는
+        // 경우를 매 메시지마다 재검증한다(FR-024, US13/T056). 핸드셰이크 시점 검증만으로는
+        // 연결이 유지되는 동안의 상태 변화를 막지 못한다.
+        if (!isStillParticipant(roomId, userId)) {
+            sendError(session, ErrorCode.NOT_ROOM_PARTICIPANT);
+            return;
+        }
+
         // TODO: WebSocket 메시지 송수신 로직 구현 위치 (다른 담당자 작업 예정)
         // 이 핸들러의 메시지 타입 분기(SIGNAL 이후, 게임 진행 관련 type)에 추가될 예정.
+    }
+
+    private boolean isStillParticipant(Long roomId, Long userId) {
+        return gameRoomRepository.findById(roomId)
+                .map(room -> room.isParticipant(userId) && room.getStatus() != GameRoomStatus.CLOSED)
+                .orElse(false);
+    }
+
+    private void sendError(WebSocketSession session, ErrorCode errorCode) {
+        try {
+            String json = objectMapper.writeValueAsString(new RoomSocketMessage(
+                    "ERROR", Map.of("code", errorCode.name(), "message", errorCode.getDefaultMessage())));
+            session.sendMessage(new TextMessage(json));
+        } catch (Exception ignored) {
+            // 전송 실패는 연결이 이미 끊긴 것으로 간주한다.
+        }
     }
 
     private Long roomId(WebSocketSession session) {
