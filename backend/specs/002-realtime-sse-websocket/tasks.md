@@ -148,12 +148,12 @@ description: "Task list for 실시간 로비/게임방 알림(SSE)과 WebRTC 시
 
 ### Implementation for User Story 6
 
-- [ ] T019 [US6] `GameRoomService.create/join/setReady/start`가 `GameRoomResponse`를 직접 반환하도록 시그니처 변경(`leave()`는 기존 `void` 유지) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/service/GameRoomService.java` (research.md #6)
-- [ ] T020 [US6] `GameRoomController`에서 `GameRoomResponse.from(entity)` 변환 호출 제거(서비스가 이미 DTO 반환) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/controller/GameRoomController.java` (T019 의존)
+- [X] T019 [US6] `GameRoomService.create/join/setReady/start`가 `GameRoomResponse`를 직접 반환하도록 시그니처 변경(`leave()`는 기존 `void` 유지) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/service/GameRoomService.java` (research.md #6)
+- [X] T020 [US6] `GameRoomController`에서 `GameRoomResponse.from(entity)` 변환 호출 제거(서비스가 이미 DTO 반환) in `backend/suhwa/src/main/java/backend/ssafy/suhwa/game/controller/GameRoomController.java` (T019 의존)
 
 ### Tests for User Story 6 (구현 검증)
 
-- [ ] T021 [US6] 생성/입장/준비/시작 API 응답 필드가 리팩토링 전(001 테스트 기준)과 동일한지 확인하는 회귀 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/controller/GameRoomControllerTest.java`(기존 파일 재확인/보강) (T020 의존)
+- [X] T021 [US6] 생성/입장/준비/시작 API 응답 필드가 리팩토링 전(001 테스트 기준)과 동일한지 확인하는 회귀 테스트 in `backend/suhwa/src/test/java/backend/ssafy/suhwa/game/controller/GameRoomControllerTest.java`(기존 파일 재확인/보강) (T020 의존)
 
 **Checkpoint**: US1~US6 독립적으로 완전히 동작·검증 가능.
 

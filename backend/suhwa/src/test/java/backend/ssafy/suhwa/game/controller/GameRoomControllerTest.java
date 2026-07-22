@@ -10,8 +10,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import backend.ssafy.suhwa.common.exception.BusinessException;
 import backend.ssafy.suhwa.common.exception.ErrorCode;
-import backend.ssafy.suhwa.game.domain.GameRoom;
+import backend.ssafy.suhwa.game.domain.GameRoomStatus;
 import backend.ssafy.suhwa.game.dto.GameResultRequest;
+import backend.ssafy.suhwa.game.dto.GameRoomResponse;
 import backend.ssafy.suhwa.game.dto.JoinRoomRequest;
 import backend.ssafy.suhwa.game.dto.ReadyRequest;
 import backend.ssafy.suhwa.game.service.GameRoomService;
@@ -52,8 +53,8 @@ class GameRoomControllerTest {
         SecurityContextHolder.clearContext();
     }
 
-    private GameRoom sampleRoom() {
-        return GameRoom.builder().roomCode("ABC123").hostUserId(1L).build();
+    private GameRoomResponse sampleRoom() {
+        return new GameRoomResponse(1L, "ABC123", 1L, null, false, false, GameRoomStatus.WAITING, 1, 2);
     }
 
     @Test
