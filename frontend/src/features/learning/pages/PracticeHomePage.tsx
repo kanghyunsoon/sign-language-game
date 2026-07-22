@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import leafImage from "../assets/leaf.png";
-import otterImage from "../assets/otter1.png";
+import otterImage from "../assets/otter.png";
+import { PracticeSessionPage } from "./PracticeSessionPage";
 import "./PracticeHomePage.css";
 
 type PracticeCategoryId = "consonant" | "vowel" | "number";
@@ -26,8 +27,8 @@ const practiceCategories: PracticeCategory[] = [
     id: "vowel",
     symbol: "ㅏ",
     title: "모음 연습",
-    description: "ㅏ부터 ㅣ까지 기본 모음 21개를 연습합니다.",
-    count: 21,
+    description: "ㅏ부터 ㅢ까지 기본 모음 17개를 연습합니다.",
+    count: 17,
   },
   {
     id: "number",
@@ -40,25 +41,68 @@ const practiceCategories: PracticeCategory[] = [
 
 export function PracticeHomePage() {
   const [selectedCategory, setSelectedCategory] =
-    useState<PracticeCategoryId>("consonant");
+    useState<PracticeCategoryId | null>(null);
+  const [activeCategory, setActiveCategory] =
+    useState<PracticeCategoryId | null>(null);
+
+  const selectedPracticeCategory = practiceCategories.find(
+    (category) => category.id === selectedCategory,
+  );
 
   function handleCategoryClick(categoryId: PracticeCategoryId) {
     setSelectedCategory(categoryId);
   }
 
+  function handlePreviousClick() {
+    setSelectedCategory(null);
+  }
+
   function handlePracticeStart() {
-    alert(`${selectedCategory} 연습을 시작합니다.`);
+    if (!selectedPracticeCategory) {
+      return;
+    }
+
+    setActiveCategory(selectedPracticeCategory.id);
+  }
+
+  function handlePracticeGuideOpen() {
+    alert("연습 방법을 확인합니다.");
+  }
+
+  if (activeCategory) {
+    return (
+      <PracticeSessionPage
+        category={activeCategory}
+        onExit={() => {
+          setActiveCategory(null);
+        }}
+      />
+    );
   }
 
   return (
     <div className="practice-page">
       <header className="header">
         <nav className="nav" aria-label="주요 메뉴">
-            <Link to="/">메인페이지</Link>
-            <Link className="active" to="/practice">연습</Link>
-          <a href="#">테스트</a>
-          <a href="#">사전</a>
-          <a href="#">오답노트</a>
+          <Link to="/">
+            메인페이지
+          </Link>
+
+          <Link className="active" to="/practice">
+            연습
+          </Link>
+
+          <a href="#">
+            테스트
+          </a>
+
+          <a href="#">
+            사전
+          </a>
+
+          <a href="#">
+            오답노트
+          </a>
         </nav>
 
         <button className="mypage-button" type="button">
@@ -67,13 +111,13 @@ export function PracticeHomePage() {
       </header>
 
       <main className="practice-main">
-        <img
-          className="practice-leaf"
-          src={leafImage}
-          alt=""
-        />
-
         <section className="practice-panel">
+          <img
+            className="practice-leaf"
+            src={leafImage}
+            alt=""
+          />
+
           <span className="practice-mode-badge">
             PRACTICE MODE
           </span>
@@ -91,54 +135,78 @@ export function PracticeHomePage() {
           </h1>
 
           <div className="practice-category-list">
-            {practiceCategories.map((category) => {
-              const isSelected =
-                selectedCategory === category.id;
+            {practiceCategories
+              .filter(
+                (category) =>
+                  selectedCategory === null ||
+                  category.id === selectedCategory,
+              )
+              .map((category) => {
+                const isSelected =
+                  selectedCategory === category.id;
 
-              return (
-                <button
-                  className={`practice-category ${
-                    isSelected
-                      ? "practice-category-selected"
-                      : ""
-                  }`}
-                  type="button"
-                  key={category.id}
-                  onClick={() =>
-                    handleCategoryClick(category.id)
-                  }
-                >
-                  <span className="practice-category-symbol">
-                    {category.symbol}
-                  </span>
-
-                  <span className="practice-category-content">
-                    <strong>
-                      {category.title}
-                    </strong>
-
-                    <span>
-                      {category.description}
+                return (
+                  <button
+                    className={`practice-category ${
+                      isSelected
+                        ? "practice-category-selected"
+                        : ""
+                    }`}
+                    type="button"
+                    key={category.id}
+                    onClick={() => {
+                      handleCategoryClick(category.id);
+                    }}
+                  >
+                    <span className="practice-category-symbol">
+                      {category.symbol}
                     </span>
-                  </span>
 
-                  {isSelected && (
+                    <span className="practice-category-content">
+                      <strong>
+                        {category.title}
+                      </strong>
+
+                      <span>
+                        {category.description}
+                      </span>
+                    </span>
+
                     <span className="practice-category-count">
                       총 {category.count}문제
                     </span>
-                  )}
-                </button>
-              );
-            })}
+                  </button>
+                );
+              })}
           </div>
 
-          <button
-            className="practice-start-button"
-            type="button"
-            onClick={handlePracticeStart}
-          >
-            선택한 연습 시작하기
-          </button>
+          {selectedPracticeCategory && (
+            <div className="practice-action-area">
+              <button
+                className="practice-previous-button"
+                type="button"
+                onClick={handlePreviousClick}
+              >
+                이전
+              </button>
+
+              <button
+                className="practice-start-button"
+                type="button"
+                onClick={handlePracticeStart}
+              >
+                ▶ 연습 시작하기
+              </button>
+
+              <button
+                className="practice-guide-button"
+                type="button"
+                onClick={handlePracticeGuideOpen}
+              >
+                연습 방법 보기
+              </button>
+            </div>
+          )}
         </section>
       </main>
     </div>
