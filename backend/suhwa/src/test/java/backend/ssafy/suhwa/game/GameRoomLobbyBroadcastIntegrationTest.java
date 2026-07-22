@@ -98,4 +98,54 @@ class GameRoomLobbyBroadcastIntegrationTest {
                 .andExpect(jsonPath("$.capacity").value(2))
                 .andExpect(jsonPath("$.status").value("WAITING"));
     }
+
+    @Test
+    void startGame_broadcastsUpdateRemovingRoomFromWaitingList() throws Exception {
+        MvcResult subscribeResult = mockMvc.perform(get("/game-rooms/subscribe"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        Long hostId = createUser("starthost");
+        Long guestId = createUser("startguest");
+        String hostToken = jwtTokenProvider.createAccessToken(hostId);
+        String guestToken = jwtTokenProvider.createAccessToken(guestId);
+
+        MvcResult createResult = mockMvc.perform(post("/game-rooms").header("Authorization", "Bearer " + hostToken))
+                .andExpect(status().isCreated())
+                .andReturn();
+        var createJson = objectMapper.readTree(createResult.getResponse().getContentAsString());
+        String roomCode = createJson.get("roomCode").asText();
+        long roomId = createJson.get("id").asLong();
+
+        mockMvc.perform(post("/game-rooms/join")
+                        .header("Authorization", "Bearer " + guestToken)
+                        .contentType("application/json")
+                        .content("{\"roomCode\":\"" + roomCode + "\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/game-rooms/" + roomId + "/ready")
+                        .header("Authorization", "Bearer " + hostToken)
+                        .contentType("application/json")
+                        .content("{\"isReady\":true}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/game-rooms/" + roomId + "/ready")
+                        .header("Authorization", "Bearer " + guestToken)
+                        .contentType("application/json")
+                        .content("{\"isReady\":true}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/game-rooms/" + roomId + "/start").header("Authorization", "Bearer " + hostToken))
+                .andExpect(status().isOk());
+
+        String content = subscribeResult.getResponse().getContentAsString();
+        // create/join 브로드캐스트에서 각각 한 번씩 등장한 뒤, start로 WAITING 목록에서
+        // 빠지므로 그 이후 브로드캐스트에는 더 이상 나타나지 않아야 한다(총 2회).
+        int occurrences = content.split(roomCode, -1).length - 1;
+        assertThat(occurrences).isEqualTo(2);
+
+        for (SseEmitter emitter : subscriberRegistry.all()) {
+            emitter.complete();
+        }
+        mockMvc.perform(asyncDispatch(subscribeResult));
+    }
 }

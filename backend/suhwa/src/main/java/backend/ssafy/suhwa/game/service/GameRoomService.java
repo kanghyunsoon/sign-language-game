@@ -120,7 +120,10 @@ public class GameRoomService {
             throw new BusinessException(ErrorCode.NOT_ALL_READY);
         }
         room.start();
-        return GameRoomResponse.from(room);
+        GameRoomResponse response = GameRoomResponse.from(room);
+        // 방이 IN_PROGRESS로 전환되며 로비의 WAITING 목록에서 사라지므로 커밋 후 브로드캐스트한다.
+        afterCommit(lobbyBroadcastService::broadcastUpdate);
+        return response;
     }
 
     @Transactional
