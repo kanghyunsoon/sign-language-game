@@ -25,6 +25,17 @@ class OpenApiConfigTest {
                 .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type").value("http"))
                 .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"))
                 .andExpect(jsonPath("$.tags[*].name", containsInAnyOrder(
-                        "Auth", "Users", "Learning", "GameRooms", "Ranking")));
+                        "Auth", "Users", "Learning", "GameRooms", "Ranking", "GameRooms-WebSocket")));
+    }
+
+    @Test
+    void apiDocsIncludesDocumentationOnlyWebSocketPathAndMessageSchemas() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paths['/ws/game-rooms/{roomId}'].get").exists())
+                .andExpect(jsonPath("$.components.schemas.PeerLeftMessage").exists())
+                .andExpect(jsonPath("$.components.schemas.GameStartedMessage").exists())
+                .andExpect(jsonPath("$.components.schemas.SignalMessage").exists())
+                .andExpect(jsonPath("$.components.schemas.ErrorMessage").exists());
     }
 }
