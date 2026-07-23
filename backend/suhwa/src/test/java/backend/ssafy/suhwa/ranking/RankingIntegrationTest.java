@@ -5,6 +5,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import backend.ssafy.suhwa.common.security.JwtTokenProvider;
+import backend.ssafy.suhwa.gameresult.domain.GameResult;
+import backend.ssafy.suhwa.gameresult.domain.GameResultType;
+import backend.ssafy.suhwa.gameresult.repository.GameResultRepository;
 import backend.ssafy.suhwa.user.domain.User;
 import backend.ssafy.suhwa.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -26,6 +29,9 @@ class RankingIntegrationTest {
     private UserRepository userRepository;
 
     @Autowired
+    private GameResultRepository gameResultRepository;
+
+    @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
     private User createUserWithRecord(int win, int loss) {
@@ -35,12 +41,14 @@ class RankingIntegrationTest {
                 .nickname("랭킹테스터")
                 .build());
         for (int i = 0; i < win; i++) {
-            user.recordWin();
+            gameResultRepository.save(GameResult.builder()
+                    .userId(user.getId()).gameType(GameResultType.SIGN_DUEL).score(1).build());
         }
         for (int i = 0; i < loss; i++) {
-            user.recordLoss();
+            gameResultRepository.save(GameResult.builder()
+                    .userId(user.getId()).gameType(GameResultType.SIGN_DUEL).score(0).build());
         }
-        return userRepository.save(user);
+        return user;
     }
 
     @Test
@@ -55,9 +63,18 @@ class RankingIntegrationTest {
 
         String token = "Bearer " + jwtTokenProvider.createAccessToken(me.getId());
 
-        mockMvc.perform(get("/rankings").header("Authorization", token))
+        mockMvc.perform(get("/rankings").header("Authorization", token).param("gameType", "SIGN_DUEL"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.top[0].userId").value(top1.getId()))
                 .andExpect(jsonPath("$.me.userId").value(me.getId()));
+    }
+
+    @Test
+    void missingGameType_returns400() throws Exception {
+        User me = createUserWithRecord(1, 0);
+        String token = "Bearer " + jwtTokenProvider.createAccessToken(me.getId());
+
+        mockMvc.perform(get("/rankings").header("Authorization", token))
+                .andExpect(status().isBadRequest());
     }
 }
