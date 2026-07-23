@@ -231,7 +231,7 @@ class GameRoomServiceTest {
     }
 
     @Test
-    void reportResult_recordsWinnerAndLoserGameResults_andClosesRoom() {
+    void reportResult_recordsWinnerAndLoserGameResults() {
         GameRoomResponse room = createReadyRoom();
         gameRoomService.start(room.id(), hostId);
 
@@ -249,8 +249,45 @@ class GameRoomServiceTest {
             assertThat(r.getUserId()).isEqualTo(guestId);
             assertThat(r.getScore()).isEqualTo(0);
         });
-        assertThat(gameRoomRepository.findById(room.id()).orElseThrow().getStatus())
-                .isEqualTo(GameRoomStatus.CLOSED);
+    }
+
+    @Test
+    void reportResult_returnsRoomToWaiting_resetsReady_keepsParticipants() {
+        GameRoomResponse room = createReadyRoom();
+        gameRoomService.start(room.id(), hostId);
+
+        gameRoomService.reportResult(room.id(), hostId, hostId);
+
+        GameRoom updated = gameRoomRepository.findById(room.id()).orElseThrow();
+        assertThat(updated.getStatus()).isEqualTo(GameRoomStatus.WAITING);
+        assertThat(updated.isHostReady()).isFalse();
+        assertThat(updated.isGuestReady()).isFalse();
+        assertThat(updated.getHostUserId()).isEqualTo(hostId);
+        assertThat(updated.getGuestUserId()).isEqualTo(guestId);
+    }
+
+    @Test
+    void reportResult_thenReentry_issuesNewRealtimeTicket() {
+        GameRoomResponse room = createReadyRoom();
+        gameRoomService.start(room.id(), hostId);
+        gameRoomService.reportResult(room.id(), hostId, hostId);
+
+        GameRoomResponse rejoined = gameRoomService.join(room.roomCode(), guestId);
+
+        assertThat(rejoined.status()).isEqualTo(GameRoomStatus.WAITING);
+        assertThat(rejoined.realtimeTicket()).isNotBlank();
+    }
+
+    @Test
+    void reportResult_roomReappearsInWaitingLobbyList() {
+        GameRoomResponse room = createReadyRoom();
+        gameRoomService.start(room.id(), hostId);
+
+        gameRoomService.reportResult(room.id(), hostId, hostId);
+
+        assertThat(gameRoomRepository.findByStatus(GameRoomStatus.WAITING))
+                .extracting(GameRoom::getId)
+                .contains(room.id());
     }
 
     @Test
