@@ -186,13 +186,13 @@ description: "Task list for 방 실시간 연결 자동화 및 영상 통화 전
 
 ### Tests for User Story 10
 
-- [ ] T042 [P] [US10] `game/realtime/GameRoomWebSocketHandlerTest.java` 또는 `GameRoomServiceTest.java`에 "준비 상태 변경 시 상대방에게 PEER_READY_CHANGED 통보" 케이스 추가(FR-030)
-- [ ] T043 [P] [US10] "상대방 실시간 연결이 없어도 준비 상태 변경 API 자체는 성공" 케이스 추가(FR-031)
+- [X] T042 [P] [US10] `game/realtime/GameRoomWebSocketHandlerTest.java` 또는 `GameRoomServiceTest.java`에 "준비 상태 변경 시 상대방에게 PEER_READY_CHANGED 통보" 케이스 추가(FR-030)
+- [X] T043 [P] [US10] "상대방 실시간 연결이 없어도 준비 상태 변경 API 자체는 성공" 케이스 추가(FR-031)
 
 ### Implementation for User Story 10
 
-- [ ] T044 [US10] `game/service/GameRoomService.java`의 `setReady()`가 커밋 직후(`afterCommit`) `RoomRealtimeNotifier.notifyReadyChanged(roomId, userId, isReady)`를 호출하도록 반영(research.md #2, T012에서 추가한 메서드 사용)
-- [ ] T045 [US10] `WebSocketRoomRealtimeNotifier`의 `notifyReadyChanged` 구현이 기존 `sendToOthers` 헬퍼(요청자 본인 제외, 세션 없음/닫힘 방어 포함)를 재사용하는지 확인(FR-031)
+- [X] T044 [US10] `game/service/GameRoomService.java`의 `setReady()`가 커밋 직후(`afterCommit`) `RoomRealtimeNotifier.notifyReadyChanged(roomId, userId, isReady)`를 호출하도록 반영(research.md #2, T012에서 추가한 메서드 사용)
+- [X] T045 [US10] `WebSocketRoomRealtimeNotifier`의 `notifyReadyChanged` 구현이 기존 `sendToOthers` 헬퍼(요청자 본인 제외, 세션 없음/닫힘 방어 포함)를 재사용하는지 확인(FR-031) — Foundational에서 이미 구현되어 있어 테스트로만 확인
 
 **Checkpoint**: 준비 상태 변경이 상대방에게 1초 이내 실시간 통보된다(SC-009)
 
