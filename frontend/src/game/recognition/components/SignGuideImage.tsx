@@ -1,4 +1,12 @@
-import fingerspellingSheetUrl from "../../media/korean-fingerspelling-sheet.png";
+import number1Url from "../../assets/guides/number-1.png";
+import number2Url from "../../assets/guides/number-2.png";
+import number3Url from "../../assets/guides/number-3.png";
+import number4Url from "../../assets/guides/number-4.png";
+import number5Url from "../../assets/guides/number-5.png";
+import number6Url from "../../assets/guides/number-6.png";
+import number7Url from "../../assets/guides/number-7.png";
+import number8Url from "../../assets/guides/number-8.png";
+import number9Url from "../../assets/guides/number-9.png";import fingerspellingSheetUrl from "../../media/korean-fingerspelling-sheet.png";
 
 interface CropPosition {
   readonly x: number;
@@ -19,6 +27,8 @@ const GUIDE_CROPS: Readonly<Record<string, CropPosition>> = {
   "ㅢ": { x: 388, y: 509 },
 };
 
+const NUMBER_GUIDES: Readonly<Record<string, string>> = { "1": number1Url, "2": number2Url, "3": number3Url, "4": number4Url, "5": number5Url, "6": number6Url, "7": number7Url, "8": number8Url, "9": number9Url };
+
 const SOURCE_CROP_INSET = 5;
 const SOURCE_CROP_SIZE = 74;
 const SOURCE_IMAGE_WIDTH = 815;
@@ -33,9 +43,14 @@ export function SignGuideImage({
   readonly size?: number;
   readonly responsive?: boolean;
 }): React.JSX.Element {
+  const numberGuide = symbol ? NUMBER_GUIDES[symbol] : undefined;
   const crop = symbol ? GUIDE_CROPS[symbol] : undefined;
   const scale = size / SOURCE_CROP_SIZE;
   const viewportStyle = responsive ? undefined : { width: size, height: size };
+  if (numberGuide) {
+    return <img className={`sign-guide-number${responsive ? " sign-guide-responsive" : ""}`} style={responsive ? undefined : { width: size, height: size }} src={numberGuide} alt={`${symbol} 지숫자 손 모양`} draggable={false} />;
+  }
+
   if (!symbol || !crop) {
     return <span className={`sign-guide-crop sign-guide-empty${responsive ? " sign-guide-responsive" : ""}`} style={viewportStyle} aria-label="수화 안내 이미지 없음" />;
   }

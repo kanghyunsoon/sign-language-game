@@ -5,7 +5,7 @@ import { GLYPH_DISPLAY_FONT_RATIO, getGlyphRasterMetrics, mergeOccupiedGlyphCell
 
 describe("glyphRaster", () => {
   it("provides finite normalized metrics for every game symbol", () => {
-    expect(GAME_SYMBOLS).toHaveLength(41);
+    expect(GAME_SYMBOLS).toHaveLength(40);
     for (const symbol of GAME_SYMBOLS) {
       const metrics = getGlyphRasterMetrics(symbol);
       expect(metrics.widthRatio, symbol).toBeGreaterThan(0);

@@ -6,8 +6,8 @@ export interface RecognitionRateConfig {
 }
 
 export const DEFAULT_RECOGNITION_RATE_CONFIG: RecognitionRateConfig = Object.freeze({
-  renderFps: 60,
-  handTrackingFps: 30,
+  renderFps: 30,
+  handTrackingFps: 24,
   poseTrackingFps: 8,
   aiInferenceFps: 12,
 });

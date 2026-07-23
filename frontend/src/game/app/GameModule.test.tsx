@@ -26,52 +26,61 @@ const config: GameModuleConfig = {
 afterEach(cleanup);
 
 describe("GameModule", () => {
-  it("renders two game category cards at /game with the host user", () => {
+  it("renders the otter game selection cards at /game with the host user", () => {
     renderGameModule();
-    expect(screen.getByRole("heading", { name: "게임 선택" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "블록 쌓기" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "지문자 월드 배틀" })).toBeTruthy();
-    expect(screen.getByText(/테스트 사용자님/)).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "수어의 달인" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "지문자 테트리스 선택" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "수달 배틀 선택" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /무궁화 꽃/ })).toBeTruthy();
+    expect(screen.getByText("테스트 사용자")).toBeTruthy();
+  });
+
+  it("shows a cute development notice when the flower game is selected", () => {
+    renderGameModule();
+    fireEvent.click(screen.getByRole("button", { name: /무궁화 꽃/ }));
+    expect(screen.getByRole("dialog", { name: "수달이 개발중.." })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "기다릴게!" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("navigates through the block mode page to the existing solo route", () => {
     renderGameModule();
-    fireEvent.click(screen.getAllByRole("link", { name: "선택" })[0]);
-    expect(screen.getByRole("heading", { name: "게임 모드" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("link", { name: /싱글 게임/ }));
+    fireEvent.click(screen.getByRole("link", { name: "지문자 테트리스 선택" }));
+    expect(screen.getByRole("heading", { name: "지문자 테트리수" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("link", { name: "솔로 게임 시작" }));
     expect(screen.getByRole("heading", { name: "솔로 게임 화면" })).toBeTruthy();
   });
 
   it("navigates through the block mode page to the existing battle room list", async () => {
     const getRooms = vi.fn(async () => []);
     renderGameModule({ serviceOverrides: { battleRoomGateway: fakeBattleRoomGateway({ getRooms }) } });
-    fireEvent.click(screen.getAllByRole("link", { name: "선택" })[0]);
-    fireEvent.click(screen.getByRole("link", { name: /1:1 대전/ }));
+    fireEvent.click(screen.getByRole("link", { name: "지문자 테트리스 선택" }));
+    fireEvent.click(screen.getByRole("link", { name: "실시간 1대1 게임 찾기" }));
     expect(screen.getByRole("heading", { name: "대전방" })).toBeTruthy();
     await waitFor(() => expect(getRooms).toHaveBeenCalledTimes(1));
   });
 
-  it("keeps cooperative mode disabled", () => {
+  it("shows only the supported solo and real-time battle modes", () => {
     renderGameModule();
-    fireEvent.click(screen.getAllByRole("link", { name: "선택" })[0]);
-    const cooperative = screen.getByText("협동 게임").closest("div");
-    expect(cooperative?.getAttribute("aria-disabled")).toBe("true");
-    expect(cooperative?.closest("a")).toBeNull();
+    fireEvent.click(screen.getByRole("link", { name: "지문자 테트리스 선택" }));
+    expect(screen.getByRole("link", { name: "솔로 게임 시작" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "실시간 1대1 게임 찾기" })).toBeTruthy();
+    expect(screen.queryByText("협동 게임")).toBeNull();
   });
 
   it("opens the line-race placeholder and returns to category selection", () => {
     renderGameModule();
-    fireEvent.click(screen.getAllByRole("link", { name: "선택" })[1]);
+    fireEvent.click(screen.getByRole("link", { name: "수달 배틀 선택" }));
     expect(screen.getByRole("heading", { name: "지문자 턴 배틀" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "턴제 봇 연습" })).toBeTruthy();
     fireEvent.click(screen.getByRole("link", { name: /게임 선택으로 돌아가기/ }));
-    expect(screen.getByRole("heading", { name: "게임 선택" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "수어의 달인" })).toBeTruthy();
   });
 
   it("returns from the block mode page to category selection", () => {
     renderGameModule({}, "/game/block");
     fireEvent.click(screen.getByRole("link", { name: /게임 선택/ }));
-    expect(screen.getByRole("heading", { name: "게임 선택" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "수어의 달인" })).toBeTruthy();
   });
 
   it("supports direct entry to the existing solo route", () => {
@@ -132,8 +141,8 @@ describe("GameModule", () => {
 
   it("runs the standalone harness", () => {
     render(<StandaloneGameHarness config={config} />);
-    expect(screen.getByRole("heading", { name: "게임 선택" })).toBeTruthy();
-    expect(screen.getByText(/개발 사용자님/)).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "수어의 달인" })).toBeTruthy();
+    expect(screen.getByText("개발 사용자")).toBeTruthy();
   });
   it("prevents browser zoom shortcuts while the game module is mounted", () => {
     renderGameModule();

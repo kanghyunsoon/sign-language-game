@@ -10,19 +10,20 @@ import {
 } from "./symbolRegistry";
 
 describe("GAME_SYMBOL_REGISTRY", () => {
-  it("contains the complete 41-symbol game contract with unique symbols", () => {
-    expect(GAME_SYMBOL_REGISTRY).toHaveLength(41);
-    expect(new Set(GAME_SYMBOLS).size).toBe(41);
+  it("contains the complete 40-symbol game contract with unique symbols", () => {
+    expect(GAME_SYMBOL_REGISTRY).toHaveLength(40);
+    expect(new Set(GAME_SYMBOLS).size).toBe(40);
     expect(symbolsForCategory("CONSONANT")).toHaveLength(14);
     expect(symbolsForCategory("VOWEL")).toHaveLength(17);
-    expect(symbolsForCategory("DIGIT")).toHaveLength(10);
+    expect(symbolsForCategory("DIGIT")).toHaveLength(9);
   });
 
   it("does not assume digit model support and keeps missing templates unavailable", () => {
-    const zero = metadataForSymbol("0");
-    expect(zero).toMatchObject({ modelSupported: false, templateAvailable: false, feedbackMode: "CLASSIFICATION_ONLY" });
-    expect(isCurrentModelSupported("0", [])).toBe(false);
-    expect(isCurrentlyPlayable(zero!, "AI", [])).toBe(false);
+    const one = metadataForSymbol("1");
+    expect(one).toMatchObject({ modelSupported: false, templateAvailable: false, feedbackMode: "CLASSIFICATION_ONLY" });
+    expect(metadataForSymbol("0")).toBeUndefined();
+    expect(isCurrentModelSupported("1", [])).toBe(false);
+    expect(isCurrentlyPlayable(one!, "AI", [])).toBe(false);
   });
 
   it("uses CAPABILITIES rather than registry order for current AI availability", () => {
