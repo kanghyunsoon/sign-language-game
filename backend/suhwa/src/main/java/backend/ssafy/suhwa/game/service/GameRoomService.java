@@ -173,6 +173,9 @@ public class GameRoomService {
             throw new BusinessException(ErrorCode.ROOM_NOT_WAITING);
         }
         room.setReady(userId, isReady);
+        // 상대방에게 이미 수립된 실시간 연결로 준비 상태 변경을 즉시 통보한다(FR-030). 통보 실패가
+        // 이 API 자체를 실패시키지 않도록 커밋 후에만 실행한다(FR-031).
+        afterCommit(() -> roomRealtimeNotifier.notifyReadyChanged(roomId, userId, isReady));
         return GameRoomResponse.from(room);
     }
 

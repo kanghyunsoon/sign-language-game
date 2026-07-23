@@ -146,6 +146,50 @@ class GameRoomWebSocketHandlerTest {
     }
 
     @Test
+    void setReady_notifiesPeerViaWebSocket() throws Exception {
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
+        gameRoomService.join(room.roomCode(), guestId);
+
+        BlockingQueue<String> hostMessages = new LinkedBlockingQueue<>();
+        connect(room.id(), hostId, hostMessages);
+        connect(room.id(), guestId, new LinkedBlockingQueue<>());
+
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(jwtTokenProvider.createAccessToken(guestId));
+        headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+        restTemplate.exchange(
+                "http://localhost:" + port + "/game-rooms/" + room.id() + "/ready",
+                HttpMethod.POST,
+                new HttpEntity<>("{\"isReady\":true}", headers),
+                GameRoomResponse.class);
+
+        String received = hostMessages.poll(3, TimeUnit.SECONDS);
+        assertThat(received).contains("PEER_READY_CHANGED").contains("\"isReady\":true");
+    }
+
+    @Test
+    void setReady_succeedsEvenWhenPeerHasNoRealtimeConnection() throws Exception {
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
+        gameRoomService.join(room.roomCode(), guestId);
+        // host는 실시간 연결을 맺지 않은 채로 guest만 준비 상태를 변경한다 — 통보 실패가 API 자체를
+        // 실패시키지 않아야 한다(FR-031).
+
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(jwtTokenProvider.createAccessToken(guestId));
+        headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+        var response = restTemplate.exchange(
+                "http://localhost:" + port + "/game-rooms/" + room.id() + "/ready",
+                HttpMethod.POST,
+                new HttpEntity<>("{\"isReady\":true}", headers),
+                GameRoomResponse.class);
+
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        assertThat(response.getBody().guestReady()).isTrue();
+    }
+
+    @Test
     void webrtcConnected_thenDisconnect_noGraceTimerAndParticipantStaysInRoom() throws Exception {
         GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
         gameRoomService.join(room.roomCode(), guestId);
