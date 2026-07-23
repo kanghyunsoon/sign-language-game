@@ -75,6 +75,8 @@ class GameRoomServiceTest {
 
         assertThat(room.gameType()).isEqualTo(GameType.TETRIS_DUEL);
         assertThat(room.realtimeTicket()).isNotBlank();
+        // 대전 모드 정원은 게임 종류와 무관하게 항상 2명이다(FR-020).
+        assertThat(room.capacity()).isEqualTo(2);
     }
 
     @Test

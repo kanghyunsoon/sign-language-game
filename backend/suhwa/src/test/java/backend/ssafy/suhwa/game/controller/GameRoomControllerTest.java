@@ -73,6 +73,14 @@ class GameRoomControllerTest {
     }
 
     @Test
+    void createRoom_missingGameType_returns400() throws Exception {
+        mockMvc.perform(post("/game-rooms")
+                        .contentType("application/json")
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void joinRoom_returns200() throws Exception {
         given(gameRoomService.join(anyString(), anyLong())).willReturn(sampleRoom());
 
