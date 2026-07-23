@@ -27,7 +27,8 @@ public enum ErrorCode {
     ROOM_NOT_IN_PROGRESS(HttpStatus.CONFLICT, "진행 중인 방이 아니라 처리할 수 없습니다."),
     NOT_ROOM_PARTICIPANT(HttpStatus.FORBIDDEN, "해당 방의 참가자가 아닙니다."),
     NOT_ROOM_HOST(HttpStatus.FORBIDDEN, "방장만 수행할 수 있습니다."),
-    NOT_ALL_READY(HttpStatus.CONFLICT, "모든 참가자가 준비되지 않았습니다.");
+    NOT_ALL_READY(HttpStatus.CONFLICT, "모든 참가자가 준비되지 않았습니다."),
+    INVALID_WINNER(HttpStatus.BAD_REQUEST, "winnerUserId가 해당 방의 참가자가 아닙니다.");
 
     private final HttpStatus status;
     private final String defaultMessage;
