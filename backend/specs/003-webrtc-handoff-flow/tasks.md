@@ -208,15 +208,15 @@ description: "Task list for 방 실시간 연결 자동화 및 영상 통화 전
 
 ### Tests for User Story 8
 
-- [ ] T046 [P] [US8] `gameresult/` 테스트 패키지에 `SoloResultControllerTest`(또는 `SoloResultServiceTest`) 생성 — "점수 보고만으로 201 + 결과 기록" 케이스(FR-028, SC-007)
-- [ ] T047 [P] [US8] "동일 사용자가 짧은 시간에 여러 번 보고해도 각각 개별 기록" 케이스 추가(중복 방지 없음, spec.md Assumptions)
+- [X] T046 [P] [US8] `gameresult/` 테스트 패키지에 `SoloResultControllerTest`(또는 `SoloResultServiceTest`) 생성 — "점수 보고만으로 201 + 결과 기록" 케이스(FR-028, SC-007)
+- [X] T047 [P] [US8] "동일 사용자가 짧은 시간에 여러 번 보고해도 각각 개별 기록" 케이스 추가(중복 방지 없음, spec.md Assumptions)
 
 ### Implementation for User Story 8
 
-- [ ] T048 [P] [US8] `gameresult/dto/SoloResultRequest.java` 생성(`score`, `@Min(0)`)
-- [ ] T049 [P] [US8] `gameresult/dto/SoloResultResponse.java` 생성(`resultId`, `score`)
-- [ ] T050 [US8] `gameresult/service/SoloResultService.java` 생성 — 검증·중복 방지 없이 `GameResultRepository.save(new GameResult(userId, TETRIS_SOLO, score))`만 호출(FR-027/028, research.md #9)
-- [ ] T051 [US8] `gameresult/controller/SoloResultController.java` 생성 — `POST /solo-results`(JWT 인증, contracts/solo-results-api.yaml)
+- [X] T048 [P] [US8] `gameresult/dto/SoloResultRequest.java` 생성(`score`, `@Min(0)`)
+- [X] T049 [P] [US8] `gameresult/dto/SoloResultResponse.java` 생성(`resultId`, `score`)
+- [X] T050 [US8] `gameresult/service/SoloResultService.java` 생성 — 검증·중복 방지 없이 `GameResultRepository.save(new GameResult(userId, TETRIS_SOLO, score))`만 호출(FR-027/028, research.md #9)
+- [X] T051 [US8] `gameresult/controller/SoloResultController.java` 생성 — `POST /solo-results`(JWT 인증, contracts/solo-results-api.yaml) — 이 프로젝트의 기존 컨트롤러/Api 인터페이스 분리 관례를 따라 `SoloResultApi.java`도 함께 생성
 
 **Checkpoint**: 솔로 모드가 방/실시간 연결 없이 결과 보고 API 하나만으로 완결된다
 
