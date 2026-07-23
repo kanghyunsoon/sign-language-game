@@ -1,5 +1,6 @@
 package backend.ssafy.suhwa.game.controller;
 
+import backend.ssafy.suhwa.game.dto.CreateRoomRequest;
 import backend.ssafy.suhwa.game.dto.GameResultRequest;
 import backend.ssafy.suhwa.game.dto.GameResultResponse;
 import backend.ssafy.suhwa.game.dto.GameRoomResponse;
@@ -18,8 +19,9 @@ public class GameRoomController implements GameRoomApi {
     private final GameRoomService gameRoomService;
 
     @Override
-    public ResponseEntity<GameRoomResponse> createRoom(Long userId) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(gameRoomService.create(userId));
+    public ResponseEntity<GameRoomResponse> createRoom(Long userId, CreateRoomRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(gameRoomService.create(userId, request.gameType()));
     }
 
     @Override

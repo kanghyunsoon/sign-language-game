@@ -2,6 +2,7 @@ package backend.ssafy.suhwa.game.controller;
 
 import backend.ssafy.suhwa.common.config.OpenApiConfig;
 import backend.ssafy.suhwa.common.security.LoginUser;
+import backend.ssafy.suhwa.game.dto.CreateRoomRequest;
 import backend.ssafy.suhwa.game.dto.GameResultRequest;
 import backend.ssafy.suhwa.game.dto.GameResultResponse;
 import backend.ssafy.suhwa.game.dto.GameRoomResponse;
@@ -21,13 +22,19 @@ import org.springframework.web.bind.annotation.RequestBody;
 @SecurityRequirement(name = OpenApiConfig.BEARER_SCHEME_NAME)
 public interface GameRoomApi {
 
-    @Operation(summary = "게임방 생성")
-    @ApiResponse(responseCode = "201", description = "고유 참가 코드가 발급된 방 생성, 요청자가 방장이 됨 (FR-019)")
+    @Operation(summary = "게임방 생성 (변경 — gameType 필수, 응답에 realtimeTicket 포함)", description =
+            "고유 참가 코드가 발급된 방 생성, 요청자가 방장이 됨. 게임 종류(FR-017/018)와 실시간 연결용 "
+                    + "단기 티켓(FR-001)이 응답에 함께 포함되어, 별도 API 호출 없이 방 WebSocket을 즉시 연결할 수 있다(FR-002).")
+    @ApiResponse(responseCode = "201", description = "방 생성 성공")
+    @ApiResponse(responseCode = "400", description = "gameType 누락 (FR-017)")
     @PostMapping("/game-rooms")
-    ResponseEntity<GameRoomResponse> createRoom(@LoginUser Long userId);
+    ResponseEntity<GameRoomResponse> createRoom(
+            @LoginUser Long userId, @RequestBody @Valid CreateRoomRequest request);
 
-    @Operation(summary = "참가 코드로 게임방 입장")
-    @ApiResponse(responseCode = "200", description = "입장 성공, 현재 인원/정원/방 상태 포함 (FR-020)")
+    @Operation(summary = "참가 코드로 게임방 입장 (변경 — 응답에 realtimeTicket 포함)")
+    @ApiResponse(responseCode = "200", description =
+            "입장 성공, 현재 인원/정원/방 상태와 게임 종류·실시간 연결용 티켓 포함(FR-001/002/018). "
+                    + "이미 참가 중인 방에 다시 입장해도 새 티켓이 발급된다(FR-016).")
     @ApiResponse(responseCode = "404", description = "존재하지 않는 참가 코드 (Edge Case)")
     @ApiResponse(responseCode = "409", description = "정원 초과 또는 이미 진행 중인 방 (FR-020)")
     @PostMapping("/game-rooms/join")
