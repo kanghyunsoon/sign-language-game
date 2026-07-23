@@ -15,9 +15,12 @@ import backend.ssafy.suhwa.game.realtime.LobbyBroadcastService;
 import backend.ssafy.suhwa.game.realtime.RoomParticipantRegistry;
 import backend.ssafy.suhwa.game.realtime.RoomRealtimeNotifier;
 import backend.ssafy.suhwa.game.repository.GameRoomRepository;
-import backend.ssafy.suhwa.game.repository.GameSessionRepository;
+import backend.ssafy.suhwa.gameresult.domain.GameResult;
+import backend.ssafy.suhwa.gameresult.domain.GameResultType;
+import backend.ssafy.suhwa.gameresult.repository.GameResultRepository;
 import backend.ssafy.suhwa.user.domain.User;
 import backend.ssafy.suhwa.user.repository.UserRepository;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -36,7 +39,7 @@ class GameRoomServiceTest {
     private GameRoomRepository gameRoomRepository;
 
     @Autowired
-    private GameSessionRepository gameSessionRepository;
+    private GameResultRepository gameResultRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -48,7 +51,7 @@ class GameRoomServiceTest {
     @BeforeEach
     void setUp() {
         gameRoomService = new GameRoomService(
-                gameRoomRepository, gameSessionRepository, userRepository,
+                gameRoomRepository, gameResultRepository,
                 Mockito.mock(RoomRealtimeNotifier.class), Mockito.mock(LobbyBroadcastService.class),
                 new RoomParticipantRegistry(), new RealtimeTicketService(60L),
                 Mockito.mock(TaskScheduler.class), 15L,
@@ -171,7 +174,7 @@ class GameRoomServiceTest {
     }
 
     @Test
-    void inProgressLeave_voidsMatch_noSessionCreated() {
+    void inProgressLeave_voidsMatch_noResultRecorded() {
         GameRoomResponse room = createReadyRoom();
         gameRoomService.start(room.id(), hostId);
 
@@ -179,7 +182,7 @@ class GameRoomServiceTest {
 
         assertThat(gameRoomRepository.findById(room.id()).orElseThrow().getStatus())
                 .isEqualTo(GameRoomStatus.CLOSED);
-        assertThat(gameSessionRepository.count()).isZero();
+        assertThat(gameResultRepository.count()).isZero();
     }
 
     @Test
@@ -228,38 +231,72 @@ class GameRoomServiceTest {
     }
 
     @Test
-    void reportResult_computesWinnerAndUpdatesRecordsAndClosesRoom() {
+    void reportResult_recordsWinnerAndLoserGameResults_andClosesRoom() {
         GameRoomResponse room = createReadyRoom();
         gameRoomService.start(room.id(), hostId);
 
-        GameResultResponse result = gameRoomService.reportResult(room.id(), hostId, 10, 7);
+        GameResultResponse result = gameRoomService.reportResult(room.id(), hostId, hostId);
 
         assertThat(result.winnerUserId()).isEqualTo(hostId);
-        assertThat(userRepository.findById(hostId).orElseThrow().getWinCount()).isEqualTo(1);
-        assertThat(userRepository.findById(guestId).orElseThrow().getLossCount()).isEqualTo(1);
+        List<GameResult> results = gameResultRepository.findAll();
+        assertThat(results).hasSize(2);
+        assertThat(results).anySatisfy(r -> {
+            assertThat(r.getUserId()).isEqualTo(hostId);
+            assertThat(r.getScore()).isEqualTo(1);
+            assertThat(r.getGameType()).isEqualTo(GameResultType.SIGN_DUEL);
+        });
+        assertThat(results).anySatisfy(r -> {
+            assertThat(r.getUserId()).isEqualTo(guestId);
+            assertThat(r.getScore()).isEqualTo(0);
+        });
         assertThat(gameRoomRepository.findById(room.id()).orElseThrow().getStatus())
                 .isEqualTo(GameRoomStatus.CLOSED);
     }
 
     @Test
-    void reportResult_tie_returnsNullWinnerAndDoesNotChangeRecords() {
+    void reportResult_draw_returnsNullWinnerAndRecordsNothing() {
         GameRoomResponse room = createReadyRoom();
         gameRoomService.start(room.id(), hostId);
 
-        GameResultResponse result = gameRoomService.reportResult(room.id(), hostId, 5, 5);
+        GameResultResponse result = gameRoomService.reportResult(room.id(), hostId, null);
 
         assertThat(result.winnerUserId()).isNull();
-        assertThat(userRepository.findById(hostId).orElseThrow().getWinCount()).isZero();
-        assertThat(userRepository.findById(guestId).orElseThrow().getLossCount()).isZero();
+        assertThat(gameResultRepository.count()).isZero();
+    }
+
+    @Test
+    void reportResult_winnerNotParticipant_rejected() {
+        GameRoomResponse room = createReadyRoom();
+        gameRoomService.start(room.id(), hostId);
+        Long outsiderId = userRepository.save(User.builder()
+                        .email("outsider-" + System.nanoTime() + "@test.com").passwordHash("h")
+                        .nickname("outsider").build())
+                .getId();
+
+        assertThatThrownBy(() -> gameRoomService.reportResult(room.id(), hostId, outsiderId))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void reportResult_byNonParticipant_rejected() {
+        GameRoomResponse room = createReadyRoom();
+        gameRoomService.start(room.id(), hostId);
+        Long outsiderId = userRepository.save(User.builder()
+                        .email("outsider2-" + System.nanoTime() + "@test.com").passwordHash("h")
+                        .nickname("outsider2").build())
+                .getId();
+
+        assertThatThrownBy(() -> gameRoomService.reportResult(room.id(), outsiderId, hostId))
+                .isInstanceOf(BusinessException.class);
     }
 
     @Test
     void reportResult_duplicateReport_rejected() {
         GameRoomResponse room = createReadyRoom();
         gameRoomService.start(room.id(), hostId);
-        gameRoomService.reportResult(room.id(), hostId, 10, 7);
+        gameRoomService.reportResult(room.id(), hostId, hostId);
 
-        assertThatThrownBy(() -> gameRoomService.reportResult(room.id(), hostId, 3, 3))
+        assertThatThrownBy(() -> gameRoomService.reportResult(room.id(), hostId, hostId))
                 .isInstanceOf(BusinessException.class);
     }
 
@@ -269,7 +306,7 @@ class GameRoomServiceTest {
         gameRoomService.start(room.id(), hostId);
         gameRoomService.leave(room.id(), guestId);
 
-        assertThatThrownBy(() -> gameRoomService.reportResult(room.id(), hostId, 10, 7))
+        assertThatThrownBy(() -> gameRoomService.reportResult(room.id(), hostId, hostId))
                 .isInstanceOf(BusinessException.class);
     }
 }

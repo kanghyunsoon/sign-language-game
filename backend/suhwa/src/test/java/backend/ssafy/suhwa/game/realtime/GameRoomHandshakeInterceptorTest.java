@@ -91,9 +91,9 @@ class GameRoomHandshakeInterceptorTest {
         BlockingQueue<String> hostMessages = new LinkedBlockingQueue<>();
         WebSocketSession hostSession = connect(room.id(), hostId, hostMessages);
 
-        // reportResult()는 방을 CLOSED로 바꾸지만(FR-028) WebSocket 세션은 별도로 닫지 않으므로,
+        // reportResult()는 방을 CLOSED로 바꾸지만 WebSocket 세션은 별도로 닫지 않으므로,
         // 결과 보고 이후에도 이미 연결된 세션이 메시지를 보낼 수 있는 상태가 그대로 남는다.
-        gameRoomService.reportResult(room.id(), hostId, 10, 7);
+        gameRoomService.reportResult(room.id(), hostId, hostId);
 
         hostSession.sendMessage(new TextMessage("{\"type\":\"PING\"}"));
 

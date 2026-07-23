@@ -81,15 +81,15 @@ class GameRoomLifecycleIntegrationTest {
         mockMvc.perform(post("/game-rooms/" + roomId + "/results")
                         .header("Authorization", hostToken)
                         .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(new GameResultRequest(10, 7))))
+                        .content(objectMapper.writeValueAsString(new GameResultRequest(host.getId()))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.winnerUserId").value(host.getId()));
 
-        // 중복 결과 보고는 거부된다 (FR-028)
+        // 중복 결과 보고는 거부된다
         mockMvc.perform(post("/game-rooms/" + roomId + "/results")
                         .header("Authorization", hostToken)
                         .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(new GameResultRequest(3, 3))))
+                        .content(objectMapper.writeValueAsString(new GameResultRequest(host.getId()))))
                 .andExpect(status().isConflict());
     }
 }

@@ -152,23 +152,23 @@ class GameRoomControllerTest {
 
     @Test
     void reportResult_returns201() throws Exception {
-        given(gameRoomService.reportResult(anyLong(), anyLong(), anyInt(), anyInt()))
-                .willReturn(new backend.ssafy.suhwa.game.dto.GameResultResponse(1L, 1L, 10, 7));
+        given(gameRoomService.reportResult(anyLong(), anyLong(), any()))
+                .willReturn(new backend.ssafy.suhwa.game.dto.GameResultResponse(1L));
 
         mockMvc.perform(post("/game-rooms/1/results")
                         .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(new GameResultRequest(10, 7))))
+                        .content(objectMapper.writeValueAsString(new GameResultRequest(1L))))
                 .andExpect(status().isCreated());
     }
 
     @Test
     void reportResult_roomNotInProgress_returns409() throws Exception {
-        given(gameRoomService.reportResult(anyLong(), anyLong(), anyInt(), anyInt()))
+        given(gameRoomService.reportResult(anyLong(), anyLong(), any()))
                 .willThrow(new BusinessException(ErrorCode.ROOM_NOT_IN_PROGRESS));
 
         mockMvc.perform(post("/game-rooms/1/results")
                         .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(new GameResultRequest(10, 7))))
+                        .content(objectMapper.writeValueAsString(new GameResultRequest(1L))))
                 .andExpect(status().isConflict());
     }
 }
