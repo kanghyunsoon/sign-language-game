@@ -1,9 +1,8 @@
+import "./PracticeHomePage.css";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import leafImage from "../assets/leaf.png";
 import otterImage from "../assets/otter.png";
 import { PracticeSessionPage } from "./PracticeSessionPage";
-import "./PracticeHomePage.css";
 
 type PracticeCategoryId = "consonant" | "vowel" | "number";
 
@@ -49,33 +48,36 @@ export function PracticeHomePage() {
     (category) => category.id === selectedCategory,
   );
 
-  function handleCategoryClick(categoryId: PracticeCategoryId) {
+  const handleCategoryClick = (categoryId: PracticeCategoryId) => {
     setSelectedCategory(categoryId);
-  }
+  };
 
-  function handlePreviousClick() {
+  const handlePreviousClick = () => {
     setSelectedCategory(null);
-  }
+  };
 
-  function handlePracticeStart() {
+  const handlePracticeStart = () => {
     if (!selectedPracticeCategory) {
       return;
     }
 
     setActiveCategory(selectedPracticeCategory.id);
-  }
+  };
 
-  function handlePracticeGuideOpen() {
+  const handlePracticeGuideOpen = () => {
     alert("연습 방법을 확인합니다.");
-  }
+  };
+
+  const handlePracticeExit = () => {
+    setActiveCategory(null);
+    setSelectedCategory(null);
+  };
 
   if (activeCategory) {
     return (
       <PracticeSessionPage
         category={activeCategory}
-        onExit={() => {
-          setActiveCategory(null);
-        }}
+        onExit={handlePracticeExit}
       />
     );
   }
@@ -84,25 +86,11 @@ export function PracticeHomePage() {
     <div className="practice-page">
       <header className="header">
         <nav className="nav" aria-label="주요 메뉴">
-          <Link to="/main">
-            메인페이지
-          </Link>
-
-          <Link className="active" to="/practice">
-            연습
-          </Link>
-
-          <a href="#">
-            테스트
-          </a>
-
-          <a href="#">
-            사전
-          </a>
-
-          <a href="#">
-            오답노트
-          </a>
+          <Link to="/main">메인페이지</Link>
+          <Link className="active" to="/practice">연습</Link>
+          <a href="#">테스트</a>
+          <a href="#">사전</a>
+          <a href="#">오답노트</a>
         </nav>
 
         <button className="mypage-button" type="button">
@@ -112,10 +100,7 @@ export function PracticeHomePage() {
 
       <main className="practice-main">
         <section className="practice-panel">
-
-          <span className="practice-mode-badge">
-            PRACTICE MODE
-          </span>
+          <span className="practice-mode-badge">PRACTICE MODE</span>
 
           <div className="practice-character-circle">
             <img
@@ -125,9 +110,7 @@ export function PracticeHomePage() {
             />
           </div>
 
-          <h1 className="practice-title">
-            연습 모드
-          </h1>
+          <h1 className="practice-title">연습 모드</h1>
 
           <div className="practice-category-list">
             {practiceCategories
@@ -137,34 +120,24 @@ export function PracticeHomePage() {
                   category.id === selectedCategory,
               )
               .map((category) => {
-                const isSelected =
-                  selectedCategory === category.id;
+                const isSelected = selectedCategory === category.id;
 
                 return (
                   <button
                     className={`practice-category ${
-                      isSelected
-                        ? "practice-category-selected"
-                        : ""
+                      isSelected ? "practice-category-selected" : ""
                     }`}
                     type="button"
                     key={category.id}
-                    onClick={() => {
-                      handleCategoryClick(category.id);
-                    }}
+                    onClick={() => handleCategoryClick(category.id)}
                   >
                     <span className="practice-category-symbol">
                       {category.symbol}
                     </span>
 
                     <span className="practice-category-content">
-                      <strong>
-                        {category.title}
-                      </strong>
-
-                      <span>
-                        {category.description}
-                      </span>
+                      <strong>{category.title}</strong>
+                      <span>{category.description}</span>
                     </span>
 
                     <span className="practice-category-count">

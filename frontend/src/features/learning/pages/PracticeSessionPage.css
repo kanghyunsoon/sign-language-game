@@ -24,6 +24,30 @@
   box-shadow: 0 4px 18px rgba(85, 57, 37, 0.05);
 }
 
+.practice-page-back-button {
+  position: absolute;
+  top: 50%;
+  left: 32px;
+  z-index: 1;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  color: #3f2b20;
+  font-size: 31px;
+  line-height: 1;
+  text-decoration: none;
+  background: transparent;
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: transform 0.2s ease;
+}
+
+.practice-page-back-button:hover {
+  transform: translate(-3px, -50%);
+}
+
 .nav {
   height: 100%;
   display: flex;
@@ -120,7 +144,6 @@
   transition: width 0.3s ease;
 }
 
-.practice-progress-back-button,
 .practice-progress-count {
   min-width: 78px;
   padding: 10px 16px;
@@ -240,30 +263,19 @@
   background: #ffffff;
   box-shadow: 0 8px 18px rgba(63, 43, 32, 0.12);
   cursor: pointer;
-}
-
-.practice-completion-actions a {
-  color: #ffffff;
-  background: #7c6a5b;
-  box-shadow:
-    0 6px 0 #5d5045,
-    0 12px 20px rgba(63, 43, 32, 0.2);
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .practice-completion-actions button:hover,
 .practice-completion-actions a:hover {
+  color: #ffffff;
+  background: #7c6a5b;
   transform: translateY(-2px);
 }
 
-.practice-progress-back-button {
-  text-decoration: none;
-  white-space: nowrap;
-  transition: transform 0.2s ease;
-}
-
-.practice-progress-back-button:hover {
-  transform: translateY(-2px);
-}
 
 /* 좌우 카드를 감싸는 큰 흰색 패널 */
 
@@ -389,14 +401,14 @@
   background: #ffffff;
 }
 
-/* < 디귿 > */
+/* 현재 문제 이름 */
 
 .practice-item-navigation {
   width: 100%;
   min-height: 52px;
-  display: grid;
-  grid-template-columns: 48px 1fr 48px;
+  display: flex;
   align-items: center;
+  justify-content: center;
   margin-top: 4px;
 }
 
@@ -405,33 +417,6 @@
   font-size: 23px;
   line-height: 1;
   text-align: center;
-}
-
-.practice-item-navigation button {
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: 50%;
-  color: #3f2b20;
-  font-size: 30px;
-  line-height: 1;
-  background: transparent;
-  cursor: pointer;
-}
-
-.practice-item-navigation button:last-child {
-  justify-self: end;
-}
-
-.practice-item-navigation button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.72);
-}
-
-.practice-item-navigation button:disabled {
-  opacity: 0.25;
-  cursor: default;
 }
 
 /* 디귿 아래 손동작 설명 */
@@ -490,7 +475,7 @@
 /* 오른쪽 카메라 카드 */
 
 .practice-camera-panel {
-  padding-bottom: 20px;
+  padding-bottom: 76px;
 }
 
 .practice-camera-placeholder {
@@ -611,11 +596,58 @@
   content: "좋아요! 거의 정확해요";
 }
 
+/* 하단 이전 문제 / 카메라 / 다음 문제 버튼 */
+
+.practice-bottom-navigation {
+  position: relative;
+  width: min(1280px, calc(100% - 120px));
+  margin: 34px auto 0;
+  display: grid;
+  grid-template-columns: 145px 1fr 145px;
+  align-items: center;
+}
+
+.practice-session-page .practice-previous-button,
+.practice-session-page .practice-next-button {
+  width: 145px;
+  height: 58px;
+  min-width: 145px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 15px;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 800;
+  background: #857361;
+  box-shadow:
+    0 8px 0 #625448,
+    0 14px 24px rgba(63, 43, 32, 0.2);
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.practice-previous-button {
+  grid-column: 1;
+  justify-self: start;
+}
+
+.practice-next-button {
+  grid-column: 3;
+  justify-self: end;
+}
+
 .practice-camera-button {
+  position: absolute;
+  top: -130px;
+  right: 88px;
   width: 145px;
   height: 46px;
-  align-self: flex-end;
-  margin: 0 20px 0;
   border: 0;
   border-radius: 14px;
   color: #66594e;
@@ -627,99 +659,30 @@
   transition: transform 0.2s ease;
 }
 
+.practice-session-page .practice-previous-button:hover:not(:disabled),
+.practice-session-page .practice-next-button:hover:not(:disabled) {
+  color: #ffffff;
+  background: #857361;
+  transform: translateY(-2px);
+}
+
 .practice-camera-button:hover {
   transform: translateY(-2px);
 }
 
-/* 하단 버튼 */
-
-.practice-bottom-navigation {
-  width: min(1440px, calc(100% - 100px));
-  margin: 34px auto 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 30px;
-}
-
-.practice-exit-button {
-  width: 145px;
-  height: 46px;
-  flex: 0 0 46px;
-  align-self: flex-start;
-  margin: 0 24px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 15px;
+.practice-session-page .practice-previous-button:active:not(:disabled),
+.practice-session-page .practice-next-button:active:not(:disabled) {
   color: #ffffff;
-  font-size: 15px;
-  font-weight: 800;
-  text-decoration: none;
   background: #857361;
-  box-shadow:
-    0 8px 0 #625448,
-    0 14px 24px rgba(63, 43, 32, 0.2);
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.practice-exit-button:hover {
-  transform: translateY(-2px);
-}
-
-.practice-exit-button:active {
   transform: translateY(4px);
   box-shadow:
     0 3px 0 #625448,
     0 8px 14px rgba(63, 43, 32, 0.16);
 }
 
-.practice-bottom-navigation button {
-  width: 145px;
-  height: 58px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border-radius: 15px;
+.practice-session-page .practice-previous-button:disabled {
   color: #ffffff;
-  font-size: 15px;
-  font-weight: 800;
-  text-decoration: none;
   background: #857361;
-  box-shadow:
-    0 8px 0 #625448,
-    0 14px 24px rgba(63, 43, 32, 0.2);
-  cursor: pointer;
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.practice-bottom-navigation button {
-  color: #66594e;
-  background: #fffce8;
-  box-shadow: 0 8px 18px rgba(63, 43, 32, 0.09);
-}
-
-.practice-bottom-navigation button:hover:not(:disabled) {
-  transform: translateY(-2px);
-}
-
-.practice-bottom-navigation button:active:not(:disabled) {
-  transform: translateY(4px);
-  box-shadow:
-    0 3px 0 #625448,
-    0 8px 14px rgba(63, 43, 32, 0.16);
-}
-
-.practice-bottom-navigation button:nth-child(2):active {
-  box-shadow: 0 5px 12px rgba(63, 43, 32, 0.08);
-}
-
-.practice-bottom-navigation button:disabled {
   opacity: 0.35;
   cursor: default;
 }
@@ -761,6 +724,14 @@
     padding-left: 32px;
   }
 
+  .practice-bottom-navigation {
+    width: 94vw;
+  }
+
+  .practice-camera-button {
+    right: 52px;
+  }
+
   .practice-answer-placeholder {
     width: 270px;
     height: 270px;
@@ -779,6 +750,13 @@
     height: auto;
     min-height: 72px;
     padding: 0 16px;
+  }
+
+  .practice-page-back-button {
+    left: 10px;
+    width: 38px;
+    height: 38px;
+    font-size: 27px;
   }
 
   .nav {
@@ -810,7 +788,6 @@
     gap: 10px;
   }
 
-  .practice-progress-back-button,
   .practice-progress-count {
     min-width: 62px;
     padding: 8px 10px;
@@ -830,6 +807,10 @@
     min-height: 520px;
   }
 
+  .practice-camera-panel {
+    padding-bottom: 20px;
+  }
+
   .practice-answer-guide {
     min-height: 420px;
   }
@@ -845,11 +826,28 @@
   }
 
   .practice-bottom-navigation {
+    position: static;
     width: 100%;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
   }
 
-  .practice-bottom-navigation button {
-    width: 145px;
+  .practice-session-page .practice-previous-button,
+  .practice-camera-button,
+  .practice-session-page .practice-next-button {
+    position: relative;
+    left: -10px;
+    width: 100%;
+    min-width: 0;
+    font-size: 13px;
+  }
+
+  .practice-camera-button {
+    right: auto;
+    transform: none;
+  }
+
+  .practice-camera-button:hover {
+    transform: translateY(-2px);
   }
 }
