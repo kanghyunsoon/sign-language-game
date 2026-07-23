@@ -101,6 +101,17 @@ public class GameRoom extends BaseTimeEntity {
         this.status = GameRoomStatus.CLOSED;
     }
 
+    /**
+     * 결과 보고 후 CLOSED 대신 WAITING으로 복귀해 재대결이 가능하게 한다(FR-013). IN_PROGRESS에
+     * 도달하려면 항상 host/guest 둘 다 남아있어야 하므로(bothReady 조건), 인원 구성은 그대로 두고
+     * 준비 상태만 초기화한다.
+     */
+    public void returnToWaiting() {
+        this.status = GameRoomStatus.WAITING;
+        this.hostReady = false;
+        this.guestReady = false;
+    }
+
     /** WAITING 상태에서 방장이 나가고 참가자가 남아있을 때, 방장 권한을 위임한다(FR-022). */
     public void delegateHostToGuest() {
         this.hostUserId = this.guestUserId;

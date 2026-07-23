@@ -214,7 +214,11 @@ public class GameRoomService {
         }
 
         recordGameResult(room, winnerUserId);
-        room.close();
+        // CLOSED 대신 WAITING으로 복귀시켜 재대결이 가능하게 한다(FR-013). IN_PROGRESS는 항상
+        // host/guest 둘 다 남아있는 상태에서만 도달하므로 별도 인원 확인 없이 그대로 적용한다.
+        room.returnToWaiting();
+        // 방이 다시 WAITING으로 로비 목록에 나타나므로 커밋 후 구독자에게 알린다(FR-015).
+        afterCommit(lobbyBroadcastService::broadcastUpdate);
 
         return new GameResultResponse(winnerUserId);
     }
