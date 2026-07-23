@@ -47,8 +47,7 @@ public class GameRoomController implements GameRoomApi {
 
     @Override
     public ResponseEntity<GameResultResponse> reportResult(Long userId, Long roomId, GameResultRequest request) {
-        GameResultResponse response =
-                gameRoomService.reportResult(roomId, userId, request.hostScore(), request.guestScore());
+        GameResultResponse response = gameRoomService.reportResult(roomId, userId, request.winnerUserId());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }
