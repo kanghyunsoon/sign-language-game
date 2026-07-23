@@ -25,7 +25,7 @@ Every landmark has numeric finite `x`, `y`, and `z` fields. The current legacy m
 | `HAND_RELEASED` | `releasedAt` |
 | `ERROR` | `code`, `message` |
 
-`supportedSymbols` is the existing 31-symbol model order. The server does not manufacture digit predictions. A `SIGN_CONFIRMED` event requires three consecutive predictions at or above 0.90 confidence by default. The same symbol cannot be confirmed again until `HAND_RELEASED`, `RESET_SEQUENCE`, or a different stable symbol is confirmed.
+`supportedSymbols` is the loaded model label order. The default `jamo-number-hybrid-v1` profile reports 31 jamo labels plus number labels 1~10; the game registry deliberately intersects this with its playable 1~9 number contract. A `SIGN_CONFIRMED` event requires three consecutive predictions at or above 0.90 confidence by default. The same symbol cannot be confirmed again until `HAND_RELEASED`, `RESET_SEQUENCE`, or a different stable symbol is confirmed.
 
 ## Validation errors
 

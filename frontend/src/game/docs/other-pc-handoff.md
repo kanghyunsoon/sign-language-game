@@ -168,6 +168,16 @@ cd ..\game-dev-backend
 
 `ㅠ` recall 0%, 손등, 상하 회전, 새로운 사람, 거리·조명·카메라 변화, 중립/OOD 데이터 부족이 남아 있다. 다음 작업은 최소 여러 사람을 signer 단위로 train/validation/test에 완전히 분리하고 `NONE/OOD`를 포함해 다시 수집하는 것이다. 정확한 실험 내역은 `recognition/model-evaluation.md`를 기준으로 한다.
 
+### 2026-07-22 GPU 학습 인수 상태
+
+- GPU 서버: `http://70.12.130.107/user/i15a405/lab`, 작업 루트 `~/sign_language_training`. 물리 GPU는 **2번만** 사용하며 명령 앞에 항상 `CUDA_VISIBLE_DEVICES=2`를 둔다. 프로세스 안에서는 logical `cuda:0`으로 보이는 것이 정상이다.
+- 단일 성과 문서: `frontend/src/game/docs/recognition/model-evaluation.md`. 회차별 방법·데이터 수·전체/class/domain/유사문자/방향 proxy/UX/연속 입력 한계는 이 파일 하나에 누적한다. 실행 순서는 `frontend/src/game/docs/recognition/training-handoff.md`를 따른다.
+- 현재 평균 최고 개발 후보는 T-17 class-expert ensemble(test accuracy 93.55%, macro-F1 95.04%)이지만 41개 중 15개 class가 recall 또는 F1 93% 미달이다. T-18 calibration은 test 예측을 바꾸지 못했고 T-19 mild TTA가 GPU 2에서 평가 중이다. T-13 이후 test는 반복 관찰한 development-test이므로 최종 인증에 사용할 수 없다.
+- 원격 artifact는 `~/sign_language_training/artifacts/roboflow-t13-*`부터 `roboflow-t19-*`에 있고 대용량 모델·prediction은 Git에 넣지 않는다. Git에는 재현 스크립트와 통계 문서만 올린다.
+- 로컬 AI Hub 원본은 `D:\AITraining\korean-fingerspelling\aihub-103`에 있다. 다른 PC에는 자동 복제되지 않는다. 필요한 경우 AI Hub dataset 103에서 Crowd morpheme 2개와 keypoint key `39474`, `39580`, `39582`만 다시 받거나 이 폴더를 별도 안전 매체로 옮긴다. 원본을 GitHub에 올리거나 재배포하지 않는다.
+- 확보 통계: morpheme train/validation 17,000/2,000clip, 정규화 target 158,426개. Validation keypoint는 signer 18~19, 2,000clip, 671,745frame이다. keypoint ZIP 직접 감사 스크립트는 `game-ai-dev-server/scripts/analyze_aihub_keypoint_archive.py`다.
+- 목표 종료 조건은 전체 accuracy·macro-F1 93% 이상과 41개 모든 class recall·F1 93% 이상을 동시에 만족하는 것이다. 평균만 93%인 경우 완료로 표시하지 않는다.
+
 재학습용 숫자 원본과 feature는 Git에 없다. 다시 받을 때는 CC0 `nahyunpark/korean-sign-languageksl-numbers`를 `work/datasets/ksl-numbers-cc0/raw`에 두고 다음 순서로 재현한다.
 
 ```powershell
@@ -213,3 +223,51 @@ Extra Trees를 ModelRunner 경계로 결합한다. 전체 95%를 달성한 상�
 - MediaPipe/원격 비전 교체: `../recognition/mediapipe/docs/README.md`
 - 실제 게임 체크: `reference/manual-test-checklist.md`
 - 백엔드 리드 연결: `match-module-integration.md`
+> 2026-07-22 05:50 handoff: T-23까지 완료·문서화했지만 41개 각 recall/F1 93% 및 전체 93% 목표는 미달이다. branch `260721`을 pull한 뒤 `frontend/src/game/docs/recognition/training-handoff.md`와 `model-evaluation.md`부터 읽는다. AIHub 원본/compact NPZ는 용량·라이선스 때문에 Git에 없고 이 PC의 `D:\AITraining\korean-fingerspelling\aihub-103`에 유지된다. 재현 스크립트와 통계만 Git에 포함한다.
+> 2026-07-22 06:10 추가 상태: 연속 모델은 T-25 checkpoint가 validation 기준 최선이며 T-26 개발 테스트에서 CER 6.97%, macro-F1 87.88%다. 목표는 아직 미달이다. 재개 시 `training-handoff.md`의 06:10 항목과 `model-evaluation.md`의 T-24~T-27 표부터 확인한다.
+> 2026-07-22 06:10 decoder 설정: 연속 후보는 T-25 checkpoint 단독이 아니라 CTC greedy decode의 blank logit에 `-0.3`을 더하는 T-29 설정이다. 모델과 설정을 반드시 함께 이관한다.
+
+### 2026-07-22 07:15 최종 연속 학습 상태
+
+- 07:15 당시 T-25/T-29 상태를 대체한 후보는 T-89였다. 아래 07:40 델타에서 다시 T-91/T-92로 대체됐으므로 이 경로와 해시는 과거 재현용 기록이다.
+- T-89 CROWD19 development: CER 5.25%, 문장 완전일치 75.73%, micro token recall 95.59%, macro-F1 91.69%. 41개 중 23개 gate 통과, 17개 미달, `ㅒ`는 train/dev support 0으로 평가 불가다. 평균 93%와 전 문자 93% 목표 모두 미달이다.
+- 저장소에 포함한 재개 필수 파일은 학습 스크립트, T-81 checkpoint, T-89 `evaluation.json`, 회차 문서다. AIHub 원본과 compact NPZ는 라이선스·용량 때문에 Git에 넣지 않았다.
+- 이 PC의 데이터 위치: `D:\AITraining\korean-fingerspelling\aihub-103\prepared\t23`과 `prepared\t46`. GPU 서버 원본은 `~/sign_language_training/code-v3/data/t23`, `data/t46`, 결과는 `outputs/t32`~`outputs/t90`이다.
+- 다른 PC에서 단순 검증은 checkpoint와 `evaluation.json`만으로 기록을 확인할 수 있다. 추가 학습에는 T23 NPZ 3개가 필요하므로 D 드라이브를 별도 안전 매체로 복사하거나 AIHub dataset 103의 허용된 keypoint·morpheme 묶음에서 재생성한다.
+- 다음 데이터 수집 우선순위: `ㅒ`, 숫자 0·1·2·3·5·7·8, `ㅠ`, `ㅈ/ㅅ/ㅊ`, `ㅓ/ㅏ`. 손바닥/손등·상/하·좌/우·거리·조명·카메라 조건을 명시하고 signer 단위 train/validation/final-test를 분리한다.
+- 현재 CROWD19는 여러 회차에서 반복 확인한 development set이다. 새 모델을 이 점수로 최종 인증하지 않는다. 실제 카메라의 확정률·분당 오확정·중복/누락·p50/p95 지연도 별도 측정해야 한다.
+- 운영 `jamo-number-hybrid-v1`, TFLite, readiness, MediaPipe 입력 계약은 변경하지 않았다. T-81은 실험 checkpoint다.
+
+새 PC에서 Codex에 전달할 최신 시작 메시지는 다음과 같다.
+
+```text
+frontend/src/game/docs/other-pc-handoff.md와
+frontend/src/game/docs/recognition/training-handoff.md를 먼저 끝까지 읽어라.
+branch 260721과 git status를 확인하고 기존 변경을 덮어쓰지 마라.
+
+연속 입력 현재 후보는 models/continuous-ctc-t91/best.pt + blank bias -0.9다.
+T-92 development macro-F1 91.71%, CER 5.24%, 완전일치 75.53%이고
+17 class 미달, ㅒ support 0이므로 목표 달성이 아니다.
+
+물리 GPU 2만 사용하고 CUDA_VISIBLE_DEVICES=2를 강제해라.
+현재 CROWD19는 반복 관찰한 development set이므로 새 signer final-test를 만들어라.
+매 회차 데이터 수·방법·전후 수치·유사문자·방향/UX/연속 한계를
+model-evaluation.md 한 파일에 추가한 뒤에만 다음 회차를 진행해라.
+AIHub NPZ는 Git에 없으므로 D 드라이브 안전 복사 또는 원본 재생성이 필요하다.
+```
+
+### 2026-07-22 07:40 최종 델타
+
+- T-91에서 validation 취약 자모와 숫자가 포함된 clip을 1.5배로 약하게 재가중한 결과가 새 후보가 됐다. T-92 고정 development는 CER 5.2404%, 문장 완전일치 75.5287%, micro recall 95.6010%, macro-F1 91.7051%, gate 미달/평가 불가 18개다.
+- T-93~T-95의 더 약한/자모 전용/숫자 전용 재가중과 T-96~T-97의 blank bias 재보정은 validation 선택 점수가 낮아 폐기했다. decoder는 계속 blank bias `-0.9`다.
+- 새 PC의 현재 파일은 `models/continuous-ctc-t91/best.pt`와 `evaluation.json`이다. checkpoint SHA-256은 `04A65A0F77958722A4BD3401AC1F91FEF0A99AB19DFD7A0BA2FA63FB612E98E7`이다.
+- 이전 T-89 수치보다 macro-F1은 +0.016%p 개선됐지만 문장 완전일치는 -0.201%p다. 목표 달성이 아니며 운영 모델/MediaPipe를 교체하지 않았다.
+
+새 PC에서 시작할 때 위 시작 메시지의 후보 경로와 수치는 다음으로 대체한다.
+
+```text
+연속 입력 현재 후보는 models/continuous-ctc-t91/best.pt + blank bias -0.9다.
+T-92 development macro-F1 91.71%, CER 5.24%, 완전일치 75.53%이고
+17 class 미달, ㅒ support 0이므로 목표 달성이 아니다.
+같은 CROWD19 반복 튜닝을 중단하고 새 signer·방향 조건 locked final-test부터 만들어라.
+```
