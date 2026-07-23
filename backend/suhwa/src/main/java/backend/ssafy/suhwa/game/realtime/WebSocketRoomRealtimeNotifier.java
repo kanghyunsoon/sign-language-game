@@ -73,6 +73,11 @@ public class WebSocketRoomRealtimeNotifier implements RoomRealtimeNotifier {
         sendToOthers(roomId, fromUserId, "SIGNAL", payload);
     }
 
+    @Override
+    public void notifyReadyChanged(Long roomId, Long userId, boolean isReady) {
+        sendToOthers(roomId, userId, "PEER_READY_CHANGED", Map.of("userId", userId, "isReady", isReady));
+    }
+
     private void sendToOthers(Long roomId, Long excludeUserId, String type, Object payload) {
         RoomLiveState room = registry.getRoom(roomId);
         if (room == null) {
