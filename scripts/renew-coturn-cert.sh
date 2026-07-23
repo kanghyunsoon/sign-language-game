@@ -6,7 +6,7 @@ CERT_NAME="i15a405.p.ssafy.io"
 SOURCE_DIR="${RENEWED_LINEAGE:-/etc/letsencrypt/live/${CERT_NAME}}"
 TARGET_DIR="/opt/sudal/webrtc/certs"
 COMPOSE_FILE="/opt/sudal/webrtc/docker-compose.yml"
-ENV_FILE="/opt/sudal/.env"
+ENV_FILE="/opt/sudal/webrtc/.env"
 
 # 다른 인증서가 갱신된 경우 실행하지 않는다.
 if [[ "$(basename "$SOURCE_DIR")" != "$CERT_NAME" ]]; then
