@@ -1,0 +1,158 @@
+openapi: 3.0.3
+info:
+  title: 게임방 매칭 API — 003 델타 (game-rooms)
+  version: "1.1.0"
+  description: >
+    `backend/specs/001-backend-crud-api/contracts/game-rooms-api.yaml`(기준본)에 대한
+    변경분만 정리한다. 여기 다시 정의되지 않은 엔드포인트/스키마는 001/002 계약을 그대로 따른다.
+    대상: spec 003 User Story 1(FR-001/002), 4(FR-021/033), 5(FR-013~016), 6(FR-017/018/020).
+    솔로 모드(테트리스 솔로)는 이 문서의 어떤 엔드포인트도 사용하지 않는다 — solo-results-api.yaml 참고.
+tags:
+  - name: GameRooms
+paths:
+  /game-rooms:
+    post:
+      tags: [GameRooms]
+      summary: 게임방 생성 (변경 — gameType 요청 추가, 응답에 realtimeTicket 추가)
+      operationId: createGameRoom
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        description: 001에서는 요청 바디가 없었음 — 이번 스펙에서 신규 추가(FR-017)
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRoomRequest'
+      responses:
+        "201":
+          description: >
+            방 생성 성공. 응답에 게임 종류(FR-018)와 실시간 연결 인증 정보(티켓, FR-001)가
+            함께 포함되어, 이 응답만으로 별도 API 호출 없이 방 WebSocket을 즉시 연결할 수 있다(FR-002).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameRoomResponse'
+        "400":
+          description: gameType 누락(FR-017)
+
+  /game-rooms/join:
+    post:
+      tags: [GameRooms]
+      summary: 참가 코드로 게임방 입장 (변경 — 응답에 realtimeTicket 추가)
+      operationId: joinGameRoom
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: 입장 성공. 응답에 게임 종류·실시간 연결 인증 정보 포함(FR-001/002/018, 재입장 시에도 동일 — FR-016).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameRoomResponse'
+
+  /game-rooms/{roomId}/results:
+    post:
+      tags: [GameRooms]
+      summary: 게임 결과 보고 (변경 — 점수 대신 승자 정보만)
+      operationId: reportGameResult
+      description: >
+        **001/002 계약을 대체한다.** 점수(hostScore/guestScore)는 더 이상 받지 않는다(FR-021).
+        승자는 역할(host/guest)이 아니라 사용자 ID로 직접 지정하며, 생략하면 무승부로 처리되어
+        어느 쪽의 승패에도 반영되지 않는다(FR-033). 결과 보고가 성공하면 방은 CLOSED가 아니라
+        WAITING으로 복귀한다(두 참가자가 모두 남아있는 경우, FR-013) — 재대결이 가능해진다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RoomId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameResultRequest'
+      responses:
+        "201":
+          description: >
+            결과 기록. winnerUserId가 있으면 승자에게 game_results score=1, 패자에게 score=0 행을
+            각각 반영하고(FR-026 동률 처리에 필요), 없으면(무승부) 아무 것도 반영하지 않는다(FR-033).
+            방은 두 참가자가 모두 남아있으면 WAITING으로 복귀한다(FR-013).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameResultResponse'
+        "400":
+          description: winnerUserId가 해당 방의 참가자(host/guest)가 아님
+        "403":
+          description: 해당 게임 참가자가 아님 (변경 없음)
+        "409":
+          description: >
+            방이 이미 진행 중(IN_PROGRESS)이 아님 — 중복 보고, 또는 상대방이 결과 보고 이전에
+            이미 명시적으로 방을 나가(POST /leave) 방이 CLOSED로 전환된 경우 모두 이 응답으로
+            동일하게 거부된다(FR-014 — 서버는 게임 중 실시간 이탈을 감지하지 않으므로 별도 분기 없음).
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    RoomId:
+      name: roomId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+  schemas:
+    CreateRoomRequest:
+      type: object
+      description: 신규(001에는 없었음, FR-017)
+      required: [gameType]
+      properties:
+        gameType:
+          type: string
+          enum: [SIGN_DUEL, TETRIS_DUEL]
+          description: 대전 모드 게임 종류. 생성 후 변경 불가.
+    GameRoomResponse:
+      type: object
+      description: 001 스키마에 gameType, realtimeTicket 두 필드 추가(굵게 표시된 것 외 001과 동일)
+      properties:
+        id: { type: integer, format: int64 }
+        roomCode: { type: string }
+        hostUserId: { type: integer, format: int64 }
+        guestUserId: { type: integer, format: int64, nullable: true }
+        hostReady: { type: boolean }
+        guestReady: { type: boolean }
+        status: { type: string, enum: [WAITING, IN_PROGRESS, CLOSED] }
+        participantCount: { type: integer }
+        capacity: { type: integer, example: 2 }
+        gameType:
+          type: string
+          enum: [SIGN_DUEL, TETRIS_DUEL]
+          description: (신규, FR-018)
+        realtimeTicket:
+          type: string
+          description: >
+            (신규, FR-001/002/016) 방 WebSocket(`/ws/game-rooms/{roomId}?ticket=...`) 연결에
+            바로 쓸 수 있는 단기 1회용 토큰. 생성/입장/재입장(WAITING 복귀 후) 응답 모두에 포함된다.
+    GameResultRequest:
+      type: object
+      description: 001의 hostScore/guestScore 방식을 대체(FR-021/033)
+      properties:
+        winnerUserId:
+          type: integer
+          format: int64
+          nullable: true
+          description: 승자의 사용자 ID. 생략하거나 null이면 무승부(FR-033) — 해당 방의 host 또는 guest여야 함.
+    GameResultResponse:
+      type: object
+      description: >
+        001 스키마에서 hostScore/guestScore, gameSessionId 제거 — game_sessions 테이블 자체가
+        제거되어(research.md #8) 대응하는 ID가 없다.
+      properties:
+        winnerUserId:
+          type: integer
+          format: int64
+          nullable: true
