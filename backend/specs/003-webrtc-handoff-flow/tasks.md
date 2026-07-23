@@ -165,14 +165,14 @@ description: "Task list for 방 실시간 연결 자동화 및 영상 통화 전
 
 ### Tests for User Story 5
 
-- [ ] T037 [P] [US5] `game/service/GameRoomServiceTest.java`에 "결과 보고 후 두 참가자 모두 남아있으면 WAITING 복귀 + ready 초기화 + 인원 유지" 케이스 추가(FR-013)
-- [ ] T038 [P] [US5] `game/service/GameRoomServiceTest.java`에 "상대방이 결과 보고 전 명시적으로 leave() → 방 CLOSED → 이후 결과 보고는 409로 거부" 케이스 추가(FR-014, data-model.md 상태 전이 변경분)
+- [X] T037 [P] [US5] `game/service/GameRoomServiceTest.java`에 "결과 보고 후 두 참가자 모두 남아있으면 WAITING 복귀 + ready 초기화 + 인원 유지" 케이스 추가(FR-013)
+- [X] T038 [P] [US5] `game/service/GameRoomServiceTest.java`에 "상대방이 결과 보고 전 명시적으로 leave() → 방 CLOSED → 이후 결과 보고는 409로 거부" 케이스 추가(FR-014, data-model.md 상태 전이 변경분) — 기존 `reportResult_onVoidedRoom_rejected`가 이미 커버해 별도 추가 없음. 부수적으로 `GameRoomHandshakeInterceptorTest`의 "결과 보고 후 CLOSED되어 메시지 차단" 전제가 깨진 것을 발견해 "WAITING 복귀로 계속 유효" 테스트로 정정하고, "leave()로 CLOSED된 뒤 메시지 차단"이라는 원래 의도의 회귀 테스트를 별도로 추가
 
 ### Implementation for User Story 5
 
-- [ ] T039 [US5] `game/service/GameRoomService.java`의 `reportResult()`에서 `room.close()` 대신, 두 참가자가 모두 남아있으면 `WAITING` 전환 + 양쪽 `ready` 플래그 초기화(FR-013) — 참가자가 1명뿐이면 기존 `leave()`의 거부 규칙이 이미 앞단(`room.getStatus() != IN_PROGRESS` 체크)에서 걸러지므로 별도 분기 불필요(FR-014)
-- [ ] T040 [US5] `game/service/GameRoomService.java`의 재입장(`join`) 로직이 WAITING 복귀 후에도 새 `realtimeTicket`을 발급하는지 확인 — US1(T017)의 티켓 발급 로직 재사용 여부 검증(FR-016)
-- [ ] T041 [US5] 방이 WAITING으로 복귀하면 로비 실시간 목록에도 다시 노출되는지 확인 — `LobbyBroadcastService.broadcastUpdate()`가 결과 보고 커밋 직후에도 호출되는지 반영(FR-015, SC-006)
+- [X] T039 [US5] `game/service/GameRoomService.java`의 `reportResult()`에서 `room.close()` 대신, 두 참가자가 모두 남아있으면 `WAITING` 전환 + 양쪽 `ready` 플래그 초기화(FR-013) — 참가자가 1명뿐이면 기존 `leave()`의 거부 규칙이 이미 앞단(`room.getStatus() != IN_PROGRESS` 체크)에서 걸러지므로 별도 분기 불필요(FR-014)
+- [X] T040 [US5] `game/service/GameRoomService.java`의 재입장(`join`) 로직이 WAITING 복귀 후에도 새 `realtimeTicket`을 발급하는지 확인 — US1(T017)의 티켓 발급 로직 재사용 여부 검증(FR-016)
+- [X] T041 [US5] 방이 WAITING으로 복귀하면 로비 실시간 목록에도 다시 노출되는지 확인 — `LobbyBroadcastService.broadcastUpdate()`가 결과 보고 커밋 직후에도 호출되는지 반영(FR-015, SC-006)
 
 **Checkpoint**: 재대결 흐름(결과 보고 → WAITING → 재입장 → 재준비 → 재시작)이 완결된다
 

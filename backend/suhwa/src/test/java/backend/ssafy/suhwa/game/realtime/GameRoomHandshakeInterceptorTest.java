@@ -81,7 +81,7 @@ class GameRoomHandshakeInterceptorTest {
     }
 
     @Test
-    void message_afterRoomClosedByResultReport_blockedWithError() throws Exception {
+    void message_afterResultReport_stillAcceptedBecauseRoomReturnsToWaiting() throws Exception {
         GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
         gameRoomService.join(room.roomCode(), guestId);
         gameRoomService.setReady(room.id(), hostId, true);
@@ -91,9 +91,30 @@ class GameRoomHandshakeInterceptorTest {
         BlockingQueue<String> hostMessages = new LinkedBlockingQueue<>();
         WebSocketSession hostSession = connect(room.id(), hostId, hostMessages);
 
-        // reportResult()는 방을 CLOSED로 바꾸지만 WebSocket 세션은 별도로 닫지 않으므로,
-        // 결과 보고 이후에도 이미 연결된 세션이 메시지를 보낼 수 있는 상태가 그대로 남는다.
+        // 결과 보고 후 방은 CLOSED가 아니라 WAITING으로 복귀하므로(FR-013), 참가자는 여전히 유효하고
+        // SIGNAL이 아닌 메시지는 별도 응답 없이 조용히 무시된다(ERROR가 아님, 회귀 없음).
         gameRoomService.reportResult(room.id(), hostId, hostId);
+
+        hostSession.sendMessage(new TextMessage("{\"type\":\"PING\"}"));
+
+        assertThat(hostMessages.poll(500, TimeUnit.MILLISECONDS)).isNull();
+    }
+
+    @Test
+    void message_afterRoomClosedByLeave_blockedWithError() throws Exception {
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
+        gameRoomService.join(room.roomCode(), guestId);
+        gameRoomService.setReady(room.id(), hostId, true);
+        gameRoomService.setReady(room.id(), guestId, true);
+        gameRoomService.start(room.id(), hostId);
+
+        BlockingQueue<String> hostMessages = new LinkedBlockingQueue<>();
+        WebSocketSession hostSession = connect(room.id(), hostId, hostMessages);
+
+        // leave()는 IN_PROGRESS 상태에서 위임 없이 즉시 CLOSED로 전환한다 — WebSocket 세션은
+        // 별도로 닫지 않으므로, 이후에도 이미 연결된 세션이 메시지를 보낼 수 있는 상태가 남는다.
+        gameRoomService.leave(room.id(), guestId);
+        assertThat(hostMessages.poll(3, TimeUnit.SECONDS)).contains("PEER_LEFT");
 
         hostSession.sendMessage(new TextMessage("{\"type\":\"PING\"}"));
 

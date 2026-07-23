@@ -64,7 +64,8 @@ public interface GameRoomApi {
             "001/002 계약을 대체한다. 점수는 더 이상 받지 않는다(FR-021). 승자는 역할이 아니라 사용자 ID로 "
                     + "직접 지정하며, 생략하거나 null이면 무승부로 처리되어 어느 쪽의 승패에도 반영되지 않는다(FR-033).")
     @ApiResponse(responseCode = "201", description =
-            "winnerUserId가 있으면 승자에게 game_results score=1, 패자에게 score=0 행을 반영한다(FR-021/026).")
+            "winnerUserId가 있으면 승자에게 game_results score=1, 패자에게 score=0 행을 반영한다(FR-021/026). "
+                    + "방은 CLOSED가 아니라 WAITING으로 복귀해 재대결이 가능해진다(FR-013).")
     @ApiResponse(responseCode = "400", description = "winnerUserId가 해당 방의 참가자(host/guest)가 아님")
     @ApiResponse(responseCode = "403", description = "해당 게임 참가자가 아님 (Edge Case)")
     @ApiResponse(responseCode = "409", description = "방이 이미 진행 중(IN_PROGRESS)이 아님 — 중복 보고 또는 무효화된 매치")
