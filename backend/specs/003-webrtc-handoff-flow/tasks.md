@@ -120,12 +120,12 @@ description: "Task list for 방 실시간 연결 자동화 및 영상 통화 전
 
 ### Tests for User Story 6
 
-- [ ] T026 [P] [US6] `game/service/GameRoomServiceTest.java`에 "gameType 생략 시 400" 케이스 추가(FR-017)
+- [X] T026 [P] [US6] `game/service/GameRoomServiceTest.java`에 "gameType 생략 시 400" 케이스 추가(FR-017) — 실제로는 검증이 `CreateRoomRequest`(컨트롤러 계층)에서 걸리므로 `GameRoomControllerTest.java`에 추가
 
 ### Implementation for User Story 6
 
-- [ ] T027 [US6] `game/realtime/LobbyBroadcastService.java`가 `LobbyRoomSummary` 조립 시 `gameType`을 채우도록 반영(T013의 필드 추가 활용, FR-018)
-- [ ] T028 [US6] 대전 모드 정원이 게임 종류와 무관하게 항상 2명으로 적용되는지 회귀 확인(`GameRoomResponse.CAPACITY`, FR-020, 코드 변경 없음)
+- [X] T027 [US6] `game/realtime/LobbyBroadcastService.java`가 `LobbyRoomSummary` 조립 시 `gameType`을 채우도록 반영(T013의 필드 추가 활용, FR-018) — Foundational에서 `LobbyRoomSummary.from(room)`이 이미 채우고 있어 테스트로만 확인
+- [X] T028 [US6] 대전 모드 정원이 게임 종류와 무관하게 항상 2명으로 적용되는지 회귀 확인(`GameRoomResponse.CAPACITY`, FR-020, 코드 변경 없음)
 
 **Checkpoint**: 서로 다른 게임 종류의 방이 로비 목록에서 각자의 gameType과 함께 구분되어 보인다
 
