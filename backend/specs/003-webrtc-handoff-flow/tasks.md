@@ -139,17 +139,17 @@ description: "Task list for 방 실시간 연결 자동화 및 영상 통화 전
 
 ### Tests for User Story 4
 
-- [ ] T029 [P] [US4] `game/service/GameRoomServiceTest.java`에 "승자 정보만으로 결과 보고 → game_results에 승자 score=1, 패자 score=0 행 반영" 케이스 추가(FR-021, research.md #5)
-- [ ] T030 [P] [US4] `game/service/GameRoomServiceTest.java`에 "무승부(winnerUserId 없음) → game_results 미반영" 케이스 추가(FR-033)
-- [ ] T031 [P] [US4] `game/service/GameRoomServiceTest.java`에 "중복 결과 보고 거부(409)", "비참가자 결과 보고 거부(403)" 회귀 케이스 추가(FR-011/012)
+- [X] T029 [P] [US4] `game/service/GameRoomServiceTest.java`에 "승자 정보만으로 결과 보고 → game_results에 승자 score=1, 패자 score=0 행 반영" 케이스 추가(FR-021, research.md #5)
+- [X] T030 [P] [US4] `game/service/GameRoomServiceTest.java`에 "무승부(winnerUserId 없음) → game_results 미반영" 케이스 추가(FR-033)
+- [X] T031 [P] [US4] `game/service/GameRoomServiceTest.java`에 "중복 결과 보고 거부(409)", "비참가자 결과 보고 거부(403)" 회귀 케이스 추가(FR-011/012) — winnerUserId가 참가자가 아닌 경우(400)도 함께 추가
 
 ### Implementation for User Story 4
 
-- [ ] T032 [US4] `game/dto/GameResultRequest.java`를 `record GameResultRequest(Long winnerUserId)`로 교체(hostScore/guestScore 제거, FR-021/033, research.md #4)
-- [ ] T033 [US4] `game/dto/GameResultResponse.java`에서 `hostScore`/`guestScore`/`gameSessionId` 제거, `winnerUserId`만 남김(research.md #8)
-- [ ] T034 [US4] `game/service/GameRoomService.java`의 `reportResult()`를 재작성 — 점수 비교(`computeWinner`) 대신 `winnerUserId` 직접 검증(방 참가자인지 확인, 아니면 400), `GameSession` 생성 코드 제거
-- [ ] T035 [US4] `game/service/GameRoomService.java`에 승자에게 `GameResult(score=1)`, 패자에게 `GameResult(score=0)` 저장 로직 추가 — 무승부(`winnerUserId == null`)면 아무 것도 저장하지 않음(FR-033, research.md #5) — 기존 `updateUserRecords`(users.win_count/loss_count 증감) 로직 제거
-- [ ] T036 [US4] `game/controller/GameRoomController.java`의 결과 보고 엔드포인트가 새 `GameResultRequest`를 받도록 반영
+- [X] T032 [US4] `game/dto/GameResultRequest.java`를 `record GameResultRequest(Long winnerUserId)`로 교체(hostScore/guestScore 제거, FR-021/033, research.md #4)
+- [X] T033 [US4] `game/dto/GameResultResponse.java`에서 `hostScore`/`guestScore`/`gameSessionId` 제거, `winnerUserId`만 남김(research.md #8)
+- [X] T034 [US4] `game/service/GameRoomService.java`의 `reportResult()`를 재작성 — 점수 비교(`computeWinner`) 대신 `winnerUserId` 직접 검증(방 참가자인지 확인, 아니면 400), `GameSession` 생성 코드 제거
+- [X] T035 [US4] `game/service/GameRoomService.java`에 승자에게 `GameResult(score=1)`, 패자에게 `GameResult(score=0)` 저장 로직 추가 — 무승부(`winnerUserId == null`)면 아무 것도 저장하지 않음(FR-033, research.md #5) — 기존 `updateUserRecords`(users.win_count/loss_count 증감) 로직 제거, 더 이상 쓰지 않는 UserRepository/GameSessionRepository 의존성도 함께 제거
+- [X] T036 [US4] `game/controller/GameRoomController.java`의 결과 보고 엔드포인트가 새 `GameResultRequest`를 받도록 반영
 
 **Checkpoint**: 대전 모드 결과가 승패 정보만으로 안전하게 기록되고 랭킹 집계 원본(`game_results`)에 반영된다
 
