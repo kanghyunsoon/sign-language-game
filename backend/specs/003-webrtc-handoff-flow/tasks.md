@@ -58,14 +58,14 @@ description: "Task list for 방 실시간 연결 자동화 및 영상 통화 전
 
 ### Tests for User Story 1
 
-- [ ] T014 [P] [US1] `game/service/GameRoomServiceTest.java`에 "생성/입장 응답에 realtimeTicket 포함" 케이스 추가
+- [X] T014 [P] [US1] `game/service/GameRoomServiceTest.java`에 "생성/입장 응답에 realtimeTicket 포함" 케이스 추가
 
 ### Implementation for User Story 1
 
-- [ ] T015 [P] [US1] `game/dto/CreateRoomRequest.java` 신설(`gameType` 필수 필드, FR-017) — contracts/game-rooms-api-delta.yaml `CreateRoomRequest` 스키마
-- [ ] T016 [US1] `game/dto/GameRoomResponse.java`에 `gameType`, `realtimeTicket` 필드 추가(FR-001/002/018)
-- [ ] T017 [US1] `game/service/GameRoomService.java`의 `create(gameType)`/`join()` 시그니처 변경 — `gameType` 파라미터 반영, 커밋 직후 실시간 티켓 발급(FR-001)
-- [ ] T018 [US1] `game/controller/GameRoomController.java`의 `createRoom`이 `CreateRoomRequest`(gameType)를 받도록 변경, `gameType` 누락 시 400(FR-017, contracts "400")
+- [X] T015 [P] [US1] `game/dto/CreateRoomRequest.java` 신설(`gameType` 필수 필드, FR-017) — contracts/game-rooms-api-delta.yaml `CreateRoomRequest` 스키마
+- [X] T016 [US1] `game/dto/GameRoomResponse.java`에 `gameType`, `realtimeTicket` 필드 추가(FR-001/002/018)
+- [X] T017 [US1] `game/service/GameRoomService.java`의 `create(gameType)`/`join()` 시그니처 변경 — `gameType` 파라미터 반영, 커밋 직후 실시간 티켓 발급(FR-001)
+- [X] T018 [US1] `game/controller/GameRoomController.java`의 `createRoom`이 `CreateRoomRequest`(gameType)를 받도록 변경, `gameType` 누락 시 400(FR-017, contracts "400")
 
 **Checkpoint**: User Story 1이 독립적으로 완결되어 검증 가능 — 방 생성/입장만으로 WebSocket이 바로 연결된다
 
