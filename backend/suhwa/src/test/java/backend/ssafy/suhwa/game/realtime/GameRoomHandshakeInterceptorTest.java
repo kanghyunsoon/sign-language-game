@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import backend.ssafy.suhwa.auth.service.RealtimeTicketService;
+import backend.ssafy.suhwa.game.domain.GameType;
 import backend.ssafy.suhwa.game.dto.GameRoomResponse;
 import backend.ssafy.suhwa.game.service.GameRoomService;
 import backend.ssafy.suhwa.user.domain.User;
@@ -73,7 +74,7 @@ class GameRoomHandshakeInterceptorTest {
 
     @Test
     void handshake_rejectsNonParticipant() {
-        GameRoomResponse room = gameRoomService.create(hostId);
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
 
         assertThatThrownBy(() -> connect(room.id(), strangerId, new LinkedBlockingQueue<>()))
                 .isInstanceOf(Exception.class);
@@ -81,7 +82,7 @@ class GameRoomHandshakeInterceptorTest {
 
     @Test
     void message_afterRoomClosedByResultReport_blockedWithError() throws Exception {
-        GameRoomResponse room = gameRoomService.create(hostId);
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
         gameRoomService.join(room.roomCode(), guestId);
         gameRoomService.setReady(room.id(), hostId, true);
         gameRoomService.setReady(room.id(), guestId, true);

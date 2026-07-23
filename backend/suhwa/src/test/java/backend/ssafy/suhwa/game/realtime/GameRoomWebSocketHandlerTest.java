@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import backend.ssafy.suhwa.auth.service.RealtimeTicketService;
 import backend.ssafy.suhwa.common.security.JwtTokenProvider;
 import backend.ssafy.suhwa.game.domain.GameRoomStatus;
+import backend.ssafy.suhwa.game.domain.GameType;
 import backend.ssafy.suhwa.game.dto.GameRoomResponse;
 import backend.ssafy.suhwa.game.repository.GameRoomRepository;
 import backend.ssafy.suhwa.game.service.GameRoomService;
@@ -81,7 +82,7 @@ class GameRoomWebSocketHandlerTest {
 
     @Test
     void disconnect_reconnectWithinGrace_cancelsLeave() throws Exception {
-        GameRoomResponse room = gameRoomService.create(hostId);
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
         gameRoomService.join(room.roomCode(), guestId);
 
         WebSocketSession hostSession = connect(room.id(), hostId, new LinkedBlockingQueue<>());
@@ -100,7 +101,7 @@ class GameRoomWebSocketHandlerTest {
 
     @Test
     void disconnect_exceedsGrace_triggersLeaveAndDelegatesHost() throws Exception {
-        GameRoomResponse room = gameRoomService.create(hostId);
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
         gameRoomService.join(room.roomCode(), guestId);
 
         BlockingQueue<String> guestMessages = new LinkedBlockingQueue<>();
@@ -119,7 +120,7 @@ class GameRoomWebSocketHandlerTest {
 
     @Test
     void explicitLeave_sendsPeerLeftImmediatelyWithoutGrace() throws Exception {
-        GameRoomResponse room = gameRoomService.create(hostId);
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
         gameRoomService.join(room.roomCode(), guestId);
 
         BlockingQueue<String> guestMessages = new LinkedBlockingQueue<>();
@@ -146,7 +147,7 @@ class GameRoomWebSocketHandlerTest {
 
     @Test
     void handshake_rejectsAlreadyClosedRoom() throws Exception {
-        GameRoomResponse room = gameRoomService.create(hostId);
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
         gameRoomService.leave(room.id(), hostId);
         assertThat(gameRoomRepository.findById(room.id()).orElseThrow().getStatus())
                 .isEqualTo(GameRoomStatus.CLOSED);
@@ -157,7 +158,7 @@ class GameRoomWebSocketHandlerTest {
 
     @Test
     void startGame_broadcastsGameStartedToBothParticipants() throws Exception {
-        GameRoomResponse room = gameRoomService.create(hostId);
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
         gameRoomService.join(room.roomCode(), guestId);
         gameRoomService.setReady(room.id(), hostId, true);
         gameRoomService.setReady(room.id(), guestId, true);
@@ -175,7 +176,7 @@ class GameRoomWebSocketHandlerTest {
 
     @Test
     void signalMessage_relayedToRoomPeerOnly_notToOtherRoomParticipants() throws Exception {
-        GameRoomResponse room = gameRoomService.create(hostId);
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
         gameRoomService.join(room.roomCode(), guestId);
 
         BlockingQueue<String> hostMessages = new LinkedBlockingQueue<>();
@@ -187,7 +188,7 @@ class GameRoomWebSocketHandlerTest {
                         .email("wsother-" + System.nanoTime() + "@test.com").passwordHash("h").nickname("wsother")
                         .build())
                 .getId();
-        GameRoomResponse otherRoom = gameRoomService.create(otherRoomUserId);
+        GameRoomResponse otherRoom = gameRoomService.create(otherRoomUserId, GameType.SIGN_DUEL);
         BlockingQueue<String> otherRoomMessages = new LinkedBlockingQueue<>();
         connect(otherRoom.id(), otherRoomUserId, otherRoomMessages);
 

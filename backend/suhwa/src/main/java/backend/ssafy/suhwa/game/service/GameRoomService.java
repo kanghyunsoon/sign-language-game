@@ -1,10 +1,12 @@
 package backend.ssafy.suhwa.game.service;
 
+import backend.ssafy.suhwa.auth.service.RealtimeTicketService;
 import backend.ssafy.suhwa.common.exception.BusinessException;
 import backend.ssafy.suhwa.common.exception.ErrorCode;
 import backend.ssafy.suhwa.game.domain.GameRoom;
 import backend.ssafy.suhwa.game.domain.GameRoomStatus;
 import backend.ssafy.suhwa.game.domain.GameSession;
+import backend.ssafy.suhwa.game.domain.GameType;
 import backend.ssafy.suhwa.game.dto.GameResultResponse;
 import backend.ssafy.suhwa.game.dto.GameRoomResponse;
 import backend.ssafy.suhwa.game.realtime.LobbyBroadcastService;
@@ -47,6 +49,7 @@ public class GameRoomService {
     private final RoomRealtimeNotifier roomRealtimeNotifier;
     private final LobbyBroadcastService lobbyBroadcastService;
     private final RoomParticipantRegistry roomParticipantRegistry;
+    private final RealtimeTicketService realtimeTicketService;
     private final TaskScheduler taskScheduler;
     private final long joinConfirmationSeconds;
     private final GameRoomService self;
@@ -58,6 +61,7 @@ public class GameRoomService {
             RoomRealtimeNotifier roomRealtimeNotifier,
             LobbyBroadcastService lobbyBroadcastService,
             RoomParticipantRegistry roomParticipantRegistry,
+            RealtimeTicketService realtimeTicketService,
             TaskScheduler taskScheduler,
             @Value("${game.room.join-confirmation-seconds}") long joinConfirmationSeconds,
             @Lazy GameRoomService self) {
@@ -67,6 +71,7 @@ public class GameRoomService {
         this.roomRealtimeNotifier = roomRealtimeNotifier;
         this.lobbyBroadcastService = lobbyBroadcastService;
         this.roomParticipantRegistry = roomParticipantRegistry;
+        this.realtimeTicketService = realtimeTicketService;
         this.taskScheduler = taskScheduler;
         this.joinConfirmationSeconds = joinConfirmationSeconds;
         // 예약된 확인 대기 타이머가 만료 시 leave()를 호출할 때 self-invocation(this.leave(...))으로
@@ -77,13 +82,17 @@ public class GameRoomService {
     }
 
     @Transactional
-    public GameRoomResponse create(Long hostUserId) {
+    public GameRoomResponse create(Long hostUserId, GameType gameType) {
         GameRoom room = GameRoom.builder()
                 .roomCode(generateUniqueRoomCode())
                 .hostUserId(hostUserId)
+                .gameType(gameType)
                 .build();
         GameRoom saved = gameRoomRepository.save(room);
-        GameRoomResponse response = GameRoomResponse.from(saved);
+        // 실시간 연결(방 WebSocket)용 티켓을 응답에 동봉해, 별도 API 호출 없이 즉시 연결할 수
+        // 있게 한다(FR-001/002). 인메모리 발급이라 트랜잭션 커밋 여부와 무관하다.
+        String ticket = realtimeTicketService.issue(hostUserId);
+        GameRoomResponse response = GameRoomResponse.from(saved, ticket);
         Long roomId = saved.getId();
         // 새 방이 로비 목록에 나타나므로 커밋 후 구독자에게 알린다(FR-010, research.md #9-1).
         afterCommit(lobbyBroadcastService::broadcastUpdate);
@@ -98,9 +107,10 @@ public class GameRoomService {
         // 이미 이 방의 참가자인 재입장 요청은 인원수를 늘리지 않고 현재 상태를 그대로 반환한다
         // (FR-020, research.md #14-1 — 그렇지 않으면 guest 재입장이 ROOM_FULL로 오거부되거나
         // host 본인의 재호출이 host/guest를 같은 사람으로 만들어버리는 결함이 있었다). 인원수
-        // 변화가 없으므로 로비 브로드캐스트도 하지 않는다.
+        // 변화가 없으므로 로비 브로드캐스트도 하지 않는다. 재입장이라도 실시간 연결을 다시 맺어야
+        // 하므로 새 티켓은 매번 발급한다(FR-016).
         if (room.isParticipant(userId)) {
-            return GameRoomResponse.from(room);
+            return GameRoomResponse.from(room, realtimeTicketService.issue(userId));
         }
         if (room.getStatus() != GameRoomStatus.WAITING) {
             throw new BusinessException(ErrorCode.ROOM_NOT_WAITING);
@@ -109,7 +119,7 @@ public class GameRoomService {
             throw new BusinessException(ErrorCode.ROOM_FULL);
         }
         room.assignGuest(userId);
-        GameRoomResponse response = GameRoomResponse.from(room);
+        GameRoomResponse response = GameRoomResponse.from(room, realtimeTicketService.issue(userId));
         Long roomId = room.getId();
         // 실제로 신규 참가자가 배정된 경로에서만 인원수가 바뀌므로 커밋 후 브로드캐스트한다.
         afterCommit(lobbyBroadcastService::broadcastUpdate);

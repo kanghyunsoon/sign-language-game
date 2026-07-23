@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import backend.ssafy.suhwa.auth.service.RealtimeTicketService;
 import backend.ssafy.suhwa.game.domain.GameRoomStatus;
+import backend.ssafy.suhwa.game.domain.GameType;
 import backend.ssafy.suhwa.game.dto.GameRoomResponse;
 import backend.ssafy.suhwa.game.repository.GameRoomRepository;
 import backend.ssafy.suhwa.game.service.GameRoomService;
@@ -71,7 +72,7 @@ class JoinConfirmationTimeoutIntegrationTest {
 
     @Test
     void hostNeverConnects_withoutGuest_roomClosedAfterTimeout() throws Exception {
-        GameRoomResponse room = gameRoomService.create(hostId);
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
 
         Thread.sleep(1500);
 
@@ -81,7 +82,7 @@ class JoinConfirmationTimeoutIntegrationTest {
 
     @Test
     void guestNeverConnects_hostConnects_guestSlotFreedRoomStaysWaiting() throws Exception {
-        GameRoomResponse room = gameRoomService.create(hostId);
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
         gameRoomService.join(room.roomCode(), guestId);
 
         connect(room.id(), hostId);
@@ -95,7 +96,7 @@ class JoinConfirmationTimeoutIntegrationTest {
 
     @Test
     void hostNeverConnects_guestConnects_hostDelegatedToGuest() throws Exception {
-        GameRoomResponse room = gameRoomService.create(hostId);
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
         gameRoomService.join(room.roomCode(), guestId);
 
         connect(room.id(), guestId);
@@ -109,7 +110,7 @@ class JoinConfirmationTimeoutIntegrationTest {
 
     @Test
     void unconfirmedParticipant_isStillCountedInParticipantCount() {
-        GameRoomResponse room = gameRoomService.create(hostId);
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
 
         GameRoomResponse joined = gameRoomService.join(room.roomCode(), guestId);
 
@@ -120,7 +121,7 @@ class JoinConfirmationTimeoutIntegrationTest {
 
     @Test
     void reentry_doesNotExtendConfirmationTimer() throws Exception {
-        GameRoomResponse room = gameRoomService.create(hostId);
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
         connect(room.id(), hostId);
 
         gameRoomService.join(room.roomCode(), guestId);

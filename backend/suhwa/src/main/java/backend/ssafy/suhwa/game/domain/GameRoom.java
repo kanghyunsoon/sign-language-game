@@ -53,15 +53,15 @@ public class GameRoom extends BaseTimeEntity {
     private Long version;
 
     @Builder
-    public GameRoom(String roomCode, Long hostUserId) {
+    public GameRoom(String roomCode, Long hostUserId, GameType gameType) {
         this.roomCode = roomCode;
         this.hostUserId = hostUserId;
         this.hostReady = false;
         this.guestReady = false;
         this.status = GameRoomStatus.WAITING;
-        // 생성 시 게임 종류를 받는 것은 US1(FR-017)에서 처리한다 — 그 전까지는 기존 데이터 백필
-        // 규칙(data-model.md)과 동일하게 SIGN_DUEL을 기본값으로 둔다.
-        this.gameType = GameType.SIGN_DUEL;
+        // gameType을 지정하지 않고 빌더를 호출하는 기존 코드(테스트 등)와의 호환을 위해, 미지정 시
+        // 기존 데이터 백필 규칙(data-model.md)과 동일하게 SIGN_DUEL을 기본값으로 둔다(FR-017).
+        this.gameType = gameType != null ? gameType : GameType.SIGN_DUEL;
     }
 
     public boolean isHost(Long userId) {

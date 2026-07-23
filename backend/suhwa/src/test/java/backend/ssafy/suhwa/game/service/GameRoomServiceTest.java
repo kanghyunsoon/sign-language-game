@@ -3,10 +3,12 @@ package backend.ssafy.suhwa.game.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import backend.ssafy.suhwa.auth.service.RealtimeTicketService;
 import backend.ssafy.suhwa.common.config.JpaAuditingConfig;
 import backend.ssafy.suhwa.common.exception.BusinessException;
 import backend.ssafy.suhwa.game.domain.GameRoom;
 import backend.ssafy.suhwa.game.domain.GameRoomStatus;
+import backend.ssafy.suhwa.game.domain.GameType;
 import backend.ssafy.suhwa.game.dto.GameResultResponse;
 import backend.ssafy.suhwa.game.dto.GameRoomResponse;
 import backend.ssafy.suhwa.game.realtime.LobbyBroadcastService;
@@ -48,7 +50,8 @@ class GameRoomServiceTest {
         gameRoomService = new GameRoomService(
                 gameRoomRepository, gameSessionRepository, userRepository,
                 Mockito.mock(RoomRealtimeNotifier.class), Mockito.mock(LobbyBroadcastService.class),
-                new RoomParticipantRegistry(), Mockito.mock(TaskScheduler.class), 15L,
+                new RoomParticipantRegistry(), new RealtimeTicketService(60L),
+                Mockito.mock(TaskScheduler.class), 15L,
                 Mockito.mock(GameRoomService.class));
         hostId = userRepository.save(User.builder()
                 .email("host-" + System.nanoTime() + "@test.com").passwordHash("h").nickname("host").build())
@@ -59,7 +62,7 @@ class GameRoomServiceTest {
     }
 
     private GameRoomResponse createReadyRoom() {
-        GameRoomResponse room = gameRoomService.create(hostId);
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
         gameRoomService.join(room.roomCode(), guestId);
         gameRoomService.setReady(room.id(), hostId, true);
         gameRoomService.setReady(room.id(), guestId, true);
@@ -67,8 +70,28 @@ class GameRoomServiceTest {
     }
 
     @Test
+    void create_includesGameTypeAndRealtimeTicket() {
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.TETRIS_DUEL);
+
+        assertThat(room.gameType()).isEqualTo(GameType.TETRIS_DUEL);
+        assertThat(room.realtimeTicket()).isNotBlank();
+    }
+
+    @Test
+    void join_includesRealtimeTicket_andReentryIssuesNewOne() {
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
+
+        GameRoomResponse joined = gameRoomService.join(room.roomCode(), guestId);
+        assertThat(joined.realtimeTicket()).isNotBlank();
+
+        GameRoomResponse rejoined = gameRoomService.join(room.roomCode(), guestId);
+        assertThat(rejoined.realtimeTicket()).isNotBlank();
+        assertThat(rejoined.realtimeTicket()).isNotEqualTo(joined.realtimeTicket());
+    }
+
+    @Test
     void join_reentryByExistingGuest_doesNotIncreaseParticipantCountOrReject() {
-        GameRoomResponse room = gameRoomService.create(hostId);
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
         gameRoomService.join(room.roomCode(), guestId);
 
         GameRoomResponse rejoined = gameRoomService.join(room.roomCode(), guestId);
@@ -79,7 +102,7 @@ class GameRoomServiceTest {
 
     @Test
     void join_reentryByHost_doesNotAssignHostAsGuest() {
-        GameRoomResponse room = gameRoomService.create(hostId);
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
 
         GameRoomResponse rejoined = gameRoomService.join(room.roomCode(), hostId);
 
@@ -89,7 +112,7 @@ class GameRoomServiceTest {
 
     @Test
     void waitingLeave_hostLeavesWithGuestPresent_delegatesHost() {
-        GameRoomResponse room = gameRoomService.create(hostId);
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
         gameRoomService.join(room.roomCode(), guestId);
 
         gameRoomService.leave(room.id(), hostId);
@@ -102,7 +125,7 @@ class GameRoomServiceTest {
 
     @Test
     void waitingLeave_lastParticipantLeaves_closesRoom() {
-        GameRoomResponse room = gameRoomService.create(hostId);
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
 
         gameRoomService.leave(room.id(), hostId);
 
@@ -112,7 +135,7 @@ class GameRoomServiceTest {
 
     @Test
     void leave_calledAgainAfterRoomAlreadyClosed_isNoop() {
-        GameRoomResponse room = gameRoomService.create(hostId);
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
         gameRoomService.join(room.roomCode(), guestId);
 
         gameRoomService.leave(room.id(), hostId);
@@ -135,7 +158,7 @@ class GameRoomServiceTest {
 
     @Test
     void waitingLeave_guestLeaves_freesSlotWithoutClosingRoom() {
-        GameRoomResponse room = gameRoomService.create(hostId);
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
         gameRoomService.join(room.roomCode(), guestId);
 
         gameRoomService.leave(room.id(), guestId);
@@ -159,7 +182,7 @@ class GameRoomServiceTest {
 
     @Test
     void setReady_succeedsWhileWaiting() {
-        GameRoomResponse room = gameRoomService.create(hostId);
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
 
         GameRoomResponse updated = gameRoomService.setReady(room.id(), hostId, true);
 
@@ -177,7 +200,7 @@ class GameRoomServiceTest {
 
     @Test
     void setReady_rejectedWhenClosed() {
-        GameRoomResponse room = gameRoomService.create(hostId);
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
         gameRoomService.leave(room.id(), hostId);
 
         assertThatThrownBy(() -> gameRoomService.setReady(room.id(), hostId, true))
@@ -186,7 +209,7 @@ class GameRoomServiceTest {
 
     @Test
     void start_rejectsWhenNotAllReady() {
-        GameRoomResponse room = gameRoomService.create(hostId);
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
         gameRoomService.join(room.roomCode(), guestId);
         gameRoomService.setReady(room.id(), hostId, true);
 

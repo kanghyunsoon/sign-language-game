@@ -67,7 +67,10 @@ class GameRoomLobbyBroadcastIntegrationTest {
         Long hostId = createUser("lobbyhost");
         String token = jwtTokenProvider.createAccessToken(hostId);
 
-        mockMvc.perform(post("/game-rooms").header("Authorization", "Bearer " + token))
+        mockMvc.perform(post("/game-rooms")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("{\"gameType\":\"SIGN_DUEL\"}"))
                 .andExpect(status().isCreated());
 
         String content = subscribeResult.getResponse().getContentAsString();
@@ -88,7 +91,10 @@ class GameRoomLobbyBroadcastIntegrationTest {
         String hostToken = jwtTokenProvider.createAccessToken(hostId);
         String guestToken = jwtTokenProvider.createAccessToken(guestId);
 
-        MvcResult createResult = mockMvc.perform(post("/game-rooms").header("Authorization", "Bearer " + hostToken))
+        MvcResult createResult = mockMvc.perform(post("/game-rooms")
+                        .header("Authorization", "Bearer " + hostToken)
+                        .contentType("application/json")
+                        .content("{\"gameType\":\"SIGN_DUEL\"}"))
                 .andExpect(status().isCreated())
                 .andReturn();
         String roomCode = objectMapper.readTree(createResult.getResponse().getContentAsString())
@@ -116,7 +122,10 @@ class GameRoomLobbyBroadcastIntegrationTest {
         String hostToken = jwtTokenProvider.createAccessToken(hostId);
         String guestToken = jwtTokenProvider.createAccessToken(guestId);
 
-        MvcResult createResult = mockMvc.perform(post("/game-rooms").header("Authorization", "Bearer " + hostToken))
+        MvcResult createResult = mockMvc.perform(post("/game-rooms")
+                        .header("Authorization", "Bearer " + hostToken)
+                        .contentType("application/json")
+                        .content("{\"gameType\":\"SIGN_DUEL\"}"))
                 .andExpect(status().isCreated())
                 .andReturn();
         var createJson = objectMapper.readTree(createResult.getResponse().getContentAsString());
