@@ -21,4 +21,7 @@ public interface RoomRealtimeNotifier {
 
     /** FR-025, FR-026 — 영상 통화 연결 신호를 같은 방 상대방에게 가공 없이 그대로 전달. */
     void relaySignal(Long roomId, Long fromUserId, Object payload);
+
+    /** FR-030 — 참가자의 준비 상태 변경을 같은 방 상대방에게(본인 제외) 즉시 통보. */
+    void notifyReadyChanged(Long roomId, Long userId, boolean isReady);
 }

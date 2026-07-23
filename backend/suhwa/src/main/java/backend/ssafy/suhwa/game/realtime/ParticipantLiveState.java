@@ -16,6 +16,7 @@ public class ParticipantLiveState {
     private boolean readyCache;
     private Instant pendingDeadline;
     private ScheduledFuture<?> pendingTask;
+    private boolean expectingIntentionalClose;
 
     /** create()/join() 직후 false로 시작해, 첫 핸드셰이크 성공 시 true로 전환된 뒤 계속 유지된다(FR-029). */
     public synchronized boolean isConfirmed() {
@@ -63,5 +64,15 @@ public class ParticipantLiveState {
         }
         this.pendingTask = null;
         this.pendingDeadline = null;
+    }
+
+    /** 클라이언트가 WEBRTC_CONNECTED를 보내면 true로 전환된다(FR-003). true인 채로 연결이 끊기면
+     * 유예 타이머 없이 참가자를 정상 상태로 유지한다(FR-004). 초기값 false. */
+    public synchronized boolean isExpectingIntentionalClose() {
+        return expectingIntentionalClose;
+    }
+
+    public synchronized void setExpectingIntentionalClose(boolean expectingIntentionalClose) {
+        this.expectingIntentionalClose = expectingIntentionalClose;
     }
 }
