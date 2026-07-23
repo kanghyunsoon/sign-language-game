@@ -6,17 +6,13 @@ public record UserProfileResponse(
         Long id,
         String email,
         String nickname,
-        String profileImageUrl,
-        int winCount,
-        int lossCount) {
+        String profileImageUrl) {
 
     public static UserProfileResponse from(User user) {
         return new UserProfileResponse(
                 user.getId(),
                 user.getEmail(),
                 user.getNickname(),
-                user.getProfileImageUrl(),
-                user.getWinCount(),
-                user.getLossCount());
+                user.getProfileImageUrl());
     }
 }
