@@ -18,6 +18,10 @@ spring:
 
 server:
   port: ${SERVER_PORT:8080}
+  # 리버스 프록시(nginx)가 X-Forwarded-Prefix: /api 로 보내는 요청을 받는다.
+  # 이 값을 안 켜면 springdoc 등이 프록시 prefix 없이 절대경로(/v3/api-docs 등)를
+  # 생성해, 앞단이 /api/만 백엔드로 라우팅하는 구조에서 그 경로가 404로 떨어진다.
+  forward-headers-strategy: framework
 
 management:
   endpoints:
