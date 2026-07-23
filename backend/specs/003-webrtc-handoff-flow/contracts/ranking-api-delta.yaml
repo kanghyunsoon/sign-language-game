@@ -1,0 +1,71 @@
+openapi: 3.0.3
+info:
+  title: 랭킹 API — 003 델타 (ranking)
+  version: "1.1.0"
+  description: >
+    `backend/specs/001-backend-crud-api/contracts/ranking-api.yaml`(기준본)에 대한 변경분만
+    정리한다. 대상: spec 003 User Story 9(FR-025/026/029). 세 게임 종류(지문자 1:1 대전/테트리스
+    대전/테트리스 솔로)가 완전히 분리된 랭킹을 가지므로, 게임 종류를 지정하지 않고는 조회할 수 없다.
+tags:
+  - name: Ranking
+paths:
+  /rankings:
+    get:
+      tags: [Ranking]
+      summary: 게임 종류별 Top 5 랭킹 및 본인 순위 조회 (변경 — gameType 필수 파라미터 추가)
+      operationId: getRankings
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: gameType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [SIGN_DUEL, TETRIS_DUEL, TETRIS_SOLO]
+          description: >
+            (신규, 필수) 지문자 1:1 대전/테트리스 대전은 승수(SUM) 기준(동률 시 패수 오름차순 2차 정렬,
+            FR-026 — 기존 001 동률 규칙과 동일), 테트리스 솔로는 최고 점수(MAX) 기준으로 정렬된다(FR-029).
+      responses:
+        "200":
+          description: >
+            지정한 게임 종류의 Top 5 + 본인 순위. 다른 게임 종류의 결과는 절대 섞이지 않는다(FR-025).
+            탈퇴한 사용자는 기존과 동일하게 제외.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RankingResponse'
+        "400":
+          description: gameType 누락 또는 잘못된 값
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    RankingEntry:
+      type: object
+      description: score 필드가 승수(대전) 또는 최고 점수(솔로) 중 무엇을 의미하는지는 gameType으로 판단
+      properties:
+        rank: { type: integer }
+        userId: { type: integer, format: int64 }
+        nickname: { type: string }
+        score:
+          type: integer
+          description: 대전 모드는 승수(SUM), 솔로는 최고 점수(MAX) — 001의 winCount/lossCount 두 필드를 이 하나로 대체
+    RankingResponse:
+      type: object
+      properties:
+        top:
+          type: array
+          items:
+            $ref: '#/components/schemas/RankingEntry'
+        me:
+          allOf:
+            - $ref: '#/components/schemas/RankingEntry'
+          nullable: true
+          description: >
+            (변경) 요청자가 이 게임 종류를 한 번도 플레이하지 않았으면 null(US9 AC4) —
+            001에서는 항상 0승 0패로 존재했던 것과 다르다.
