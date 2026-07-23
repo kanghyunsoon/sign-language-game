@@ -54,7 +54,7 @@ export const GAME_SYMBOL_REGISTRY: readonly GameSymbolMetadata[] = [
   vowel("ㅜ", "U", 1), vowel("ㅠ", "Yu", 2, "CLASSIFICATION_ONLY"), vowel("ㅡ", "Eu", 2),
   vowel("ㅣ", "I", 1), vowel("ㅐ", "Ae", 2), vowel("ㅒ", "Yae", 3), vowel("ㅔ", "E", 2),
   vowel("ㅖ", "Ye", 3), vowel("ㅢ", "Ui", 3), vowel("ㅚ", "Oe", 3), vowel("ㅟ", "Wi", 3),
-  digit("0"), digit("1"), digit("2"), digit("3"), digit("4"), digit("5"), digit("6"),
+digit("1"), digit("2"), digit("3"), digit("4"), digit("5"), digit("6"),
   digit("7"), digit("8"), digit("9"),
 ] as const;
 

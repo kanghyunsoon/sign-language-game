@@ -19,7 +19,7 @@ export const RECOGNITION_PERFORMANCE_PROFILES: Readonly<Record<RecognitionPerfor
   }),
   BALANCED: Object.freeze({
     name: "BALANCED",
-    rates: Object.freeze({ renderFps: 60, handTrackingFps: 24, poseTrackingFps: 10, aiInferenceFps: 12 }),
+    rates: Object.freeze({ renderFps: 30, handTrackingFps: 24, poseTrackingFps: 8, aiInferenceFps: 12 }),
     maximumTrackedPeople: 4,
     handDetection: Object.freeze({ maximumDetectedHands: 4, minimumHandDetectionConfidence: .6, minimumHandPresenceConfidence: .6, minimumTrackingConfidence: .6 }),
   }),

@@ -50,7 +50,8 @@ export class PixiGameRenderer implements GameRenderer {
     await app.init({
       width: resolvedConfig.width,
       height: resolvedConfig.height,
-      background: 0x173a5e,
+      backgroundColor: 0x294b5d,
+      backgroundAlpha: 0,
       antialias: false,
       preference: "webgl",
       resolution: 1,
@@ -90,6 +91,7 @@ export class PixiGameRenderer implements GameRenderer {
       if (Math.abs(view.root.rotation - letter.angle) >= ROTATION_RENDER_EPSILON) {
         view.root.rotation = letter.angle;
       }
+      view.setMotionState(letter.velocityY, letter.settled);
     }
 
     for (const [id, view] of this.views) {
@@ -196,16 +198,20 @@ export class PixiGameRenderer implements GameRenderer {
     const dangerLineY = this.height * this.config.dangerLineRatio;
     this.dangerLine.clear();
     this.dangerLine
-      .rect(0, dangerLineY, this.width, 3)
-      .fill({ color: 0xf26b5b, alpha: 0.9 });
+      .rect(0, dangerLineY - 3, this.width, 9)
+      .fill({ color: 0xf0ba55, alpha: 0.08 });
+    for (let x = 0; x < this.width; x += 22) {
+      this.dangerLine.rect(x, dangerLineY, 13, 3);
+    }
+    this.dangerLine.fill({ color: 0xf0ba55, alpha: 0.78 });
   }
 
   private drawBoardGrid(): void {
-    const cell = 32;
+    const cell = Math.max(42, Math.min(56, Math.round(Math.min(this.width, this.height) / 10)));
     this.boardGrid.clear();
     for (let x = cell; x < this.width; x += cell) this.boardGrid.moveTo(x, 0).lineTo(x, this.height);
     for (let y = cell; y < this.height; y += cell) this.boardGrid.moveTo(0, y).lineTo(this.width, y);
-    this.boardGrid.stroke({ color: 0x2e587d, width: 1, alpha: .42 });
+    this.boardGrid.stroke({ color: 0xffffff, width: 1, alpha: .12 });
   }
 
   private assertActive(): void {

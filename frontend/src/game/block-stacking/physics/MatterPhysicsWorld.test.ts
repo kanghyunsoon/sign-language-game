@@ -33,8 +33,8 @@ describe("MatterPhysicsWorld", () => {
     GAME_SYMBOLS.forEach((symbol, index) => world.createLetter({
       id: `letter-${index}`, symbol, x: 20 + (index % 8) * 40, y: 20 + Math.floor(index / 8) * 40,
     }));
-    expect(world.getLetterStates()).toHaveLength(41);
-    expect(world.getLetterState("letter-40")?.symbol).toBe("9");
+    expect(world.getLetterStates()).toHaveLength(40);
+    expect(world.getLetterState("letter-39")?.symbol).toBe("9");
     world.destroy();
   });
 
