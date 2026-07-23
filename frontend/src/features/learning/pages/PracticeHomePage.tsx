@@ -112,11 +112,6 @@ export function PracticeHomePage() {
 
       <main className="practice-main">
         <section className="practice-panel">
-          <img
-            className="practice-leaf"
-            src={leafImage}
-            alt=""
-          />
 
           <span className="practice-mode-badge">
             PRACTICE MODE

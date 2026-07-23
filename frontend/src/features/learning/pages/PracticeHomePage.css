@@ -103,17 +103,6 @@
   box-shadow: 0 24px 50px rgba(59, 42, 35, 0.14);
 }
 
-.practice-leaf {
-  position: absolute;
-  top: -105px;
-  left: -120px;
-  z-index: 2;
-  width: 220px;
-  height: 220px;
-  object-fit: contain;
-  pointer-events: none;
-}
-
 .practice-mode-badge {
   display: inline-flex;
   align-items: center;
