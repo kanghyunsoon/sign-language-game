@@ -46,7 +46,10 @@ class GameRoomLifecycleIntegrationTest {
         String hostToken = "Bearer " + jwtTokenProvider.createAccessToken(host.getId());
         String guestToken = "Bearer " + jwtTokenProvider.createAccessToken(guest.getId());
 
-        MvcResult createResult = mockMvc.perform(post("/game-rooms").header("Authorization", hostToken))
+        MvcResult createResult = mockMvc.perform(post("/game-rooms")
+                        .header("Authorization", hostToken)
+                        .contentType("application/json")
+                        .content("{\"gameType\":\"SIGN_DUEL\"}"))
                 .andExpect(status().isCreated())
                 .andReturn();
         JsonNode created = objectMapper.readTree(createResult.getResponse().getContentAsString());

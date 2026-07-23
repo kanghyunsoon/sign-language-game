@@ -1,5 +1,6 @@
 package backend.ssafy.suhwa.game.controller;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -11,6 +12,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import backend.ssafy.suhwa.common.exception.BusinessException;
 import backend.ssafy.suhwa.common.exception.ErrorCode;
 import backend.ssafy.suhwa.game.domain.GameRoomStatus;
+import backend.ssafy.suhwa.game.domain.GameType;
+import backend.ssafy.suhwa.game.dto.CreateRoomRequest;
 import backend.ssafy.suhwa.game.dto.GameResultRequest;
 import backend.ssafy.suhwa.game.dto.GameRoomResponse;
 import backend.ssafy.suhwa.game.dto.JoinRoomRequest;
@@ -54,14 +57,19 @@ class GameRoomControllerTest {
     }
 
     private GameRoomResponse sampleRoom() {
-        return new GameRoomResponse(1L, "ABC123", 1L, null, false, false, GameRoomStatus.WAITING, 1, 2);
+        return new GameRoomResponse(
+                1L, "ABC123", 1L, null, false, false, GameRoomStatus.WAITING, 1, 2,
+                GameType.SIGN_DUEL, "ticket-abc");
     }
 
     @Test
     void createRoom_returns201() throws Exception {
-        given(gameRoomService.create(anyLong())).willReturn(sampleRoom());
+        given(gameRoomService.create(anyLong(), any(GameType.class))).willReturn(sampleRoom());
 
-        mockMvc.perform(post("/game-rooms")).andExpect(status().isCreated());
+        mockMvc.perform(post("/game-rooms")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(new CreateRoomRequest(GameType.SIGN_DUEL))))
+                .andExpect(status().isCreated());
     }
 
     @Test
