@@ -146,6 +146,42 @@ class GameRoomWebSocketHandlerTest {
     }
 
     @Test
+    void webrtcConnected_thenDisconnect_noGraceTimerAndParticipantStaysInRoom() throws Exception {
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
+        gameRoomService.join(room.roomCode(), guestId);
+
+        BlockingQueue<String> guestMessages = new LinkedBlockingQueue<>();
+        WebSocketSession hostSession = connect(room.id(), hostId, new LinkedBlockingQueue<>());
+        connect(room.id(), guestId, guestMessages);
+
+        hostSession.sendMessage(new TextMessage("{\"type\":\"WEBRTC_CONNECTED\"}"));
+        Thread.sleep(200); // 서버가 메시지를 처리해 플래그를 설정할 시간을 준다.
+        hostSession.close();
+
+        Thread.sleep(1500); // 유예 시간(1초)을 넘겨도 이탈 처리가 없어야 한다.
+
+        assertThat(guestMessages.poll(500, TimeUnit.MILLISECONDS))
+                .as("의도된 종료는 PEER_DISCONNECTED도 PEER_LEFT도 보내지 않아야 한다")
+                .isNull();
+        assertThat(gameRoomRepository.findById(room.id()).orElseThrow().getHostUserId()).isEqualTo(hostId);
+        assertThat(gameRoomRepository.findById(room.id()).orElseThrow().getStatus())
+                .isEqualTo(GameRoomStatus.WAITING);
+    }
+
+    @Test
+    void withoutWebrtcConnectedSignal_connectionStaysOpen_noForcedClose() throws Exception {
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
+        gameRoomService.join(room.roomCode(), guestId);
+
+        WebSocketSession hostSession = connect(room.id(), hostId, new LinkedBlockingQueue<>());
+
+        Thread.sleep(1500); // WEBRTC_CONNECTED 없이도 서버가 연결을 강제로 끊지 않아야 한다(FR-006).
+
+        assertThat(hostSession.isOpen()).isTrue();
+        hostSession.close();
+    }
+
+    @Test
     void handshake_rejectsAlreadyClosedRoom() throws Exception {
         GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
         gameRoomService.leave(room.id(), hostId);

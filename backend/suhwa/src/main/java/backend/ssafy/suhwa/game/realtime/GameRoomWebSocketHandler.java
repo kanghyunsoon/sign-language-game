@@ -95,6 +95,13 @@ public class GameRoomWebSocketHandler extends TextWebSocketHandler {
         }
 
         participant.setSession(null);
+
+        // 영상 통화 전환 신호(WEBRTC_CONNECTED)를 받은 직후의 종료는 의도된 정리다 — 유예 타이머를
+        // 걸지 않고 참가자를 그대로 정상 상태로 유지하며, PEER_DISCONNECTED도 보내지 않는다(FR-004).
+        if (participant.isExpectingIntentionalClose()) {
+            return;
+        }
+
         Instant deadline = Instant.now().plusSeconds(leaveGraceSeconds);
         ScheduledFuture<?> task = taskScheduler.schedule(() -> gameRoomService.leave(roomId, userId), deadline);
         participant.schedulePending(deadline, task);
@@ -128,6 +135,17 @@ public class GameRoomWebSocketHandler extends TextWebSocketHandler {
         // 상대방에게 그대로 중계한다(FR-025/026, research.md #13).
         if ("SIGNAL".equals(parsed.type())) {
             notifier.relaySignal(roomId, userId, parsed.payload());
+            return;
+        }
+
+        // 영상 통화가 실제로 맺어져 더 이상 필요 없어진 방 실시간 연결을 클라이언트가 의도적으로
+        // 끊겠다는 신호(FR-003). afterConnectionClosed가 이 플래그를 보고 유예 타이머를 생략한다.
+        if ("WEBRTC_CONNECTED".equals(parsed.type())) {
+            RoomLiveState room = registry.getRoom(roomId);
+            ParticipantLiveState participant = room == null ? null : room.getParticipant(userId);
+            if (participant != null) {
+                participant.setExpectingIntentionalClose(true);
+            }
             return;
         }
 
