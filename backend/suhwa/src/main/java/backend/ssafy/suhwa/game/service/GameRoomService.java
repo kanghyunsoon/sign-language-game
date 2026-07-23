@@ -5,7 +5,6 @@ import backend.ssafy.suhwa.common.exception.BusinessException;
 import backend.ssafy.suhwa.common.exception.ErrorCode;
 import backend.ssafy.suhwa.game.domain.GameRoom;
 import backend.ssafy.suhwa.game.domain.GameRoomStatus;
-import backend.ssafy.suhwa.game.domain.GameSession;
 import backend.ssafy.suhwa.game.domain.GameType;
 import backend.ssafy.suhwa.game.dto.GameResultResponse;
 import backend.ssafy.suhwa.game.dto.GameRoomResponse;
@@ -15,12 +14,11 @@ import backend.ssafy.suhwa.game.realtime.RoomLiveState;
 import backend.ssafy.suhwa.game.realtime.RoomParticipantRegistry;
 import backend.ssafy.suhwa.game.realtime.RoomRealtimeNotifier;
 import backend.ssafy.suhwa.game.repository.GameRoomRepository;
-import backend.ssafy.suhwa.game.repository.GameSessionRepository;
-import backend.ssafy.suhwa.user.domain.User;
-import backend.ssafy.suhwa.user.repository.UserRepository;
+import backend.ssafy.suhwa.gameresult.domain.GameResult;
+import backend.ssafy.suhwa.gameresult.domain.GameResultType;
+import backend.ssafy.suhwa.gameresult.repository.GameResultRepository;
 import java.security.SecureRandom;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.concurrent.ScheduledFuture;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
@@ -44,8 +42,7 @@ public class GameRoomService {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final GameRoomRepository gameRoomRepository;
-    private final GameSessionRepository gameSessionRepository;
-    private final UserRepository userRepository;
+    private final GameResultRepository gameResultRepository;
     private final RoomRealtimeNotifier roomRealtimeNotifier;
     private final LobbyBroadcastService lobbyBroadcastService;
     private final RoomParticipantRegistry roomParticipantRegistry;
@@ -56,8 +53,7 @@ public class GameRoomService {
 
     public GameRoomService(
             GameRoomRepository gameRoomRepository,
-            GameSessionRepository gameSessionRepository,
-            UserRepository userRepository,
+            GameResultRepository gameResultRepository,
             RoomRealtimeNotifier roomRealtimeNotifier,
             LobbyBroadcastService lobbyBroadcastService,
             RoomParticipantRegistry roomParticipantRegistry,
@@ -66,8 +62,7 @@ public class GameRoomService {
             @Value("${game.room.join-confirmation-seconds}") long joinConfirmationSeconds,
             @Lazy GameRoomService self) {
         this.gameRoomRepository = gameRoomRepository;
-        this.gameSessionRepository = gameSessionRepository;
-        this.userRepository = userRepository;
+        this.gameResultRepository = gameResultRepository;
         this.roomRealtimeNotifier = roomRealtimeNotifier;
         this.lobbyBroadcastService = lobbyBroadcastService;
         this.roomParticipantRegistry = roomParticipantRegistry;
@@ -204,60 +199,37 @@ public class GameRoomService {
     }
 
     @Transactional
-    public GameResultResponse reportResult(Long roomId, Long userId, int hostScore, int guestScore) {
+    public GameResultResponse reportResult(Long roomId, Long userId, Long winnerUserId) {
         GameRoom room = getRoom(roomId);
         requireParticipant(room, userId);
 
         // 이미 CLOSED된 방(결과 중복 보고 또는 진행 중 나가기로 무효화된 매치 모두 포함)은
-        // 사유를 구분하지 않고 동일하게 거부한다(FR-028, data-model.md GameSession 검증 규칙).
+        // 사유를 구분하지 않고 동일하게 거부한다 — 서버는 게임 중 실시간 이탈을 감지하지 않으므로
+        // (FR-007), 상대방이 결과 보고 전 명시적으로 나간 경우도 이 규칙 하나로 함께 처리된다(FR-014).
         if (room.getStatus() != GameRoomStatus.IN_PROGRESS) {
             throw new BusinessException(ErrorCode.ROOM_NOT_IN_PROGRESS);
         }
+        if (winnerUserId != null && !room.isParticipant(winnerUserId)) {
+            throw new BusinessException(ErrorCode.INVALID_WINNER);
+        }
 
-        Long winnerId = computeWinner(room, hostScore, guestScore);
-        LocalDateTime startedAt = room.getUpdatedAt();
-
-        GameSession session = gameSessionRepository.save(GameSession.builder()
-                .player1Id(room.getHostUserId())
-                .player2Id(room.getGuestUserId())
-                .player1Score(hostScore)
-                .player2Score(guestScore)
-                .winnerId(winnerId)
-                .startedAt(startedAt)
-                .endedAt(LocalDateTime.now())
-                .build());
-
-        updateUserRecords(room.getHostUserId(), room.getGuestUserId(), winnerId);
+        recordGameResult(room, winnerUserId);
         room.close();
 
-        return new GameResultResponse(session.getId(), winnerId, hostScore, guestScore);
+        return new GameResultResponse(winnerUserId);
     }
 
-    private void updateUserRecords(Long hostUserId, Long guestUserId, Long winnerId) {
-        if (winnerId == null) {
-            return; // 무승부는 승/패 기록에 반영하지 않음
+    /** 승자에게 score=1, 패자에게 score=0 행을 함께 기록한다(FR-026 동률 처리에 패수가 필요). 무승부는 기록하지 않는다(FR-033). */
+    private void recordGameResult(GameRoom room, Long winnerUserId) {
+        if (winnerUserId == null) {
+            return;
         }
-        User host = userRepository.findById(hostUserId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-        User guest = userRepository.findById(guestUserId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-        if (winnerId.equals(hostUserId)) {
-            host.recordWin();
-            guest.recordLoss();
-        } else {
-            guest.recordWin();
-            host.recordLoss();
-        }
-    }
-
-    private Long computeWinner(GameRoom room, int hostScore, int guestScore) {
-        if (hostScore > guestScore) {
-            return room.getHostUserId();
-        }
-        if (guestScore > hostScore) {
-            return room.getGuestUserId();
-        }
-        return null;
+        Long loserUserId = winnerUserId.equals(room.getHostUserId()) ? room.getGuestUserId() : room.getHostUserId();
+        GameResultType gameResultType = GameResultType.valueOf(room.getGameType().name());
+        gameResultRepository.save(GameResult.builder()
+                .userId(winnerUserId).gameType(gameResultType).score(1).build());
+        gameResultRepository.save(GameResult.builder()
+                .userId(loserUserId).gameType(gameResultType).score(0).build());
     }
 
     private void requireParticipant(GameRoom room, Long userId) {
