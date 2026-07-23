@@ -44,6 +44,10 @@ public class GameRoom extends BaseTimeEntity {
     @Column(nullable = false)
     private GameRoomStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "game_type", nullable = false, length = 20)
+    private GameType gameType;
+
     @Version
     @Column(nullable = false)
     private Long version;
@@ -55,6 +59,9 @@ public class GameRoom extends BaseTimeEntity {
         this.hostReady = false;
         this.guestReady = false;
         this.status = GameRoomStatus.WAITING;
+        // 생성 시 게임 종류를 받는 것은 US1(FR-017)에서 처리한다 — 그 전까지는 기존 데이터 백필
+        // 규칙(data-model.md)과 동일하게 SIGN_DUEL을 기본값으로 둔다.
+        this.gameType = GameType.SIGN_DUEL;
     }
 
     public boolean isHost(Long userId) {
