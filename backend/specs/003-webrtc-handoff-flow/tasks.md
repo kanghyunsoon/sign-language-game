@@ -79,14 +79,14 @@ description: "Task list for 방 실시간 연결 자동화 및 영상 통화 전
 
 ### Tests for User Story 2
 
-- [ ] T019 [P] [US2] `game/realtime/GameRoomWebSocketHandlerTest.java`에 "WEBRTC_CONNECTED 수신 후 정상 종료(유예 없음)" 케이스 추가
-- [ ] T020 [P] [US2] `game/realtime/GameRoomWebSocketHandlerTest.java`에 "신호 없는 종료는 기존과 동일하게 유예 처리(회귀)" 케이스 추가
+- [X] T019 [P] [US2] `game/realtime/GameRoomWebSocketHandlerTest.java`에 "WEBRTC_CONNECTED 수신 후 정상 종료(유예 없음)" 케이스 추가
+- [X] T020 [P] [US2] `game/realtime/GameRoomWebSocketHandlerTest.java`에 "신호 없는 종료는 기존과 동일하게 유예 처리(회귀)" 케이스 추가 — 기존 `disconnect_exceedsGrace_triggersLeaveAndDelegatesHost`가 이미 커버
 
 ### Implementation for User Story 2
 
-- [ ] T021 [US2] `game/realtime/GameRoomWebSocketHandler.java`의 `handleTextMessage`에 `WEBRTC_CONNECTED` 타입 분기 추가 — 수신 시 해당 참가자 `ParticipantLiveState.expectingIntentionalClose = true`(FR-003, research.md #1)
-- [ ] T022 [US2] `game/realtime/GameRoomWebSocketHandler.java`의 `afterConnectionClosed`가 `expectingIntentionalClose == true`면 유예 타이머(`leave-grace-seconds`)를 걸지 않고 참가자를 정상 상태로 유지(FR-004) — `false`면 기존 유예 타이머 그대로 적용(FR-005, 회귀 없음)
-- [ ] T023 [US2] 게임 시작 후 `WEBRTC_CONNECTED`가 오지 않아도 WebSocket을 강제 종료하지 않는지 확인(FR-006, 별도 코드 변경 없이 회귀 테스트로만 검증)
+- [X] T021 [US2] `game/realtime/GameRoomWebSocketHandler.java`의 `handleTextMessage`에 `WEBRTC_CONNECTED` 타입 분기 추가 — 수신 시 해당 참가자 `ParticipantLiveState.expectingIntentionalClose = true`(FR-003, research.md #1)
+- [X] T022 [US2] `game/realtime/GameRoomWebSocketHandler.java`의 `afterConnectionClosed`가 `expectingIntentionalClose == true`면 유예 타이머(`leave-grace-seconds`)를 걸지 않고 참가자를 정상 상태로 유지(FR-004) — `false`면 기존 유예 타이머 그대로 적용(FR-005, 회귀 없음)
+- [X] T023 [US2] 게임 시작 후 `WEBRTC_CONNECTED`가 오지 않아도 WebSocket을 강제 종료하지 않는지 확인(FR-006, 별도 코드 변경 없이 회귀 테스트로만 검증)
 
 **Checkpoint**: User Story 1·2가 함께 독립적으로 동작 — 실시간 연결 자동화 + 영상 통화 전환 시 안전한 정리
 
@@ -100,11 +100,11 @@ description: "Task list for 방 실시간 연결 자동화 및 영상 통화 전
 
 ### Tests for User Story 3
 
-- [ ] T024 [P] [US3] 기존 `game/realtime/GameRoomWebSocketHandlerTest.java`/`webrtc` 관련 테스트가 US1/US2 변경 이후에도 통과하는지 회귀 실행(신규 테스트 아님)
+- [X] T024 [P] [US3] 기존 `game/realtime/GameRoomWebSocketHandlerTest.java`/`webrtc` 관련 테스트가 US1/US2 변경 이후에도 통과하는지 회귀 실행(신규 테스트 아님) — `startGame_broadcastsGameStartedToBothParticipants`, `signalMessage_relayedToRoomPeerOnly_notToOtherRoomParticipants` 등 전체 통과 확인(`./gradlew test`)
 
 ### Implementation for User Story 3
 
-- [ ] T025 [US3] quickstart.md §3에 따라 게임 시작 통보(`GAME_STARTED`), `GET /webrtc/ice-servers`, `SIGNAL` 중계 회귀를 수동/통합 검증한다(코드 변경 없음 — 002 기능 그대로 재사용 확인)
+- [X] T025 [US3] quickstart.md §3에 따라 게임 시작 통보(`GAME_STARTED`), `GET /webrtc/ice-servers`, `SIGNAL` 중계 회귀를 수동/통합 검증한다(코드 변경 없음 — 002 기능 그대로 재사용 확인) — 기존 통합 테스트로 회귀 확인 완료
 
 **Checkpoint**: 대전 모드 흐름 전체(연결→전환→시작→시그널링)가 끊김 없이 검증됨
 
