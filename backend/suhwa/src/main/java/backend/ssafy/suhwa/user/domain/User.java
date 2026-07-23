@@ -35,12 +35,6 @@ public class User extends BaseTimeEntity {
     @Column(name = "profile_image_url", length = 500)
     private String profileImageUrl;
 
-    @Column(name = "win_count", nullable = false)
-    private int winCount;
-
-    @Column(name = "loss_count", nullable = false)
-    private int lossCount;
-
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
@@ -49,8 +43,6 @@ public class User extends BaseTimeEntity {
         this.email = email;
         this.passwordHash = passwordHash;
         this.nickname = nickname;
-        this.winCount = 0;
-        this.lossCount = 0;
     }
 
     public boolean isDeleted() {
@@ -69,13 +61,5 @@ public class User extends BaseTimeEntity {
     public void withdraw() {
         this.deletedAt = LocalDateTime.now();
         this.email = "deleted_%d_%d@withdrawn.local".formatted(this.id, System.currentTimeMillis());
-    }
-
-    public void recordWin() {
-        this.winCount++;
-    }
-
-    public void recordLoss() {
-        this.lossCount++;
     }
 }

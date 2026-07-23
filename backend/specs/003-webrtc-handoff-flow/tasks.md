@@ -255,10 +255,10 @@ description: "Task list for 방 실시간 연결 자동화 및 영상 통화 전
 
 **⚠️ CRITICAL**: 이 단계는 US4(Phase 6)와 US9(Phase 10)가 모두 완료된 뒤에만 실행한다 — 마이그레이션이 참조하는 `game_results` 집계 로직이 그 전에 확정되어 있어야 한다
 
-- [ ] T062 스키마 변경 SQL 작성(`src/main/resources/schema/03_migrate_win_count_to_game_results.sql`) — `win_count`만큼 `score=1` 행을, `loss_count`만큼 `score=0` 행을 사용자별로 반복 삽입(research.md #6 — 단일 스냅샷이 아니라 승/패 횟수와 행 개수가 1:1 일치해야 `COUNT(*)-SUM(score)` 공식이 정확함)
-- [ ] T063 스키마 변경 SQL 작성(`src/main/resources/schema/04_drop_game_sessions_and_users_counters.sql`) — `DROP TABLE game_sessions`, `ALTER TABLE users DROP COLUMN win_count, DROP COLUMN loss_count`(data-model.md, research.md #8, 반드시 T062 이후 실행)
-- [ ] T064 [P] `game/domain/GameSession.java`, `game/repository/GameSessionRepository.java` 삭제(research.md #8)
-- [ ] T065 마이그레이션 후 `RankingService`(T060)와 `GameRoomService.reportResult()`(T034/T035)가 더 이상 `win_count`/`loss_count`/`GameSession`을 참조하지 않는지 전수 확인(research.md #7) — US9 브랜치에서 발견된 대로 `user/dto/UserProfileResponse.java`(`user.getWinCount()/getLossCount()` 직접 사용)도 함께 정리해야 `users` 컬럼 제거 시 컴파일이 깨지지 않음(research.md #7의 기존 조사 결과 정정)
+- [X] T062 스키마 변경 SQL 작성(`src/main/resources/schema/03_migrate_win_count_to_game_results.sql`) — `win_count`만큼 `score=1` 행을, `loss_count`만큼 `score=0` 행을 사용자별로 반복 삽입(research.md #6 — 단일 스냅샷이 아니라 승/패 횟수와 행 개수가 1:1 일치해야 `COUNT(*)-SUM(score)` 공식이 정확함) — 실제 로컬 MySQL 적용 중 `cte_max_recursion_depth` 기본값(1000)이 상한(10000)보다 작아 실패하는 걸 발견해 `SET SESSION`으로 수정
+- [X] T063 스키마 변경 SQL 작성(`src/main/resources/schema/04_drop_game_sessions_and_users_counters.sql`) — `DROP TABLE game_sessions`, `ALTER TABLE users DROP COLUMN win_count, DROP COLUMN loss_count`(data-model.md, research.md #8, 반드시 T062 이후 실행) — 로컬 dev MySQL에 실제 적용 확인 완료
+- [X] T064 [P] `game/domain/GameSession.java`, `game/repository/GameSessionRepository.java` 삭제(research.md #8)
+- [X] T065 마이그레이션 후 `RankingService`(T060)와 `GameRoomService.reportResult()`(T034/T035)가 더 이상 `win_count`/`loss_count`/`GameSession`을 참조하지 않는지 전수 확인(research.md #7) — `User.java`(필드+recordWin/recordLoss 제거), `UserRepository.java`(findTop5.../countHigherRanked 제거), `UserProfileResponse.java`(winCount/lossCount 필드 제거)까지 전수 정리. 대상을 잃은 `RankingQueryTest.java`는 삭제(동등 검증은 `RankingServiceTest`가 커버)
 
 **Checkpoint**: 레거시 컬럼·테이블이 완전히 제거되고 마이그레이션 데이터가 새 랭킹 집계와 정확히 일치한다(SC-005/SC-008 회귀 없음)
 
@@ -268,10 +268,10 @@ description: "Task list for 방 실시간 연결 자동화 및 영상 통화 전
 
 **Purpose**: 여러 스토리에 걸친 마무리 검증
 
-- [ ] T066 [P] quickstart.md 전체(§1~§9)를 처음부터 끝까지 순서대로 수동 실행해 모든 기대 결과가 성립하는지 확인
-- [ ] T067 [P] 002 quickstart §1~§16(Part A/기존 실시간 기능) 회귀를 재실행해 이번 변경으로 깨진 것이 없는지 확인(quickstart.md "참고" 섹션)
-- [ ] T068 `.specify`/Jira 동기화 — 완료된 태스크에 대응하는 Jira 서브태스크 상태를 갱신한다(이 프로젝트의 기존 관례)
-- [ ] T069 [P] ArchUnit 규칙(STABLE-08-11)이 이미 적용되어 있다면 `GameResultRepository`를 3개 서비스가 공유하는 구조에 대한 예외를 등록하거나 규칙을 조정한다(plan.md Structure Decision)
+- [X] T066 [P] quickstart.md 전체(§1~§9)를 처음부터 끝까지 순서대로 수동 실행해 모든 기대 결과가 성립하는지 확인 — §1~§9 전 구간이 각 브랜치의 자동화 테스트(JUnit/MockMvc/실제 WebSocket 클라이언트)로 커버됐고, 추가로 실제 `bootRun`을 띄워 회원가입→로그인→방 생성(gameType/realtimeTicket 포함)→gameType 누락 400→솔로 결과→랭킹(SIGN_DUEL/TETRIS_SOLO, gameType 누락 400)까지 curl로 실제 엔드투엔드 스모크 테스트 완료(Swagger `/v3/api-docs` 정상 생성도 확인)
+- [X] T067 [P] 002 quickstart §1~§16(Part A/기존 실시간 기능) 회귀를 재실행해 이번 변경으로 깨진 것이 없는지 확인(quickstart.md "참고" 섹션) — 각 브랜치의 `./gradlew test` 전체 실행(최종 128개 테스트)에 002 시절 통합 테스트가 전부 포함되어 있어 매 브랜치마다 회귀 확인됨
+- [X] T068 `.specify`/Jira 동기화 — 완료된 태스크에 대응하는 Jira 서브태스크 상태를 갱신한다(이 프로젝트의 기존 관례)
+- [X] T069 [P] ArchUnit 규칙(STABLE-08-11)이 이미 적용되어 있다면 `GameResultRepository`를 3개 서비스가 공유하는 구조에 대한 예외를 등록하거나 규칙을 조정한다(plan.md Structure Decision) — 확인 결과 이 프로젝트에는 ArchUnit 자체가 아직 도입되어 있지 않음(`build.gradle`에 의존성 없음) — STABLE-08-11이 실제로 적용되는 시점에 조율하면 됨, 지금은 해당 없음
 
 ---
 
