@@ -35,16 +35,16 @@ description: "Task list for 방 실시간 연결 자동화 및 영상 통화 전
 
 ---
 
-- [ ] T004 `game/domain/GameType.java` enum 생성(`SIGN_DUEL`, `TETRIS_DUEL`) — `game_rooms` 전용, research.md #3
-- [ ] T005 `gameresult/domain/GameResultType.java` enum 생성(`SIGN_DUEL`, `TETRIS_DUEL`, `TETRIS_SOLO`) — `game_results` 전용, `GameType`과는 별도 enum(research.md #3/#5)
-- [ ] T006 [P] `gameresult/domain/GameResult.java` JPA 엔티티 생성(`id, userId, gameType(GameResultType), score, recordedAt`) — data-model.md `game_results` 스키마 기준
-- [ ] T007 [P] `gameresult/repository/GameResultRepository.java` 생성 — `GameRoomService`/`SoloResultService`/`RankingService` 3곳이 공유(plan.md Structure Decision, STABLE-08-11 ArchUnit 경계와의 긴장 관계 인지)
-- [ ] T008 스키마 변경 SQL 작성(`src/main/resources/schema/01_add_game_type_to_game_rooms.sql`) — `ALTER TABLE game_rooms ADD COLUMN game_type VARCHAR(20) NOT NULL DEFAULT 'SIGN_DUEL'`(data-model.md)
-- [ ] T009 스키마 변경 SQL 작성(`src/main/resources/schema/02_create_game_results.sql`) — `game_results` 테이블 생성(FK, `idx_game_result_user_type`, `idx_game_result_type_score` 인덱스 포함, data-model.md DDL 그대로)
-- [ ] T010 `game/domain/GameRoom.java`에 `@Enumerated(EnumType.STRING) private GameType gameType` 필드 추가(FR-017/018/020)
-- [ ] T011 `game/realtime/ParticipantLiveState.java`에 `expectingIntentionalClose`(boolean, 초기값 false) 필드 추가(FR-003/004, data-model.md)
-- [ ] T012 `game/realtime/RoomRealtimeNotifier.java` 인터페이스에 `notifyReadyChanged(roomId, userId, isReady)` 메서드 추가하고 `WebSocketRoomRealtimeNotifier` 구현 반영(FR-030, research.md #2)
-- [ ] T013 `game/realtime/dto/LobbyRoomSummary.java`에 `gameType` 필드 추가(FR-018, research.md #3 — `GameRoomResponse`와 별개 record이므로 따로 추가해야 함)
+- [X] T004 `game/domain/GameType.java` enum 생성(`SIGN_DUEL`, `TETRIS_DUEL`) — `game_rooms` 전용, research.md #3
+- [X] T005 `gameresult/domain/GameResultType.java` enum 생성(`SIGN_DUEL`, `TETRIS_DUEL`, `TETRIS_SOLO`) — `game_results` 전용, `GameType`과는 별도 enum(research.md #3/#5)
+- [X] T006 [P] `gameresult/domain/GameResult.java` JPA 엔티티 생성(`id, userId, gameType(GameResultType), score, recordedAt`) — data-model.md `game_results` 스키마 기준
+- [X] T007 [P] `gameresult/repository/GameResultRepository.java` 생성 — `GameRoomService`/`SoloResultService`/`RankingService` 3곳이 공유(plan.md Structure Decision, STABLE-08-11 ArchUnit 경계와의 긴장 관계 인지)
+- [X] T008 스키마 변경 SQL 작성(`src/main/resources/schema/01_add_game_type_to_game_rooms.sql`) — `ALTER TABLE game_rooms ADD COLUMN game_type VARCHAR(20) NOT NULL DEFAULT 'SIGN_DUEL'`(data-model.md)
+- [X] T009 스키마 변경 SQL 작성(`src/main/resources/schema/02_create_game_results.sql`) — `game_results` 테이블 생성(FK, `idx_game_result_user_type`, `idx_game_result_type_score` 인덱스 포함, data-model.md DDL 그대로)
+- [X] T010 `game/domain/GameRoom.java`에 `@Enumerated(EnumType.STRING) private GameType gameType` 필드 추가(FR-017/018/020)
+- [X] T011 `game/realtime/ParticipantLiveState.java`에 `expectingIntentionalClose`(boolean, 초기값 false) 필드 추가(FR-003/004, data-model.md)
+- [X] T012 `game/realtime/RoomRealtimeNotifier.java` 인터페이스에 `notifyReadyChanged(roomId, userId, isReady)` 메서드 추가하고 `WebSocketRoomRealtimeNotifier` 구현 반영(FR-030, research.md #2)
+- [X] T013 `game/realtime/dto/LobbyRoomSummary.java`에 `gameType` 필드 추가(FR-018, research.md #3 — `GameRoomResponse`와 별개 record이므로 따로 추가해야 함)
 
 **Checkpoint**: 공통 엔티티·저장소·스키마가 준비되어 이후 모든 User Story 구현을 병렬로 시작할 수 있다
 
