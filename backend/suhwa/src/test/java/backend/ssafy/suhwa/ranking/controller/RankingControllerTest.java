@@ -1,9 +1,12 @@
 package backend.ssafy.suhwa.ranking.controller;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import backend.ssafy.suhwa.gameresult.domain.GameResultType;
 import backend.ssafy.suhwa.ranking.dto.RankingEntry;
 import backend.ssafy.suhwa.ranking.dto.RankingResponse;
 import backend.ssafy.suhwa.ranking.service.RankingService;
@@ -42,9 +45,14 @@ class RankingControllerTest {
 
     @Test
     void getRankings_returns200() throws Exception {
-        given(rankingService.getRankings(1L)).willReturn(
-                new RankingResponse(List.of(), new RankingEntry(1, 1L, "me", 3, 1)));
+        given(rankingService.getRankings(anyLong(), any(GameResultType.class))).willReturn(
+                new RankingResponse(List.of(), new RankingEntry(1, 1L, "me", 3)));
 
-        mockMvc.perform(get("/rankings")).andExpect(status().isOk());
+        mockMvc.perform(get("/rankings").param("gameType", "SIGN_DUEL")).andExpect(status().isOk());
+    }
+
+    @Test
+    void getRankings_missingGameType_returns400() throws Exception {
+        mockMvc.perform(get("/rankings")).andExpect(status().isBadRequest());
     }
 }

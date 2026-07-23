@@ -232,19 +232,18 @@ description: "Task list for 방 실시간 연결 자동화 및 영상 통화 전
 
 ### Tests for User Story 9
 
-- [ ] T052 [P] [US9] `ranking/service/RankingServiceTest.java`에 "gameType 파라미터 없으면 400" 케이스 추가(FR-025)
-- [ ] T053 [P] [US9] `ranking/service/RankingServiceTest.java`에 "게임 종류별 완전 분리(한 종류 결과가 다른 종류에 영향 없음)" 케이스 추가(FR-025, SC-008)
-- [ ] T054 [P] [US9] `ranking/service/RankingServiceTest.java`에 "승수 동률 시 패수 오름차순 2차 정렬" 케이스 추가(FR-026, research.md #5)
-- [ ] T055 [P] [US9] `ranking/service/RankingServiceTest.java`에 "솔로는 MAX(score) 기준 정렬" 케이스 추가(FR-029)
-- [ ] T056 [P] [US9] `ranking/service/RankingServiceTest.java`에 "한 번도 플레이하지 않은 게임 종류 조회 시 me: null" 케이스 추가(US9 AC4)
+- [X] T052 [P] [US9] `ranking/service/RankingServiceTest.java`에 "gameType 파라미터 없으면 400" 케이스 추가(FR-025) — 실제로는 `@RequestParam` 필수 검증이 컨트롤러 계층에서 걸리므로(`MissingServletRequestParameterException`) `RankingControllerTest`/`RankingIntegrationTest`에 추가
+- [X] T053 [P] [US9] `ranking/service/RankingServiceTest.java`에 "게임 종류별 완전 분리(한 종류 결과가 다른 종류에 영향 없음)" 케이스 추가(FR-025, SC-008)
+- [X] T054 [P] [US9] `ranking/service/RankingServiceTest.java`에 "승수 동률 시 패수 오름차순 2차 정렬" 케이스 추가(FR-026, research.md #5)
+- [X] T055 [P] [US9] `ranking/service/RankingServiceTest.java`에 "솔로는 MAX(score) 기준 정렬" 케이스 추가(FR-029)
+- [X] T056 [P] [US9] `ranking/service/RankingServiceTest.java`에 "한 번도 플레이하지 않은 게임 종류 조회 시 me: null" 케이스 추가(US9 AC4)
 
 ### Implementation for User Story 9
 
-- [ ] T057 [US9] `ranking/controller/RankingController.java`가 `gameType` 쿼리 파라미터를 필수로 받도록 변경(누락 시 400, FR-025, contracts/ranking-api-delta.yaml)
-- [ ] T058 [US9] `gameresult/repository/GameResultRepository.java`에 대전 모드 집계 쿼리 추가 — `game_type` 필터, `SUM(score)`(승수) DESC, 동률 시 `COUNT(*) - SUM(score)`(패수) ASC 정렬로 Top 5 조회(FR-026, data-model.md 집계 규칙)
-- [ ] T059 [US9] `gameresult/repository/GameResultRepository.java`에 솔로 집계 쿼리 추가 — `game_type='TETRIS_SOLO'` 필터, `MAX(score)` DESC Top 5 조회(FR-029)
-- [ ] T060 [US9] `ranking/service/RankingService.java`를 재작성 — `users.win_count`/`loss_count` 대신 `GameResultRepository`의 집계 쿼리 사용, 탈퇴 사용자 제외 조건 유지(research.md #5/#7)
-- [ ] T061 [US9] `ranking/dto/RankingResponse.java`의 `me`를 nullable로 변경 — 요청자가 해당 게임 종류를 한 번도 플레이하지 않았으면 `null` 반환(US9 AC4, research.md #10)
+- [X] T057 [US9] `ranking/controller/RankingController.java`가 `gameType` 쿼리 파라미터를 필수로 받도록 변경(누락 시 400, FR-025, contracts/ranking-api-delta.yaml)
+- [X] T058-T059 [US9] `gameresult/repository/GameResultRepository.java`에 `findByGameType` 조회 메서드 추가 — SUM/MAX 집계와 동률 처리(`COUNT(*) - SUM(score)`)는 교육 프로젝트 규모에 맞춰 SQL 대신 `RankingService`(서비스 계층)에서 처리(FR-026/029, data-model.md 집계 규칙과 동일한 결과)
+- [X] T060 [US9] `ranking/service/RankingService.java`를 재작성 — `users.win_count`/`loss_count` 대신 `GameResultRepository` 집계 사용, 탈퇴 사용자 제외 조건 유지(research.md #5/#7) — **부수 발견**: research.md #7의 "UserProfileResponse는 win_count/loss_count를 노출하지 않는다"는 조사가 실제로는 틀렸음을 확인(`UserProfileResponse.from()`이 `user.getWinCount()/getLossCount()`를 그대로 씀) — Phase 11에서 `users` 컬럼 제거 시 이 클래스도 함께 손봐야 함
+- [X] T061 [US9] `ranking/dto/RankingResponse.java`의 `me`를 nullable로 변경 — 요청자가 해당 게임 종류를 한 번도 플레이하지 않았으면 `null` 반환(US9 AC4, research.md #10) — 레코드 자체는 이미 nullable이라 `RankingService`가 null을 반환하는 것만으로 충족(결과 목록에 아예 없는 사용자로 자연 표현)
 
 **Checkpoint**: 세 게임 종류의 랭킹이 완전히 독립적으로 조회되고, 동률 처리가 기존 001 규칙과 동일하게 동작한다
 
@@ -259,7 +258,7 @@ description: "Task list for 방 실시간 연결 자동화 및 영상 통화 전
 - [ ] T062 스키마 변경 SQL 작성(`src/main/resources/schema/03_migrate_win_count_to_game_results.sql`) — `win_count`만큼 `score=1` 행을, `loss_count`만큼 `score=0` 행을 사용자별로 반복 삽입(research.md #6 — 단일 스냅샷이 아니라 승/패 횟수와 행 개수가 1:1 일치해야 `COUNT(*)-SUM(score)` 공식이 정확함)
 - [ ] T063 스키마 변경 SQL 작성(`src/main/resources/schema/04_drop_game_sessions_and_users_counters.sql`) — `DROP TABLE game_sessions`, `ALTER TABLE users DROP COLUMN win_count, DROP COLUMN loss_count`(data-model.md, research.md #8, 반드시 T062 이후 실행)
 - [ ] T064 [P] `game/domain/GameSession.java`, `game/repository/GameSessionRepository.java` 삭제(research.md #8)
-- [ ] T065 마이그레이션 후 `RankingService`(T060)와 `GameRoomService.reportResult()`(T034/T035)가 더 이상 `win_count`/`loss_count`/`GameSession`을 참조하지 않는지 전수 확인(research.md #7)
+- [ ] T065 마이그레이션 후 `RankingService`(T060)와 `GameRoomService.reportResult()`(T034/T035)가 더 이상 `win_count`/`loss_count`/`GameSession`을 참조하지 않는지 전수 확인(research.md #7) — US9 브랜치에서 발견된 대로 `user/dto/UserProfileResponse.java`(`user.getWinCount()/getLossCount()` 직접 사용)도 함께 정리해야 `users` 컬럼 제거 시 컴파일이 깨지지 않음(research.md #7의 기존 조사 결과 정정)
 
 **Checkpoint**: 레거시 컬럼·테이블이 완전히 제거되고 마이그레이션 데이터가 새 랭킹 집계와 정확히 일치한다(SC-005/SC-008 회귀 없음)
 
