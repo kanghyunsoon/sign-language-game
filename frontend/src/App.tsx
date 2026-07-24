@@ -4,7 +4,8 @@ import { PreLoginPage } from "./features/home/pages/PreLoginPage";
 import { LoginPage } from "./features/auth/pages/LoginPage";
 import { SignUpPage } from "./features/auth/pages/SignUpPage";
 import { PracticeHomePage } from "./features/learning/pages/PracticeHomePage";
-import { StandaloneGameHarness } from "./game";
+import { GameModule } from "./game";
+import { STANDALONE_GAME_CONFIG } from "./game/config/standaloneConfig";
 
 export function App() {
   return (
@@ -25,8 +26,16 @@ export function App() {
         <Route path="/practice" element={<PracticeHomePage />} />
         
         {/* 단독 게임 테스트 주소 (예: /game) */}
-        <Route path="/game" element={<StandaloneGameHarness />} />
- 
+        <Route path="/game/*" element={<GameModule
+              user={{
+                userId: "00000000-0000-4000-8000-000000000001",
+                displayName: "개발 사용자",
+              }}
+              config={STANDALONE_GAME_CONFIG}
+            />
+          }
+        />
+
       </Routes>
     </BrowserRouter>
   );
