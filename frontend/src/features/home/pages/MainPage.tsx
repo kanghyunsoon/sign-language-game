@@ -20,7 +20,7 @@ export function MainPage() {
           <Link to="/practice">연습</Link>
           <a href="#">테스트</a>
           <a href="#">사전</a>
-          <a href="#">오답노트</a>
+          <Link to="/game">게임</Link>
         </nav>
 
         <button className="mypage-button" type="button">
