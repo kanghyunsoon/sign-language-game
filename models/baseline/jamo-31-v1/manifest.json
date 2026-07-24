@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "modelVersion": "jamo-31-v1",
+  "labels": ["ㄱ", "ㄴ", "ㄷ", "ㄹ", "ㅁ", "ㅂ", "ㅅ", "ㅇ", "ㅈ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ", "ㅏ", "ㅑ", "ㅓ", "ㅕ", "ㅗ", "ㅛ", "ㅜ", "ㅠ", "ㅡ", "ㅣ", "ㅐ", "ㅒ", "ㅔ", "ㅖ", "ㅢ", "ㅚ", "ㅟ"],
+  "input": [1, 10, 55],
+  "output": [1, 31],
+  "files": [
+    {
+      "name": "multi_hand_gesture_classifier.h5",
+      "sha256": "648bae38139dcac5c0234a7b54a7f235b4b39a3b4adfeedabb194a1f517484e0"
+    },
+    {
+      "name": "multi_hand_gesture_classifier.tflite",
+      "sha256": "b6c6ab6d58827e5d024a2eecb4a23f77c45ae86782f918df9b8b650b4d6b839b"
+    }
+  ],
+  "note": "Immutable pre-training snapshot. Do not overwrite; add a new versioned model directory."
+}

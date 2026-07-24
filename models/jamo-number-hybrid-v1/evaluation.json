@@ -1,0 +1,363 @@
+{
+  "modelVersion": "jamo-number-hybrid-v1",
+  "labels": [
+    "ㄱ",
+    "ㄴ",
+    "ㄷ",
+    "ㄹ",
+    "ㅁ",
+    "ㅂ",
+    "ㅅ",
+    "ㅇ",
+    "ㅈ",
+    "ㅊ",
+    "ㅋ",
+    "ㅌ",
+    "ㅍ",
+    "ㅎ",
+    "ㅏ",
+    "ㅑ",
+    "ㅓ",
+    "ㅕ",
+    "ㅗ",
+    "ㅛ",
+    "ㅜ",
+    "ㅠ",
+    "ㅡ",
+    "ㅣ",
+    "ㅐ",
+    "ㅒ",
+    "ㅔ",
+    "ㅖ",
+    "ㅢ",
+    "ㅚ",
+    "ㅟ",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10"
+  ],
+  "evaluationWarning": "The deployed jamo TFLite baseline was trained with a mixed split that includes these capture sessions; jamo results are regression evidence, not independent certification.",
+  "domainRouting": {
+    "jamoToNumberErrors": 0,
+    "numberToJamoErrors": 0
+  },
+  "meanEndToEndInferenceMs": 127.3007,
+  "overallAccuracy": 0.918989,
+  "overallBalancedAccuracy": 0.923558,
+  "jamo": {
+    "samples": 13978,
+    "accuracy": 0.918229,
+    "balancedAccuracy": 0.911015,
+    "macroPrecision": 0.897101,
+    "macroRecall": 0.911015,
+    "macroF1": 0.899442,
+    "predictedOutsideSubset": 0,
+    "classes": [
+      {
+        "label": "ㄱ",
+        "precision": 0.956627,
+        "recall": 0.921114,
+        "f1": 0.938534,
+        "support": 431
+      },
+      {
+        "label": "ㄴ",
+        "precision": 1.0,
+        "recall": 0.96319,
+        "f1": 0.98125,
+        "support": 489
+      },
+      {
+        "label": "ㄷ",
+        "precision": 0.981735,
+        "recall": 0.99537,
+        "f1": 0.988506,
+        "support": 432
+      },
+      {
+        "label": "ㄹ",
+        "precision": 1.0,
+        "recall": 0.927195,
+        "f1": 0.962222,
+        "support": 467
+      },
+      {
+        "label": "ㅁ",
+        "precision": 0.895551,
+        "recall": 0.962578,
+        "f1": 0.927856,
+        "support": 481
+      },
+      {
+        "label": "ㅂ",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 500
+      },
+      {
+        "label": "ㅅ",
+        "precision": 0.485714,
+        "recall": 0.982659,
+        "f1": 0.650096,
+        "support": 346
+      },
+      {
+        "label": "ㅇ",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 497
+      },
+      {
+        "label": "ㅈ",
+        "precision": 0.982533,
+        "recall": 0.939457,
+        "f1": 0.960512,
+        "support": 479
+      },
+      {
+        "label": "ㅊ",
+        "precision": 0.97556,
+        "recall": 0.977551,
+        "f1": 0.976555,
+        "support": 490
+      },
+      {
+        "label": "ㅋ",
+        "precision": 0.984925,
+        "recall": 0.944578,
+        "f1": 0.96433,
+        "support": 415
+      },
+      {
+        "label": "ㅌ",
+        "precision": 0.848598,
+        "recall": 0.995614,
+        "f1": 0.916246,
+        "support": 456
+      },
+      {
+        "label": "ㅍ",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 475
+      },
+      {
+        "label": "ㅎ",
+        "precision": 0.997863,
+        "recall": 1.0,
+        "f1": 0.99893,
+        "support": 467
+      },
+      {
+        "label": "ㅏ",
+        "precision": 0.966203,
+        "recall": 1.0,
+        "f1": 0.982811,
+        "support": 486
+      },
+      {
+        "label": "ㅑ",
+        "precision": 0.929314,
+        "recall": 0.894,
+        "f1": 0.911315,
+        "support": 500
+      },
+      {
+        "label": "ㅓ",
+        "precision": 0.786749,
+        "recall": 0.76,
+        "f1": 0.773143,
+        "support": 500
+      },
+      {
+        "label": "ㅕ",
+        "precision": 0.740964,
+        "recall": 0.780127,
+        "f1": 0.760041,
+        "support": 473
+      },
+      {
+        "label": "ㅗ",
+        "precision": 0.911548,
+        "recall": 0.984085,
+        "f1": 0.946429,
+        "support": 377
+      },
+      {
+        "label": "ㅛ",
+        "precision": 1.0,
+        "recall": 0.990521,
+        "f1": 0.995238,
+        "support": 422
+      },
+      {
+        "label": "ㅜ",
+        "precision": 0.912766,
+        "recall": 0.997674,
+        "f1": 0.953333,
+        "support": 430
+      },
+      {
+        "label": "ㅠ",
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 336
+      },
+      {
+        "label": "ㅡ",
+        "precision": 0.859259,
+        "recall": 1.0,
+        "f1": 0.924303,
+        "support": 464
+      },
+      {
+        "label": "ㅣ",
+        "precision": 0.989858,
+        "recall": 1.0,
+        "f1": 0.994903,
+        "support": 488
+      },
+      {
+        "label": "ㅐ",
+        "precision": 0.932673,
+        "recall": 1.0,
+        "f1": 0.965164,
+        "support": 471
+      },
+      {
+        "label": "ㅒ",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 485
+      },
+      {
+        "label": "ㅔ",
+        "precision": 0.916409,
+        "recall": 0.665169,
+        "f1": 0.770833,
+        "support": 445
+      },
+      {
+        "label": "ㅖ",
+        "precision": 0.877551,
+        "recall": 0.676404,
+        "f1": 0.763959,
+        "support": 445
+      },
+      {
+        "label": "ㅢ",
+        "precision": 0.917293,
+        "recall": 0.997275,
+        "f1": 0.955614,
+        "support": 367
+      },
+      {
+        "label": "ㅚ",
+        "precision": 1.0,
+        "recall": 0.895981,
+        "f1": 0.945137,
+        "support": 423
+      },
+      {
+        "label": "ㅟ",
+        "precision": 0.96044,
+        "recall": 0.99093,
+        "f1": 0.975446,
+        "support": 441
+      }
+    ]
+  },
+  "numbers": {
+    "samples": 304,
+    "accuracy": 0.953947,
+    "balancedAccuracy": 0.962442,
+    "macroPrecision": 0.956923,
+    "macroRecall": 0.962442,
+    "macroF1": 0.958768,
+    "predictedOutsideSubset": 0,
+    "classes": [
+      {
+        "label": "1",
+        "precision": 0.8,
+        "recall": 0.933333,
+        "f1": 0.861538,
+        "support": 30
+      },
+      {
+        "label": "2",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 30
+      },
+      {
+        "label": "3",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 24
+      },
+      {
+        "label": "4",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 30
+      },
+      {
+        "label": "5",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 30
+      },
+      {
+        "label": "6",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 22
+      },
+      {
+        "label": "7",
+        "precision": 1.0,
+        "recall": 0.966667,
+        "f1": 0.983051,
+        "support": 30
+      },
+      {
+        "label": "8",
+        "precision": 0.923077,
+        "recall": 0.888889,
+        "f1": 0.90566,
+        "support": 27
+      },
+      {
+        "label": "9",
+        "precision": 0.884615,
+        "recall": 0.958333,
+        "f1": 0.92,
+        "support": 24
+      },
+      {
+        "label": "10",
+        "precision": 0.961538,
+        "recall": 0.877193,
+        "f1": 0.917431,
+        "support": 57
+      }
+    ]
+  }
+}
