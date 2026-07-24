@@ -1,6 +1,6 @@
 # Game AI development server
 
-이 서버는 운영 AI 서버와 교체 가능한 로컬 어댑터다. `ws://localhost:8765`에서 프런트가 추출한 MediaPipe 21개 landmark만 받고 카메라·이미지·영상은 받지 않는다. 기본 `hybrid` 프로필은 기존 게임의 31자모 TFLite head를 그대로 유지하면서 숫자 1~10을 별도 Extra Trees head로 추가한다.
+이 서버는 운영 AI 서버와 교체 가능한 로컬 어댑터다. `ws://localhost:8765`에서 프런트가 추출한 MediaPipe 21개 landmark만 받고 카메라·이미지·영상은 받지 않는다. 현재 게임은 숫자 인식을 제외하므로 기본값은 지문자 전용 `baseline` 프로필이다.
 
 ## 구현체 교체 경계
 
@@ -8,8 +8,8 @@
 
 | `HANDPRACTICE_AI_MODEL` | 구현 | 용도 |
 |---|---|---|
-| `hybrid` (기본) | 기존 자모 TFLite + 자모/숫자 domain router + 숫자 tree | 현재 게임 회귀 보존 및 숫자 지원 |
-| `baseline` | 기존 31자모 TFLite | 즉시 롤백 |
+| `baseline` (기본) | 기존 31자모 TFLite | 현재 게임용 저지연 지문자 인식 |
+| `hybrid` | 기존 자모 TFLite + 자모/숫자 domain router + 숫자 tree | 숫자 비교 실험 |
 | `expanded` | 41-class Extra Trees | 비교 실험/진단 |
 
 향후 원격 AI 서버는 이 프로세스 자체를 교체해 같은 WebSocket 계약을 구현하거나, `ModelRunner` 구현체를 추가해 `create_model_runner()`에 등록하면 된다. 프런트 게임 코드는 수정하지 않는다.
@@ -29,9 +29,11 @@ python -m app.main
 For the shared development environment used by this repository:
 
 ```powershell
-$env:HANDPRACTICE_AI_MODEL="hybrid"
+$env:HANDPRACTICE_AI_MODEL="baseline"
 python -m app.main
 ```
+
+로컬 21개 landmark를 warm-up 12회 후 120회 순차 전송한 2026-07-23 측정에서 `hybrid`는 평균 169.078ms/p95 220.968ms/5.96fps, `baseline`은 평균 2.288ms/p95 3.216ms/429.78fps였다. 현재 프런트의 18fps 전송과 숫자 제외 정책에는 `baseline`을 사용한다.
 
 Run tests with:
 

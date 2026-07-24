@@ -170,3 +170,11 @@ CUDA_VISIBLE_DEVICES=2 .venv/bin/python code-v3/scripts/train_roboflow_jamo_gpu.
 - AIHub feature와 current checkpoint를 다른 컴퓨터로 옮길 때는 raw ZIP 대신 compact NPZ의 SHA-256, class_names 순서, feature dimension(128), train 16,873 / validation signer18 993 / locked development signer19 993을 먼저 검증한다.
 - GPU 학습은 반드시 `CUDA_VISIBLE_DEVICES=2`를 지정한다. mask 안에서는 PyTorch가 논리 장치 `cuda:0`으로 보이는 것이 정상이다.
 - 다음 CTC 회차는 직전 report/train.log를 읽고, 문자별 93% 미달 목록·support·top confusion을 근거로 변경 가설 하나만 정한 뒤 시작한다. macro-F1/CER만 좋아져도 미달 문자가 늘면 회귀로 기록한다.
+
+### 2026-07-23 Roboflow 정적 자모 T-134 완료 인계
+
+- 정적 연구의 selected aggregate 후보는 **T-130**이다: test accuracy `95.4315%`, macro-F1 `95.2429%`, class floor 미달 13개. 다만 현재 Roboflow split은 signer-independent가 아니므로 서비스·연속 인식 후보로 승격하지 않는다.
+- T-133은 predefined confusion pairs에 margin `0.10`만 적용한 분리 검증이며 `94.4162% / 93.2578% macro-F1`, 미달 14개로 회귀했다. margin-only 재탐색을 하지 않는다.
+- T-134는 T-130에서 **`--balance-mode sampler`를 `--balance-mode loss`로만** 변경했다. test accuracy `94.9239%`, macro-F1 `93.5386%`, 미달 15개로 회귀했다. 결과는 `~/sign_language_training/code-v3/outputs/t134-roboflow-v1-loss-balance/evaluation.json`과 `train.log`에 있다.
+- 다음 담당자는 T-130/T-133/T-134 결과를 먼저 읽고, sampler/loss weighting·margin·label smoothing 반복 대신 새 signer 또는 pose/camera angle/lighting 중 하나의 데이터 조건만 추가한다. 그 뒤 signer/source-family가 겹치지 않는 locked evaluation으로 검증한다.
+- GPU 서버의 실제 동작 인터프리터는 `/home/j-i15a405/islee/.venv/bin/python`이다. 실행 전 `train_roboflow_jamo_image_t10.py --help`가 성공하는지 확인한다. 현재 검증된 조합은 `Pillow==10.4.0`, `pillow-heif==0.22.0`, `scikit-learn`, `torch 2.11.0+cu128`, `torchvision 0.26.0+cu128`이며 GPU 2는 `CUDA_VISIBLE_DEVICES=2`로 단독 사용한다.

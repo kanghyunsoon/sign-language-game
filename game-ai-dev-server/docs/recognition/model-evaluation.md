@@ -481,7 +481,7 @@ cd game-ai-dev-server
 
 다음 정식 학습은 최소 5명보다 많은 신규 참여자를 signer 단위로 완전히 분리하고, 각 자모·숫자에 손바닥/손등, 위/아래 회전, 좌/우 손, 거리·조명·카메라 변형과 `NONE/OOD` class를 촬영해야 한다. 그 holdout에서 macro F1과 class 최저 recall까지 95%에 접근해야 게임 공정성 목표를 달성한 것으로 본다.
 
-평가일: 2026-07-18
+평가일: 2026-07-18  
 운영 모델: `models/multi_hand_gesture_classifier.tflite` (`jamo-31-v1`)
 
 ## 결론
@@ -1159,3 +1159,12 @@ T-89 이후에도 물리 GPU 2만 사용했다. 같은 development set을 학습
 - **실행·실측:** T-125는 물리 GPU 2(NVIDIA L40S, mask 후 논리 `cuda:0`)에서 70 epoch로 정상 완료했다. 78차원 평균 특징을 입력으로 하는 LayerNorm-MLP이며 best validation accuracy는 **73.8544%**, 제공 test accuracy는 **68.9474%**다.
 - **판정:** 93% 문자별 recall 목표를 지지하지 못한다. AIHub CTC의 문자별 93% 기준과 평가 데이터·특징 계약이 달라 수치를 직접 비교하지 않으며, T-112를 대체하거나 AIHub CTC 재학습 입력으로 사용하지 않는다. `evaluation.json`의 class별 recall/F1·confusion은 T-125 정적 데이터 진단 산출물로 보존한다.
 - **한계와 다음 결정:** 이 데이터는 정적·증강 이미지여서 실제 손 전환, 새 signer, 손바닥/손등·상하 방향 강건성을 측정하지 않는다. 다음 CTC 개선은 이 이미지를 억지로 128차원으로 맞추는 것이 아니라, `ㅈ/ㅊ/ㅉ`, `ㅔ/ㅐ`, `NUM_1/2/3`을 포함한 새 signer 연속 landmark/영상 데이터를 확보한 뒤 별도 split으로 검증한다.
+
+### T-134 — Roboflow 정적 자모 loss-only weighting 분리 검증
+
+- **문제·기준:** T-130은 EfficientNet-B0 정적 분류에서 test accuracy `95.4315%`, macro-F1 `95.2429%`로 가장 높았지만, 93% recall/F1 class floor 미달이 13개 남았다. T-133의 predefined confusion margin `0.10`은 accuracy `94.4162%`, macro-F1 `93.2578%`, 미달 14개로 회귀했으므로 margin 미세 탐색은 중단한다.
+- **변경 계약:** T-130 대비 **`balance-mode`만 `sampler→loss`**로 변경했다. EfficientNet-B0, seed 53, 24 epoch, all-jamo-images, focus multiplier 1.50, min-q10 선택, learning rate `3e-4`, label smoothing `0.04`, confusion margin 0, Roboflow v1 원본 split과 GPU 2는 고정했다.
+- **실행 환경:** physical GPU 2 (`CUDA_VISIBLE_DEVICES=2`, PyTorch logical `cuda:0`), 산출물은 `code-v3/outputs/t134-roboflow-v1-loss-balance/`다.
+- **실측:** test accuracy `94.9239%`, macro-F1 `93.5386%`로 T-130 대비 각각 `-0.5076%p`, `-1.7043%p`다. 93% recall/F1 미달은 15개(`ㄱ·ㄹ·ㅈ·ㅊ·ㅋ·ㅌ·ㅓ·ㅔ·ㅕ·ㅗ·ㅛ·ㅜ·ㅠ·ㅡ·ㅢ`)이며 minimum recall은 `50.00%`, `goalPassed=false`다.
+- **대표 혼동:** `ㄱ→ㅈ`, `ㄹ→ㅌ`, `ㅊ→ㅋ`, `ㅌ→ㄹ`, `ㅓ→ㅕ`, `ㅔ→ㅕ/ㅖ`, `ㅗ→ㅛ`, `ㅠ→ㅜ`, `ㅡ→ㅢ`가 관찰됐다.
+- **판정:** loss-only weighting은 T-130의 aggregate와 class floor를 모두 개선하지 못해 제외한다. 정적 연구에서 sampler/loss weighting·hard-negative margin의 추가 미세 탐색은 중단한다. 다음 유효 단위는 pose·camera angle·lighting·새 signer 중 하나의 조건만 추가한 데이터 다양화이며, signer 또는 source-family가 잠긴 평가 split으로 검증해야 한다. 이 정적 결과는 AIHub 연속 CTC 후보(T-112)를 교체하거나 연속 인식 성능으로 주장하지 않는다.
