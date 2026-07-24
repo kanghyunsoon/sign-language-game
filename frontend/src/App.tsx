@@ -4,6 +4,7 @@ import { PreLoginPage } from "./features/home/pages/PreLoginPage";
 import { LoginPage } from "./features/auth/pages/LoginPage";
 import { SignUpPage } from "./features/auth/pages/SignUpPage";
 import { PracticeHomePage } from "./features/learning/pages/PracticeHomePage";
+import { ProfilePage } from "./features/profile/pages/ProfilePage";
 import { GameModule } from "./game";
 import { STANDALONE_GAME_CONFIG } from "./game/config/standaloneConfig";
 
@@ -21,6 +22,9 @@ export function App() {
         <Route path="/signup" element={<SignUpPage />} />
         {/* 로그인 후 메인 화면 */}
         <Route path="/main" element={<MainPage />} />
+
+        {/* 프로필 화면 */}
+        <Route path="/profile" element={<ProfilePage />} />
 
         {/* "/practice" 주소로 들어오면 PracticeHomePage를 보여줌 */}
         <Route path="/practice" element={<PracticeHomePage />} />

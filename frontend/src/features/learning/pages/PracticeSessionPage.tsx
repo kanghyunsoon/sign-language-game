@@ -484,9 +484,9 @@ export function PracticeSessionPage({
           <Link to="/game">게임</Link>
         </nav>
 
-        <button className="mypage-button" type="button">
+        <Link className="mypage-button" to="/profile">
           마이페이지
-        </button>
+        </Link>
       </header>
 
       <main className="practice-session-main">
