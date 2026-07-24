@@ -116,10 +116,13 @@ button {
   right: 58px;
   width: 155px;
   height: 44px;
+  display: grid;
+  place-items: center;
   border: 1px solid #dbc8b1;
   border-radius: 999px;
   color: var(--brown-dark);
   font-size: 16px;
+  text-decoration: none;
   font-weight: 800;
   background: #fffaf2;
 }

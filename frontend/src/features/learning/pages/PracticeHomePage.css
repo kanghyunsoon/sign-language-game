@@ -86,11 +86,14 @@
   right: 58px;
   width: 155px;
   height: 44px;
+  display: grid;
+  place-items: center;
   border: 1px solid #dbc8b1;
   border-radius: 999px;
   color: #5f402b;
   font-size: 16px;
   font-weight: 800;
+  text-decoration: none;
   background: #fffaf2;
 }
 
