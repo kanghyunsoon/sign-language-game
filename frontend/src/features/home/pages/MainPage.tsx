@@ -4,10 +4,14 @@
 // import bannerGraphicSvg from "../assets/banner-stats-graphic.svg";
 
 import './MainPage.css'; // 작성한 CSS 불러오기
+import { useState } from "react";
+import { Sparkles, X } from "lucide-react";
 import { Link } from "react-router-dom";
+import otterCharacter from "../../../game/block-stacking/assets/game-menu-otter.png";
 
 // export default function MainPage() {
 export function MainPage() {
+  const [comingSoonMenu, setComingSoonMenu] = useState<"테스트" | "사전" | null>(null);
   const handleClick = () => {
     alert("시작합니다!");
   };
@@ -18,8 +22,8 @@ export function MainPage() {
         <nav className="nav" aria-label="주요 메뉴">
           <a className="active" href="/">메인페이지</a>
           <Link to="/practice">연습</Link>
-          <a href="#">테스트</a>
-          <a href="#">사전</a>
+          <button type="button" onClick={() => setComingSoonMenu("테스트")}>테스트</button>
+          <button type="button" onClick={() => setComingSoonMenu("사전")}>사전</button>
           <Link to="/game">게임</Link>
         </nav>
 
@@ -180,6 +184,19 @@ export function MainPage() {
         <a href="#">개인정보처리방침</a>
         <a href="#">문의하기</a>
       </footer>
+
+      {comingSoonMenu ? (
+        <div className="main-coming-soon-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setComingSoonMenu(null); }}>
+          <section className="main-coming-soon-dialog" data-theme={comingSoonMenu === "테스트" ? "test" : "dictionary"} role="dialog" aria-modal="true" aria-labelledby="main-coming-soon-title">
+            <button type="button" className="main-coming-soon-close" aria-label="팝업 닫기" onClick={() => setComingSoonMenu(null)}><X aria-hidden="true" size={20} /></button>
+            <Sparkles className="main-coming-soon-sparkle" aria-hidden="true" size={30} />
+            <img src={otterCharacter} alt="" />
+            <h2 id="main-coming-soon-title">수달이 개발중..</h2>
+            <p>조금만 기다려 주세요!<br />{comingSoonMenu} 기능을 만들고 있어요.</p>
+            <button type="button" className="main-coming-soon-confirm" onClick={() => setComingSoonMenu(null)}>기다릴게!</button>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }
