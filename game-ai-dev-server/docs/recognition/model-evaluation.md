@@ -1168,3 +1168,65 @@ T-89 이후에도 물리 GPU 2만 사용했다. 같은 development set을 학습
 - **실측:** test accuracy `94.9239%`, macro-F1 `93.5386%`로 T-130 대비 각각 `-0.5076%p`, `-1.7043%p`다. 93% recall/F1 미달은 15개(`ㄱ·ㄹ·ㅈ·ㅊ·ㅋ·ㅌ·ㅓ·ㅔ·ㅕ·ㅗ·ㅛ·ㅜ·ㅠ·ㅡ·ㅢ`)이며 minimum recall은 `50.00%`, `goalPassed=false`다.
 - **대표 혼동:** `ㄱ→ㅈ`, `ㄹ→ㅌ`, `ㅊ→ㅋ`, `ㅌ→ㄹ`, `ㅓ→ㅕ`, `ㅔ→ㅕ/ㅖ`, `ㅗ→ㅛ`, `ㅠ→ㅜ`, `ㅡ→ㅢ`가 관찰됐다.
 - **판정:** loss-only weighting은 T-130의 aggregate와 class floor를 모두 개선하지 못해 제외한다. 정적 연구에서 sampler/loss weighting·hard-negative margin의 추가 미세 탐색은 중단한다. 다음 유효 단위는 pose·camera angle·lighting·새 signer 중 하나의 조건만 추가한 데이터 다양화이며, signer 또는 source-family가 잠긴 평가 split으로 검증해야 한다. 이 정적 결과는 AIHub 연속 CTC 후보(T-112)를 교체하거나 연속 인식 성능으로 주장하지 않는다.
+
+### T-135 — T-112 warm-start 연속 CTC 강화 재개 (khstemp track)
+
+- **문제·기준:** class-floor 최고 후보는 T-112(validation 미달 13개, `--skip-test`로 test 미평가)이고, held-out CROWD19 test로 실제 평가된 최고는 delta 계열 T-84/T-89/T-92의 미달 18개였다. 즉 신계열(wider-GRU) 후보의 진짜 일반화 floor가 미확인 상태였다. 이 회차는 리포지토리 커밋 checkpoint(`continuous-ctc-t91`)가 아니라 실측 최고인 T-112를 base로 강화 재개하고, CROWD19 test에서의 class-floor를 처음으로 측정한다.
+- **변경 계약:** base `code-v3/outputs/t112-wider-gru-scratch/best.pt`(input 128, delta OFF, temporal-conv OFF, 192 hidden, 3 layer)에서 warm-start. epoch 6, batch 72, lr `3e-4`, coordinate noise `0.002`, balanced sampler alpha `0.5`, blank bias `0`, `--skip-test`로 학습. 데이터는 AIHub 16,873 train / signer18 993 validation / signer19 993 development test, 물리 GPU 2 단독.
+- **실행 환경:** physical GPU 2(`CUDA_VISIBLE_DEVICES=2`, logical `cuda:0`). 학습 산출물 `code-v3/outputs/t135-khs-resume-t112/best.pt`, CROWD19 평가 산출물 `code-v3/outputs/t135-eval-crowd19/report.json`.
+- **실측(validation, CROWD18):** CER `3.94%`, macro-F1 `92.71%`, 93% recall/F1 미달 13개.
+- **실측(development test, CROWD19):** CER `5.16%`, sequence exact match `76.64%`, micro token recall `95.38%`, macro-F1 `91.02%`, 93% recall/F1 미달 **15개**, `goalPassed=false`.
+- **class-floor(15개):** `ㅂ`(sup214,r0.92,f0.91), `ㅅ`(sup408,r0.94,f0.93), `ㅈ`(sup210,r0.89,f0.90), `ㅊ`(sup109,r0.91,f0.93), `ㅋ`(sup5,r0.80,f0.73), `ㅕ`(sup127,r0.92,f0.94), `ㅠ`(sup13,r0.62,f0.76), `ㅒ`(sup0, 평가불가), `NUM_0`(r0.76), `NUM_1`(f0.89), `NUM_2`(r0.83), `NUM_3`(r0.91,f0.91), `NUM_6`(f0.89), `NUM_7`(r0.82,f0.85), `NUM_8`(r0.82,f0.90). 숫자 7종이 전부 미달이고 `ㅒ`는 여전히 support 0으로 평가 불가다. 저support 문자(`ㅋ` 5, `ㅠ` 13)의 point estimate는 표본이 작아 불안정하다.
+- **대표 혼동:** `ㅓ→ㅏ` 12, `ㅈ→ㅅ` 9, `ㅂ→ㅇ` 8, `ㅏ→ㅐ` 7, `ㅅ→ㅈ` 7, `ㅏ→ㅓ` 5, `ㄱ→ㅜ` 5.
+- **판정:** 목표(전 class recall/F1 93%)는 **여전히 미달**이다. 다만 CROWD19 test class-floor를 기존 test-평가 최고(T-84/T-89/T-92의 18개)에서 **15개로 3개 축소**했고, CER(`≈5.22%→5.16%`)과 문장 완전일치(`≈75.7%→76.6%`)도 소폭 개선했다. macro-F1은 `≈91.7%→91.0%`로 약간 낮아, 평균 지표와 class-floor가 상충하는 기존 패턴과 일치한다. CROWD19는 반복 관찰된 development set이므로 최종 인증이 아니며, 운영 모델·MediaPipe 입력 계약은 변경하지 않는다. 남은 미달의 절반이 숫자(`NUM_0/1/2/3/6/7/8`)와 저support 문자(`ㅋ`·`ㅠ`·`ㅒ`)에 몰려 있으므로, 다음 단계는 추가 튜닝이 아니라 숫자·저support 문자를 겨냥한 새 signer/조건 연속 데이터 보강과 signer-잠금 final test 구성이다. checkpoint는 khstemp track의 새 후보로 보존하되 T-112를 대체하지 않는다.
+
+### T-135 이후 — 표적 데이터 보강 설계 (숫자·저support 문자 우선)
+
+이 절은 실행 회차가 아니라, T-135 CROWD19 진단에 근거한 다음 데이터 단위 설계다. GPU 재튜닝은 이미 여러 회차(focus/reweighting/blank bias/구조/focal)에서 class-floor를 못 깼으므로, 다음 유효 단위는 데이터 보강 + 잠금 test다.
+
+**진단 요약(T-135 기준):**
+
+- 미달 15개 중 **숫자 7종(NUM_0/1/2/3/6/7/8)**이 절반이다. AIHub CROWD morpheme에서 숫자 token 자체가 희소(test support 17~58)하고 Roboflow v1에는 숫자 라벨이 없어, 숫자는 구조·손실 튜닝으로 개선되지 않는 데이터 부족 문제다.
+- **저support 자모**: `ㅋ`(sup5), `ㅠ`(sup13)는 표본이 작아 point estimate가 불안정하고, `ㅒ`는 support 0으로 평가 자체가 불가능하다.
+- **혼동쌍**: `ㅓ↔ㅏ`(12), `ㅏ↔ㅐ`(7) 인접 모음, `ㅈ↔ㅅ`(9/7), `ㅂ→ㅇ`(8), `ㄱ→ㅜ`(5). 유사 손모양·방향 구분 데이터가 필요하다.
+
+**보강 대상·소스(우선순위):**
+
+1. **숫자 NUM_0~9 (최우선)**: 새 signer로 지숫자 연속 clip을 수집한다. AIHub 103 signer 20~21의 존재/위치를 먼저 확인(문서 미해결 항목)하고, 있으면 잠금 final test 후보로, 없으면 자체 촬영으로 확보한다.
+2. **`ㅒ`**: 현재 support 0이므로 별도 확보가 필수다.
+3. **저support 자모 `ㅋ`·`ㅠ`**: 새 signer 연속 clip을 추가해 support를 최소 안정 수준(예: class당 100+ clip)으로 올린다.
+4. **혼동쌍 `ㅓ/ㅏ`·`ㅏ/ㅐ`·`ㅈ/ㅅ`**: 같은 signer로 손바닥/손등·상하·회전 등 조건을 다양화한 hard-negative를 수집해 경계를 학습한다.
+
+**split·평가 규율(문서 방침 준수):**
+
+- 새 데이터는 **signer/원본-family 단위**로 train/validation/**locked final test**를 분리한다. 같은 clip에서 뽑은 프레임을 서로 다른 split에 넣지 않는다.
+- CROWD19는 이미 반복 관찰한 development set이므로 더 이상 최종 인증에 쓰지 않는다. 새 locked test로만 41 class 93%를 판정한다.
+- 손바닥/손등·상/하·회전·거리·조명·좌/우손 **조건 라벨**을 부착해 조건별 recall을 측정한다(현재 AIHub 라벨엔 없어 측정 불가였던 축).
+
+**실행 단계:**
+
+1. 데이터 명세표 작성 — 대상 class·목표 clip 수(class당 최소 support)·조건 커버리지.
+2. 수집·전처리 — MediaPipe 21 landmark → v3(78)/packed sequence(128) 계약 유지. archive SHA-256·manifest 기록, 원본은 Git 미포함.
+3. 학습 — T-112 계약(delta OFF, 192 hidden, 3 layer, GPU 2) 유지하고 새 데이터를 병합해 재학습. 재가중·decoder 옵션은 validation에서만 선택한다.
+4. 평가 — 새 locked test에서 41 class recall/F1 + 조건별 slice + 연속 CER·확정률·분당 오확정·p50/p95 지연을 측정하고 이 문서에 회차로 기록한다.
+
+**성공 기준:** locked final test에서 41개 전 class recall·F1 ≥ 93%, 주요 조건 slice 하락 없음, 연속 인식 지표(CER·확정률·오확정) 목표 충족. 이 조건을 만족하기 전에는 어떤 checkpoint도 목표 달성으로 표시하지 않는다.
+
+### T-137 — 신규 KSL 숫자 데이터 정적 분류 진단 (khstemp track)
+
+- **문제·기준:** T-135 held-out에서 미달의 절반이 숫자(`NUM_0/1/2/3/6/7/8`)였다. 숫자 미달이 "학습 불가"인지 "데이터 부족"인지 가리기 위해, 기존 AIHub·Roboflow와 **겹치지 않는 독립 출처**의 한국 지숫자 데이터로 정적 분류 상한을 진단한다. 이 회차는 연속 CTC를 대체하거나 개선했다고 주장하지 않는, 숫자 domain head용 별도 정적 기준선이다.
+- **데이터:** Kaggle `nahyunpark/korean-sign-languageksl-numbers`(라이선스 **CC0-1.0**). 숫자 1~10(10은 10-1/10-2 두 변형, 단일 `10`으로 매핑), **`0`(NUM_0) 없음**. train/test 폴더 제공. 이미지 상당수가 iPhone `.heic`. MediaPipe 추출 결과 train **762** / test **304** / 검출실패 **41**.
+- **변경 계약:** MediaPipe Hand Landmarker → `app.feature_v2.landmarks_to_feature`(좌우 handedness 반영) → ExtraTreesClassifier(n_estimators=500, seed 42). 데이터셋 자체 train split으로 학습, 자체 test split으로 평가. 산출물 `code-v3/scripts/ksl_number_probe.py`, 특징 캐시 `data/ksl-numbers/feat_v2.npz`.
+- **실측(자체 test split):** accuracy **94.74%**, macro-F1 **95.3%**(precision 0.951 / recall 0.958). class별 recall/F1: `2·3·4·5` 1.000, `6` 1.000/0.978, `7` 0.967/0.983, `9` 1.000/0.923, `8` 0.852/0.902, `1` 0.900/0.844, `10` 0.860/0.899.
+- **해석:** 운영 CTC에서 취약하던 숫자(`2·3·6·7` 등)가 깨끗한 정적 데이터에선 거의 완벽히 분류된다. **숫자 병목은 학습 불가가 아니라 데이터(표본·조건) 부족**임을 실증한다. 정적 숫자 domain head(E-01 hybrid 계열) 보강의 유효성을 지지한다.
+- **판정·한계:** 목표 판정과 무관한 **진단 회차**다. (1) 이 test는 KSL **자체 split**이라 signer-independent가 아니고 낙관적일 수 있다. (2) **정적 이미지**라 128차원 연속 CTC와 직접 병합하지 않는다. (3) **`NUM_0` 미포함**으로 최약 숫자는 미해결. 따라서 운영 모델·MediaPipe 계약을 바꾸지 않으며, signer-잠금 test로 재검증하기 전까지 숫자 개선을 확정하지 않는다.
+
+### T-138 계획 — 데이터 기반 다음 학습 (숫자 head 보강 + 잠금 test)
+
+T-137이 "숫자는 데이터만 있으면 학습된다"를 보였으므로, 다음 학습은 튜닝이 아니라 데이터 통합·검증에 둔다.
+
+1. **signer-independent 재검증(선행):** KSL 이미지를 파일/촬영 단위로 그룹화해 signer 누수 여부를 감사한다. 자체 split이 signer 분리가 아니면, KSL은 **학습 전용 보강**으로만 쓰고 평가는 별도 출처(예: Roboflow `korean hand sign-numbers`)나 새 촬영으로 만든 **잠금 test**로 한다.
+2. **숫자 domain head 통합 학습:** 운영 hybrid(`models/jamo-number-hybrid-v1`) 계열에 KSL 숫자 feature를 더해 tree/hybrid 숫자 head를 재학습하고, 독립 숫자 test에서 `NUM_0`을 제외한 1~9 recall/F1 개선치를 기록한다. 자모 head와 전체 41-class 지표의 회귀 여부도 함께 검사한다.
+3. **미해결 class 데이터 확보:** `NUM_0`과 `ㅒ`(연속 support 0)는 이 데이터로 못 채우므로, AIHub 신규 signer(20~21) 또는 자체 촬영으로 별도 확보한다.
+4. **연속 CTC 라인 분리 유지:** 정적 숫자는 CTC에 병합하지 않는다. CTC 숫자 개선은 새 signer **연속** 숫자 clip이 확보된 뒤에만 재학습한다. 현 CTC 후보는 T-135(held-out floor 15)를 유지한다.
+5. **성공 기준·기록:** 모든 개선은 signer/source-family가 잠긴 test에서 41 class recall·F1과 조건 slice로 검증하고, 회차별로 이 문서에 방법·데이터 기준·전후 수치·회귀와 함께 기록한 뒤에만 다음 회차를 정한다. GPU는 물리 2번만 사용한다.
