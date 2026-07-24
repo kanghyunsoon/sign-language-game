@@ -71,6 +71,22 @@ selected = (profile or os.getenv("HANDPRACTICE_AI_MODEL", "baseline")).strip().l
 
 > 위 e2e는 브라우저 2대(카메라·MediaPipe·WebRTC)와 배포 backend가 필요해 이 샌드박스/브랜치에서 자동 실행이 불가하다. 배포 전 스테이징에서 위 체크리스트를 수동 검증할 것. 배포 backend(`/api/v3/api-docs`)는 라이브이며 위 계약을 제공함을 확인했다.
 
+## AI-013 컨테이너 배포 브랜치와의 정합성·병합 조율 (중요)
+
+`origin/feature/AI-013-ai-server-container`(ai 대비 1커밋)는 AI 인식 서버의 **컨테이너 배포 자산을 이미 구현**해 두었다. 현재 브랜치(#78, ai 대비 7커밋)와 **둘 다 `ai`에서 분기한 형제 브랜치**이며 겹치는 파일을 수정하므로, 병합 전 조율이 필요하다.
+
+AI-013이 제공하는 것(중복 구현 금지 — 새로 만들지 말고 이걸 병합):
+- `Dockerfile`(python:3.11-slim, 비root 실행, `HEALTHCHECK`로 8765 TCP 체크), `Dockerfile.dockerignore`, `docker-compose.ec2.example.yml`(127.0.0.1:8765 바인딩, models read-only 볼륨), `.env.ec2.example`.
+- `main.py`가 `HANDPRACTICE_AI_HOST`/`HANDPRACTICE_AI_PORT`를 검증하며 읽음 → **컨테이너에서 `0.0.0.0` 바인딩 가능**(현재 브랜치 main.py는 `localhost` 하드코딩이라 컨테이너에서 포트가 안 붙는다).
+- `project_paths.py`가 `HANDPRACTICE_MODEL_ROOT` 지원, `model_adapter.py`가 `MODEL_ROOT` 사용 → 모델을 이미지 밖 볼륨(`/app/models`)에서 주입.
+- `INTERNAL_ERROR` 처리, `tests/test_websocket_handler.py` 추가.
+
+충돌 지점(병합 시 반드시 해소):
+- **기본 프로필 의미 충돌**: 현재 브랜치는 default `baseline`(+ 테스트가 baseline 기대), **AI-013은 default `hybrid`(+ 테스트가 hybrid 기대)**. 두 브랜치가 `model_adapter.py`·`test_model_smoke.py`를 서로 다른 결정으로 수정 → 자동 병합돼도 의미가 어긋난다.
+- 권장 최종 상태(`ai`): **AI-013의 env/MODEL_ROOT/Dockerfile + 현재 브랜치의 baseline 기본값 + baseline 기대 테스트**. 즉 컨테이너화는 AI-013을, 기본 프로필은 baseline을 채택(게임 18fps·숫자 제외 정책 근거, deployment-readiness 리스크 1 참조).
+- 실행 방법(택1): (a) AI-013을 먼저 `ai`에 병합 → #78을 갱신된 `ai`에 rebase하며 `model_adapter.py` default를 baseline으로, 테스트를 baseline 기대로 확정. 또는 (b) #78 병합 후 AI-013을 rebase하며 default를 baseline으로 맞추고 hybrid 기대 테스트를 baseline으로 수정.
+- **주의**: 아무 조율 없이 AI-013을 나중에 병합하면 baseline 수정이 hybrid로 되돌아가 리스크 1이 재발한다. #78 리뷰어(이인성)가 AI-013 작성자이기도 하므로 리뷰에서 이 default 결정을 함께 확정할 것.
+
 ## 트러블슈팅 (검증 중 실제로 겪은 항목)
 
 - **`scikit-learn==1.9.0` 설치 실패**: `ERROR: Could not find a version that satisfies the requirement scikit-learn==1.9.0`. 원인은 해당 버전이 Python ≥ 3.11을 요구하는데 인터프리터가 3.10이기 때문. 해결: Python 3.11/3.12 사용(리스크 2).
@@ -92,3 +108,39 @@ cd ../ai
 pip install pytest
 PYTHONPATH=src pytest -q
 ```
+
+## 실시간 P2P 대전 배포 블로커 (WebRTC/TURN/인증) — 2026-07-25
+
+프론트 P2P(WebRTC DataChannel) 작업(`feature/khstemp-game-ai-integration`의 `frontend/`, → `frontend` MR 예정)과 배포 백엔드(`origin/backend`)·인프라(`origin/infra`) 정합성을 교차 분석한 결과. **시그널링·방·결과 오케스트레이션은 배포 백엔드 Swagger 계약과 일치**하나(`/webrtc/ice-servers`·방 생성/참가/준비/시작·`winnerUserId` 409 멱등·SSE 티켓·native WS 모두 구현·정합), **실사용 1:1 대전을 프로덕션에서 성립시키려면 아래 P0가 선행**이다. 이 코드는 정적 빌드로는 자립하나 "배포 준비 완료"는 아니다.
+
+### P0-A (치명) — 배포 백엔드 TURN 환경변수 미주입 → cross-NAT P2P 실패
+
+- 프론트는 TURN을 하드코딩하지 않고 `GET /api/webrtc/ice-servers`로 받는다(`GameServiceProvider.tsx`, `media/mesh/webRtcConfig.ts`). 백엔드 `WebRtcProperties`는 `WEBRTC_TURN_URL/USERNAME/CREDENTIAL`를 그대로 반환한다.
+- `origin/backend`의 `application.yaml`·`env.sample`은 이 값들이 **빈 문자열**이고 STUN(`stun:stun.l.google.com:19302`)만 채워져 있다 → 배포 런타임에 실제 값이 주입되지 않으면 **STUN만 반환** → **대칭 NAT에서 영상/DataChannel 실패**(같은 LAN에서만 되는 함정).
+- **조치:** 배포 백엔드 env에 `WEBRTC_TURN_URL`(예 `turns:i15a405.p.ssafy.io:5349`)·`WEBRTC_TURN_USERNAME=sudal`·`WEBRTC_TURN_CREDENTIAL` 주입. coturn `.env`의 `TURN_USERNAME/TURN_PASSWORD`(현재 `CHANGE_ME`)와 **동일 값으로 정합**.
+
+### P0-B (치명) — coturn 실제 배포·도달성
+
+- coturn 자산·CI는 `origin/infra`에 완비(`coturn/turnserver.conf` TLS 5349·lt-cred-mech, `.gitlab-ci.yml` validate→deploy→verify, `renew-coturn-cert.sh`). 단 **실제 기동·도달성은 repo 밖 문제**.
+- **조치:** `infra` 파이프라인 실행 확인, 보안그룹/방화벽에서 **UDP 3478 + relay 49160-49200 + TLS 5349** 개방, Let's Encrypt 인증서 존재(`/opt/sudal/webrtc/certs`), `turnutils_stunclient`로 relay candidate 실측.
+
+### P0-C (치명) — 프론트 실제 인증 미연결로 배포 게이트웨이 미사용
+
+- 운영 빌드가 `/game/*`에 `StandaloneGameHarness`를 마운트하고, `GameServiceProvider`의 `useSwaggerContract = Boolean(accessToken) || VITE_P2P_E2E==="true"` 때문에 **access token이 없으면 `DevBattleRoomGateway`(`/api/dev`)가 선택**되어 배포 Swagger 계약을 타지 않는다. `LoginPage`는 실인증 API 미연결.
+- **조치:** 실인증 연결 → access token/`userId`를 `GameModule`에 전달 → 실사용자 host로 마운트(그래야 `SwaggerBattleRoomGateway` 선택). 운영 빌드에서 dev-user/`VITE_P2P_E2E` 경로 제거.
+
+### P0-D (필수) — 프론트 프로덕션 env·`vercel.json` 미확정
+
+- `standaloneConfig.ts` 기본값이 `ws://localhost:8765` 등 로컬이고, `frontend/.env.example`에 폐기된 STOMP `VITE_MATCH_*`·`VITE_GAME_ROOM_API_BASE_URL=/api/dev`(개발 게이트웨이)가 잔존. `vercel.json` 미커밋.
+- **조치:** `VITE_GAME_ROOM_API_BASE_URL`·`VITE_GAME_WEBSOCKET_URL`(wss)·`VITE_AI_WEBSOCKET_URL`(wss) 확정, 레거시 정리, `vercel.json`에 SPA fallback + `/api` rewrite 추가. 백엔드 CORS/WebSocket Origin allowlist에 Vercel 도메인 추가.
+
+### 배포 전 최종 체크리스트
+
+- [ ] 배포 백엔드 env `WEBRTC_TURN_*` 주입 및 coturn 자격증명 정합 (P0-A)
+- [ ] coturn 기동·방화벽·인증서·relay 실측 (P0-B)
+- [ ] 프론트 실인증 연결 + 운영 빌드 dev 경로 제거 (P0-C)
+- [ ] 프론트 프로덕션 env·`vercel.json`·CORS allowlist (P0-D)
+- [ ] 서로 다른 네트워크 브라우저 2대에서 `chrome://webrtc-internals`로 relay candidate·영상·DataChannel 실측
+- [ ] 순수 P2P 단절 몰수패 정책은 서버 `PEER_DISCONNECTED/RECONNECTED` 권위 확정 전까지 비활성 유지
+
+> 참고: 백엔드는 정적 장기(long-term) TURN 자격증명을 반환하는데 프론트 문서(`vercel-deployment-guide`)는 "단기 credential"로 서술 — 표현 정정 또는 시간제한 자격증명 도입 여부를 결정할 것.

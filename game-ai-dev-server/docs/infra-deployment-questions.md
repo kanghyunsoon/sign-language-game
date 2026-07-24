@@ -7,6 +7,9 @@
 검증됨
 - AI 인식 서버: 단위 16/16, 아티팩트 SHA 4건 일치, 단일·1:1 동시(세션 격리) 스모크, env 미설정 시 baseline 로드.
 - 배포 백엔드: 라이브(api-docs/actuator), 인증 enforcement, **1:1 SIGN_DUEL 오케스트레이션 해피패스 e2e 13/13 PASS**(모사 클라이언트).
+- 계약 정합성(git 대조, 브라우저 불필요):
+  - **프론트 브랜치 확정**: 배포 백엔드 실시간 계약(native WS `/ws/game-rooms/{id}?ticket=`, `SIGNAL`·`PEER_*`·`GAME_STARTED`, `sse-ticket`/`realtimeTicket`)을 구현한 프론트는 **`feature/khstemp-game-ai-integration` 유일**. 다른 브랜치(`frontend`, `feature/game-mediapipe-integration`)는 대전 실시간 미구현. khstemp 자체 문서에 "STOMP 미사용, ticket 기반 native WebSocket" 명시. `.env.example`의 STOMP `VITE_MATCH_*`는 미사용 잔재.
+  - **프론트↔AI 서버 메시지 계약 일치**: 프론트가 `LANDMARK_FRAME`/`GET_CAPABILITIES` 송신, `CAPABILITIES/PREDICTION/SIGN_CONFIRMED/HAND_RELEASED/ERROR` 처리 → AI 서버 `messages.py` 출력 타입과 일치.
 
 미검증(배포 전 필수)
 - 실제 사람 플레이(카메라→MediaPipe→WebRTC 영상→인식) — 브라우저 2대 수동.
