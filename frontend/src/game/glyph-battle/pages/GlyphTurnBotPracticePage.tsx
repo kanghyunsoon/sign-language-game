@@ -218,7 +218,7 @@ export function GlyphTurnBotPracticePage() {
             <Bot size={16} /> 연습 봇
           </span>
           <GlyphBattleOnboarding />
-          <Link to="/game/line-race">로비</Link>
+          <Link to="/game/turn-battle">로비</Link>
         </div>
       </header>
       <section className={styles.layout}>

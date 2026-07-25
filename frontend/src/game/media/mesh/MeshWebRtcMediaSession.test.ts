@@ -136,6 +136,21 @@ describe("MeshWebRtcMediaSession", () => {
     expect(harness.session.getPeerConnectionCount()).toBe(2);
   });
 
+  it("suspends room signaling after the peer connection is established", async () => {
+    const harness = createHarness();
+    await harness.connect(participants(2));
+    harness.peers[0].changeState("connected");
+    expect(harness.transport.suspend).toHaveBeenCalledTimes(1);
+  });
+
+  it("issues a signaling reconnect before WebRTC recovery", async () => {
+    const harness = createHarness();
+    await harness.connect(participants(2));
+    harness.peers[0].changeState("connected");
+    harness.peers[0].changeState("failed");
+    await vi.waitFor(() => expect(harness.transport.connect).toHaveBeenCalledTimes(2));
+  });
+
   it("keeps remote tracks isolated per participant", async () => {
     const harness = createHarness();
     await harness.connect(participants(3));
@@ -173,8 +188,9 @@ class MockSignalingTransport implements WebRtcSignalingTransport {
   readonly sent: ClientRtcSignalingMessage[] = [];
   readonly unsubscribe = vi.fn();
   readonly disconnect = vi.fn();
+  readonly suspend = vi.fn();
+  readonly connect = vi.fn(async () => undefined);
   private listener: ((message: ServerRtcSignalingMessage) => void) | null = null;
-  async connect() {}
   send(message: ClientRtcSignalingMessage) { this.sent.push(message); }
   subscribe(listener: (message: ServerRtcSignalingMessage) => void) { this.listener = listener; return () => { this.listener = null; this.unsubscribe(); }; }
   emit(message: ServerRtcSignalingMessage) { this.listener?.(message); }
@@ -196,10 +212,13 @@ class FakePeerConnection {
   ontrack: ((event: RTCTrackEvent) => void) | null = null;
   onconnectionstatechange: (() => void) | null = null;
   oniceconnectionstatechange: (() => void) | null = null;
+  ondatachannel: ((event: RTCDataChannelEvent) => void) | null = null;
+  readonly dataChannels: FakeDataChannel[] = [];
   readonly addedTracks: MediaStreamTrack[] = [];
   readonly addedCandidates: RTCIceCandidateInit[] = [];
   closed = false;
   addTrack(track: MediaStreamTrack) { this.addedTracks.push(track); return {} as RTCRtpSender; }
+  createDataChannel() { const channel = new FakeDataChannel(); this.dataChannels.push(channel); return channel as unknown as RTCDataChannel; }
   async createOffer(): Promise<RTCSessionDescriptionInit> { return { type: "offer", sdp: "local-offer" }; }
   async createAnswer(): Promise<RTCSessionDescriptionInit> { return { type: "answer", sdp: "local-answer" }; }
   async setLocalDescription(description: RTCLocalSessionDescriptionInit) { this.localDescription = description as RTCSessionDescription; }
@@ -208,6 +227,18 @@ class FakePeerConnection {
   close() { this.closed = true; this.connectionState = "closed"; }
   changeState(state: RTCPeerConnectionState) { this.connectionState = state; this.onconnectionstatechange?.(); }
   emitTrack(track: MediaStreamTrack) { this.ontrack?.({ track } as RTCTrackEvent); }
+}
+
+class FakeDataChannel {
+  readyState: RTCDataChannelState = "open";
+  onmessage: ((event: MessageEvent) => void) | null = null;
+  onopen: (() => void) | null = null;
+  onclose: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  readonly sent: string[] = [];
+  send(payload: string) { this.sent.push(payload); }
+  close() { this.readyState = "closed"; this.onclose?.(); }
+  receive(payload: string) { this.onmessage?.({ data: payload } as MessageEvent); }
 }
 
 function fakeTrack(id: string) {

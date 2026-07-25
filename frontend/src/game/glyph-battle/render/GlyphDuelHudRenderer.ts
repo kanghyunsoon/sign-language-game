@@ -2,6 +2,14 @@ import { Container, Graphics, Text } from "pixi.js";
 import type { GlyphDuelView } from "../duel/GlyphDuelModel";
 import { glyphSegments as sharedGlyphSegments } from "./GlyphStrokeRegistry";
 
+export function resolveDuelHealthColors(view: GlyphDuelView): { readonly left: number; readonly right: number } {
+  const hostBlue = 0x26c6ff, challengerOrange = 0xff724a;
+  if (!view.hostPlayerId) return { left: hostBlue, right: challengerOrange };
+  return view.local.playerId === view.hostPlayerId
+    ? { left: hostBlue, right: challengerOrange }
+    : { left: challengerOrange, right: hostBlue };
+}
+
 export class GlyphDuelHudRenderer {
   readonly root = new Container();
   private readonly bars = new Graphics();
@@ -68,13 +76,14 @@ export class GlyphDuelHudRenderer {
     const hpA = clamp(view.local.health / 100),
       hpB = clamp(view.opponent.health / 100),
       focusA = clamp(view.local.focus / 100),
-      focusB = clamp(view.opponent.focus / 100);
+      focusB = clamp(view.opponent.focus / 100),
+      { left: leftHpColor, right: rightHpColor } = resolveDuelHealthColors(view);
     this.bars
       .clear()
       .roundRect(margin, y, barWidth, 18, 4)
       .fill({ color: 0x050a12, alpha: 0.88 })
       .roundRect(margin, y, barWidth * hpA, 18, 4)
-      .fill({ color: hpA < 0.3 ? 0xff3f55 : 0x26c6ff })
+      .fill({ color: leftHpColor })
       .roundRect(this.width - margin - barWidth, y, barWidth, 18, 4)
       .fill({ color: 0x050a12, alpha: 0.88 })
       .roundRect(
@@ -84,7 +93,7 @@ export class GlyphDuelHudRenderer {
         18,
         4,
       )
-      .fill({ color: hpB < 0.3 ? 0xff3f55 : 0xff724a })
+      .fill({ color: rightHpColor })
       .roundRect(margin, y + 23, barWidth, 6, 3)
       .fill({ color: 0xffffff, alpha: 0.12 })
       .roundRect(margin, y + 23, barWidth * focusA, 6, 3)

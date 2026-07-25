@@ -83,7 +83,7 @@ describe("line race room pages", () => {
     render(<GameModuleContext.Provider value={value}><MemoryRouter initialEntries={["/game/line-race/rooms/" + room.roomId]}><Routes>
       <Route path="/game/line-race/rooms/:roomId" element={<LineRaceWaitingRoomPage />} />
     </Routes></MemoryRouter></GameModuleContext.Provider>);
-    await waitFor(() => expect(value.lineRaceTransport?.connect).toHaveBeenCalled());
+    expect(value.lineRaceTransport?.connect).not.toHaveBeenCalled();
     await waitFor(() => expect(value.sharedCameraSession.start).toHaveBeenCalled());
     await waitFor(() => expect(value.lineRaceMediaSession?.connect).toHaveBeenCalledWith(expect.objectContaining({ gameType: "LINE_RACE" }), expect.anything()));
   });

@@ -124,7 +124,7 @@ export function SoloGamePage({
     disposeRuntime();
     const runtime = new GameRuntime({
       renderer,
-      symbols: GAME_SYMBOLS,
+      symbols: SOLO_GAME_SYMBOLS,
       gameConfig: DEFAULT_GAME_CONFIG,
       physics: () => new MatterPhysicsWorld({
         ...DEFAULT_PHYSICS_CONFIG,
@@ -153,7 +153,7 @@ export function SoloGamePage({
   }, [disposeRuntime]);
 
   useEffect(() => {
-    void primeGlyphCollisionCache(GAME_SYMBOLS);
+    void primeGlyphCollisionCache(SOLO_GAME_SYMBOLS);
   }, []);
 
   useEffect(() => recognitionController.subscribe(setRecognition), [recognitionController]);
@@ -271,7 +271,7 @@ export function SoloGamePage({
   const resizeRuntime = useCallback((viewport: { readonly width: number; readonly height: number }) => {
     runtimeRef.current?.resizeViewport(viewport.width, viewport.height);
   }, []);
-  const displayedTargetSymbol = recognition.targetSymbol ?? recognition.playableSymbols[0] ?? GAME_SYMBOLS[0] ?? "ㄱ";
+  const displayedTargetSymbol = recognition.targetSymbol ?? recognition.playableSymbols[0] ?? SOLO_GAME_SYMBOLS[0] ?? "ㄱ";
 
   return (
     <div className="solo-game-page">
@@ -464,3 +464,4 @@ function formatPlayTime(playTimeMs: number): string {
 function Metric({ label, value }: { readonly label: string; readonly value: string }) {
   return <div className="solo-metric"><span>{label}</span><strong>{value}</strong></div>;
 }
+const SOLO_GAME_SYMBOLS = GAME_SYMBOLS.filter((symbol) => !/^\d+$/.test(symbol));

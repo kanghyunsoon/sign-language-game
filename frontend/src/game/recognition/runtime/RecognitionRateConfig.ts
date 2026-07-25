@@ -9,7 +9,7 @@ export const DEFAULT_RECOGNITION_RATE_CONFIG: RecognitionRateConfig = Object.fre
   renderFps: 30,
   handTrackingFps: 24,
   poseTrackingFps: 8,
-  aiInferenceFps: 12,
+  aiInferenceFps: 18,
 });
 
 export const LOW_POWER_RECOGNITION_RATE_CONFIG: RecognitionRateConfig = Object.freeze({

@@ -83,8 +83,10 @@ export class PythonWebSocketSignRecognizer implements SignRecognizer, LandmarkFr
     });
     this.inference.subscribe((result) => {
       const prediction: PredictionEvent = { type: "PREDICTION", frameId: result.frameId, symbol: result.symbol, confidence: result.confidence, isStable: result.isStable, predictedAt: result.predictedAt };
-      this.emit(prediction);
-      this.applyPredictionToDecoder(prediction, result.sequence, Date.now(), this.predictionSelector?.captureContext(this.supportedSymbols));
+      const filtered = withoutNumericPrediction(prediction);
+      if (!filtered) return;
+      this.emit(filtered);
+      this.applyPredictionToDecoder(filtered, result.sequence, Date.now(), this.predictionSelector?.captureContext(this.supportedSymbols));
     });
     this.decoder.subscribe((event) => {
       if (event.type === "SIGN_CONFIRMED") this.emit({ type: "SIGN_CONFIRMED", symbol: event.symbol, confidence: event.confidence, confirmedAt: event.occurredAt, modelVersion: this.modelVersion });
@@ -241,23 +243,40 @@ export class PythonWebSocketSignRecognizer implements SignRecognizer, LandmarkFr
         const metadata=this.legacyFrames.get(message.frameId);
         this.legacyFrames.delete(message.frameId);
         if(this.directInferenceFrameId===message.frameId)this.directInferenceFrameId=null;
+        const filteredPrediction = withoutNumericPrediction(message);
         if(metadata&&metadata.sessionId===this.activeHandSessionId){
           this.performanceMonitor.mark("aiResponse");
           this.performanceMonitor.recordAiLatency(Math.max(0,Date.now()-metadata.sentAt));
-          this.emit(message);
-          this.applyPredictionToDecoder(message, ++this.legacyPredictionSequence, metadata.capturedAt, metadata.contextRevision);
+          if (filteredPrediction) {
+            this.emit(filteredPrediction);
+            this.applyPredictionToDecoder(filteredPrediction, ++this.legacyPredictionSequence, metadata.capturedAt, metadata.contextRevision);
+          }
         }
         this.dispatchPendingDirectFrame();
         return;
       }
       // Python remains a static prediction provider. Final confirmation/release is owned by the frontend decoder.
-      if (message.type === "SIGN_CONFIRMED" || message.type === "HAND_RELEASED") {if(!this.continuousSignDecoderEnabled)this.emit(message);return;}
+      if (message.type === "SIGN_CONFIRMED" || message.type === "HAND_RELEASED") {
+        if (
+          !this.continuousSignDecoderEnabled
+          && (message.type !== "SIGN_CONFIRMED" || !isNumericSymbol(message.symbol))
+        ) this.emit(message);
+        return;
+      }
       if (message.type === "CAPABILITIES") {
-        this.supportedSymbols = message.supportedSymbols;
+        const supportedSymbols = message.supportedSymbols.filter((symbol) => !isNumericSymbol(symbol));
+        const filteredMessage = {
+          ...message,
+          supportedSymbols,
+          competitiveSymbols: message.competitiveSymbols?.filter((symbol) => !isNumericSymbol(symbol)),
+        };
+        this.supportedSymbols = supportedSymbols;
         this.modelVersion = message.modelVersion;
         if (message.confidenceThresholds) this.decoder.updateConfig({ minimumConfidenceBySymbol: message.confidenceThresholds });
         this.decoderContextRevision = undefined;
         this.decoder.beginInputSession();
+        this.emit(filteredMessage);
+        return;
       }
       this.emit(message);
     } catch (error) {
@@ -302,7 +321,7 @@ export class PythonWebSocketSignRecognizer implements SignRecognizer, LandmarkFr
   }
 
   private applyPredictionToDecoder(prediction: PredictionEvent, sequence: number, capturedAt: number, capturedContextRevision?: string): void {
-    if (!this.continuousSignDecoderEnabled) return;
+    if (!this.continuousSignDecoderEnabled || isNumericSymbol(prediction.symbol)) return;
     let selected = { symbol: prediction.symbol, confidence: prediction.confidence };
     if (this.predictionSelector) {
       const resolution = this.predictionSelector.resolve(prediction, this.supportedSymbols, capturedContextRevision ?? "");
@@ -316,4 +335,23 @@ export class PythonWebSocketSignRecognizer implements SignRecognizer, LandmarkFr
     }
     this.decoder.pushFrame({ capturedAt, handPresent: true, prediction: { symbol: selected.symbol, confidence: selected.confidence, predictedAt: prediction.predictedAt, sequence } });
   }
+}
+
+function withoutNumericPrediction(prediction: PredictionEvent): PredictionEvent | null {
+  const topCandidates = prediction.topCandidates?.filter((candidate) => !isNumericSymbol(candidate.symbol));
+  if (!isNumericSymbol(prediction.symbol)) {
+    return topCandidates ? { ...prediction, topCandidates } : prediction;
+  }
+  const replacement = topCandidates?.[0];
+  if (!replacement) return null;
+  return {
+    ...prediction,
+    symbol: replacement.symbol,
+    confidence: replacement.confidence,
+    topCandidates,
+  };
+}
+
+function isNumericSymbol(symbol: string): boolean {
+  return /^\d+$/.test(symbol);
 }

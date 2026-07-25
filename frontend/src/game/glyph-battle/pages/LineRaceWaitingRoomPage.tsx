@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useGameModuleContext } from "../../app/GameModuleContext";
-import { createDevAuthHeaders } from "../../app/devAuthHeaders";
 import { ParticipantList } from "../../block-stacking/battle/components/ParticipantList";
 import { GameVideoTile } from "../../media/components/GameVideoTile";
 import type {
   MediaConnectionState,
   RemoteGameParticipant,
 } from "../../media/core/mediaTypes";
-import type { LineRaceConnectionState } from "../transport";
 import type { LineRaceRoomDetail } from "../room";
 import styles from "../components/LineRaceRoom.module.css";
 import { HandCamera, PythonWebSocketSignRecognizer, useGameRecognitionSession, useGameRecognitionSnapshot } from "../../recognition";
@@ -19,7 +17,6 @@ export function LineRaceWaitingRoomPage() {
   const context = useGameModuleContext();
   const {
     user,
-    accessToken,
     config,
     services,
     sharedCameraSession,
@@ -27,9 +24,8 @@ export function LineRaceWaitingRoomPage() {
     lineRaceRoomSession,
   } = context;
   const lineRaceMediaSession = context.lineRaceMediaSession;
-  const lineRaceTransport = context.lineRaceTransport;
   const setLineRaceRoomSession = context.setLineRaceRoomSession;
-  if (!lineRaceMediaSession || !lineRaceTransport || !setLineRaceRoomSession)
+  if (!lineRaceMediaSession || !setLineRaceRoomSession)
     throw new Error("라인 레이스 세션이 구성되지 않았습니다.");
   const gateway = services.lineRaceRoomGateway;
   const recognizer=useMemo(()=>new PythonWebSocketSignRecognizer({url:config.aiWebSocketUrl}),[config.aiWebSocketUrl]);
@@ -51,9 +47,6 @@ export function LineRaceWaitingRoomPage() {
   );
   const [rtc, setRtc] = useState<MediaConnectionState>(() =>
     lineRaceMediaSession.getConnectionState(),
-  );
-  const [gameSocket, setGameSocket] = useState<LineRaceConnectionState>(() =>
-    lineRaceTransport.getConnectionState(),
   );
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -84,10 +77,6 @@ export function LineRaceWaitingRoomPage() {
     () => lineRaceMediaSession.subscribe(refreshMedia),
     [lineRaceMediaSession, refreshMedia],
   );
-  useEffect(
-    () => lineRaceTransport.subscribeConnectionState(setGameSocket),
-    [lineRaceTransport],
-  );
   useEffect(() => {
     const track = liveVideoTrack(local);
     if (!track) {
@@ -116,21 +105,8 @@ export function LineRaceWaitingRoomPage() {
   }, [config.battleRoomPollingIntervalMs, load]);
   useEffect(() => {
     if (playerRegistered && room?.status === "PLAYING" && room.activeMatchId)
-      navigate(`/game/line-race/matches/${room.activeMatchId}`, { replace: true });
+      navigate(`/game/turn-battle/matches/${room.activeMatchId}`, { replace: true });
   }, [navigate, playerRegistered, room?.activeMatchId, room?.status]);
-  useEffect(() => {
-    const headers = accessToken
-      ? { Authorization: "Bearer " + accessToken }
-      : createDevAuthHeaders(user);
-    void lineRaceTransport
-      .connect({
-        url: config.gameWebSocketUrl,
-        playerId: user.userId,
-        roomId: roomId ?? "",
-        headers,
-      })
-      .catch((cause) => setError(text(cause)));
-  }, [accessToken, config.gameWebSocketUrl, lineRaceTransport, roomId, user]);
   useEffect(() => {
     if (!room || (!bot && lineRaceMediaSession.getConnectionState() !== "DISCONNECTED"))
       return;
@@ -154,11 +130,10 @@ export function LineRaceWaitingRoomPage() {
     try {
       await gateway.leaveRoom(roomId);
       await lineRaceMediaSession.disconnect();
-      lineRaceTransport.disconnect();
       sharedCameraSession.stop();
       activePlayerSession?.clearRegistration();
       setLineRaceRoomSession(null);
-      navigate("/game/line-race", { replace: true });
+      navigate("/game/turn-battle", { replace: true });
     } catch (cause) {
       setError(text(cause));
       setBusy(false);
@@ -166,7 +141,8 @@ export function LineRaceWaitingRoomPage() {
   };
   const cameraReady = devReady || localCameraState === "ON";
   const rtcCameraReady = devReady || Boolean(bot) || lineRaceMediaSession.isCameraEnabled();
-  const canStartMatch = Boolean(room?.canStart) && cameraReady && rtcCameraReady && playerRegistered && gameSocket === "CONNECTED" && !busy;
+  const dataChannelReady = devReady || Boolean(bot) || lineRaceMediaSession.getGameDataChannel?.()?.isOpen() === true;
+  const canStartMatch = Boolean(room?.canStart) && cameraReady && rtcCameraReady && dataChannelReady && playerRegistered && !busy;
   const start = async () => {
     if (!gateway || !roomId || !canStartMatch) return;
     setBusy(true);
@@ -174,7 +150,7 @@ export function LineRaceWaitingRoomPage() {
       await gateway.startGame(roomId);
       const started = await gateway.getRoom(roomId);
       setLineRaceRoomSession({ ...started, currentUser: user });
-      if (started.activeMatchId) navigate(`/game/line-race/matches/${started.activeMatchId}`);
+      if (started.activeMatchId) navigate(`/game/turn-battle/matches/${started.activeMatchId}`);
     } catch (cause) {
       setError(text(cause));
       setBusy(false);
@@ -188,8 +164,8 @@ export function LineRaceWaitingRoomPage() {
       ? "RTC 카메라 송출 필요"
     : !playerRegistered
       ? "사용자 자세 등록 필요"
-      : gameSocket !== "CONNECTED"
-        ? "게임 서버 연결 중"
+      : !dataChannelReady
+        ? "WebRTC 게임 채널 연결 중"
         : !room?.canStart
           ? "상대 참가자 준비 대기 중"
           : busy
@@ -238,7 +214,7 @@ export function LineRaceWaitingRoomPage() {
           Python AI <strong>경기 화면에서 연결됨</strong>
         </span>
         <span>
-          Game WebSocket <strong>{gameSocket}</strong>
+          게임 전송 <strong>{dataChannelReady ? "WebRTC DataChannel 연결됨" : "WebRTC DataChannel 연결 중"}</strong>
         </span>
         <span>
           RTC Signaling <strong>{bot ? "사용 안 함 (정상)" : rtc}</strong>

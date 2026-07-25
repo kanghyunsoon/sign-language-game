@@ -7,7 +7,7 @@ import { DEFAULT_ACTIVE_PLAYER_CONFIG } from "../active-player/ActivePlayerConfi
 import { DEFAULT_HAND_OWNERSHIP_CONFIG } from "../active-player/handOwnershipTypes";
 import { DEFAULT_RECOGNITION_HARDENING_FLAGS, type GameRecognitionBackend, type GameRecognitionEvent, type GameRecognitionPipelineAdapter, type GameRecognitionSessionOptions, type GameRecognitionSnapshot, type RecognitionInputBlockReason, type RecognitionSafetyMode } from "./GameRecognitionSession";
 
-const EMPTY_PERFORMANCE:RecognitionPerformanceSnapshot={cameraFps:0,renderFps:0,handTrackingFps:0,poseTrackingFps:0,aiRequestFps:0,aiResponseFps:0,aiAverageLatencyMs:0,aiP95LatencyMs:0,droppedHandFrames:0,droppedPoseFrames:0,droppedInferenceFrames:0,staleResponsesIgnored:0,mainThreadLongTaskCount:0,latestUpdatedAt:0};
+const EMPTY_PERFORMANCE:RecognitionPerformanceSnapshot={cameraFps:0,renderFps:0,handTrackingFps:0,poseTrackingFps:0,aiRequestFps:0,aiResponseFps:0,aiAverageLatencyMs:0,aiP95LatencyMs:0,handAverageLatencyMs:0,handP95LatencyMs:0,droppedHandFrames:0,droppedPoseFrames:0,droppedInferenceFrames:0,staleResponsesIgnored:0,mainThreadLongTaskCount:0,latestUpdatedAt:0};
 export const DEFAULT_GAME_RECOGNITION_OPTIONS=(cameraSession:GameRecognitionSessionOptions["cameraSession"]):GameRecognitionSessionOptions=>({cameraSession,requireActivePlayerLock:true,allowFallbackSingleHandMode:false,rateConfig:DEFAULT_RECOGNITION_RATE_CONFIG,decoderConfig:DEFAULT_SIGN_DECODER_CONFIG,activePlayerConfig:DEFAULT_ACTIVE_PLAYER_CONFIG,handOwnershipConfig:DEFAULT_HAND_OWNERSHIP_CONFIG,safetyMode:"ACTIVE_PLAYER_REQUIRED",featureFlags:DEFAULT_RECOGNITION_HARDENING_FLAGS});
 
 export class DefaultGameRecognitionSession implements GameRecognitionPipelineAdapter{

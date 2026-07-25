@@ -1,7 +1,7 @@
 export interface WebRtcClientConfig { readonly iceServers: readonly RTCIceServer[] }
 
 export async function requestWebRtcClientConfig(
-  baseUrl = "/api/rtc/config",
+  baseUrl = "/api/webrtc/ice-servers",
   options: { readonly headers?: HeadersInit; readonly fetch?: typeof globalThis.fetch } = {},
 ): Promise<WebRtcClientConfig> {
   const response = await (options.fetch ?? globalThis.fetch)(baseUrl, { credentials: "include", headers: options.headers });

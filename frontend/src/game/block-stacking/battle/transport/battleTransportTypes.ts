@@ -2,7 +2,7 @@ import type { MatchConnectionOptions } from "../../../match";
 
 export type BattleConnectionState = "DISCONNECTED" | "CONNECTING" | "CONNECTED" | "RECONNECTING" | "ERROR";
 
-export interface BattleConnectionOptions extends MatchConnectionOptions {}
+export interface BattleConnectionOptions extends MatchConnectionOptions { readonly hostPlayerId?: string; readonly playerIds?: readonly string[]; }
 
 export type BattleLetterState = "FALLING" | "SETTLED" | "REMOVING" | "REMOVED";
 

@@ -1,3 +1,4 @@
+import type { GameDataChannel } from "./GameDataChannel";
 import type { BattleRoomDetail } from "../../block-stacking/battle/room";
 import type { BattleMediaEventListener } from "./BattleMediaEvent";
 import type { MediaConnectionState, RemoteGameParticipant } from "./mediaTypes";
@@ -9,6 +10,7 @@ export interface BattleMediaSession {
   setCameraEnabled(enabled: boolean): Promise<void>;
   getLocalStream(): MediaStream | null;
   getRemoteParticipants(): readonly RemoteGameParticipant[];
+  getGameDataChannel?(): GameDataChannel | null;
   getConnectionState(): MediaConnectionState;
   isCameraEnabled(): boolean;
   subscribe(listener: BattleMediaEventListener): () => void;

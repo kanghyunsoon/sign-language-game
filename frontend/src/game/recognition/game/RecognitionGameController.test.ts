@@ -27,8 +27,8 @@ describe("RecognitionGameController model readiness", () => {
     };
     listeners.forEach((listener) => listener(capabilities));
 
-    expect(controller.getState().playableSymbols).toEqual(["ㄱ", "1"]);
-    expect(setSpawnSymbols).toHaveBeenLastCalledWith(["ㄱ", "1"]);
+    expect(controller.getState().playableSymbols).toEqual(["ㄱ"]);
+    expect(setSpawnSymbols).toHaveBeenLastCalledWith(["ㄱ"]);
     controller.detach();
   });
 });

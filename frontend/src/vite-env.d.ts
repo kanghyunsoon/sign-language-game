@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
+  readonly VITE_P2P_E2E?: "true" | "false";
   readonly VITE_GAME_API_BASE_URL?: string;
   readonly VITE_GAME_API_CREDENTIALS?: "omit" | "same-origin" | "include";
   readonly VITE_GAME_ROOM_API_BASE_URL?: string;

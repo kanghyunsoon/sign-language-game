@@ -1,6 +1,6 @@
 # HandPractice 개발 트러블슈팅 기록
 
-마지막 정리: 2026-07-22
+마지막 정리: 2026-07-23
 
 ## 19. 턴 배틀에 레이스 봇·글자 경로·캔버스 재생성이 남아 있던 문제
 
@@ -20,7 +20,7 @@
 
 - `LocalGlyphTurnPractice`를 만들었다. 봇의 독립 공격 타이머는 없고, 내 지문자 선택 뒤에만 한 턴이 시작된다.
 - 턴은 `PLANNING → WAITING → REVEAL → PLANNING`으로만 진행한다. 양쪽 선택은 잠금 중 숨기고 둘 다 결정된 뒤 동시에 공개·판정한다.
-- 로비의 `턴제 봇 연습`은 레거시 서버 봇을 생성하지 않고 `/game/line-race/practice`로 이동한다.
+- 로비의 `턴제 봇 연습`은 레거시 서버 봇을 생성하지 않고 `/game/turn-battle/practice`로 이동한다.
 - 턴 렌더러에서 글자 장애물과 traversal 좌표를 전달하지 않는다. 지문자는 기술 판정 입력이지 이동 도로가 아니다.
 - `LineRaceGameShell`의 effect는 config 객체가 아니라 실제 스칼라 설정값에만 의존하게 바꿨다.
 - 851px 이상은 `100dvh` 안에 경기장·카메라·기술 카드가 들어가고 모바일만 스크롤하게 했다. 낮은 경기장에는 compact scale을 적용했다.
@@ -39,7 +39,7 @@
 
 ### 남은 경계
 
-`/game/line-race/practice`는 프런트 로컬 연습 모드다. 온라인 대전은 새 Match 백엔드가 `GlyphTurnMatchContract`의 비공개 동시 선택·동시 공개·권위 스냅샷을 구현한 뒤 연결한다. 그 전에는 레거시 봇으로 되돌리거나 로컬 계산을 운영 판정으로 사용하지 않는다.
+`/game/turn-battle/practice`는 프런트 로컬 연습 모드다. 온라인 대전은 새 Match 백엔드가 `GlyphTurnMatchContract`의 비공개 동시 선택·동시 공개·권위 스냅샷을 구현한 뒤 연결한다. 그 전에는 레거시 봇으로 되돌리거나 로컬 계산을 운영 판정으로 사용하지 않는다.
 
 ## 이 문서의 기준
 
@@ -226,7 +226,7 @@ RTC가 특정 게임 화면과 1:1 상대를 전제로 묶이면 라인 레이�
 ### 내가 적용한 구조
 
 ```text
-게임 상태와 RTC signaling: Browser ↔ Spring STOMP ↔ Browser
+방 상태와 RTC signaling: Browser ↔ Spring native WebSocket ↔ Browser
 실제 영상:                Browser RTCPeerConnection ↔ Browser RTCPeerConnection
 지문자 인식:              Shared MediaStream → MediaPipe → Python AI
 ```
@@ -244,7 +244,7 @@ RTC가 특정 게임 화면과 1:1 상대를 전제로 묶이면 라인 레이�
 
 ### Signaling 경계
 
-- 기존 `/ws/game` STOMP endpoint를 공유한다.
+- Room 전용 native WebSocket은 방 이벤트와 WebRTC signaling만 전달한다.
 - RTC client destination은 `/app/game/rtc/message`다.
 - SDP, ICE, 참가자 상태만 중계하고 영상과 landmark는 Spring으로 보내지 않는다.
 - client가 보낸 sender ID는 신뢰하지 않고 인증된 STOMP Principal로 결정한다.
@@ -711,7 +711,7 @@ cd ..\ai-server
 - `GlyphDuelHudRenderer`는 `REVEAL` 또는 `FINISHED` 단계에서만 기술 이펙트를 그린다.
 - 온라인 1:1은 `GlyphTurnMatchTransport`를 필수로 사용하며 기존 `LINE_RACE_*` 공격으로 폴백하지 않는다.
 - 기존 라인레이스 이벤트는 결투 모델에 넣지 않는다. HP·집중·방어·라운드·턴 연출은 `GLYPH_TURN_*`만 권위 입력으로 사용한다.
-- 온라인 1:1에 봇 참가자가 있으면 입장을 거부하고 봇은 `/game/line-race/practice`에서만 사용한다.
+- 온라인 1:1에 봇 참가자가 있으면 입장을 거부하고 봇은 `/game/turn-battle/practice`에서만 사용한다.
 - 집중 기술의 중앙 지문자 크기를 키워 수렴 이펙트 안에서도 글자 형태가 읽히게 했다.
 
 ### 검증
@@ -790,7 +790,7 @@ Gradle 전체 `check`는 로컬 캐시에 Spring Boot Gradle plugin marker가 �
 
 - 실행 기준을 루트 `frontend`로 올리고 플랫폼 공용 `app`, `features`와 게임 소유 `game`을 분리했다.
 - 블록쌓기는 `game/block-stacking`, 지문자 턴 배틀·라인레이스 셸은 `game/glyph-battle`로 모았다.
-- 플랫폼 라우터는 `/game/*`만 `GameModule`에 위임하고 기존 `/game/solo`, `/game/battle/*`, `/game/line-race/*` URL은 유지했다.
+- 플랫폼 라우터는 `/game/*`만 `GameModule`에 위임하고 기존 `/game/solo`, `/game/battle/*`, `/game/turn-battle/*` URL은 유지했다.
 - 더미 AI는 `game-ai-dev-server`, 더미 리드 서버 예시는 `game-dev-backend/dev-app`, 운영 이식 가능한 Match 모듈은 `game-dev-backend/game-module`로 명시했다.
 - 계약 테스트·AI 모델 경로·문서 링크를 모두 새 기준 경로로 갱신했다.
 
@@ -861,3 +861,72 @@ Gradle 전체 `check`는 로컬 캐시에 Spring Boot Gradle plugin marker가 �
 기본 AI 프로필은 `jamo-number-hybrid-v1`이다. 이 모델은 기존 31자모 TFLite head를 유지하고 별도 숫자 head로 숫자 1~10을 판별한다. 게임 심볼 등록부는 그중 지숫자 1~9만 등록한다. 따라서 모델의 `CAPABILITIES.supportedSymbols`에 1~9가 포함된 경우에만 솔로 블록 쌓기에서 숫자 블록이 생성되고, 안내 패널은 `assets/guides/number-1.png`부터 `number-9.png`까지의 승인된 수형 이미지를 표시한다.
 
 숫자 0과 10은 현재 게임 규칙·가이드·출제 목록에서 제외한다. 모델 라벨에 10이 있더라도 등록부와 교집합을 계산하므로 게임에 섞이지 않는다. 숫자 모델의 보유 평가에서 1~9의 macro F1은 0.9588이며, 1은 F1 0.8615, 8은 0.9057, 9는 0.9200으로 상대적으로 낮다. 실제 배포 전에는 별도 사용자/촬영 환경에서 인식 확정률과 오확정률을 재검증한다.
+
+## 26. STOMP 제거 후 native WebSocket + WebRTC DataChannel 1:1 실사용 검증
+
+### 전송 경계
+
+- 방 생성·참가·준비·시작은 REST/SSE 계약을 사용한다.
+- `POST /auth/sse-ticket` 발급 요청에는 Bearer 인증 헤더가 필요하다.
+- 브라우저 `EventSource`는 임의 인증 헤더를 붙일 수 없으므로, 실제 `/game-rooms/subscribe` 연결은 발급받은 일회용 `ticket` query를 사용한다. SSE 구독 URL에 Bearer 헤더를 억지로 붙이지 않는다.
+- Room native WebSocket은 방 이벤트와 SDP/ICE signaling 전용이다.
+- 실제 게임 명령·권위 이벤트·복구 snapshot은 WebRTC DataChannel의 `GAME_P2P_V1` envelope로 교환한다.
+- 프런트 런타임과 의존성에는 STOMP를 사용하지 않는다.
+
+### 발견한 문제와 수정
+
+1. Vite `/api` 프록시에 `ws: true`가 없어 로컬 Room WebSocket upgrade가 전달되지 않았다.
+2. 상대 socket이 열리기 전에 전달된 offer가 유실될 수 있어 참가자 snapshot 수신 시 기존 offer를 재전송하도록 했다.
+3. RTCPeerConnection 연결 직후 DataChannel은 아직 열리는 중일 수 있어 전송 계층이 최대 5초 동안 open을 기다리도록 했다.
+4. React StrictMode의 setup-cleanup-setup 중 이전 connect가 늦게 완료되며 새 연결을 덮는 문제를 generation으로 무효화했다.
+5. 브라우저의 raw `setTimeout` 함수를 인스턴스 메서드처럼 호출해 `Illegal invocation`이 발생하던 부분을 래퍼 함수로 고쳤다.
+6. 같은 match의 `MATCH_STARTED`가 중복 도착하면 countdown/controller가 재시작되던 문제를 차단했다.
+7. 턴 배틀 페이지가 DataChannel이 즉시 open이 아니면 connect 자체를 건너뛰고, media participant 변화 때 transport를 재생성하던 문제를 제거했다.
+8. 턴 배틀은 상대 영상 타일만 표시하지 않는다. 내 카메라·HandCamera 랜드마크·AI 인식·큰 기술 카드·피해/집중/방어 설명·수달 캐릭터 전투 캔버스는 봇전과 동일하게 사용하며, 확정된 손 인식만 P2P 명령으로 보낸다.
+
+### 로컬 브라우저 2인 실사용 검증
+
+검증은 `VITE_P2P_E2E=true` Vite와 프런트 전용 `npm run dev:p2p-relay`를 사용했다. 릴레이는 운영 백엔드 대체물이 아니라 REST/SSE/ticket/native WebSocket signaling 계약을 로컬에서 재현하는 검증 도구다. 카메라 권한 제약을 피하기 위해 E2E 모드에서만 합성 video track을 사용했고, RTCPeerConnection과 DataChannel 자체는 실제 브라우저 구현을 사용했다.
+
+- 블럭쌓기: 방 생성 → 상대 참가 → 양쪽 준비 → 시작 → 게임/영상/카메라 `CONNECTED` → 동일 target/board 이벤트 수신 → `DANGER_LINE` 종료까지 완료했다. 방장은 승리, 참가자는 패배로 같은 match 결과가 일치했다.
+- 턴 배틀: `SIGN_DUEL` 방 생성 → 참가 → 양쪽 준비 → 시작 → DataChannel `CONNECTED` → 내 카메라·큰 기술 카드 확인 → E2E 전용 카드 trigger로 손 인식 확정과 동일한 P2P 명령 경로를 11턴 교환 → 최종 HP가 방장 화면 `89:0`, 참가자 화면 `0:89`로 대칭 → 방장 승리/참가자 패배 결과까지 완료했다. 운영 빌드에는 카드 클릭 경로가 없고 AI 확정 입력만 허용한다.
+- 로컬 AI WebSocket이 실행되지 않은 상태에서는 `AI 인식 서버 미연결`을 표시하지만 화면 선택으로 P2P 경기와 종료 판정을 계속할 수 있음을 확인했다.
+
+### 배포 전 남은 검증
+
+로컬 실사용 경로는 통과했지만 인터넷 구간 검증을 의미하지는 않는다. 인프라 완성 뒤에는 TLS/WSS, 실제 TURN 서버, 서로 다른 네트워크의 인증된 두 계정, 실제 카메라 권한, AI WebSocket 연결 상태에서 같은 두 시나리오를 한 번 더 수행한다. 백엔드 소스는 이번 작업에서 변경하지 않았다.
+- 온라인 턴 배틀의 위치는 시점 기준(본인 왼쪽·상대 오른쪽), 외형과 체력바는 역할 기준으로 고정한다. 방장은 스카프 수달·파랑 HP, 도전자는 머리띠 수달·주황 HP이며 도전자 화면에서는 왼쪽 머리띠/주황, 오른쪽 스카프/파랑으로 뒤집힌다. 캐릭터 아래에는 표시명과 축약 사용자 ID를 표시한다.
+
+## 27. 배포 Swagger 변경으로 결과 저장과 재대결이 깨질 수 있던 문제
+
+### 증상
+
+프런트는 대전 결과를 `{hostScore, guestScore}`로 보내고 응답에서 `gameSessionId`, `hostScore`, `guestScore`를 읽고 있었다. 2026-07-23 배포 Swagger는 이미 `{winnerUserId}` 계약으로 변경됐고, 결과 처리 뒤 방을 `CLOSED`가 아니라 `WAITING`으로 복귀시키도록 바뀌었다. 기존 프런트를 그대로 배포하면 결과 요청이 400으로 실패하거나 성공 응답 파싱이 실패하고, 재대결 버튼은 로컬 방 캐시를 삭제해 대기실 상세 정보를 잃는다.
+
+### 원인
+
+- 문서 확인 시점 이후 백엔드 Swagger가 갱신됐다.
+- 결과 점수 역할을 프런트가 직접 전송한다는 이전 가정을 유지했다.
+- `returnToWaiting`이 과거의 “결과 뒤 방 종료” 동작을 전제로 캐시를 삭제했다.
+
+### 수정
+
+- `BattleResultClient`는 실제 숫자 승자 ID를 `{winnerUserId}`로 전송한다.
+- 정상 종료 시 양쪽이 같은 host-authoritative snapshot의 승자 ID를 보고한다.
+- 백엔드가 승자 1, 패자 0을 기록하므로 호스트 승 `1:0`, 도전자 승 `0:1` 의미는 유지된다.
+- `409`는 이미 처리된 결과 또는 유효하지 않은 진행 상태이므로 중복 보고의 멱등 종료로 처리한다.
+- 양쪽 클라이언트가 같은 host-authoritative 최종 snapshot의 `winnerUserId`를 제출하도록 해, 참가자의 빠른 화면 이탈과 방장의 결과 직후 연결 종료에도 저장을 보강했다. 먼저 처리된 요청 이후의 `409`는 정상적인 멱등 종료다.
+- `SwaggerBattleRoomGateway.returnToWaiting`은 캐시를 삭제하지 않고 `WAITING`, 양쪽 ready false를 반영한다.
+
+### 계약 확인 결과
+
+- 방 생성 body의 `gameType`은 필수다.
+- 방 응답에는 `gameType`과 `realtimeTicket`이 포함된다.
+- SSE는 Bearer 헤더가 아니라 1회용 ticket query로 구독한다. Bearer 헤더는 티켓 발급 요청에 사용한다.
+- 결과 body는 `{winnerUserId}`이며 `201` 이후 같은 방에서 재대결할 수 있다.
+- 최종 프런트 전체 130개 테스트 파일, 477개 테스트와 TypeScript/Vite production build가 통과했다.
+- 독립 사용자 브라우저 방 `100004`에서 11턴 종료 후 방장 `89:0` 승리, 참가자 `0:89` 패배가 일치했고, 양쪽 결과 제출과 동일 방 `WAITING` 복귀, ready false 초기화를 확인했다.
+
+### P2P 몰수패 경계
+
+순수 DataChannel/PeerConnection 상태만으로 자동 몰수패를 결정하면 네트워크 분할 시 양쪽이 모두 자신을 생존자로 판단할 수 있다. 따라서 백엔드를 변경하지 않는 현재 범위에서는 정상 종료 결과 저장과 짧은 ICE 재연결을 지원하고, 10초 이후 자동 몰수패는 서버가 인증된 `PEER_DISCONNECTED`/`PEER_RECONNECTED`를 권위 근거로 제공하는 정책이 확정되기 전까지 활성화하지 않는다.

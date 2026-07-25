@@ -5,10 +5,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 import { GameModuleContext, type GameModuleContextValue } from "../../app/GameModuleContext";
-import type { BattleRoomDetail, BattleRoomGateway } from "../battle/room";
+import type { BattleRoomDetail, BattleRoomGateway, BattleRoomSession } from "../battle/room";
 import type { GameModuleServices } from "../../contracts";
 import type { SharedGameCameraSession } from "../../media/camera/SharedGameCameraSession";
 import { MockBattleMediaSession } from "../../media/mock/MockBattleMediaSession";
+import type { RoomRealtimeSocket, RoomServerMessage } from "../../realtime";
 import { BattleWaitingRoomPage } from "./BattleWaitingRoomPage";
 
 beforeEach(() => {
@@ -17,140 +18,206 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
-describe("BattleWaitingRoomPage", () => {
-  it("refreshes participants from the server", async () => {
-    const getRoom = vi.fn().mockResolvedValueOnce(room(false)).mockResolvedValue(room(true));
-    renderPage({ roomGateway: gateway({ getRoom }) });
-    expect(await screen.findByText("상대방을 기다리는 중")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "새로고침" }));
-    expect((await screen.findAllByText("상대사용자")).length).toBeGreaterThan(0);
+describe("BattleWaitingRoomPage backend flow", () => {
+  it("opens the room WebSocket while waiting", async () => {
+    const socket = new FakeRoomSocket();
+    renderPage({ socket });
+    await waitFor(() => expect(socket.connect).toHaveBeenCalledTimes(1));
+    expect(screen.getByText("Room WebSocket")).toBeTruthy();
   });
 
-  it("shows the host role and disables start while only one participant exists", async () => {
-    renderPage();
-    expect(await screen.findByText("나사용자 (나)")).toBeTruthy();
-    expect(screen.getAllByText("방장").length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: "게임 시작" })).toHaveProperty("disabled", true);
-    expect(screen.getByText("상대방이 입장해야 시작할 수 있습니다.")).toBeTruthy();
+  it("updates only its own ready state through REST", async () => {
+    const setReady = vi.fn(async () => session({ hostReady: true, currentUserReady: true }));
+    renderPage({ gateway: gateway({ setReady }) });
+    fireEvent.click(await screen.findByRole("button", { name: "준비 완료" }));
+    await waitFor(() => expect(setReady).toHaveBeenCalledWith("1", true));
+    expect(await screen.findByRole("button", { name: "준비 취소" })).toBeTruthy();
   });
 
-  it("does not show the start button to a non-host participant", async () => {
-    renderPage({ currentUserId: "user-2", detail: room(true) });
-    await screen.findByText("상대사용자 (나)");
-    expect(screen.queryByRole("button", { name: "게임 시작" })).toBeNull();
-  });
-
-  it("moves a non-host participant into play when polling finds an active match", async () => {
-    const active = { ...room(true), status: "PLAYING" as const, activeMatchId: "match-1", matchStartAt: Date.now() };
-    renderPage({
-      currentUserId: "user-2",
-      detail: room(true),
-      roomGateway: gateway({ getRoom: vi.fn(async () => active) }),
+  it("starts WebRTC after a successful host start request", async () => {
+    const order: string[] = [];
+    const { camera, stream } = cameraFixture(() => order.push("camera"));
+    const media = new MockBattleMediaSession();
+    vi.spyOn(media, "connect").mockImplementation(async (_room, received) => {
+      expect(received).toBe(stream);
+      order.push("rtc");
     });
-
-    expect(await screen.findByText("PLAY_ROUTE")).toBeTruthy();
-  });
-
-  it("starts a full room through the server and navigates to battle play", async () => {
     const startGame = vi.fn(async () => undefined);
-    renderPage({ detail: room(true), roomGateway: gateway({ getRoom: vi.fn(async () => room(true)), startGame }) });
+    renderPage({
+      detail: room({ full: true, hostReady: true, guestReady: true, currentUserReady: true }),
+      gateway: gateway({ startGame }),
+      camera,
+      media,
+    });
     fireEvent.click(await screen.findByRole("button", { name: "게임 시작" }));
-    await waitFor(() => expect(startGame).toHaveBeenCalledWith("room-1"));
+    await waitFor(() => expect(startGame).toHaveBeenCalledWith("1"));
     expect(await screen.findByText("PLAY_ROUTE")).toBeTruthy();
+    expect(order.at(-1)).toBe("rtc");
+    expect(camera.start).toHaveBeenCalled();
   });
 
-  it("keeps the camera and Mesh session alive when navigating from waiting to play", async () => {
-    const track = { kind: "video", readyState: "live", enabled: true } as MediaStreamTrack;
-    const stream = { getVideoTracks: () => [track], getTracks: () => [track] } as unknown as MediaStream;
-    const camera: SharedGameCameraSession = { start: vi.fn(async () => stream), getStream: () => stream, getVideoTrack: () => track, stop: vi.fn() };
+  it("lets a guest enter when GAME_STARTED arrives", async () => {
+    const socket = new FakeRoomSocket();
+    const { camera } = cameraFixture();
     const media = new MockBattleMediaSession();
     const connect = vi.spyOn(media, "connect");
-    const disconnect = vi.spyOn(media, "disconnect");
-    renderPage({ detail: room(true), roomGateway: gateway({ getRoom: vi.fn(async () => room(true)) }), camera, media });
-    await waitFor(() => expect(connect).toHaveBeenCalledTimes(1));
-    fireEvent.click(await screen.findByRole("button", { name: "게임 시작" }));
+    renderPage({
+      currentUserId: "2",
+      detail: room({ full: true, hostReady: true, guestReady: true, currentUserReady: true }),
+      socket,
+      camera,
+      media,
+    });
+    socket.emit({ type: "GAME_STARTED", payload: { roomId: 1 } });
     expect(await screen.findByText("PLAY_ROUTE")).toBeTruthy();
-    expect(camera.start).toHaveBeenCalledTimes(1);
-    expect(disconnect).not.toHaveBeenCalled();
-    expect(camera.stop).not.toHaveBeenCalled();
+    expect(connect).toHaveBeenCalledTimes(1);
   });
 
-  it("shows a server start rejection without navigating", async () => {
-    const startGame = vi.fn(async () => { throw new Error("Match already active"); });
-    renderPage({ detail: room(true), roomGateway: gateway({ getRoom: vi.fn(async () => room(true)), startGame }) });
-    fireEvent.click(await screen.findByRole("button", { name: "게임 시작" }));
-    expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Match already active");
-    expect(screen.queryByText("PLAY_ROUTE")).toBeNull();
-  });
-
-  it("starts one shared camera stream and passes it to the persistent Mesh session", async () => {
-    const order: string[] = [];
-    const track = { kind: "video", readyState: "live", enabled: true } as MediaStreamTrack;
-    const stream = { getVideoTracks: () => [track], getTracks: () => [track] } as unknown as MediaStream;
-    const camera: SharedGameCameraSession = { start: vi.fn(async () => { order.push("camera"); return stream; }), getStream: () => stream, getVideoTrack: () => track, stop: vi.fn() };
-    const media = new MockBattleMediaSession();
-    const connect = vi.spyOn(media, "connect").mockImplementation(async (_room, received) => { order.push("mesh"); expect(received).toBe(stream); });
-    renderPage({ camera, media });
-    await waitFor(() => expect(connect).toHaveBeenCalledTimes(1));
-    expect(order).toEqual(["camera", "mesh"]);
-    expect(camera.start).toHaveBeenCalledTimes(1);
-  });
-
-  it("shows signaling, peer, game, camera, and AI connection states", async () => {
-    renderPage();
-    await screen.findByText("입문 대전방");
-    expect(screen.getByText("AI 서버").parentElement?.textContent).toContain("게임 시작 전 대기");
-    expect(screen.getByText("RTC Signaling")).toBeTruthy();
-    expect(screen.getByText("상대 연결")).toBeTruthy();
-    expect(screen.getByText("Game WebSocket")).toBeTruthy();
-    expect(screen.getByText("카메라")).toBeTruthy();
-  });
-
-  it("leaves the room and releases media resources", async () => {
+  it("leaves through REST and releases media resources", async () => {
     const leaveRoom = vi.fn(async () => undefined);
     const camera = emptyCamera();
     const media = new MockBattleMediaSession();
     const disconnect = vi.spyOn(media, "disconnect");
-    renderPage({ roomGateway: gateway({ getRoom: vi.fn(async () => room(false)), leaveRoom }), camera, media });
+    renderPage({ gateway: gateway({ leaveRoom }), camera, media });
     fireEvent.click(await screen.findByRole("button", { name: "방 나가기" }));
-    await waitFor(() => expect(leaveRoom).toHaveBeenCalledWith("room-1"));
+    await waitFor(() => expect(leaveRoom).toHaveBeenCalledWith("1"));
     expect(disconnect).toHaveBeenCalledTimes(1);
     expect(camera.stop).toHaveBeenCalledTimes(1);
     expect(await screen.findByText("LIST_ROUTE")).toBeTruthy();
   });
 });
 
+class FakeRoomSocket {
+  readonly connect = vi.fn(async () => undefined);
+  readonly disconnect = vi.fn();
+  private readonly listeners = new Set<(message: RoomServerMessage) => void>();
+  subscribe(listener: (message: RoomServerMessage) => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+  subscribeError(): () => void { return () => undefined; }
+  emit(message: RoomServerMessage): void {
+    for (const listener of this.listeners) listener(message);
+  }
+}
+
 interface RenderOptions {
   readonly detail?: BattleRoomDetail;
   readonly currentUserId?: string;
-  readonly roomGateway?: BattleRoomGateway;
+  readonly gateway?: BattleRoomGateway;
   readonly camera?: SharedGameCameraSession;
   readonly media?: MockBattleMediaSession;
+  readonly socket?: FakeRoomSocket;
 }
 
 function renderPage(options: RenderOptions = {}) {
-  const currentUserId = options.currentUserId ?? "user-1";
-  const detail = options.detail ?? room(false);
-  const roomGateway = options.roomGateway ?? gateway({ getRoom: vi.fn(async () => detail) });
+  const currentUserId = options.currentUserId ?? "1";
+  const detail = options.detail ?? room();
+  const roomGateway = options.gateway ?? gateway();
+  const socket = options.socket ?? new FakeRoomSocket();
   const value: GameModuleContextValue = {
-    user: { userId: currentUserId, displayName: currentUserId === "user-1" ? "나사용자" : "상대사용자" },
-    config: { soloApiBaseUrl: "/solo", roomApiBaseUrl: "/rooms", gameWebSocketUrl: "ws://game", rtcConfigApiBaseUrl: "/rtc", aiWebSocketUrl: "ws://ai", battleRoomPollingIntervalMs: 60_000 },
-    services: { battleRoomGateway: roomGateway } as unknown as GameModuleServices,
-    battleMediaSession: options.media ?? new MockBattleMediaSession(), sharedCameraSession: options.camera ?? emptyCamera(),
-    battleRoomSession: { ...detail, currentUser: { userId: currentUserId, displayName: currentUserId === "user-1" ? "나사용자" : "상대사용자" } }, setBattleRoomSession: vi.fn(),
+    user: { userId: currentUserId, displayName: currentUserId === "1" ? "나" : "상대방" },
+    config: {
+      soloApiBaseUrl: "/api",
+      roomApiBaseUrl: "/api",
+      gameWebSocketUrl: "ws://game",
+      roomWebSocketBaseUrl: "ws://game/ws/game-rooms",
+      rtcConfigApiBaseUrl: "/api/webrtc/ice-servers",
+      aiWebSocketUrl: "ws://ai",
+    },
+    services: {
+      battleRoomGateway: roomGateway,
+      roomRealtimeSocketFactory: { create: () => socket as unknown as RoomRealtimeSocket },
+    } as unknown as GameModuleServices,
+    battleMediaSession: options.media ?? new MockBattleMediaSession(),
+    sharedCameraSession: options.camera ?? emptyCamera(),
+    battleRoomSession: { ...detail, currentUser: { userId: currentUserId, displayName: currentUserId === "1" ? "나" : "상대방" } },
+    setBattleRoomSession: vi.fn(),
   };
-  return render(<GameModuleContext.Provider value={value}><MemoryRouter initialEntries={["/game/battle/room-1"]}><Routes><Route path="/game/battle" element={<span>LIST_ROUTE</span>} /><Route path="/game/battle/:roomId" element={<BattleWaitingRoomPage />} /><Route path="/game/battle/:roomId/play" element={<span>PLAY_ROUTE</span>} /></Routes></MemoryRouter></GameModuleContext.Provider>);
+  return render(
+    <GameModuleContext.Provider value={value}>
+      <MemoryRouter initialEntries={["/game/battle/1"]}>
+        <Routes>
+          <Route path="/game/battle" element={<span>LIST_ROUTE</span>} />
+          <Route path="/game/battle/:roomId" element={<BattleWaitingRoomPage />} />
+          <Route path="/game/battle/:roomId/play" element={<span>PLAY_ROUTE</span>} />
+        </Routes>
+      </MemoryRouter>
+    </GameModuleContext.Provider>,
+  );
 }
 
 function gateway(overrides: Partial<BattleRoomGateway> = {}): BattleRoomGateway {
-  return { getRooms: vi.fn(async () => []), createRoom: vi.fn(), joinRoom: vi.fn(), getRoom: vi.fn(async () => room(false)), leaveRoom: vi.fn(async () => undefined), startGame: vi.fn(async () => undefined), returnToWaiting: vi.fn(async () => undefined), ...overrides };
+  return {
+    getRooms: vi.fn(async () => []),
+    createRoom: vi.fn(),
+    joinRoom: vi.fn(),
+    getRoom: vi.fn(async () => room()),
+    setReady: vi.fn(async () => session()),
+    leaveRoom: vi.fn(async () => undefined),
+    startGame: vi.fn(async () => undefined),
+    returnToWaiting: vi.fn(async () => undefined),
+    ...overrides,
+  };
 }
 
-function room(full: boolean): BattleRoomDetail {
-  const participants = [{ userId: "user-1", displayName: "나사용자", isHost: true }, ...(full ? [{ userId: "user-2", displayName: "상대사용자", isHost: false }] : [])];
-  return { roomId: "room-1", title: "입문 대전방", status: full ? "FULL" : "WAITING", playerCount: participants.length, maxPlayers: 2, hostUserId: "user-1", hostName: "나사용자", difficulty: "EASY", symbolRange: ["ㄱ", "ㄴ"], createdAt: null, canJoin: !full, participants, canStart: full, startBlockReason: full ? undefined : "상대방이 입장해야 시작할 수 있습니다.", rematch: false, activeMatchId: null, matchStartAt: null };
+function room(options: {
+  full?: boolean;
+  hostReady?: boolean;
+  guestReady?: boolean;
+  currentUserReady?: boolean;
+} = {}): BattleRoomDetail {
+  const full = options.full ?? false;
+  const participants = [
+    { userId: "1", displayName: "나", isHost: true, ready: options.hostReady ?? false },
+    ...(full ? [{ userId: "2", displayName: "상대방", isHost: false, ready: options.guestReady ?? false }] : []),
+  ];
+  return {
+    roomId: "1",
+    roomCode: "ABC123",
+    title: "지문자 대전방",
+    status: full ? "FULL" : "WAITING",
+    playerCount: participants.length,
+    maxPlayers: 2,
+    hostUserId: "1",
+    hostName: "나",
+    difficulty: "기본",
+    symbolRange: [],
+    createdAt: null,
+    canJoin: !full,
+    participants,
+    hostReady: options.hostReady ?? false,
+    guestReady: options.guestReady ?? false,
+    currentUserReady: options.currentUserReady ?? false,
+    canStart: full && Boolean(options.hostReady) && Boolean(options.guestReady),
+    rematch: false,
+    activeMatchId: null,
+    matchStartAt: null,
+  };
+}
+
+function session(options: Parameters<typeof room>[0] = {}): BattleRoomSession {
+  return { ...room(options), currentUser: { userId: "1", displayName: "나" } };
+}
+
+function cameraFixture(onStart?: () => void) {
+  const track = { kind: "video", readyState: "live", enabled: true } as MediaStreamTrack;
+  const stream = { getVideoTracks: () => [track], getTracks: () => [track] } as unknown as MediaStream;
+  let current: MediaStream | null = null;
+  const camera: SharedGameCameraSession = {
+    start: vi.fn(async () => { onStart?.(); current = stream; return stream; }),
+    getStream: () => current,
+    getVideoTrack: () => track,
+    stop: vi.fn(),
+  };
+  return { camera, stream };
 }
 
 function emptyCamera(): SharedGameCameraSession {
-  return { start: vi.fn(async () => { throw new Error("not configured"); }), getStream: () => null, getVideoTrack: () => null, stop: vi.fn() };
+  return {
+    start: vi.fn(async () => { throw new Error("not configured"); }),
+    getStream: () => null,
+    getVideoTrack: () => null,
+    stop: vi.fn(),
+  };
 }

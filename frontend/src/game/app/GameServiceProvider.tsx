@@ -1,26 +1,22 @@
 import { useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
 
 import { HttpSoloGameApi } from "../block-stacking/solo/api";
-import { BackendBattleRoomGateway, DevBattleRoomGateway } from "../block-stacking/battle/room";
+import { DevBattleRoomGateway, SwaggerBattleRoomGateway } from "../block-stacking/battle/room";
 import type { BattleRoomSession } from "../block-stacking/battle/room";
 import type {
   GameModuleServices,
 } from "../contracts/GameModuleServices";
-import { Stomp } from "@stomp/stompjs";
-import { StompBattleTransport, type StompClientLike } from "../block-stacking/battle/transport/StompBattleTransport";
+import { P2pBattleTransport } from "../block-stacking/battle/transport/P2pBattleTransport";
 import { GameModuleContext } from "./GameModuleContext";
 import type { GameModuleConfig, GameModuleUser } from "./GameModule";
 import { DefaultSharedGameCameraSession } from "../media/camera/SharedGameCameraSession";
 import { MeshBattleMediaSession } from "../media/mesh/MeshBattleMediaSession";
 import { requestWebRtcClientConfig } from "../media/mesh/webRtcConfig";
-import { WebSocketWebRtcSignalingTransport, type SignalingStompClient } from "../media/signaling/WebSocketWebRtcSignalingTransport";
 import { createDevAuthHeaders } from "./devAuthHeaders";
-import { BackendDevLineRaceBotGateway, BackendLineRaceRoomGateway, DevLineRaceRoomGateway } from "../glyph-battle/room";
-import type { LineRaceRoomSession } from "../glyph-battle/room";
-import { StompLineRaceTransport } from "../glyph-battle/transport";
 import { DefaultActivePlayerSession } from "../recognition/active-player";
-import { StompGlyphTurnMatchTransport } from "../glyph-battle/duel/GlyphTurnMatchTransport";
+import { P2pGlyphTurnMatchTransport } from "../glyph-battle/duel/P2pGlyphTurnMatchTransport";
 import { RecognitionVisionProvider } from "../recognition/vision";
+import { NativeRoomWebRtcSignalingTransport, RealtimeTicketClient, RoomRealtimeSocket } from "../realtime";
 
 interface GameServiceProviderProps extends PropsWithChildren {
   readonly user: GameModuleUser;
@@ -32,37 +28,44 @@ interface GameServiceProviderProps extends PropsWithChildren {
 
 export function GameServiceProvider({ children, user, accessToken, config, onExit, serviceOverrides }: GameServiceProviderProps) {
   const cleanupGenerationRef = useRef(0);
-  const [sharedCameraSession] = useState(() => new DefaultSharedGameCameraSession());
+  const [sharedCameraSession] = useState(() => new DefaultSharedGameCameraSession(
+    import.meta.env.VITE_P2P_E2E === "true" ? { getUserMedia: async () => createE2eCameraStream() } : {},
+  ));
   const [activePlayerSession] = useState(() => new DefaultActivePlayerSession());
   const [battleMediaSession] = useState(() => {
     const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : createDevAuthHeaders(user);
     return new MeshBattleMediaSession({
       localUser: user,
-      loadIceServers: async () => (await requestWebRtcClientConfig(config.rtcConfigApiBaseUrl ?? "/api/rtc/config", { headers })).iceServers,
-      createSignalingTransport: () => new WebSocketWebRtcSignalingTransport({
-        url: config.gameWebSocketUrl,
-        localUserId: user.userId,
-        headers,
-        createClient: (url) => Stomp.client(url) as SignalingStompClient,
-      }),
+      loadIceServers: async () => (await requestWebRtcClientConfig(config.rtcConfigApiBaseUrl ?? "/api/webrtc/ice-servers", { headers })).iceServers,
+      createSignalingTransport: (roomId) => {
+        const ticketClient = new RealtimeTicketClient({
+          apiBaseUrl: config.roomApiBaseUrl,
+          userId: user.userId,
+          headers,
+        });
+        const roomSocket = new RoomRealtimeSocket({
+          webSocketBaseUrl: config.roomWebSocketBaseUrl ?? config.gameWebSocketUrl,
+          roomId,
+          localUserId: user.userId,
+          ticketClient,
+        });
+        return new NativeRoomWebRtcSignalingTransport(roomSocket);
+      },
     });
   });
-  const lineRaceMediaSession = battleMediaSession;
   const [battleRoomSession, setBattleRoomSession] = useState<BattleRoomSession | null>(null);
-  const [lineRaceRoomSession, setLineRaceRoomSession] = useState<LineRaceRoomSession | null>(null);
+  const [turnBattleRoomSession, setTurnBattleRoomSession] = useState<BattleRoomSession | null>(null);
   const services = useMemo(
-    () => ({ ...createDefaultServices(user, accessToken, config), ...serviceOverrides }),
+    () => ({ ...createDefaultServices(user, accessToken, config, () => battleMediaSession.getGameDataChannel()), ...serviceOverrides }),
     [accessToken, config, serviceOverrides, user],
   );
-  // The active transport must come from the service boundary as well. Otherwise
-  // a replacement Match module can override block battle but not glyph battle.
-  const [lineRaceTransport] = useState(() => services.lineRaceTransportFactory?.create("")
-    ?? new StompLineRaceTransport((url)=>Stomp.client(url) as StompClientLike, { channels: config.matchChannels }));
-  const [glyphTurnTransport] = useState(() => services.glyphTurnMatchTransportFactory?.create("")
-    ?? new StompGlyphTurnMatchTransport((url)=>Stomp.client(url) as StompClientLike,{channels:config.matchChannels}));
+  const [glyphTurnTransport] = useState(() => new P2pGlyphTurnMatchTransport({
+    getChannel: () => battleMediaSession.getGameDataChannel(),
+    localPlayerId: user.userId,
+  }));
   const value = useMemo(
-    () => ({ user, accessToken, config, services, battleMediaSession, lineRaceMediaSession, lineRaceTransport, glyphTurnTransport, sharedCameraSession, activePlayerSession, battleRoomSession, setBattleRoomSession, lineRaceRoomSession, setLineRaceRoomSession, onExit }),
-    [accessToken, activePlayerSession, battleMediaSession, battleRoomSession, config, glyphTurnTransport, lineRaceMediaSession, lineRaceRoomSession, lineRaceTransport, onExit, services, sharedCameraSession, user],
+    () => ({ user, accessToken, config, services, battleMediaSession, glyphTurnTransport, sharedCameraSession, activePlayerSession, battleRoomSession, setBattleRoomSession, turnBattleRoomSession, setTurnBattleRoomSession, onExit }),
+    [accessToken, activePlayerSession, battleMediaSession, battleRoomSession, config, glyphTurnTransport, turnBattleRoomSession, onExit, services, sharedCameraSession, user],
   );
 
   useEffect(() => {
@@ -76,12 +79,11 @@ export function GameServiceProvider({ children, user, accessToken, config, onExi
       queueMicrotask(() => {
         if (cleanupGenerationRef.current !== cleanupGeneration) return;
         activePlayerSession.dispose();
-        lineRaceTransport.disconnect();
         glyphTurnTransport.disconnect();
         void battleMediaSession.disconnect().finally(() => sharedCameraSession.stop());
       });
     };
-  }, [activePlayerSession, battleMediaSession, glyphTurnTransport, lineRaceTransport, sharedCameraSession]);
+  }, [activePlayerSession, battleMediaSession, glyphTurnTransport, sharedCameraSession]);
 
   return (
     <RecognitionVisionProvider factory={services.recognitionVisionAdapterFactory}>
@@ -90,23 +92,50 @@ export function GameServiceProvider({ children, user, accessToken, config, onExi
   );
 }
 
-function createDefaultServices(user: GameModuleUser, accessToken: string | undefined, config: GameModuleConfig): GameModuleServices {
+function createDefaultServices(user: GameModuleUser, accessToken: string | undefined, config: GameModuleConfig, getGameDataChannel: () => import("../media/core/GameDataChannel").GameDataChannel | null): GameModuleServices {
   const headers: HeadersInit = accessToken
     ? { Authorization: `Bearer ${accessToken}` }
     : createDevAuthHeaders(user);
+  const useSwaggerContract = Boolean(accessToken) || import.meta.env.VITE_P2P_E2E === "true";
   return {
     soloGameApi: new HttpSoloGameApi({ baseUrl: config.soloApiBaseUrl, credentials: "include", headers }),
-    battleRoomGateway: accessToken
-      ? new BackendBattleRoomGateway({ baseUrl: config.roomApiBaseUrl, currentUser: user, credentials: "include", headers })
+    battleRoomGateway: useSwaggerContract
+      ? new SwaggerBattleRoomGateway({ baseUrl: config.roomApiBaseUrl, currentUser: user, credentials: "include", headers, gameType: "TETRIS_DUEL" })
       : new DevBattleRoomGateway({ baseUrl: config.roomApiBaseUrl, currentUser: user, credentials: "include", headers }),
-    battleGameTransportFactory: {
-      create: () => new StompBattleTransport((url) => Stomp.client(url) as StompClientLike, { channels: config.matchChannels }),
+    turnBattleRoomGateway: useSwaggerContract
+      ? new SwaggerBattleRoomGateway({ baseUrl: config.roomApiBaseUrl, currentUser: user, credentials: "include", headers, gameType: "SIGN_DUEL" })
+      : new DevBattleRoomGateway({ baseUrl: config.roomApiBaseUrl, currentUser: user, credentials: "include", headers }),
+    roomRealtimeSocketFactory: {
+      create: (roomId) => {
+        const ticketClient = new RealtimeTicketClient({
+          apiBaseUrl: config.roomApiBaseUrl,
+          userId: user.userId,
+          headers,
+        });
+        return new RoomRealtimeSocket({
+          webSocketBaseUrl: config.roomWebSocketBaseUrl ?? config.gameWebSocketUrl,
+          roomId,
+          localUserId: user.userId,
+          ticketClient,
+        });
+      },
     },
-    lineRaceRoomGateway: accessToken
-      ? new BackendLineRaceRoomGateway({baseUrl:config.roomApiBaseUrl,currentUser:user,credentials:"include",headers})
-      : new DevLineRaceRoomGateway({baseUrl:config.roomApiBaseUrl,currentUser:user,credentials:"include",headers}),
-    lineRaceTransportFactory:{create:()=>new StompLineRaceTransport((url)=>Stomp.client(url) as StompClientLike,{channels:config.matchChannels})},
-    glyphTurnMatchTransportFactory:{create:()=>new StompGlyphTurnMatchTransport((url)=>Stomp.client(url) as StompClientLike,{channels:config.matchChannels})},
-    lineRaceBotGateway: new BackendDevLineRaceBotGateway({baseUrl:config.roomApiBaseUrl,currentUser:user,credentials:"include",headers}),
+    battleGameTransportFactory: {
+      create: () => new P2pBattleTransport(getGameDataChannel, user.userId),
+    },
   };
+}
+
+function createE2eCameraStream(): MediaStream {
+  const canvas = document.createElement("canvas");
+  canvas.width = 640;
+  canvas.height = 360;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("E2E camera canvas is unavailable.");
+  context.fillStyle = "#153229";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = "#f2f7df";
+  context.font = "32px sans-serif";
+  context.fillText("P2P E2E synthetic camera", 90, 190);
+  return canvas.captureStream(5);
 }

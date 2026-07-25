@@ -21,18 +21,28 @@ export class RaceRunnerRenderer {
   private readonly motion = new Graphics();
   private readonly fighter: Sprite;
   private readonly isLocal: boolean;
+  private isHostRole: boolean;
   private viewportScale = 1;
 
   constructor(readonly playerId:string){
     this.isLocal = playerId === "PLAYER_A";
-    this.fighter = Sprite.from(this.isLocal ? PLAYER_OTTER_URL : RIVAL_OTTER_URL);
+    this.isHostRole = this.isLocal;
+    this.fighter = Sprite.from(this.isHostRole ? PLAYER_OTTER_URL : RIVAL_OTTER_URL);
     this.fighter.anchor.set(.5, 1);
-    const targetHeight = this.isLocal ? 184 : 148;
+    const targetHeight = this.isHostRole ? 184 : 148;
     // Pixi's real Sprite always has a texture; the fallback keeps lightweight
     // renderer test doubles compatible without weakening runtime loading.
     const sourceHeight = this.fighter.texture?.height || 1254;
     this.fighter.scale.set(targetHeight / sourceHeight);
     this.root.addChild(this.shadow, this.motion, this.fighter);
+  }
+
+setHostRole(isHostRole:boolean):void{
+    if(this.isHostRole===isHostRole)return;
+    this.isHostRole=isHostRole;
+    this.fighter.texture=Sprite.from(isHostRole?PLAYER_OTTER_URL:RIVAL_OTTER_URL).texture;
+    const sourceHeight=this.fighter.texture?.height||1254,targetHeight=isHostRole?184:148;
+    this.fighter.scale.set(targetHeight/sourceHeight);
   }
 
   setViewportScale(scale:number):void{this.viewportScale=Math.max(.65,Math.min(1,scale));}

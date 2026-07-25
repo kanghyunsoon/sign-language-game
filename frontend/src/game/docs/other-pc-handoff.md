@@ -271,3 +271,12 @@ T-92 development macro-F1 91.71%, CER 5.24%, 완전일치 75.53%이고
 17 class 미달, ㅒ support 0이므로 목표 달성이 아니다.
 같은 CROWD19 반복 튜닝을 중단하고 새 signer·방향 조건 locked final-test부터 만들어라.
 ```
+
+## 2026-07-23 P2P 실시간 게임 전환 우선 안내
+
+이 문서의 과거 AI·더미 백엔드 기록은 보존한다. 현재 운영 백엔드 정렬과 실시간 게임 전환을 이어갈 때는 먼저 `codex-handoff-p2p-realtime-2026-07-23.md`를 읽는다.
+
+- 작업 저장소는 `C:\Users\SSAFY\Desktop\S15P11A405`이며 `backend/`는 수정 금지다.
+- Room WebSocket은 native WebSocket + ticket + SIGNAL 전용이다. STOMP를 신규 코드에 사용하지 않는다.
+- WebRTC `game-v1` DataChannel과 `WebRtcDataChannelTransport` 기반은 구현됐지만 P2P host authority 전환은 아직 진행 중이다.
+- 다음 구현과 검증 순서는 새 핸드오프 문서를 canonical 기준으로 한다.

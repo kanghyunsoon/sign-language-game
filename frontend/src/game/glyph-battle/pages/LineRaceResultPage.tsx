@@ -20,7 +20,7 @@ export function LineRaceResultPage() {
       <main className={styles.page}>
         <h1>경기 결과</h1>
         <p>결과 Event를 찾을 수 없습니다.</p>
-        <Link to="/game/line-race">라인 레이스 로비</Link>
+        <Link to="/game/turn-battle">라인 레이스 로비</Link>
       </main>
     );
   const mine = event.results.find((result) => result.playerId === user.userId);
@@ -38,7 +38,7 @@ export function LineRaceResultPage() {
   const resultCode = !event.winnerPlayerId ? "DRAW" : event.winnerPlayerId === user.userId ? "WIN" : "LOSE";
   const waiting = () =>
     lineRaceRoomSession &&
-    navigate(`/game/line-race/rooms/${lineRaceRoomSession.roomId}`);
+    navigate(`/game/turn-battle/rooms/${lineRaceRoomSession.roomId}`);
   const rematch = async () => {
     if (!lineRaceRoomSession || !services.lineRaceRoomGateway) return;
     const bot = lineRaceRoomSession.participants.find((participant) => participant.isBot);
@@ -49,7 +49,7 @@ export function LineRaceResultPage() {
       const room = await services.lineRaceRoomGateway.getRoom(started.roomId);
       setLineRaceRoomSession?.({ ...room, currentUser: user });
       LineRaceRoomSessionAdapter.clearResult(matchId);
-      navigate(`/game/line-race/matches/${started.matchId}`);
+      navigate(`/game/turn-battle/matches/${started.matchId}`);
       return;
     }
     await services.lineRaceRoomGateway.returnToWaiting(
@@ -60,7 +60,7 @@ export function LineRaceResultPage() {
     );
     setLineRaceRoomSession?.({ ...room, currentUser: user });
     LineRaceRoomSessionAdapter.clearResult(matchId);
-    navigate(`/game/line-race/rooms/${room.roomId}`);
+    navigate(`/game/turn-battle/rooms/${room.roomId}`);
   };
   const exitRoom = async (target: string) => {
     if (lineRaceRoomSession && services.lineRaceRoomGateway) await services.lineRaceRoomGateway.leaveRoom(lineRaceRoomSession.roomId).catch(() => undefined);
@@ -86,7 +86,7 @@ export function LineRaceResultPage() {
       <div className={styles.actions}>
         <button onClick={() => void rematch()}>재대전</button>
         <button onClick={waiting}>대기방</button>
-        <button onClick={() => void exitRoom("/game/line-race")}>턴 배틀 로비</button>
+        <button onClick={() => void exitRoom("/game/turn-battle")}>턴 배틀 로비</button>
         <button onClick={() => void exitRoom("/game")}>게임 선택</button>
       </div>
     </main>

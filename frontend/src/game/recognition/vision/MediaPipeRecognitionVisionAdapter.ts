@@ -14,7 +14,9 @@ export class MediaPipeRecognitionVisionAdapter implements RecognitionVisionAdapt
   }
 
   async initialize(): Promise<void> {
-    await this.handLandmarker.initialize();
+    const handInitialization = this.handLandmarker.initialize();
+    if (this.poseLandmarker) this.poseInitialization = this.poseLandmarker.initialize();
+    await Promise.all([handInitialization, this.poseInitialization]);
   }
 
   detectHands(frame: RecognitionVisionFrame) {

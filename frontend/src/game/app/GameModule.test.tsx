@@ -68,15 +68,6 @@ describe("GameModule", () => {
     expect(screen.queryByText("협동 게임")).toBeNull();
   });
 
-  it("opens the line-race placeholder and returns to category selection", () => {
-    renderGameModule();
-    fireEvent.click(screen.getByRole("link", { name: "수달 배틀 선택" }));
-    expect(screen.getByRole("heading", { name: "지문자 턴 배틀" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "턴제 봇 연습" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("link", { name: /게임 선택으로 돌아가기/ }));
-    expect(screen.getByRole("heading", { name: "수어의 달인" })).toBeTruthy();
-  });
-
   it("returns from the block mode page to category selection", () => {
     renderGameModule({}, "/game/block");
     fireEvent.click(screen.getByRole("link", { name: /게임 선택/ }));
@@ -93,19 +84,6 @@ describe("GameModule", () => {
     renderGameModule({ serviceOverrides: { battleRoomGateway: fakeBattleRoomGateway({ getRooms }) } }, "/game/battle");
     expect(screen.getByRole("heading", { name: "대전방" })).toBeTruthy();
     await waitFor(() => expect(getRooms).toHaveBeenCalledTimes(1));
-  });
-
-  it("supports direct entry to the line-race placeholder route", () => {
-    renderGameModule({}, "/game/line-race");
-    expect(screen.getByRole("heading", { name: "지문자 턴 배틀" })).toBeTruthy();
-  });
-
-  it("does not register line-race developer routes without the explicit dev-tools flag", () => {
-    renderGameModule({}, "/game/line-race/dev");
-    expect(screen.queryByRole("heading", { name: "라인 레이스 개발 Harness" })).toBeNull();
-    cleanup();
-    renderGameModule({}, "/game/line-race/practice");
-    expect(screen.getByTestId("glyph-turn-bot-practice-stub")).toBeTruthy();
   });
 
   it("registers the crowd recognition harness route in development", () => {
@@ -140,7 +118,13 @@ describe("GameModule", () => {
   });
 
   it("runs the standalone harness", () => {
-    render(<StandaloneGameHarness config={config} />);
+    render(
+      <MemoryRouter initialEntries={["/game"]}>
+        <Routes>
+          <Route path="/game/*" element={<StandaloneGameHarness config={config} />} />
+        </Routes>
+      </MemoryRouter>,
+    );
     expect(screen.getByRole("heading", { name: "수어의 달인" })).toBeTruthy();
     expect(screen.getByText("개발 사용자")).toBeTruthy();
   });

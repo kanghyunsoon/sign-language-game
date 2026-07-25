@@ -1,3 +1,4 @@
+import type { GameDataChannel } from "./GameDataChannel";
 import type { GameMediaEventListener } from "./GameMediaEvent";
 import type { GameMediaParticipantInfo, RemoteGameMediaParticipant } from "./GameMediaParticipant";
 import type { WebRtcSignalingTransport } from "../signaling/WebRtcSignalingTransport";
@@ -21,6 +22,7 @@ export interface GameMediaSession {
   getLocalStream(): MediaStream | null;
   getRemoteParticipants(): readonly RemoteGameMediaParticipant[];
   getParticipant(userId: string): RemoteGameMediaParticipant | undefined;
+  getGameDataChannel?(): GameDataChannel;
   getConnectionState(): GameMediaSessionState;
   subscribe(listener: GameMediaEventListener): () => void;
   disconnect(): Promise<void>;

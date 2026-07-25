@@ -9,6 +9,7 @@ export class PeerConnectionSlot {
   connectionState: GameMediaPeerConnectionState = "NEW";
   disconnectGraceTimer: ReturnType<typeof setTimeout> | null = null;
   restartTimer: ReturnType<typeof setTimeout> | null = null;
+  dataChannel: RTCDataChannel | null = null;
   cleanedUp = false;
   sequence = 0;
 
@@ -39,6 +40,10 @@ export class PeerConnectionSlot {
     this.peerConnection.onicecandidate = null;
     this.peerConnection.ontrack = null;
     this.peerConnection.onconnectionstatechange = null;
+    if (this.dataChannel) {
+      this.dataChannel.close();
+      this.dataChannel = null;
+    }
     this.peerConnection.oniceconnectionstatechange = null;
     this.peerConnection.close();
     this.connectionState = "CLOSED";

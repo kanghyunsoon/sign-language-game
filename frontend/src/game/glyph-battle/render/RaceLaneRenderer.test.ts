@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { GlyphDuelView } from "../duel/GlyphDuelModel";
-import { interpolateTraversalRecovery, RaceLaneRenderer, resolveRunnerMotionCue } from "./RaceLaneRenderer";
+import { interpolateTraversalRecovery, RaceLaneRenderer, resolveLaneHostRole, resolveRunnerMotionCue } from "./RaceLaneRenderer";
+import { resolveDuelHealthColors } from "./GlyphDuelHudRenderer";
 
 describe("interpolateTraversalRecovery", () => {
   const from = { x: 420, y: 90, rotation: .1 };
@@ -64,5 +65,19 @@ describe("resolveRunnerMotionCue", () => {
     const waiting = { ...view, phase: "WAITING" as const, lastMove: null };
     expect(resolveRunnerMotionCue("PLAYER_A", waiting, 1_300).motion).toBe("LOCKED");
     expect(resolveRunnerMotionCue("PLAYER_B", waiting, 1_300).motion).toBe("IDLE");
+  });
+});
+describe("online duel role mapping", () => {
+  const challengerView: GlyphDuelView = {
+    hostPlayerId: "host",
+    local: { playerId: "guest", health: 100, focus: 0, guardPercent: 0, rounds: 0 },
+    opponent: { playerId: "host", health: 100, focus: 0, guardPercent: 0, rounds: 0 },
+    phase: "PLANNING", turn: 1, prompt: "", lastMove: null, callout: "", calloutAt: 0, revision: 0,
+  };
+
+  it("keeps the challenger on the left but assigns the challenger asset and orange HP", () => {
+    expect(resolveLaneHostRole("PLAYER_A", challengerView)).toBe(false);
+    expect(resolveLaneHostRole("PLAYER_B", challengerView)).toBe(true);
+    expect(resolveDuelHealthColors(challengerView)).toEqual({ left: 0xff724a, right: 0x26c6ff });
   });
 });

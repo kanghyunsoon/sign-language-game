@@ -7,7 +7,7 @@ interface PendingAttack { readonly obstacleId:string; readonly symbol:string; re
 export type GlyphTurnPhase = "PLANNING" | "WAITING" | "REVEAL" | "FINISHED";
 export interface GlyphDuelFighterView { readonly playerId:string; readonly health:number; readonly focus:number; readonly guardPercent:number; readonly rounds:number }
 export interface GlyphDuelMoveView { readonly symbol:string; readonly role:GlyphMoveRole; readonly roleLabel:string; readonly elementLabel:string; readonly label:string; readonly damage:number; readonly attackerId:string; readonly targetId:string; readonly effectiveness?:string }
-export interface GlyphDuelView { readonly local:GlyphDuelFighterView; readonly opponent:GlyphDuelFighterView; readonly phase:GlyphTurnPhase; readonly turn:number; readonly turnEndsAt?:number; readonly prompt:string; readonly lastMove:GlyphDuelMoveView|null; readonly resolvedMoves?:readonly GlyphDuelMoveView[]; readonly callout:string; readonly calloutAt:number; readonly revision:number }
+export interface GlyphDuelView { readonly hostPlayerId?:string; readonly local:GlyphDuelFighterView; readonly opponent:GlyphDuelFighterView; readonly phase:GlyphTurnPhase; readonly turn:number; readonly turnEndsAt?:number; readonly prompt:string; readonly lastMove:GlyphDuelMoveView|null; readonly resolvedMoves?:readonly GlyphDuelMoveView[]; readonly callout:string; readonly calloutAt:number; readonly revision:number }
 const fresh=():FighterState=>({health:100,focus:0,guardPercent:0,rounds:0,lastKind:null});
 
 /** Deterministic prototype of the state that the replacement Match module must own. */

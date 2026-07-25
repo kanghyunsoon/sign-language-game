@@ -1,5 +1,5 @@
-import { ArrowLeft, Camera, CameraOff, Play, RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowLeft, Camera, CameraOff, Check, Play } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { useGameModuleContext } from "../../app/GameModuleContext";
@@ -7,86 +7,150 @@ import { ParticipantList } from "../battle/components/ParticipantList";
 import styles from "../battle/components/BattleRoomUi.module.css";
 import type { BattleRoomDetail } from "../battle/room";
 import { GameVideoTile } from "../../media/components/GameVideoTile";
-import type { MediaConnectionState, RemoteGameParticipant } from "../../media/core/mediaTypes";
 import { HandCamera, PythonWebSocketSignRecognizer, useGameRecognitionSession } from "../../recognition";
+import type { RoomRealtimeSocket } from "../../realtime";
 
-const DEFAULT_POLLING_INTERVAL_MS = 2_500;
-
-export function BattleWaitingRoomPage() {
+export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK" | "TURN" }) {
   const { roomId } = useParams();
   const navigate = useNavigate();
-  const { user, config, services, battleMediaSession, sharedCameraSession, activePlayerSession, battleRoomSession, setBattleRoomSession } = useGameModuleContext();
-  const recognizer=useMemo(()=>new PythonWebSocketSignRecognizer({url:config.aiWebSocketUrl}),[config.aiWebSocketUrl]);
-  const recognitionSession=useGameRecognitionSession(recognizer,sharedCameraSession,activePlayerSession);
-  const [room, setRoom] = useState<BattleRoomDetail | null>(() => battleRoomSession?.roomId === roomId ? battleRoomSession : null);
+  const {
+    user,
+    config,
+    services,
+    battleMediaSession,
+    sharedCameraSession,
+    activePlayerSession,
+    battleRoomSession,
+    setBattleRoomSession,
+    turnBattleRoomSession,
+    setTurnBattleRoomSession,
+  } = useGameModuleContext();
+  const gateway = mode === "TURN" ? services.turnBattleRoomGateway : services.battleRoomGateway;
+  const roomSession = mode === "TURN" ? turnBattleRoomSession : battleRoomSession;
+  const rememberSession = mode === "TURN" ? setTurnBattleRoomSession : setBattleRoomSession;
+  const lobbyPath = mode === "TURN" ? "/game/turn-battle" : "/game/battle";
+  if (!gateway || !rememberSession) throw new Error("Room gateway is not configured.");
+  const recognizer = useMemo(
+    () => new PythonWebSocketSignRecognizer({ url: config.aiWebSocketUrl }),
+    [config.aiWebSocketUrl],
+  );
+  const recognitionSession = useGameRecognitionSession(
+    recognizer,
+    sharedCameraSession,
+    activePlayerSession,
+  );
+  const [room, setRoom] = useState<BattleRoomDetail | null>(
+    () => roomSession?.roomId === roomId ? (roomSession ?? null) : null,
+  );
   const [localStream, setLocalStream] = useState(() => sharedCameraSession.getStream());
-  const [remoteParticipants, setRemoteParticipants] = useState<readonly RemoteGameParticipant[]>(() => battleMediaSession.getRemoteParticipants());
-  const [rtcState, setRtcState] = useState<MediaConnectionState>(() => battleMediaSession.getConnectionState());
-  const [cameraEnabled, setCameraEnabled] = useState(() => battleMediaSession.isCameraEnabled());
-  const [connecting, setConnecting] = useState(false);
+  const [cameraEnabled, setCameraEnabled] = useState(
+    () => sharedCameraSession.getVideoTrack()?.enabled ?? false,
+  );
+  const [realtimeState, setRealtimeState] = useState<"CONNECTING" | "CONNECTED" | "ERROR">("CONNECTING");
+  const [readyBusy, setReadyBusy] = useState(false);
   const [startingGame, setStartingGame] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const roomSocketRef = useRef<RoomRealtimeSocket | null>(null);
+  const enteringGameRef = useRef(false);
 
-  const refreshMedia = useCallback(() => {
-    setLocalStream(sharedCameraSession.getStream());
-    setRemoteParticipants(battleMediaSession.getRemoteParticipants());
-    setRtcState(battleMediaSession.getConnectionState());
-    setCameraEnabled(battleMediaSession.isCameraEnabled());
-  }, [battleMediaSession, sharedCameraSession]);
+  const rememberRoom = useCallback((next: BattleRoomDetail) => {
+    setRoom(next);
+    rememberSession({ ...next, currentUser: user });
+  }, [rememberSession, user]);
 
-  const loadRoom = useCallback(async () => {
-    if (!roomId) return;
-    try {
-      const detail = await services.battleRoomGateway.getRoom(roomId);
-      setRoom(detail);
-      setBattleRoomSession({ ...detail, currentUser: user });
-      await battleMediaSession.syncParticipants(detail);
-      if (detail.activeMatchId) {
-        navigate(`/game/battle/${roomId}/play`, { replace: true });
-        return;
-      }
-      setError(null);
-    } catch (cause) {
-      setError(errorMessage(cause, "대기방 정보를 불러오지 못했습니다."));
-    }
-  }, [battleMediaSession, navigate, roomId, services.battleRoomGateway, setBattleRoomSession, user]);
-
-  useEffect(() => battleMediaSession.subscribe(refreshMedia), [battleMediaSession, refreshMedia]);
-  useEffect(() => {
-    void loadRoom();
-    const timer = window.setInterval(() => void loadRoom(), config.battleRoomPollingIntervalMs ?? DEFAULT_POLLING_INTERVAL_MS);
-    return () => window.clearInterval(timer);
-  }, [config.battleRoomPollingIntervalMs, loadRoom]);
-
-  const connectMedia = async () => {
-    if (!roomId || !room || connecting || rtcState === "CONNECTED") return;
-    setConnecting(true);
+  const startRtcAndEnter = useCallback(async () => {
+    if (!roomId || !room || enteringGameRef.current) return;
+    enteringGameRef.current = true;
+    setStartingGame(true);
     setError(null);
+    roomSocketRef.current?.disconnect();
     try {
       const stream = await sharedCameraSession.start();
       setLocalStream(stream);
+      setCameraEnabled(sharedCameraSession.getVideoTrack()?.enabled ?? true);
       await battleMediaSession.connect(room, stream);
-      refreshMedia();
+      navigate(`${lobbyPath}/${roomId}/play`, { replace: true });
     } catch (cause) {
-      setError(errorMessage(cause, "상대 영상 연결을 시작하지 못했습니다. 게임은 영상 없이도 시작할 수 있습니다."));
-    } finally {
-      setConnecting(false);
+      enteringGameRef.current = false;
+      setStartingGame(false);
+      setError(errorMessage(cause, "WebRTC 연결을 시작하지 못했습니다."));
+    }
+  }, [battleMediaSession, navigate, room, roomId, sharedCameraSession]);
+
+  useEffect(() => {
+    if (!roomId || room || !roomSession) return;
+    if (roomSession.roomId === roomId) rememberRoom(roomSession);
+  }, [roomSession, rememberRoom, room, roomId]);
+
+  useEffect(() => {
+    if (!roomId || !services.roomRealtimeSocketFactory) return;
+    const socket = services.roomRealtimeSocketFactory.create(roomId);
+    roomSocketRef.current = socket;
+    const unsubscribe = socket.subscribe((message) => {
+      if (message.type === "GAME_STARTED") void startRtcAndEnter();
+      if (message.type === "PEER_LEFT") setError("상대방이 방을 나갔습니다.");
+      if (message.type === "ERROR") setError("방 실시간 연결에서 오류가 발생했습니다.");
+    });
+    const unsubscribeError = socket.subscribeError(() => setRealtimeState("ERROR"));
+    setRealtimeState("CONNECTING");
+    void socket.connect()
+      .then(() => setRealtimeState("CONNECTED"))
+      .catch((cause) => {
+        setRealtimeState("ERROR");
+        setError(errorMessage(cause, "방 실시간 연결에 실패했습니다."));
+      });
+    return () => {
+      unsubscribe();
+      unsubscribeError();
+      if (roomSocketRef.current === socket) roomSocketRef.current = null;
+      socket.disconnect();
+    };
+  }, [roomId, services.roomRealtimeSocketFactory, startRtcAndEnter]);
+
+  const startCameraPreview = async () => {
+    try {
+      const stream = await sharedCameraSession.start();
+      setLocalStream(stream);
+      setCameraEnabled(sharedCameraSession.getVideoTrack()?.enabled ?? true);
+    } catch (cause) {
+      setError(errorMessage(cause, "카메라를 시작하지 못했습니다."));
     }
   };
 
-  useEffect(() => {
-    if (room && rtcState === "DISCONNECTED" && !connecting) void connectMedia();
-  // Room identity is the automatic-connect boundary; media state updates are handled by its subscription.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [room?.roomId]);
+  const toggleCamera = () => {
+    const track = sharedCameraSession.getVideoTrack();
+    if (!track) return;
+    track.enabled = !track.enabled;
+    setCameraEnabled(track.enabled);
+  };
 
-  const toggleCamera = async () => {
+  const toggleReady = async () => {
+    if (!roomId || !room || !gateway.setReady || readyBusy) return;
+    setReadyBusy(true);
+    setError(null);
     try {
-      await battleMediaSession.setCameraEnabled(!cameraEnabled);
-      refreshMedia();
+      const next = await gateway.setReady(roomId, !room.currentUserReady);
+      rememberRoom(next);
     } catch (cause) {
-      setError(errorMessage(cause, "카메라 상태를 변경하지 못했습니다."));
+      setError(errorMessage(cause, "준비 상태를 변경하지 못했습니다."));
+    } finally {
+      setReadyBusy(false);
+    }
+  };
+
+  const startGame = async () => {
+    if (!roomId || !room || startingGame) return;
+    setStartingGame(true);
+    setError(null);
+    try {
+      await gateway.startGame(roomId);
+      // The backend also broadcasts GAME_STARTED. Calling this here covers the host
+      // immediately; the ref prevents the broadcast from starting a second session.
+      await startRtcAndEnter();
+    } catch (cause) {
+      setStartingGame(false);
+      setError(errorMessage(cause, "두 참가자가 모두 준비됐는지 확인해 주세요."));
     }
   };
 
@@ -94,73 +158,117 @@ export function BattleWaitingRoomPage() {
     if (!roomId || leaving) return;
     setLeaving(true);
     try {
-      await services.battleRoomGateway.leaveRoom(roomId);
+      roomSocketRef.current?.disconnect();
+      await gateway.leaveRoom(roomId);
       await battleMediaSession.disconnect();
       sharedCameraSession.stop();
       activePlayerSession?.clearRegistration();
-      setBattleRoomSession(null);
-      navigate("/game/battle", { replace: true });
+      rememberSession(null);
+      navigate(lobbyPath, { replace: true });
     } catch (cause) {
       setError(errorMessage(cause, "방을 나가지 못했습니다."));
       setLeaving(false);
     }
   };
 
-  const startGame = async () => {
-    if (!roomId || !room?.canStart || startingGame) return;
-    setStartingGame(true);
-    setError(null);
-    try {
-      await services.battleRoomGateway.startGame(roomId);
-      const startedRoom = await services.battleRoomGateway.getRoom(roomId);
-      setBattleRoomSession({ ...startedRoom, currentUser: user });
-      navigate("play");
-    } catch (cause) {
-      setError(errorMessage(cause, "서버가 게임 시작을 거절했습니다."));
-      setStartingGame(false);
-    }
-  };
-
   const isHost = room?.hostUserId === user.userId;
-  const opponentName = useMemo(() => room?.participants.find((participant) => participant.userId !== user.userId)?.displayName ?? "상대 영상", [room, user.userId]);
-  const remote = remoteParticipants[0] ?? null;
-  const peerState = remote?.connectionState ?? (room?.participants.length === 2 ? rtcState : "DISCONNECTED");
-  const botOpponent = /bot|mock|연습/i.test(opponentName);
+  const full = room ? room.playerCount >= room.maxPlayers : false;
+  const canRequestStart = Boolean(isHost && room?.currentUserReady);
 
   return (
     <main className={styles.page}>
       <header className={styles.pageHeader}>
-        <div><span className={styles.eyebrow}>1:1 대전 대기실</span><h1>{room?.title ?? "대기방 불러오는 중"}</h1><p>{isHost ? "방장" : "참가자"} · {room?.difficulty ?? "-"} · {room?.symbolRange.join(" ") ?? "-"}</p></div>
-        <div className={styles.headerActions}><button type="button" onClick={() => void loadRoom()}><RefreshCw aria-hidden="true" size={16} />새로고침</button><button type="button" onClick={() => void leaveRoom()} disabled={leaving}><ArrowLeft aria-hidden="true" size={16} />{leaving ? "나가는 중" : "방 나가기"}</button></div>
+        <div>
+          <span className={styles.eyebrow}>1:1 지문자 대전 대기실</span>
+          <h1>{room?.title ?? "대기실 불러오는 중"}</h1>
+          <p>참가 코드 {room?.roomCode ?? "-"} · {isHost ? "방장" : "참가자"}</p>
+        </div>
+        <div className={styles.headerActions}>
+          <button type="button" onClick={() => void leaveRoom()} disabled={leaving}>
+            <ArrowLeft aria-hidden="true" size={16} />{leaving ? "나가는 중" : "방 나가기"}
+          </button>
+        </div>
       </header>
       {error ? <p className={styles.errorBanner} role="alert">{error}</p> : null}
       <div className={styles.connectionStrip} aria-live="polite">
-        <span>카메라<strong>{localStream ? (cameraEnabled ? "켜짐" : "꺼짐") : "준비 중"}</strong></span><span>AI 서버<strong>게임 시작 전 대기</strong></span><span>Game WebSocket<strong>게임 시작 시 연결</strong></span><span>RTC Signaling<strong>{connectionLabel(rtcState)}</strong></span><span>상대 연결<strong>{connectionLabel(peerState)}</strong></span>
+        <span>Room WebSocket<strong>{realtimeState}</strong></span>
+        <span>게임 데이터<strong>시작 후 WebRTC로 전환</strong></span>
+        <span>연결 유예<strong>10초</strong></span>
       </div>
       <div className={styles.waitingLayout}>
         <aside className={styles.waitingSidebar}>
-          {room ? <ParticipantList participants={room.participants} currentUserId={user.userId} maxPlayers={room.maxPlayers} /> : <div className={styles.emptyState}>참가자 정보를 불러오는 중입니다.</div>}
-          <section className={styles.infoPanel}><h2>게임 설정</h2><dl className={styles.roomFacts}><div><dt>내 역할</dt><dd>{isHost ? "방장" : "참가자"}</dd></div><div><dt>상대방</dt><dd>{room?.participants.find((participant) => participant.userId !== user.userId)?.displayName ?? "대기 중"}</dd></div><div><dt>난이도</dt><dd>{room?.difficulty ?? "-"}</dd></div><div><dt>출제 범위</dt><dd>{room?.symbolRange.join(" · ") ?? "-"}</dd></div></dl></section>
+          {room
+            ? <ParticipantList participants={room.participants} currentUserId={user.userId} maxPlayers={room.maxPlayers} />
+            : <div className={styles.emptyState}>방 정보를 확인하는 중입니다.</div>}
+          <section className={styles.infoPanel}>
+            <h2>준비 상태</h2>
+            <dl className={styles.roomFacts}>
+              <div><dt>방장</dt><dd>{room?.hostReady ? "준비 완료" : "준비 중"}</dd></div>
+              <div><dt>참가자</dt><dd>{room?.guestReady ? "준비 완료" : "준비 중"}</dd></div>
+              <div><dt>인원</dt><dd>{room ? `${room.playerCount}/${room.maxPlayers}` : "-"}</dd></div>
+            </dl>
+          </section>
         </aside>
-        <section className={styles.videoArea} aria-label="대전 영상 미리보기">
+        <section className={styles.videoArea} aria-label="내 카메라 미리보기">
           <div className={styles.videoPair}>
-            {localStream?<HandCamera sharedStream={localStream} autoStart activePlayerSession={activePlayerSession} recognitionSession={recognitionSession} performanceMonitor={recognizer.getPerformanceMonitor()} temporalDecoder={recognizer.getTemporalDecoder()} connectionState={recognizer.getConnectionState()}/>:<GameVideoTile kind="LOCAL" label="내 영상" stream={null} cameraEnabled={false} connectionState="DISCONNECTED" />}
-            <GameVideoTile kind="REMOTE" label={botOpponent && !remote ? "연습 상대 · 카메라 없음" : remote?.displayName ?? opponentName} stream={remote?.stream ?? null} cameraEnabled={remote?.cameraEnabled ?? false} connectionState={peerState} />
+            {localStream
+              ? (
+                <HandCamera
+                  sharedStream={localStream}
+                  autoStart
+                  activePlayerSession={activePlayerSession}
+                  recognitionSession={recognitionSession}
+                  performanceMonitor={recognizer.getPerformanceMonitor()}
+                  temporalDecoder={recognizer.getTemporalDecoder()}
+                  connectionState={recognizer.getConnectionState()}
+                />
+              )
+              : (
+                <GameVideoTile
+                  kind="LOCAL"
+                  label="내 영상"
+                  stream={null}
+                  cameraEnabled={false}
+                  connectionState="DISCONNECTED"
+                />
+              )}
           </div>
           <div className={styles.waitingActions}>
-            <button type="button" onClick={() => void connectMedia()} disabled={connecting || rtcState === "CONNECTED"}><Camera aria-hidden="true" size={17} />{connecting ? "영상 연결 준비 중" : rtcState === "FAILED" ? "영상 다시 연결" : "상대 영상 연결"}</button>
-            <button type="button" onClick={() => void toggleCamera()} disabled={!localStream}>{cameraEnabled ? <CameraOff aria-hidden="true" size={17} /> : <Camera aria-hidden="true" size={17} />}{cameraEnabled ? "카메라 끄기" : "카메라 켜기"}</button>
-            {isHost ? <button type="button" className={styles.primaryButton} disabled={!room?.canStart || startingGame} onClick={() => void startGame()}><Play aria-hidden="true" size={17} />{startingGame ? "서버 확인 중" : "게임 시작"}</button> : null}
+            <button type="button" onClick={() => void startCameraPreview()} disabled={Boolean(localStream)}>
+              <Camera aria-hidden="true" size={17} />카메라 미리보기
+            </button>
+            <button type="button" onClick={toggleCamera} disabled={!localStream}>
+              {cameraEnabled ? <CameraOff aria-hidden="true" size={17} /> : <Camera aria-hidden="true" size={17} />}
+              {cameraEnabled ? "카메라 끄기" : "카메라 켜기"}
+            </button>
+            <button
+              type="button"
+              className={room?.currentUserReady ? styles.primaryButton : undefined}
+              onClick={() => void toggleReady()}
+              disabled={!room || readyBusy || !gateway.setReady}
+            >
+              <Check aria-hidden="true" size={17} />{readyBusy ? "처리 중" : room?.currentUserReady ? "준비 취소" : "준비 완료"}
+            </button>
+            {isHost ? (
+              <button
+                type="button"
+                className={styles.primaryButton}
+                disabled={!canRequestStart || startingGame}
+                onClick={() => void startGame()}
+              >
+                <Play aria-hidden="true" size={17} />{startingGame ? "연결 준비 중" : "게임 시작"}
+              </button>
+            ) : null}
           </div>
-          {isHost && !room?.canStart ? <p className={styles.startReason}>{room?.startBlockReason ?? "방 정보를 확인하는 중입니다."}</p> : <p className={styles.startReason}>{isHost ? "서버가 시작 조건을 최종 확인합니다." : "방장이 게임을 시작할 때까지 기다려 주세요."}</p>}
+          <p className={styles.startReason}>
+            {isHost
+              ? canRequestStart ? "시작 요청 시 서버가 두 참가자의 준비 상태를 최종 확인합니다." : "상대방 입장 후 내 준비를 완료해 주세요."
+              : "준비 완료 후 방장의 시작을 기다려 주세요."}
+          </p>
         </section>
       </div>
     </main>
   );
-}
-
-function connectionLabel(state: MediaConnectionState): string {
-  switch (state) { case "CONNECTING": return "상대와 연결 중"; case "CONNECTED": return "영상 연결됨"; case "RECONNECTING": return "영상 재연결 중"; case "FAILED": return "영상 연결 실패"; case "DISCONNECTED": return "영상 연결 준비 중"; }
 }
 
 function errorMessage(cause: unknown, fallback: string): string {

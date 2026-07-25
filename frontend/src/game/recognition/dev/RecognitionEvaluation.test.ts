@@ -2,7 +2,7 @@ import {describe,expect,it} from "vitest";
 import {RecognitionEvaluationCollector} from "./RecognitionEvaluation";
 import type {GameRecognitionSnapshot} from "../session";
 
-const performance={cameraFps:30,renderFps:60,handTrackingFps:24,poseTrackingFps:10,aiRequestFps:12,aiResponseFps:12,aiAverageLatencyMs:80,aiP95LatencyMs:120,droppedHandFrames:1,droppedPoseFrames:2,droppedInferenceFrames:3,staleResponsesIgnored:4,mainThreadLongTaskCount:0,latestUpdatedAt:1};
+const performance={cameraFps:30,renderFps:60,handTrackingFps:24,poseTrackingFps:10,aiRequestFps:12,aiResponseFps:12,aiAverageLatencyMs:80,aiP95LatencyMs:120,handAverageLatencyMs:20,handP95LatencyMs:30,droppedHandFrames:1,droppedPoseFrames:2,droppedInferenceFrames:3,staleResponsesIgnored:4,mainThreadLongTaskCount:0,latestUpdatedAt:1};
 function snapshot(state:GameRecognitionSnapshot["activePlayerState"]="LOCKED"):GameRecognitionSnapshot{return{connectionState:"READY",activePlayerState:state,detectedPoseCount:1,registrationProgress:1,decoderState:"TRACKING",inputAllowed:true,safetyMode:"ACTIVE_PLAYER_REQUIRED",performance};}
 
 describe("RecognitionEvaluationCollector",()=>{
