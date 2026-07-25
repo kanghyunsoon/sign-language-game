@@ -1,6 +1,7 @@
-import { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import { AuthApiError, signup } from "../api/authApi";
 import backgroundLeft from "../assets/background_left.png";
 import backgroundRight from "../assets/background_right.png";
 import otterBook from "../assets/otter_book.png";
@@ -8,12 +9,43 @@ import "./SignUpPage.css";
 
 export function SignUpPage() {
   const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSignUpSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSignUpSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting) return;
 
-    // 회원가입 API 연결 전 임시로 로그인 페이지로 이동
-    navigate("/login");
+    const formData = new FormData(event.currentTarget);
+    const nickname = String(formData.get("nickname") ?? "").trim();
+    const email = String(formData.get("email") ?? "").trim();
+    const password = String(formData.get("password") ?? "");
+    const passwordConfirm = String(formData.get("passwordConfirm") ?? "");
+
+    setError(null);
+    if (password.length < 8) {
+      setError("비밀번호는 8자 이상이어야 합니다.");
+      return;
+    }
+    if (password !== passwordConfirm) {
+      setError("비밀번호가 일치하지 않습니다.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await signup({ email, password, nickname });
+      // 가입 성공 시 로그인 화면으로 이동한다.
+      navigate("/login");
+    } catch (caught) {
+      setError(
+        caught instanceof AuthApiError
+          ? caught.message
+          : "회원가입 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -105,8 +137,14 @@ export function SignUpPage() {
 
                 <span>이용약관 및 개인정보처리방침에 동의합니다.</span>
               </label>
-              <button className="signup-submit-button" type="submit">
-                가입하기
+              {error && (
+                <p className="signup-error" role="alert" style={{ color: "#d64545", margin: 0 }}>
+                  {error}
+                </p>
+              )}
+
+              <button className="signup-submit-button" type="submit" disabled={submitting}>
+                {submitting ? "가입 중…" : "가입하기"}
               </button>
             </form>
 

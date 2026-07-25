@@ -1,6 +1,8 @@
-import { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import { useAuth } from "../AuthContext";
+import { AuthApiError } from "../api/authApi";
 import backgroundLeft from "../assets/background_left.png";
 import backgroundRight from "../assets/background_right.png";
 import otterBook from "../assets/otter_book.png";
@@ -8,11 +10,33 @@ import "./LoginPage.css";
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleLoginSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleLoginSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    // 로그인 API 연결 전 임시로 메인 페이지로 이동
-    navigate("/main");
+    if (submitting) return;
+
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") ?? "").trim();
+    const password = String(formData.get("password") ?? "");
+
+    setError(null);
+    setSubmitting(true);
+    try {
+      // 로그인 성공 시 토큰 저장 + /users/me로 userId 확보(AuthContext.login 내부 처리) 후 이동.
+      await login(email, password);
+      navigate("/main");
+    } catch (caught) {
+      setError(
+        caught instanceof AuthApiError
+          ? caught.message
+          : "로그인 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -82,8 +106,14 @@ export function LoginPage() {
                 </div>
               </div>
 
-              <button className="login-submit-button" type="submit">
-                로그인
+              {error && (
+                <p className="login-error" role="alert" style={{ color: "#d64545", margin: 0 }}>
+                  {error}
+                </p>
+              )}
+
+              <button className="login-submit-button" type="submit" disabled={submitting}>
+                {submitting ? "로그인 중…" : "로그인"}
               </button>
             </form>
 
