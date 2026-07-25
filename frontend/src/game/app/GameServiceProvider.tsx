@@ -93,10 +93,16 @@ export function GameServiceProvider({ children, user, accessToken, config, onExi
 }
 
 function createDefaultServices(user: GameModuleUser, accessToken: string | undefined, config: GameModuleConfig, getGameDataChannel: () => import("../media/core/GameDataChannel").GameDataChannel | null): GameModuleServices {
+  // 운영 빌드에서는 dev 폴백(DevBattleRoomGateway + X-Dev-User 헤더)을 차단한다.
+  // /game 진입은 ProtectedRoute가 accessToken을 보장하므로 여기서는 방어적 처리다.
+  const isProduction = import.meta.env.PROD;
   const headers: HeadersInit = accessToken
     ? { Authorization: `Bearer ${accessToken}` }
-    : createDevAuthHeaders(user);
-  const useSwaggerContract = Boolean(accessToken) || import.meta.env.VITE_P2P_E2E === "true";
+    : isProduction
+      ? {}
+      : createDevAuthHeaders(user);
+  const useSwaggerContract =
+    Boolean(accessToken) || import.meta.env.VITE_P2P_E2E === "true" || isProduction;
   return {
     soloGameApi: new HttpSoloGameApi({ baseUrl: config.soloApiBaseUrl, credentials: "include", headers }),
     battleRoomGateway: useSwaggerContract
