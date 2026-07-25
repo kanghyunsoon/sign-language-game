@@ -1230,3 +1230,39 @@ T-137이 "숫자는 데이터만 있으면 학습된다"를 보였으므로, 다
 3. **미해결 class 데이터 확보:** `NUM_0`과 `ㅒ`(연속 support 0)는 이 데이터로 못 채우므로, AIHub 신규 signer(20~21) 또는 자체 촬영으로 별도 확보한다.
 4. **연속 CTC 라인 분리 유지:** 정적 숫자는 CTC에 병합하지 않는다. CTC 숫자 개선은 새 signer **연속** 숫자 clip이 확보된 뒤에만 재학습한다. 현 CTC 후보는 T-135(held-out floor 15)를 유지한다.
 5. **성공 기준·기록:** 모든 개선은 signer/source-family가 잠긴 test에서 41 class recall·F1과 조건 slice로 검증하고, 회차별로 이 문서에 방법·데이터 기준·전후 수치·회귀와 함께 기록한 뒤에만 다음 회차를 정한다. GPU는 물리 2번만 사용한다.
+
+### T-138 실행 — 41-class 지문자+지숫자 이미지 통합 (khstemp track)
+
+- **문제·기준:** 목표는 31자모+10숫자를 한 모델로 확실히 인식. 자모는 이미지 EfficientNet(T-11~13)이 최고였고 T-137이 숫자 학습 가능성을 보였으므로, 자모 이미지(Roboflow) + 숫자 이미지(KSL)를 합쳐 41-class 이미지 모델을 학습·측정한다.
+- **데이터:** Roboflow Sign Language v1(CC BY 4.0, 31자모, `--all-jamo-images`=MediaPipe 게이트 없음) + KSL Numbers(CC0, `--number-root`). test 527(자모 197 + 숫자 330). signer-independent 아님(각 소스 자체 split, 숫자는 provider train 85/15 valid).
+- **변경 계약:** `train_roboflow_jamo_image_t10.py --features roboflow-v1-f16.npz --dataset-root sign-language-v1 --number-root ksl-numbers --architecture efficientnet_b0 --all-jamo-images --epochs 24 --seed 67 --selection-mode min-q10`, 물리 GPU 2. 산출물 `code-v3/outputs/t138-khs-jamo-number-41/`(model.pt·evaluation.json).
+- **실측(test):** accuracy **90.89%**, macro-F1 **92.78%** (baseline 83.16% 대비 **+7.73%p**). val은 epoch 13에서 accuracy 95.30%.
+- **도메인별(핵심):** **자모31 accuracy 94.42% / macro-F1 94.12%(support 197) — 강함.** **숫자10 accuracy 88.79% / macro-F1 75.41%(support 330) — 약함.**
+- **class gate(각 class recall/F1 ≥93%): 미통과.** minRecall 63.6%, minF1 77.1%. 미달: 숫자 `NUM_0·NUM_1·NUM_3·NUM_4·NUM_5·NUM_8` + 일부 자모(`ㄱ·ㅈ·ㅊ` 등). `NUM_0`은 KSL에 0 이미지가 없어 support 부족(미해결 gap 재확인).
+- **판정·핵심 발견:** **이미지 모델은 자모엔 강하고(94%) 숫자엔 약하다(macro-F1 75%)** — landmark 계열(T-137 정적 숫자 94.7%)과 정반대. 따라서 **자모=이미지 모델, 숫자=landmark/tree 모델로 도메인 라우팅한 하이브리드**가 자모·숫자 둘 다 확실히 잡는 최적 경로다(기존 `models/jamo-number-hybrid` 개념을 실측으로 뒷받침). 운영 모델·MediaPipe 계약은 아직 바꾸지 않는다. 다음 단계는 이 하이브리드 구성·재평가(자모 이미지 + 숫자 landmark)와 signer-잠금 test.
+
+### T-139 실행 — class 균형 샘플러 (전체·약한 class 동반 상승, 효과 O)
+
+- **가설·기법:** T-138에서 숫자(소수 class)가 약했던 원인이 class 불균형이라 보고, **`--balance-mode sampler`(소수 class 업샘플) + `--label-smoothing 0.05`** 를 추가(그 외 T-138과 동일, epochs 30, seed 67, min-q10 선택). 산출물 `code-v3/outputs/t139-khs-balanced/`.
+- **실측(test) — T-138 → T-139:**
+
+  | 지표 | T-138 | **T-139** | Δ |
+  | --- | --- | --- | --- |
+  | 전체 accuracy | 90.89% | **94.50%** | **+3.61%p** |
+  | 전체 macro-F1 | 92.78% | **95.94%** | +3.16%p |
+  | 자모31 accuracy | 94.42% | **96.95%** | +2.53%p |
+  | 숫자10 accuracy | 88.79% | **93.03%** | +4.24%p |
+  | 숫자10 macro-F1 | 75.41% | **85.35%** | **+9.94%p** |
+
+- **약한 class 개선(핵심):** min-recall 63.6% → **66.7%**. 미달 class 수는 13개 수준 유지지만 숫자 도메인이 전반 상승. 강한 class(대부분 자모)는 유지·소폭 상승(96.9%) — "잘 되던 건 유지, 약한 건 상승" 방향에 부합.
+- **잔존 미달(각 class ≥93% gate 미통과):** 숫자 `NUM_0·NUM_1·NUM_5·NUM_8·NUM_9` + 자모 `ㄱ·ㄹ·ㅊ·ㅋ·ㅔ·ㅐ·ㅖ` 등 13개.
+- **유사 그룹 정확도:** `ㄹ-ㅌ` **84.6%**(그룹내 혼동 2), `ㅔ-ㅖ` **91.3%**(혼동 2), `ㅈ-ㅅ-ㅊ` 91.7%, 나머지(`ㅅ-ㅠ·ㅕ-ㅖ·ㅏ-ㅗ·ㅛ-ㅑ`) 100%.
+- **최다 혼동쌍:** `NUM_0→NUM_1` 9, `NUM_0→NUM_5` 5, `NUM_9→NUM_8` 5 (숫자끼리, `NUM_0`은 학습표본 0).
+- **판정:** 균형 샘플러가 전체 +3.6%p, 숫자 macro-F1 +9.9%p로 **명확히 유효**. 현재 최고 단일 41-class 후보(94.5%). 채택.
+
+### T-140 실행 — 유사쌍 하드-네거티브 confusion-margin (효과 X, 폐기)
+
+- **가설·기법:** T-139의 잔존 취약 유사쌍(`ㄹ-ㅌ`·`ㅔ-ㅖ`)을 분리하려고 **`--confusion-source predefined-domain --confusion-margin 0.2 --confusion-loss-weight 0.3`**(사전정의 유사 그룹에 하드-네거티브 margin) 추가. T-139와 그 외 동일(seed 67). 산출물 `code-v3/outputs/t140-khs-confusion/`.
+- **실측 — T-139 → T-140 (전 지표 동일):** 전체 94.50%→**94.50%**, macro-F1 95.94%→95.94%, 자모 96.95%, 숫자 93.03%, gate 미달 13개 모두 변화 없음.
+- **유사쌍 before→after (핵심 정량):** `ㄹ-ㅌ` 84.6%→**84.6%**, `ㅔ-ㅖ` 91.3%→**91.3%**, `ㅈ-ㅅ-ㅊ` 91.7%→91.7% — **개선 0**. (같은 seed에서 이미 분리된 그룹은 margin gradient≈0 → 학습 결과 동일.)
+- **판정:** confusion-margin은 이 데이터에서 취약 유사쌍을 **전혀 개선하지 못함 → 폐기.** 문서의 반복 결론과 일치: **취약 유사쌍(`ㄹ-ㅌ`·`ㅔ-ㅖ`)과 저support 숫자(`NUM_0` 등)는 손실/margin 튜닝이 아니라 데이터 병목**이다. 다음 유효 레버는 해당 쌍·숫자의 **표적 데이터(새 signer·각도·`NUM_0` 확보)** 이며, 손실 기반 유사쌍 분리 재탐색은 중단한다.
