@@ -1,28 +1,21 @@
-import { MemoryRouter, Route, Routes } from "react-router-dom";
-
 import { GameModule, type GameModuleConfig } from "../app/GameModule";
 import { STANDALONE_GAME_CONFIG } from "../config/standaloneConfig";
 
 export interface StandaloneGameHarnessProps {
-  readonly initialPath?: string;
   readonly config?: GameModuleConfig;
 }
-
-export function StandaloneGameHarness({ initialPath = standaloneInitialPath(), config = STANDALONE_GAME_CONFIG }: StandaloneGameHarnessProps) {
+/**
+ * Development host for the game module.
+ *
+ * Router ownership intentionally stays with the application (or the test
+ * harness). GameModuleRoutes only defines routes relative to `/game/*`.
+ */
+export function StandaloneGameHarness({ config = STANDALONE_GAME_CONFIG }: StandaloneGameHarnessProps) {
   return (
-    <MemoryRouter initialEntries={[initialPath]}>
-      <Routes>
-        <Route
-          path="/game/*"
-          element={(
-            <GameModule
-              user={standaloneUser()}
-              config={config}
-            />
-          )}
-        />
-      </Routes>
-    </MemoryRouter>
+    <GameModule
+      user={standaloneUser()}
+      config={config}
+    />
   );
 }
 
@@ -30,6 +23,11 @@ function standaloneUser() {
   if (!import.meta.env.DEV || typeof window === "undefined")
     return { userId: "00000000-0000-4000-8000-000000000001", displayName: "개발 사용자" };
   const persona = new URLSearchParams(window.location.search).get("devUser");
+  if (import.meta.env.VITE_P2P_E2E === "true") {
+    return persona === "guest"
+      ? { userId: "2", displayName: "로컬 참가자" }
+      : { userId: "1", displayName: "로컬 방장" };
+  }
   if (persona === "host2")
     return { userId: "00000000-0000-4000-8000-000000000003", displayName: "개발 방장 2" };
   if (persona === "guest2")
@@ -53,8 +51,3 @@ function standaloneUser() {
   return { userId: "00000000-0000-4000-8000-000000000001", displayName: "개발 사용자" };
 }
 
-function standaloneInitialPath(): string {
-  if (typeof window === "undefined") return "/game";
-  const requested = new URLSearchParams(window.location.search).get("gamePath");
-  return requested?.startsWith("/game/") ? requested : "/game";
-}

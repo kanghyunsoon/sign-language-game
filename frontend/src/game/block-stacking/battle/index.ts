@@ -5,7 +5,7 @@ export { BattleResultPage } from "../pages/BattleResultPage";
 export * from "./room";
 export type { BattleGameTransport, BattleGameTransportFactory } from "./transport/BattleGameTransport";
 export { NativeWebSocketBattleTransport } from "./transport/NativeWebSocketBattleTransport";
-export { StompBattleTransport } from "./transport/StompBattleTransport";
+export { P2pBattleTransport } from "./transport/P2pBattleTransport";
 export { MockBattleTransport } from "./transport/MockBattleTransport";
 export type { BattleRuntimeConfig } from "./core/BattleRuntimeConfig";
 export { BattleController } from "./core/BattleController";

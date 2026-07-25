@@ -1,3 +1,4 @@
+import type { GameDataChannel } from "../core/GameDataChannel";
 import type { GameModuleUser } from "../../app/GameModule";
 import type { BattleRoomDetail } from "../../block-stacking/battle/room";
 import type { BattleMediaEvent, BattleMediaEventListener } from "../core/BattleMediaEvent";
@@ -11,7 +12,7 @@ import { MeshWebRtcMediaSession } from "./MeshWebRtcMediaSession";
 
 export interface MeshBattleMediaSessionOptions {
   readonly localUser: GameModuleUser;
-  readonly createSignalingTransport: () => WebRtcSignalingTransport;
+  readonly createSignalingTransport: (roomId: string) => WebRtcSignalingTransport;
   readonly loadIceServers: () => Promise<readonly RTCIceServer[]>;
   readonly createMediaSession?: () => GameMediaSession;
 }
@@ -38,6 +39,7 @@ export class MeshBattleMediaSession implements BattleMediaSession {
     this.setConnectionState("CONNECTING");
     const mediaSession = this.options.createMediaSession?.() ?? new MeshWebRtcMediaSession({
       shouldConnectParticipant: (participant) => !isBotParticipant(participant),
+      shouldCreateOffer: () => room.hostUserId !== this.options.localUser.userId,
     });
     this.mediaSession = mediaSession;
     this.unsubscribeMedia = mediaSession.subscribe((event) => this.receive(event));
@@ -49,7 +51,7 @@ export class MeshBattleMediaSession implements BattleMediaSession {
         localDisplayName: this.options.localUser.displayName,
         localStream,
         participants: this.toParticipants(room),
-        signalingTransport: this.options.createSignalingTransport(),
+        signalingTransport: this.options.createSignalingTransport(room.roomId),
         iceServers,
       });
       this.syncFromMediaSession();
@@ -93,6 +95,7 @@ export class MeshBattleMediaSession implements BattleMediaSession {
       connectionState: mapPeerState(participant.connectionState),
     })) ?? [];
   }
+  getGameDataChannel(): GameDataChannel | null { return this.mediaSession?.getGameDataChannel?.() ?? null; }
   getConnectionState(): MediaConnectionState { return this.connectionState; }
   isCameraEnabled(): boolean { return this.localStream?.getVideoTracks().some((track) => track.enabled) ?? false; }
   subscribe(listener: BattleMediaEventListener): () => void { this.listeners.add(listener); return () => this.listeners.delete(listener); }
@@ -119,7 +122,7 @@ export class MeshBattleMediaSession implements BattleMediaSession {
       displayName: participant.displayName,
       cameraEnabled: participant.userId === this.options.localUser.userId
         ? this.isCameraEnabled()
-        : this.mediaSession?.getParticipant(participant.userId)?.cameraEnabled ?? false,
+        : this.mediaSession?.getParticipant(participant.userId)?.cameraEnabled ?? true,
     }));
   }
 

@@ -362,7 +362,7 @@ export function LineRaceGamePage() {
           officialResult,
           telemetry.getDeviceObservedSummary(),
         );
-        navigate(`/game/line-race/matches/${matchId}/result`, {
+        navigate(`/game/turn-battle/matches/${matchId}/result`, {
           state: { result: officialResult },
         });
       }
@@ -414,6 +414,8 @@ export function LineRaceGamePage() {
         roomId: roomIdRef.current,
         playerId: user.userId,
         matchId,
+        hostPlayerId: lineRaceRoomSession?.hostUserId,
+        playerIds: lineRaceRoomSession?.participants.map((participant) => participant.userId),
         headers: accessToken
           ? { Authorization: `Bearer ${accessToken}` }
           : createDevAuthHeaders(user),
@@ -537,7 +539,7 @@ export function LineRaceGamePage() {
             온라인 1:1에서는 두 사용자 모두 직접 지문자를 선택합니다. 봇전은
             턴제 봇 연습을 이용해 주세요.
           </p>
-          <button type="button" onClick={() => navigate("/game/line-race")}>
+          <button type="button" onClick={() => navigate("/game/turn-battle")}>
             로비 복귀
           </button>
         </section>
@@ -554,7 +556,7 @@ export function LineRaceGamePage() {
             onClick={() => {
               transport.disconnect();
               void media.disconnect();
-              navigate("/game/line-race");
+              navigate("/game/turn-battle");
             }}
           >
             로비 복귀
@@ -578,7 +580,7 @@ export function LineRaceGamePage() {
             >
               경기 상태 다시 불러오기
             </button>
-            <button type="button" onClick={() => navigate("/game/line-race")}>
+            <button type="button" onClick={() => navigate("/game/turn-battle")}>
               로비 복귀
             </button>
           </div>
@@ -657,7 +659,7 @@ export function LineRaceGamePage() {
           <LineRaceGameErrorBoundary
             resetKey={`${matchId}:${view.lastSequence}`}
             onRetry={() => transport.requestSnapshot(matchId)}
-            onLobby={() => navigate("/game/line-race")}
+            onLobby={() => navigate("/game/turn-battle")}
           >
             <LineRaceGameShell
               runtime={runtime}

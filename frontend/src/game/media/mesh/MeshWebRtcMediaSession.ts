@@ -1,3 +1,4 @@
+import type { GameDataChannel } from "../core/GameDataChannel";
 import type { GameMediaEvent, GameMediaEventListener } from "../core/GameMediaEvent";
 import type { GameMediaParticipantInfo, GameMediaPeerConnectionState, RemoteGameMediaParticipant } from "../core/GameMediaParticipant";
 import type { GameMediaConnectOptions, GameMediaSession, GameMediaSessionState } from "../core/GameMediaSession";
@@ -21,10 +22,12 @@ export interface MeshWebRtcMediaSessionOptions {
   readonly clearTimer?: typeof clearTimeout;
   readonly now?: () => number;
   readonly shouldConnectParticipant?: (participant: GameMediaParticipantInfo) => boolean;
+  readonly shouldCreateOffer?: (localUserId: string, remoteUserId: string) => boolean;
 }
 
 export class MeshWebRtcMediaSession implements GameMediaSession {
   private readonly registry = new PeerConnectionRegistry();
+  private readonly gameDataListeners = new Set<(payload: string, remoteUserId: string) => void>();
   private readonly listeners = new Set<GameMediaEventListener>();
   private readonly createPeerConnection: (configuration: RTCConfiguration) => RTCPeerConnection;
   private readonly createMediaStream: () => MediaStream;
@@ -34,11 +37,13 @@ export class MeshWebRtcMediaSession implements GameMediaSession {
   private readonly clearTimer: typeof clearTimeout;
   private readonly now: () => number;
   private readonly shouldConnectParticipant: (participant: GameMediaParticipantInfo) => boolean;
+  private readonly shouldCreateOffer: (localUserId: string, remoteUserId: string) => boolean;
   private options: GameMediaConnectOptions | null = null;
   private unsubscribeSignaling: (() => void) | null = null;
   private state: GameMediaSessionState = "IDLE";
   private controlConnectionId = "";
   private controlSequence = 0;
+  private signalingSuspended = false;
 
   constructor(options: MeshWebRtcMediaSessionOptions = {}) {
     this.createPeerConnection = options.createPeerConnection ?? ((configuration) => new RTCPeerConnection(configuration));
@@ -49,6 +54,7 @@ export class MeshWebRtcMediaSession implements GameMediaSession {
     this.clearTimer = options.clearTimer ?? clearTimeout;
     this.now = options.now ?? Date.now;
     this.shouldConnectParticipant = options.shouldConnectParticipant ?? (() => true);
+    this.shouldCreateOffer = options.shouldCreateOffer ?? isLocalPeerOfferer;
   }
 
   async connect(options: GameMediaConnectOptions): Promise<void> {
@@ -56,13 +62,18 @@ export class MeshWebRtcMediaSession implements GameMediaSession {
     this.options = options;
     this.controlConnectionId = this.createConnectionId();
     this.setState("CONNECTING");
+    this.signalingSuspended = false;
     try {
       await options.signalingTransport.connect();
       this.unsubscribeSignaling = options.signalingTransport.subscribe((message) => {
         void this.handleSignalingMessage(message).catch((cause) => this.emitError("SIGNALING_ERROR", cause));
       });
       await this.syncParticipants(options.participants);
-      this.send({ type: "RTC_PARTICIPANT_SNAPSHOT", connectionId: this.controlConnectionId, payload: {} });
+      this.send({
+        type: "RTC_PARTICIPANT_SNAPSHOT",
+        connectionId: this.controlConnectionId,
+        payload: { roomId: options.roomId, participants: this.currentParticipantInfos() } satisfies RtcParticipantSnapshotPayload,
+      });
       this.refreshSessionState();
     } catch (cause) {
       this.setState("FAILED");
@@ -97,7 +108,7 @@ export class MeshWebRtcMediaSession implements GameMediaSession {
       }
       const slot = this.createSlot(participant, this.createConnectionId());
       this.emit({ type: "PARTICIPANT_ADDED", participant: slot.snapshot() });
-      if (isLocalPeerOfferer(options.localUserId, userId)) await this.createAndSendOffer(slot);
+      if (this.shouldCreateOffer(options.localUserId, userId)) await this.createAndSendOffer(slot);
     }
     this.refreshSessionState();
   }
@@ -106,7 +117,7 @@ export class MeshWebRtcMediaSession implements GameMediaSession {
     const options = this.requireOptions();
     for (const track of options.localStream.getVideoTracks()) track.enabled = enabled;
     this.emit({ type: "LOCAL_CAMERA_STATE_CHANGED", enabled });
-    this.send({
+    if (!this.signalingSuspended) this.send({
       type: "RTC_MEDIA_STATE_CHANGED",
       connectionId: this.controlConnectionId,
       payload: { cameraEnabled: enabled, microphoneEnabled: false } satisfies RtcMediaStateChangedPayload,
@@ -116,6 +127,21 @@ export class MeshWebRtcMediaSession implements GameMediaSession {
   getLocalStream(): MediaStream | null { return this.options?.localStream ?? null; }
   getRemoteParticipants(): readonly RemoteGameMediaParticipant[] { return this.registry.values().map((slot) => slot.snapshot()); }
   getParticipant(userId: string): RemoteGameMediaParticipant | undefined { return this.registry.get(userId)?.snapshot(); }
+  getGameDataChannel(): GameDataChannel {
+    return {
+      send: (payload) => {
+        const channels = this.registry.values().map((slot) => slot.dataChannel)
+          .filter((channel): channel is RTCDataChannel => channel?.readyState === "open");
+        if (channels.length === 0) throw new Error("The WebRTC game data channel is not connected.");
+        for (const channel of channels) channel.send(payload);
+      },
+      subscribe: (listener) => {
+        this.gameDataListeners.add(listener);
+        return () => this.gameDataListeners.delete(listener);
+      },
+      isOpen: () => this.registry.values().some((slot) => slot.dataChannel?.readyState === "open"),
+    };
+  }
   getConnectionState(): GameMediaSessionState { return this.state; }
   getPeerConnectionCount(): number { return this.registry.size; }
 
@@ -132,7 +158,9 @@ export class MeshWebRtcMediaSession implements GameMediaSession {
     this.options?.signalingTransport.disconnect();
     this.options = null;
     this.controlConnectionId = "";
+    this.gameDataListeners.clear();
     this.controlSequence = 0;
+    this.signalingSuspended = false;
     this.setState("CLOSED");
     this.listeners.clear();
   }
@@ -140,11 +168,12 @@ export class MeshWebRtcMediaSession implements GameMediaSession {
   closePeer(userId: string): void { this.removePeer(userId, false); }
 
   async reconnectPeer(userId: string): Promise<void> {
+    await this.resumeSignaling();
     const participant = this.registry.get(userId)?.snapshot();
     if (!participant) throw new Error(`Unknown remote participant: ${userId}`);
     this.removePeer(userId, false);
     const slot = this.createSlot(participant, this.createConnectionId());
-    if (isLocalPeerOfferer(this.requireOptions().localUserId, userId)) await this.createAndSendOffer(slot);
+    if (this.shouldCreateOffer(this.requireOptions().localUserId, userId)) await this.createAndSendOffer(slot);
     else this.send({ type: "RTC_ICE_RESTART_REQUEST", targetUserId: userId, connectionId: slot.connectionId, payload: {} });
     this.refreshSessionState();
   }
@@ -158,6 +187,10 @@ export class MeshWebRtcMediaSession implements GameMediaSession {
     slot.connectionState = "CONNECTING";
     peer.onicecandidate = (event) => this.sendIceCandidate(slot, event.candidate);
     peer.ontrack = (event) => this.receiveRemoteTrack(slot, event.track);
+    peer.ondatachannel = (event) => this.attachDataChannel(slot, event.channel);
+    if (this.shouldCreateOffer(options.localUserId, participant.userId)) {
+      this.attachDataChannel(slot, peer.createDataChannel("game-v1", { ordered: true }));
+    }
     peer.onconnectionstatechange = () => this.handlePeerState(slot);
     peer.oniceconnectionstatechange = () => this.handlePeerState(slot);
     return slot;
@@ -182,6 +215,22 @@ export class MeshWebRtcMediaSession implements GameMediaSession {
         const payload = message.payload as RtcParticipantSnapshotPayload;
         if (!Array.isArray(payload.participants)) throw new Error("Invalid participant snapshot.");
         await this.syncParticipants(payload.participants);
+        for (const participant of payload.participants) {
+          if (participant.userId === options.localUserId || !this.shouldCreateOffer(options.localUserId, participant.userId)) continue;
+          const slot = this.registry.get(participant.userId);
+          if (!slot || slot.connectionState === "CONNECTED") continue;
+          const localOffer = slot.peerConnection.localDescription;
+          if (localOffer?.type === "offer" && localOffer.sdp) {
+            this.send({
+              type: "RTC_OFFER",
+              targetUserId: slot.remoteUserId,
+              connectionId: slot.connectionId,
+              payload: { sdp: localOffer.sdp } satisfies RtcOfferPayload,
+            }, slot);
+          } else {
+            await this.createAndSendOffer(slot);
+          }
+        }
         break;
       }
       case "RTC_PEER_JOINED": {
@@ -198,7 +247,7 @@ export class MeshWebRtcMediaSession implements GameMediaSession {
       case "RTC_ANSWER": await this.receiveAnswer(message); break;
       case "RTC_ICE_CANDIDATE": await this.receiveIceCandidate(message); break;
       case "RTC_ICE_RESTART_REQUEST":
-        if (isLocalPeerOfferer(options.localUserId, message.senderUserId) && this.registry.has(message.senderUserId)) {
+        if (this.shouldCreateOffer(options.localUserId, message.senderUserId) && this.registry.has(message.senderUserId)) {
           await this.reconnectPeer(message.senderUserId);
         }
         break;
@@ -208,7 +257,7 @@ export class MeshWebRtcMediaSession implements GameMediaSession {
 
   private async receiveOffer(message: ServerRtcSignalingMessage): Promise<void> {
     const options = this.requireOptions();
-    if (isLocalPeerOfferer(options.localUserId, message.senderUserId)) throw new Error("Offer received from the non-offering peer.");
+    if (this.shouldCreateOffer(options.localUserId, message.senderUserId)) throw new Error("Offer received from the non-offering peer.");
     const slot = this.ensureIncomingSlot(message.senderUserId, message.connectionId);
     const payload = message.payload as RtcOfferPayload;
     if (typeof payload.sdp !== "string") throw new Error("Invalid RTC offer payload.");
@@ -255,6 +304,7 @@ export class MeshWebRtcMediaSession implements GameMediaSession {
 
   private sendIceCandidate(slot: PeerConnectionSlot, candidate: RTCIceCandidate | null): void {
     if (slot.cleanedUp) return;
+    if (this.signalingSuspended) return;
     this.send({
       type: "RTC_ICE_CANDIDATE", targetUserId: slot.remoteUserId, connectionId: slot.connectionId,
       payload: candidate ? candidate.toJSON() : { candidate: "", sdpMid: null, sdpMLineIndex: null },
@@ -301,8 +351,9 @@ export class MeshWebRtcMediaSession implements GameMediaSession {
 
   private async recoverPeer(slot: PeerConnectionSlot): Promise<void> {
     try {
+      await this.resumeSignaling();
       const options = this.requireOptions();
-      if (isLocalPeerOfferer(options.localUserId, slot.remoteUserId)) await this.reconnectPeer(slot.remoteUserId);
+      if (this.shouldCreateOffer(options.localUserId, slot.remoteUserId)) await this.reconnectPeer(slot.remoteUserId);
       else this.send({ type: "RTC_ICE_RESTART_REQUEST", targetUserId: slot.remoteUserId, connectionId: slot.connectionId, payload: {} }, slot);
     } catch (cause) {
       this.emitError("PEER_CONNECTION_ERROR", cause, slot.remoteUserId);
@@ -317,6 +368,19 @@ export class MeshWebRtcMediaSession implements GameMediaSession {
     if (notify) this.emit({ type: "PARTICIPANT_REMOVED", userId });
     this.refreshSessionState();
   }
+  private attachDataChannel(slot: PeerConnectionSlot, channel: RTCDataChannel): void {
+    if (slot.cleanedUp) { channel.close(); return; }
+    slot.dataChannel?.close();
+    slot.dataChannel = channel;
+    channel.onmessage = (event) => {
+      if (typeof event.data !== "string") return;
+      for (const listener of this.gameDataListeners) listener(event.data, slot.remoteUserId);
+    };
+    channel.onopen = () => this.refreshSessionState();
+    channel.onclose = () => this.refreshSessionState();
+    channel.onerror = () => this.emitError("PEER_CONNECTION_ERROR", new Error("WebRTC game data channel failed."), slot.remoteUserId);
+  }
+
 
   private currentParticipantInfos(): GameMediaParticipantInfo[] {
     const options = this.requireOptions();
@@ -350,10 +414,28 @@ export class MeshWebRtcMediaSession implements GameMediaSession {
     if (slots.length === 0) { this.setState("CONNECTING"); return; }
     const connected = slots.filter((slot) => slot.connectionState === "CONNECTED").length;
     const failed = slots.filter((slot) => slot.connectionState === "FAILED" || slot.connectionState === "DISCONNECTED").length;
-    if (connected === slots.length) this.setState("CONNECTED");
+    if (connected === slots.length) {
+      this.setState("CONNECTED");
+      if (slots.every((slot) => slot.dataChannel?.readyState === "open")) this.suspendSignaling();
+    }
     else if (connected > 0 && connected < slots.length) this.setState("PARTIALLY_CONNECTED");
     else if (failed === slots.length) this.setState("FAILED");
     else this.setState("CONNECTING");
+  }
+
+  private suspendSignaling(): void {
+    if (this.signalingSuspended || !this.options) return;
+    const transport = this.options.signalingTransport;
+    if (transport.suspend) transport.suspend();
+    else transport.disconnect();
+    this.signalingSuspended = true;
+  }
+
+  private async resumeSignaling(): Promise<void> {
+    if (!this.signalingSuspended) return;
+    const transport = this.requireOptions().signalingTransport;
+    await transport.connect();
+    this.signalingSuspended = false;
   }
 
   private setState(state: GameMediaSessionState): void {

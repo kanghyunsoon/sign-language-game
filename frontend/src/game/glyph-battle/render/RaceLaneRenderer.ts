@@ -15,6 +15,12 @@ export interface LaneRoadShape {
 
 const TRAVERSAL_RECOVERY_MS = 720;
 
+export function resolveLaneHostRole(playerId: string, view: GlyphDuelView | null | undefined): boolean | undefined {
+  if (!view?.hostPlayerId) return undefined;
+  const fighterId = playerId === "PLAYER_A" ? view.local.playerId : view.opponent.playerId;
+  return fighterId === view.hostPlayerId;
+}
+
 export function interpolateTraversalRecovery(from: TraversalRunnerPosition, target: TraversalRunnerPosition, elapsedMs: number): TraversalRunnerPosition {
   const progress = Math.min(1, Math.max(0, elapsedMs / TRAVERSAL_RECOVERY_MS));
   const eased = 1 - Math.pow(1 - progress, 3);
@@ -57,7 +63,7 @@ export class RaceLaneRenderer {
 
   constructor(private readonly playerId: string) {
     const isPlayer = playerId === "PLAYER_A";
-    this.name = new Text({ text: playerId, style: { fill: 0x171717, fontSize: 19, fontWeight: "900" } });
+    this.name = new Text({ text: playerId, style: { fill: isPlayer ? 0x1675a8 : 0xb94724, fontSize: 19, fontWeight: "900" } });
     this.name.anchor.set(.5);
     this.detail = new Text({ text: "", style: { fill: 0x333333, fontSize: 12, fontWeight: "700" } });
     this.detail.anchor.set(.5);
@@ -92,9 +98,11 @@ export class RaceLaneRenderer {
     const activeY = traversalPosition?.y ?? this.arenaY;
     const trapped = Boolean(traversalPosition);
     const colliding = player.state === "TRAVERSING" && !trapped;
+    const isHostRole = resolveLaneHostRole(this.playerId, duelView);
+    if (isHostRole !== undefined) this.runner.setHostRole(isHostRole);
     this.runner.render(activeX, activeY, snapshot.simulationNow, snapshot.state === "PLAYING", traversalPosition?.rotation ?? 0, colliding, resolveRunnerMotionCue(this.playerId, duelView, duelNow));
 
-    this.name.text = player.displayName ?? (this.playerId==="PLAYER_A"?"나":"연습 봇");
+    this.name.text = player.displayName ?? (this.playerId === "PLAYER_A" ? "PLAYER_A" : "PLAYER_B");
     const nameOffset=this.playerId==="PLAYER_B"?35:46;
     this.name.position.set(this.fighterX, this.arenaY + nameOffset);
     this.status.position.set(this.fighterX, this.arenaY + nameOffset + 20);

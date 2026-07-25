@@ -38,7 +38,7 @@ frontend/src/
 - `frontend/src/App.tsx`, `frontend/src/main.tsx`, `frontend/src/styles.css`
 - `frontend/vite.config.ts`, `frontend/tsconfig*.json`
 
-플랫폼 라우터는 `frontend/src/app`이 소유하고 `/game/*` 한 지점에서 `GameModule`을 마운트한다. 게임 내부 라우팅은 `frontend/src/game/app/GameModuleRoutes.tsx`가 계속 소유하므로 홈·학습·인증·프로필 파트와 게임 화면 파일이 직접 충돌하지 않는다. 다만 위 공유 파일은 충돌 가능성이 0이 아니므로 통합 브랜치에서 함께 병합한다.
+브라우저 라우터는 `frontend/src/main.tsx`가 한 번만 생성하고, `frontend/src/App.tsx`는 `/game/*` 한 지점에서 `GameModule`을 마운트한다. 게임 내부 라우팅은 `frontend/src/game/app/GameModuleRoutes.tsx`가 상대 경로만 소유하므로 홈·학습·인증·프로필 파트와 게임 화면 파일이 직접 충돌하지 않는다. 개발·테스트 환경도 별도의 중첩 라우터를 만들지 않고 호스트 라우터를 주입한다. 다만 위 공유 파일은 충돌 가능성이 0이 아니므로 통합 브랜치에서 함께 병합한다.
 
 ## 공용 인식 계층
 

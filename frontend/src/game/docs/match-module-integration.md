@@ -1,5 +1,18 @@
 # Match 모듈 교체 계약
 
+## 2026-07-23 현재 적용 상태
+
+운영 계약 정렬과 실제 수정 순서는 `backend-contract-alignment-2026-07-23.md`를 우선한다.
+
+현재 배포 백엔드는 STOMP 기반 서버 권위 Match 모듈을 제공하지 않는다. Room WebSocket은 참가 확인, presence, `GAME_STARTED`, WebRTC `SIGNAL` relay만 담당하며 게임 진행 type은 허용하지 않는다. 따라서 이 문서 아래의 서버 Match/STOMP 통합안은 과거 설계 참고 자료이고 현재 production 연결 방식이 아니다.
+
+현재 방향은 다음과 같다.
+
+- 솔로 블록 쌓기: Room WebSocket/WebRTC 없이 로컬 진행, AI WebSocket은 선택적 사용
+- 사람 1:1 블록 쌓기와 수달 턴 대전: Room WebSocket으로 시그널링, WebRTC DataChannel로 게임 진행
+- 결과와 랭킹: REST 사용
+- 기존 서버 권위 Match 모듈: 현재 백엔드 기준으로 필수 아님
+
 ## 목표
 
 나는 방, 인증, WebSocket, RTC, AI 인식 서버를 게임 규칙과 분리했다. 새 백엔드에서는 외곽 인프라를 다시 만들더라도 게임별 Match 모듈이 아래 계약만 구현하면 프런트의 블록게임과 지문자 대전을 연결할 수 있어야 한다.
@@ -169,8 +182,8 @@ VITE_MATCH_BROADCAST_DESTINATION=/topic/game/match/{matchId}
 
 공통 Match 포트, 채널 설정, 서비스 주입 구조가 구현돼 있다. 온라인 지문자 1:1 화면은 이제 `GlyphTurnMatchTransport`가 없으면 시작하지 않으며, 기술 선택을 기존 `LINE_RACE_*` 공격으로 폴백하지 않는다. 기존 라인레이스 이벤트는 경기 셸과 참가자 연결 상태를 유지하는 용도로만 사용하고 결투 HP·턴·연출에는 넣지 않는다.
 
-- `/game/line-race/practice`: 같은 규칙과 렌더러를 쓰는 로컬 봇 연습
-- `/game/line-race/matches/{matchId}`: `GLYPH_TURN_*` 계약만 판정 근거로 쓰는 사람 대 사람 1:1
+- `/game/turn-battle/practice`: 같은 규칙과 렌더러를 쓰는 로컬 봇 연습
+- `/game/turn-battle/matches/{matchId}`: `GLYPH_TURN_*` 계약만 판정 근거로 쓰는 사람 대 사람 1:1
 - 온라인 Match에 `isBot=true` 참가자가 있으면 입장을 거부한다. 봇은 연습 경로에서만 사용한다.
 - `GLYPH_TURN_RESOLVED`는 한 번만 연출하고 다음 `PLANNING` Snapshot에서 `lastMove`와 `resolvedMoves`를 반드시 비운다.
 

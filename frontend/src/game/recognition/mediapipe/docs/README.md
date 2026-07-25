@@ -43,6 +43,24 @@ transport는 session과 `frameId`, capture timestamp, handedness, 정규화된 2
 
 MediaPipe WASM과 task 모델 경로는 기존 `createVisionFileset.ts`, `MediaPipeHandTracker.ts`, `MediaPipePoseTracker.ts`의 규칙을 따른다. 배포 전에 production build 산출물에 worker, WASM, 모델 파일이 포함되는지 확인한다. label index와 한글 지문자 매핑은 모델과 같은 버전으로 배포한다.
 
+## 실시간 렌더링과 AI 지연 기준
+
+- 손 추론과 AI 전송은 18Hz, 화면 오버레이는 60Hz로 분리한다.
+- worker 전송 영상은 최대 256px로 축소하고, main-thread fallback은 재사용 canvas에서 최대 480px로 축소한다.
+- 처리 중 요청은 1개, 대기 프레임은 최신 1개만 유지한다.
+- 표시 좌표에만 이동 예측과 안정화를 적용한다. AI에는 원본 측정 좌표를 전달해 인식 정확도를 보존한다.
+- 손 검출 평균/p95 지연과 AI 평균/p95 지연을 별도로 기록한다.
+- 숫자는 capabilities, prediction 후보, Temporal Decoder와 솔로 생성 목록에서 제외한다.
+
+2026-07-23 동일 랜드마크 120회 측정 결과:
+
+| 모델 | 평균 | p95 | 처리량 |
+| --- | ---: | ---: | ---: |
+| `jamo-number-hybrid-v1` | 169.078ms | 220.968ms | 5.96fps |
+| `jamo-31-v1` | 2.288ms | 3.216ms | 429.78fps |
+
+현재 기본 모델은 지문자 전용 `jamo-31-v1`이다.
+
 ## 변경 체크리스트
 
 - 새 구현이 `RecognitionVisionAdapter`만 구현하는가

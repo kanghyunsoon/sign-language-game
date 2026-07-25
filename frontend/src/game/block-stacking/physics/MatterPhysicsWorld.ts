@@ -17,7 +17,9 @@ interface LetterBodyRecord {
   readonly body: Body;
 }
 
-const MAX_PHYSICS_STEP_MS = 20;
+// Matter warns and becomes less stable above a 60 Hz step. A frame that lands
+// around 17-20 ms must therefore be split instead of being forwarded whole.
+const MAX_PHYSICS_STEP_MS = 1000 / 60;
 
 export class MatterPhysicsWorld implements PhysicsWorld {
   private readonly engine: MatterEngine;

@@ -1,5 +1,15 @@
 # Backend Integration Guide
 
+## 2026-07-23 운영 계약 기준
+
+현재 운영 연동의 기준은 상위 문서 `../backend-contract-alignment-2026-07-23.md`다.
+
+이 문서 아래의 `/api/game-results`, `/game/solo/sessions`, `game-dev-backend` 예시는 과거 독립 프로토타입 계약이다. 배포 Swagger에는 해당 엔드포인트가 없으므로 production adapter에서 사용하지 않는다.
+
+현재 운영 백엔드는 ticket 기반 Lobby SSE, ticket 기반 순수 Room WebSocket, REST 방 API, WebRTC ICE API, 대전 결과와 랭킹 API를 제공한다. Room WebSocket은 STOMP가 아니며 클라이언트가 보내는 메시지는 `SIGNAL`뿐이다.
+
+솔로 점수 저장과 10초 이탈 패배·랭킹 반영은 현재 배포 계약으로 완료할 수 없다. 백엔드 계약 확정 전에는 프런트 로컬 저장이나 임의의 1/0 결과 전송을 운영 완료로 간주하지 않는다.
+
 ## Integration boundary
 
 The physics, rendering, scoring, and recognition domain do not call a Java server. Game persistence is behind `GameResultRepository`, and Python recognition is behind `SignRecognizer`. The prototype page only composes those adapters.

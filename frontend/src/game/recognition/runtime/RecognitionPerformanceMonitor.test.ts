@@ -14,6 +14,8 @@ describe("RecognitionPerformanceMonitor", () => {
     }
     monitor.recordAiLatency(20);
     monitor.recordAiLatency(100);
+    monitor.recordHandLatency(10);
+    monitor.recordHandLatency(30);
     monitor.drop("hand", 2);
     monitor.drop("pose");
     monitor.drop("inference", 3);
@@ -23,6 +25,8 @@ describe("RecognitionPerformanceMonitor", () => {
     expect(snapshot.aiRequestFps).toBe(10);
     expect(snapshot.aiAverageLatencyMs).toBe(60);
     expect(snapshot.aiP95LatencyMs).toBe(100);
+    expect(snapshot.handAverageLatencyMs).toBe(20);
+    expect(snapshot.handP95LatencyMs).toBe(30);
     expect(snapshot.droppedHandFrames).toBe(2);
     expect(snapshot.droppedPoseFrames).toBe(1);
     expect(snapshot.droppedInferenceFrames).toBe(3);

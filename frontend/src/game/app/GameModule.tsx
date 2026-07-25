@@ -3,7 +3,6 @@ import type { GameModuleServices } from "../contracts/GameModuleServices";
 import { GameModuleRoutes } from "./GameModuleRoutes";
 import { GameServiceProvider } from "./GameServiceProvider";
 import styles from "../shared/GameModule.module.css";
-import type { MatchChannelConfig } from "../match";
 
 export interface GameModuleUser {
   readonly userId: string;
@@ -14,11 +13,11 @@ export interface GameModuleConfig {
   readonly soloApiBaseUrl: string;
   readonly roomApiBaseUrl: string;
   readonly gameWebSocketUrl: string;
+  /** Native backend endpoint ending in /ws/game-rooms. */
+  readonly roomWebSocketBaseUrl?: string;
   readonly rtcConfigApiBaseUrl?: string;
   readonly aiWebSocketUrl: string;
   readonly battleRoomPollingIntervalMs?: number;
-  /** Backend-shell routes. Match implementations remain game-specific. */
-  readonly matchChannels?: Partial<MatchChannelConfig>;
 }
 
 export interface GameModuleProps {

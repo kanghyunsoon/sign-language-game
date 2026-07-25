@@ -9,6 +9,7 @@ export interface BattleRoomParticipant {
   readonly displayName: string;
   readonly isHost: boolean;
   readonly isBot?: boolean;
+  readonly ready?: boolean;
 }
 
 export interface BattleRoomSummary {
@@ -33,6 +34,9 @@ export interface BattleRoomDetail extends BattleRoomSummary {
   readonly participants: readonly BattleRoomParticipant[];
   readonly canStart: boolean;
   readonly startBlockReason?: string;
+  readonly hostReady?: boolean;
+  readonly guestReady?: boolean;
+  readonly currentUserReady?: boolean;
   readonly rematch: boolean;
   readonly activeMatchId: string | null;
   readonly matchStartAt: number | null;

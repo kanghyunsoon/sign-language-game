@@ -35,11 +35,20 @@ export const GameCanvas = memo(function GameCanvas({
 
     let disposed = false;
     let renderer: PixiGameRenderer | undefined;
+    // React StrictMode can start two asynchronous renderer initializations.
+    // Give each attempt an isolated host so a stale attempt can only replace
+    // or destroy its own canvas, never the current attempt's canvas.
+    const rendererHost = document.createElement("div");
+    rendererHost.dataset.gameRendererHost = "";
+    rendererHost.style.width = "100%";
+    rendererHost.style.height = "100%";
+    rendererHost.style.display = "block";
+    mount.replaceChildren(rendererHost);
     const initialBounds = mount.getBoundingClientRect();
     const width = Math.max(1, Math.round(initialBounds.width));
     const height = Math.max(1, Math.round(initialBounds.height));
 
-    void PixiGameRenderer.create(mount, {
+    void PixiGameRenderer.create(rendererHost, {
       ...rendererConfig,
       width,
       height,
@@ -72,6 +81,7 @@ export const GameCanvas = memo(function GameCanvas({
       disposed = true;
       resizeObserver.disconnect();
       renderer?.destroy();
+      if (rendererHost.parentElement === mount) rendererHost.remove();
       callbacksRef.current.onRendererDisposed?.();
     };
   // Callers often construct Partial<RendererConfig> inline. Recreate the

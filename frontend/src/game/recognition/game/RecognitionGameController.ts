@@ -46,9 +46,9 @@ const INITIAL_STATE: RecognitionGameState = {
   mode: "KEYBOARD",
   connectionState: "DISCONNECTED",
   supportedSymbols: [],
-  playableSymbols: GAME_SYMBOLS,
+  playableSymbols: GAME_SYMBOLS.filter((symbol) => !/^\d+$/.test(symbol)),
   modelVersion: null,
-  targetSymbol: GAME_SYMBOLS[0] ?? null,
+  targetSymbol: GAME_SYMBOLS.find((symbol) => !/^\d+$/.test(symbol)) ?? null,
   prediction: null,
   answer: "IDLE",
   awaitingHandRelease: false,
@@ -263,10 +263,10 @@ export class RecognitionGameController {
   }
 
   private symbolsForMode(mode: GameInputMode, supportedSymbols: readonly string[]): readonly string[] {
-    if (mode === "KEYBOARD") return GAME_SYMBOLS;
+    if (mode === "KEYBOARD") return GAME_SYMBOLS.filter((symbol) => !/^\d+$/.test(symbol));
     const supported = new Set(supportedSymbols);
     return GAME_SYMBOLS.filter((symbol) =>
-      supported.has(symbol) && (/^\d+$/.test(symbol) || isCompetitiveRecognitionReady(symbol)),
+      !/^\d+$/.test(symbol) && supported.has(symbol) && isCompetitiveRecognitionReady(symbol),
     );
   }
 

@@ -138,7 +138,7 @@ export function LineRaceDevHarnessRuntimePage() {
           <span>서버 Room 없는 로컬 AI 개발 모드</span>
           <h1>지문자 라인 레이스 Dev Harness</h1>
         </div>
-        <Link to="/game/line-race"><ArrowLeft aria-hidden="true" size={17} /> 라인 레이스 로비</Link>
+        <Link to="/game/turn-battle"><ArrowLeft aria-hidden="true" size={17} /> 라인 레이스 로비</Link>
       </header>
       <p role="note"><strong>개발 진단 전용이며 키보드 입력은 실제 수어 인식 검증이 아닙니다.</strong></p>
       <section className={styles.workspace}>

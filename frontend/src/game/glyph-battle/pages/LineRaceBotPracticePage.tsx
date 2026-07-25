@@ -87,7 +87,7 @@ export function LineRaceBotPracticeDevRuntimePage() {
 
   return <main className={styles.page} data-testid="line-race-bot-practice">
     {!registrationReady ? <div className={styles.registrationGate} role="status"><strong>사용자 등록 대기 중</strong><span>카메라에서 사용자 등록이 완료되면 카운트다운이 시작됩니다.</span></div> : null}
-    <header className={styles.header}><div><span>Frontend Mock Bot · Seed {seed}</span><h1>지문자 라인 레이스 개발 진단</h1></div><Link to="/game/line-race"><ArrowLeft size={17} /> 라인 레이스 로비</Link></header>
+    <header className={styles.header}><div><span>Frontend Mock Bot · Seed {seed}</span><h1>지문자 라인 레이스 개발 진단</h1></div><Link to="/game/turn-battle"><ArrowLeft size={17} /> 라인 레이스 로비</Link></header>
     <p role="note"><strong>개발 진단 전용이며 실제 수어 인식 정확도나 게임 성공 검증 수단이 아닙니다.</strong></p>
     <section className={styles.gameLayout}>
       <div><LineRaceGameShell runtime={scenario.runtime} clock={scenario.clock} config={DEFAULT_LINE_RACE_RUNTIME_CONFIG} obstacleFeedback={obstacleFeedbackForUserView(userFeedback)} /><div className={styles.summary}><strong>{runtime.state}</strong><span>남은 시간 {(runtime.remainingMs / 1000).toFixed(1)}초</span><span>나 {playerA?.progress.toFixed(0) ?? 0}</span><span>Bot {playerB?.progress.toFixed(0) ?? 0}</span></div></div>
@@ -115,7 +115,7 @@ export function LineRaceBotPracticeDevRuntimePage() {
 
 function PracticeResult({ runtime, user, bot, seed, onRetry }: { readonly runtime: LineRaceRuntimeSnapshot; readonly user: LocalLineRacePlayerStatistics; readonly bot: LocalLineRacePlayerStatistics; readonly seed: number; readonly onRetry: () => void }) {
   const title = runtime.winnerPlayerId === "PLAYER_A" ? "승리" : runtime.winnerPlayerId === "PLAYER_B" ? "패배" : "무승부";
-  return <section className={styles.result} role="dialog" aria-label="연습전 결과"><h2>{title}</h2><p>재현 Seed: {seed}</p><div className={styles.resultPlayers}><ResultPlayer title="사용자" stats={user} runtime={runtime} /><ResultPlayer title="연습 봇" stats={bot} runtime={runtime} /></div><div className={styles.resultActions}><button type="button" onClick={onRetry}><RotateCcw size={16} /> 재도전</button><Link to="/game/line-race">라인 레이스 로비</Link><Link to="/game">게임 선택</Link></div></section>;
+  return <section className={styles.result} role="dialog" aria-label="연습전 결과"><h2>{title}</h2><p>재현 Seed: {seed}</p><div className={styles.resultPlayers}><ResultPlayer title="사용자" stats={user} runtime={runtime} /><ResultPlayer title="연습 봇" stats={bot} runtime={runtime} /></div><div className={styles.resultActions}><button type="button" onClick={onRetry}><RotateCcw size={16} /> 재도전</button><Link to="/game/turn-battle">라인 레이스 로비</Link><Link to="/game">게임 선택</Link></div></section>;
 }
 
 function ResultPlayer({ title, stats, runtime }: { readonly title: string; readonly stats: LocalLineRacePlayerStatistics; readonly runtime: LineRaceRuntimeSnapshot }) {

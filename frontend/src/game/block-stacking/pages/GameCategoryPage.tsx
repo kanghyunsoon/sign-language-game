@@ -38,7 +38,7 @@ const CATEGORIES: readonly GameSelectionCard[] = [
     title: "수달 배틀",
     description: "수어를 빠르고 정확하게 표현해 상대보다 높은 점수를 얻으세요!",
     playStyle: "1 VS 1",
-    destination: "line-race",
+    destination: "turn-battle",
     icon: Swords,
   },
 ];

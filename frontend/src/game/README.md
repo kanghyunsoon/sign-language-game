@@ -19,7 +19,7 @@ game/
 └─ index.ts              # 다른 프런트 파트가 사용하는 공개 API
 ```
 
-`block-stacking`과 `glyph-battle` 내부 구현은 서로 직접 결합하지 않는 것을 원칙으로 한다. 현재 지문자 게임에서 재사용하는 방 요청·STOMP client 타입과 글자 메타데이터는 명시적인 공통 경계로만 참조한다. 새 공통 기능은 어느 한 게임 디렉터리에 넣지 말고 `recognition`, `media`, `match`, `contracts` 중 책임에 맞는 위치에 둔다.
+`block-stacking`과 `glyph-battle` 내부 구현은 서로 직접 결합하지 않는 것을 원칙으로 한다. 현재 지문자 게임에서 재사용하는 방 요청·WebRTC DataChannel 계약과 글자 메타데이터는 명시적인 공통 경계로만 참조한다. 새 공통 기능은 어느 한 게임 디렉터리에 넣지 말고 `recognition`, `media`, `match`, `contracts` 중 책임에 맞는 위치에 둔다.
 
 ## 플랫폼 연결
 
@@ -47,7 +47,7 @@ import { GameModule } from "./game";
 - `/game/block`: 블록쌓기 모드 선택
 - `/game/solo`: 블록쌓기 솔로
 - `/game/battle/*`: 블록쌓기 방·대기실·1:1·결과
-- `/game/line-race/*`: 지문자 배틀 방·봇전·1:1·결과
+- `/game/turn-battle/*`: 지문자 배틀 방·봇전·1:1·결과
 
 ### 솔로 화면 표현 기준
 
@@ -72,7 +72,7 @@ import { GameModule } from "./game";
 - `game-contracts/recognition/readiness.json`은 MediaPipe 공용 모듈이 아닌 AI 모델 계약의 원천이다. 서버의 threshold·경쟁 가능 글자, 프런트의 출제 범위, 계약 테스트가 같은 파일을 읽는다.
 - MediaPipe는 landmark 추출에만 책임을 두고, 프레임 중복 추론 방지·worker 우선 실행·main-thread fallback·스켈레톤 조건부 렌더링으로 게임 화면의 응답성을 유지한다.
 - 학습 이력과 모델 평가는 AI 서버 문서를 정본으로 관리한다. 게임 문서는 계약·카메라 통합·사용자 경험의 영향과 운영 제한만 기록한다.
-- 개발 전용 `/game/media/dev`, `/game/recognition/crowd-test`, `/game/line-race/dev`
+- 개발 전용 `/game/media/dev`, `/game/recognition/crowd-test`, `/game/turn-battle/dev`
 
 기존 URL 호환을 위해 지문자 배틀의 외부 route 이름은 당분간 `line-race`를 유지한다. 코드 소유 디렉터리는 `glyph-battle`이 기준이다.
 

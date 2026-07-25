@@ -8,8 +8,11 @@ import { DEFAULT_HAND_DETECTION_CONFIG, type HandDetectionConfig, type Handednes
 
 export type { TrackedHand } from "./types";
 
+const MAX_MAIN_THREAD_INFERENCE_EDGE = 480;
+
 export class MediaPipeHandTracker {
   private handLandmarker: HandLandmarker | null = null;
+  private inferenceCanvas: HTMLCanvasElement | null = null;
 
   constructor(private readonly config: HandDetectionConfig = DEFAULT_HAND_DETECTION_CONFIG) {}
 
@@ -29,12 +32,46 @@ export class MediaPipeHandTracker {
     if (!this.handLandmarker) {
       return [];
     }
-    return this.toTrackedHands(this.handLandmarker.detectForVideo(video, timestamp));
+    return this.toTrackedHands(
+      this.handLandmarker.detectForVideo(this.createInferenceSource(video), timestamp),
+    );
   }
 
   close(): void {
     this.handLandmarker?.close();
     this.handLandmarker = null;
+    this.inferenceCanvas = null;
+  }
+
+  private createInferenceSource(video: HTMLVideoElement): HTMLVideoElement | HTMLCanvasElement {
+    const sourceWidth = video.videoWidth;
+    const sourceHeight = video.videoHeight;
+    if (
+      sourceWidth <= 0
+      || sourceHeight <= 0
+      || Math.max(sourceWidth, sourceHeight) <= MAX_MAIN_THREAD_INFERENCE_EDGE
+      || typeof document === "undefined"
+    ) {
+      return video;
+    }
+
+    const scale = MAX_MAIN_THREAD_INFERENCE_EDGE / Math.max(sourceWidth, sourceHeight);
+    const width = Math.max(1, Math.round(sourceWidth * scale));
+    const height = Math.max(1, Math.round(sourceHeight * scale));
+    const canvas = this.inferenceCanvas ?? document.createElement("canvas");
+    this.inferenceCanvas = canvas;
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+    }
+    canvas.getContext("2d", { alpha: false, desynchronized: true })?.drawImage(
+      video,
+      0,
+      0,
+      width,
+      height,
+    );
+    return canvas;
   }
 
   private createLandmarker(vision: Awaited<ReturnType<typeof createVisionFileset>>, delegate: "GPU" | "CPU"): Promise<HandLandmarker> {
