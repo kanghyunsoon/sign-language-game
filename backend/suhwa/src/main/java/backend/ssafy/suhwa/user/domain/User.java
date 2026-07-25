@@ -12,11 +12,15 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "users")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+// 소프트 삭제(FR-007): 탈퇴(deleted_at 설정) 회원은 모든 JPA 조회에서 자동 제외된다.
+// 서비스마다 isDeleted 필터를 중복 작성하지 않도록 엔티티 레벨에서 일괄 적용한다.
+@SQLRestriction("deleted_at IS NULL")
 public class User extends BaseTimeEntity {
 
     @Id

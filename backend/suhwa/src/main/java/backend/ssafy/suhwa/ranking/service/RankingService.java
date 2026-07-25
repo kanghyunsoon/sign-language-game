@@ -38,8 +38,9 @@ public class RankingService {
         Map<Long, List<GameResult>> byUser = gameResultRepository.findByGameType(gameType).stream()
                 .collect(Collectors.groupingBy(GameResult::getUserId));
 
+        // 탈퇴 회원은 User의 @SQLRestriction로 findAllById 결과에서 이미 제외된다(FR-007).
+        // 집계엔 있으나 회원이 조회되지 않는 항목은 아래 activeUsers 매칭에서 자연히 빠진다.
         Map<Long, User> activeUsers = userRepository.findAllById(byUser.keySet()).stream()
-                .filter(u -> !u.isDeleted())
                 .collect(Collectors.toMap(User::getId, u -> u));
 
         List<Scored> scored = byUser.entrySet().stream()
