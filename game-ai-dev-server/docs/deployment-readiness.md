@@ -111,36 +111,41 @@ PYTHONPATH=src pytest -q
 
 ## 실시간 P2P 대전 배포 블로커 (WebRTC/TURN/인증) — 2026-07-25
 
-프론트 P2P(WebRTC DataChannel) 작업(`feature/khstemp-game-ai-integration`의 `frontend/`, → `frontend` MR 예정)과 배포 백엔드(`origin/backend`)·인프라(`origin/infra`) 정합성을 교차 분석한 결과. **시그널링·방·결과 오케스트레이션은 배포 백엔드 Swagger 계약과 일치**하나(`/webrtc/ice-servers`·방 생성/참가/준비/시작·`winnerUserId` 409 멱등·SSE 티켓·native WS 모두 구현·정합), **실사용 1:1 대전을 프로덕션에서 성립시키려면 아래 P0가 선행**이다. 이 코드는 정적 빌드로는 자립하나 "배포 준비 완료"는 아니다.
+프론트 P2P(WebRTC DataChannel)와 배포 백엔드(`origin/backend`)·인프라(`origin/infra`) 정합성 교차 분석 결과. **시그널링·방·결과 오케스트레이션은 배포 백엔드 Swagger 계약과 일치**한다(`/webrtc/ice-servers`·방 생성/참가/준비/시작·`winnerUserId` 409 멱등·SSE 티켓·native WS 모두 구현·정합).
 
-### P0-A (치명) — 배포 백엔드 TURN 환경변수 미주입 → cross-NAT P2P 실패
+> **정정(2026-07-25):** 초기엔 TURN·CORS를 코드 블로커로 봤으나, 재조사 결과 **둘 다 배포 CI가 이미 배선**하고 있다(P0-A/B). 실제 남은 **프론트 코드 작업은 P0-C(실인증)뿐**이고, TURN·CORS는 코드가 아니라 **CI/CD 변수 세팅·파이프라인 배포 확인** 항목이다.
 
-- 프론트는 TURN을 하드코딩하지 않고 `GET /api/webrtc/ice-servers`로 받는다(`GameServiceProvider.tsx`, `media/mesh/webRtcConfig.ts`). 백엔드 `WebRtcProperties`는 `WEBRTC_TURN_URL/USERNAME/CREDENTIAL`를 그대로 반환한다.
-- `origin/backend`의 `application.yaml`·`env.sample`은 이 값들이 **빈 문자열**이고 STUN(`stun:stun.l.google.com:19302`)만 채워져 있다 → 배포 런타임에 실제 값이 주입되지 않으면 **STUN만 반환** → **대칭 NAT에서 영상/DataChannel 실패**(같은 LAN에서만 되는 함정).
-- **조치:** 배포 백엔드 env에 `WEBRTC_TURN_URL`(예 `turns:i15a405.p.ssafy.io:5349`)·`WEBRTC_TURN_USERNAME=sudal`·`WEBRTC_TURN_CREDENTIAL` 주입. coturn `.env`의 `TURN_USERNAME/TURN_PASSWORD`(현재 `CHANGE_ME`)와 **동일 값으로 정합**.
+### P0-A (해결·CI 배선됨) — 배포 백엔드 TURN env는 CI가 주입
 
-### P0-B (치명) — coturn 실제 배포·도달성
+- 프론트는 TURN을 하드코딩하지 않고 `GET /api/webrtc/ice-servers`로 받고(`GameServiceProvider.tsx`, `media/mesh/webRtcConfig.ts`), 백엔드 `WebRtcProperties`가 `WEBRTC_TURN_URL/USERNAME/CREDENTIAL`을 반환한다.
+- 커밋된 `application.yaml`·`env.sample` 기본값은 비어 있으나 **`origin/backend/.gitlab-ci.yml` 배포 잡이 런타임에 주입**한다: `WEBRTC_TURN_URL=turn:i15a405.p.ssafy.io:3478`, `WEBRTC_TURN_USERNAME=$PROD_TURN_USERNAME`, `WEBRTC_TURN_CREDENTIAL=$PROD_TURN_PASSWORD`. 게다가 `test -n "$PROD_TURN_USERNAME/PASSWORD"`로 **비어 있으면 배포 실패**하도록 검증한다.
+- **남은 확인(코드 아님):** GitLab CI/CD Variables의 `PROD_TURN_USERNAME`·`PROD_TURN_PASSWORD`가 coturn `.env`의 `TURN_USERNAME`(=sudal)·`TURN_PASSWORD`와 **동일 값**인지 + backend 파이프라인 배포 실행 여부.
 
-- coturn 자산·CI는 `origin/infra`에 완비(`coturn/turnserver.conf` TLS 5349·lt-cred-mech, `.gitlab-ci.yml` validate→deploy→verify, `renew-coturn-cert.sh`). 단 **실제 기동·도달성은 repo 밖 문제**.
-- **조치:** `infra` 파이프라인 실행 확인, 보안그룹/방화벽에서 **UDP 3478 + relay 49160-49200 + TLS 5349** 개방, Let's Encrypt 인증서 존재(`/opt/sudal/webrtc/certs`), `turnutils_stunclient`로 relay candidate 실측.
+### P0-B (해결·CI 배선됨) — coturn 배포·검증은 인프라 CI가 수행
 
-### P0-C (치명) — 프론트 실제 인증 미연결로 배포 게이트웨이 미사용
+- `origin/infra/.gitlab-ci.yml`이 `coturn-validate → coturn-deploy → coturn-verify`로 coturn을 `/opt/sudal/webrtc`에 배포하고 컨테이너 running·TLS 인증서(`/run/coturn-certs`)·relay IP·`turnutils`까지 검증한다. `coturn/turnserver.conf`(TLS 5349·lt-cred-mech, realm `i15a405.p.ssafy.io`)도 완비.
+- **남은 확인(코드 아님):** infra 파이프라인 실제 실행·coturn 기동 여부, 보안그룹/방화벽 UDP 3478·relay·TLS 5349 개방(파이프라인 verify가 대부분 커버).
 
-- 운영 빌드가 `/game/*`에 `StandaloneGameHarness`를 마운트하고, `GameServiceProvider`의 `useSwaggerContract = Boolean(accessToken) || VITE_P2P_E2E==="true"` 때문에 **access token이 없으면 `DevBattleRoomGateway`(`/api/dev`)가 선택**되어 배포 Swagger 계약을 타지 않는다. `LoginPage`는 실인증 API 미연결.
-- **조치:** 실인증 연결 → access token/`userId`를 `GameModule`에 전달 → 실사용자 host로 마운트(그래야 `SwaggerBattleRoomGateway` 선택). 운영 빌드에서 dev-user/`VITE_P2P_E2E` 경로 제거.
+### P0-C (실코드 작업 — 유일한 프론트 gap) — 프론트 실인증 미연결
 
-### P0-D (필수) — 프론트 프로덕션 env·`vercel.json` 미확정
+- `LoginPage`/`SignUpPage`가 실인증 API 미연결(그냥 `navigate`), 인증 클라이언트·토큰 스토어 부재. `App.tsx`의 `/game/*`는 이미 `GameModule`을 마운트하지만 **하드코딩 dev user + accessToken 미전달** → `GameServiceProvider`의 `accessToken ? BackendBattleRoomGateway : DevBattleRoomGateway` 스위치가 항상 **Dev(`/api/dev`)** 를 탄다. (초기 문서가 적은 `StandaloneGameHarness`/`VITE_P2P_E2E`는 현 `origin/frontend`엔 **없음** — 실제 스위치는 accessToken 유무.)
+- **조치:** 로그인 실API(`POST /auth/login` → token, `GET /users/me` → userId) → access token·userId를 `GameModule`에 전달 → 배포 Swagger 게이트웨이 사용. **함정:** `roomApiBaseUrl`을 `/api/dev`가 아니라 `/api/game-rooms`로(Backend 게이트웨이는 base에 suffix를 안 붙임).
 
-- `standaloneConfig.ts` 기본값이 `ws://localhost:8765` 등 로컬이고, `frontend/.env.example`에 폐기된 STOMP `VITE_MATCH_*`·`VITE_GAME_ROOM_API_BASE_URL=/api/dev`(개발 게이트웨이)가 잔존. `vercel.json` 미커밋.
-- **조치:** `VITE_GAME_ROOM_API_BASE_URL`·`VITE_GAME_WEBSOCKET_URL`(wss)·`VITE_AI_WEBSOCKET_URL`(wss) 확정, 레거시 정리, `vercel.json`에 SPA fallback + `/api` rewrite 추가. 백엔드 CORS/WebSocket Origin allowlist에 Vercel 도메인 추가.
+### P0-D (일부 CI 배선) — 프론트 프로덕션 env + CORS 변수 확인
 
-### 배포 전 최종 체크리스트
+- **CORS는 CI 배선됨:** 백엔드 CI가 `CORS_ALLOWED_ORIGINS=$PROD_CORS_ALLOWED_ORIGINS` 주입 + `test -n`으로 검증. **남은 확인(코드 아님):** 그 CI 변수에 프론트 배포 도메인이 포함됐는지.
+- **프론트 코드/설정(남음):** 프로덕션 base URL 확정 — `VITE_API_BASE_URL=/api`, `VITE_GAME_ROOM_API_BASE_URL=/api/game-rooms`, WS(wss). `.env.production`·`vercel.json`(SPA fallback + `/api` rewrite).
 
-- [ ] 배포 백엔드 env `WEBRTC_TURN_*` 주입 및 coturn 자격증명 정합 (P0-A)
-- [ ] coturn 기동·방화벽·인증서·relay 실측 (P0-B)
-- [ ] 프론트 실인증 연결 + 운영 빌드 dev 경로 제거 (P0-C)
-- [ ] 프론트 프로덕션 env·`vercel.json`·CORS allowlist (P0-D)
-- [ ] 서로 다른 네트워크 브라우저 2대에서 `chrome://webrtc-internals`로 relay candidate·영상·DataChannel 실측
+### 최종 체크리스트
+
+**코드 작업(프론트 — 남은 실작업)**
+- [ ] P0-C 프론트 실인증 연결 + 배포 게이트웨이(`/api/game-rooms`) 전환
+- [ ] 프론트 프로덕션 env·`vercel.json`
+
+**확인 항목(코드 아님 — CI 변수·배포 실행)**
+- [ ] CI/CD 변수 `PROD_CORS_ALLOWED_ORIGINS`(프론트 도메인 포함)·`PROD_TURN_USERNAME/PASSWORD`(coturn과 동일)
+- [ ] backend·infra(coturn) 파이프라인 배포 실행됨
+- [ ] 서로 다른 네트워크 브라우저 2대에서 `chrome://webrtc-internals`로 relay·영상·DataChannel 실측
 - [ ] 순수 P2P 단절 몰수패 정책은 서버 `PEER_DISCONNECTED/RECONNECTED` 권위 확정 전까지 비활성 유지
 
 > 참고: 백엔드는 정적 장기(long-term) TURN 자격증명을 반환하는데 프론트 문서(`vercel-deployment-guide`)는 "단기 credential"로 서술 — 표현 정정 또는 시간제한 자격증명 도입 여부를 결정할 것.
