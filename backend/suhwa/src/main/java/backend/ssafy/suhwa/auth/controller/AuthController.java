@@ -31,14 +31,12 @@ public class AuthController implements AuthApi {
 
     @Override
     public ResponseEntity<TokenResponse> login(LoginRequest request) {
-        AuthService.TokenPair tokens = authService.login(request.email(), request.password());
-        return ResponseEntity.ok(new TokenResponse(tokens.accessToken(), tokens.refreshToken()));
+        return ResponseEntity.ok(authService.login(request.email(), request.password()));
     }
 
     @Override
     public ResponseEntity<TokenResponse> refresh(RefreshRequest request) {
-        AuthService.TokenPair tokens = authService.refresh(request.refreshToken());
-        return ResponseEntity.ok(new TokenResponse(tokens.accessToken(), tokens.refreshToken()));
+        return ResponseEntity.ok(authService.refresh(request.refreshToken()));
     }
 
     @Override

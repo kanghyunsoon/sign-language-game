@@ -1,89 +1,55 @@
 package backend.ssafy.suhwa.auth.service;
 
-import backend.ssafy.suhwa.auth.domain.RefreshToken;
-import backend.ssafy.suhwa.auth.repository.RefreshTokenRepository;
+import backend.ssafy.suhwa.auth.dto.TokenResponse;
 import backend.ssafy.suhwa.common.exception.BusinessException;
 import backend.ssafy.suhwa.common.exception.ErrorCode;
 import backend.ssafy.suhwa.common.security.JwtTokenProvider;
 import backend.ssafy.suhwa.user.domain.User;
-import backend.ssafy.suhwa.user.repository.UserRepository;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.HexFormat;
-import java.util.UUID;
+import backend.ssafy.suhwa.user.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 인증 유스케이스(로그인·재발급·로그아웃)를 조율한다(spec 004 FR-001~003, AUTH-01-02).
+ *
+ * <p>refresh token의 저장 형식·수명은 {@link RefreshTokenService}가, 회원 조회는
+ * {@link UserService}가 책임진다. 여기서는 흐름만 엮는다.
+ *
+ * <p>BCrypt 검증(FR-003)은 CPU 바운드 작업이라 DB 트랜잭션 밖에서 수행한다. 그래서 이 클래스의
+ * 메서드에는 클래스/메서드 수준 {@code @Transactional}을 두지 않고, DB 쓰기는 위임 서비스의
+ * 트랜잭션 경계 안에서만 일어나게 한다(커넥션 점유 시간 최소화).
+ */
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class AuthService {
 
-    private final UserRepository userRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final UserService userService;
+    private final RefreshTokenService refreshTokenService;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
 
-    @Value("${jwt.refresh-token-expiration-ms}")
-    private long refreshTokenExpirationMs;
-
-    @Transactional
-    public TokenPair login(String email, String rawPassword) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS));
-        if (user.isDeleted()) {
-            throw new BusinessException(ErrorCode.ACCOUNT_WITHDRAWN);
-        }
+    public TokenResponse login(String email, String rawPassword) {
+        User user = userService.findActiveByEmail(email);
+        // BCrypt matches는 트랜잭션 밖에서 수행(FR-003) — 커넥션을 잡은 채 해시 연산하지 않는다.
         if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
         return issueTokens(user.getId());
     }
 
-    @Transactional
-    public TokenPair refresh(String rawRefreshToken) {
-        RefreshToken stored = refreshTokenRepository.findByToken(hash(rawRefreshToken))
-                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN));
-        if (!stored.isValid()) {
-            throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
-        }
-        stored.revoke();
-        return issueTokens(stored.getUserId());
+    public TokenResponse refresh(String rawRefreshToken) {
+        Long userId = refreshTokenService.rotate(rawRefreshToken);
+        return issueTokens(userId);
     }
 
-    @Transactional
     public void logout(Long userId) {
-        refreshTokenRepository.revokeAllByUserId(userId);
+        refreshTokenService.revokeAll(userId);
     }
 
-    private TokenPair issueTokens(Long userId) {
+    private TokenResponse issueTokens(Long userId) {
         String accessToken = jwtTokenProvider.createAccessToken(userId);
-        String rawRefreshToken = UUID.randomUUID().toString();
-        RefreshToken refreshToken = RefreshToken.builder()
-                .userId(userId)
-                .token(hash(rawRefreshToken))
-                .expiresAt(LocalDateTime.now().plus(Duration.ofMillis(refreshTokenExpirationMs)))
-                .build();
-        refreshTokenRepository.save(refreshToken);
-        return new TokenPair(accessToken, rawRefreshToken);
-    }
-
-    private String hash(String rawToken) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashBytes = digest.digest(rawToken.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hashBytes);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 알고리즘을 사용할 수 없습니다.", e);
-        }
-    }
-
-    public record TokenPair(String accessToken, String refreshToken) {
+        String rawRefreshToken = refreshTokenService.issue(userId);
+        return new TokenResponse(accessToken, rawRefreshToken);
     }
 }
