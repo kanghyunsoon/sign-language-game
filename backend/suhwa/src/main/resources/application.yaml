@@ -16,6 +16,14 @@ spring:
       hibernate:
         format_sql: ${JPA_FORMAT_SQL:false}
 
+  # 스키마 이력 관리(spec 004 FR-018, STABLE-08-09). ddl-auto는 none 유지(위 참조)하고
+  # 스키마 변경은 db/migration/V*.sql 로만 관리한다. 기존 운영 DB에 최초 도입하므로
+  # baseline-on-migrate로 V1(baseline) 이후 마이그레이션만 적용한다.
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 1
+
 server:
   port: ${SERVER_PORT:8080}
   # 리버스 프록시(nginx)가 X-Forwarded-Prefix: /api 로 보내는 요청을 받는다.
