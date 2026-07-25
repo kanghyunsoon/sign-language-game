@@ -149,3 +149,33 @@ PYTHONPATH=src pytest -q
 - [ ] 순수 P2P 단절 몰수패 정책은 서버 `PEER_DISCONNECTED/RECONNECTED` 권위 확정 전까지 비활성 유지
 
 > 참고: 백엔드는 정적 장기(long-term) TURN 자격증명을 반환하는데 프론트 문서(`vercel-deployment-guide`)는 "단기 credential"로 서술 — 표현 정정 또는 시간제한 자격증명 도입 여부를 결정할 것.
+
+## 2026-07-25 프론트↔배포 백엔드 통합 검증 결과 (P0-C 완료)
+
+배포 백엔드(`https://i15a405.p.ssafy.io/api`)에 실제 호출로 P0-C 배선을 검증했다(백엔드/인프라 코드 무변경 — 호출·테스트 계정 생성/탈퇴만).
+
+### 검증 결과 — 전부 정합
+
+- **인증:** `POST /auth/signup` 201 → `POST /auth/login` 200(accessToken JWT + refreshToken) → `GET /users/me` 200(userId=id) → `DELETE /users/me` 204(정리). userId 흐름 정상.
+- **방 목록(실경로 = SSE):** `POST /auth/sse-ticket?userId=` → `GET /game-rooms/subscribe?ticket=` → `event: snapshot` / `data:{"rooms":[...]}` 수신 확인. 프론트 `SwaggerBattleRoomGateway`+`LobbySseClient`가 이를 소비 → **블록 배틀·수달 턴 배틀 로비 모두 SSE 기반으로 이미 정합**.
+- **TURN:** `GET /webrtc/ice-servers` 200, STUN/TURN `i15a405.p.ssafy.io:3478` 반환 → P0-A(백엔드 TURN CI 배선) 라이브 확인.
+
+### 트러블슈팅 / 주의 (통합 중 실제로 겪음)
+
+- **`GET /game-rooms`(방 목록 GET)는 배포 백엔드에 없다.** 계약상 방 목록은 GET이 아니라 **SSE `/game-rooms/subscribe`의 snapshot/update**로 받는다(매번 전체 목록). 프론트의 `BackendBattleRoomGateway.getRooms()`(GET /game-rooms)는 **인스턴스화 안 되는 죽은 코드** — 오해 주의, 정리 권장.
+- **405가 401(UNAUTHENTICATED)로 덮여 나온다(의도된 동작).** 유효 토큰이어도 미지원 메서드 경로는 401로 응답. "인증 깨짐"으로 오진하기 쉬움(스모크의 `GET /game-rooms` 401이 그 예 — 실제론 405 성격). 인증 배선을 의심하기 전에 메서드/경로를 먼저 확인할 것.
+- **`roomApiBaseUrl`은 `/api`가 맞다.** P2P 병합 후 accessToken 경로는 `SwaggerBattleRoomGateway → BackendGameRoomClient`이고, 이 클라이언트가 base 뒤에 `/game-rooms`를(그리고 `RealtimeTicketClient`가 `/auth/sse-ticket`을) 스스로 부착. `/api/game-rooms`로 두면 `/api/game-rooms/game-rooms` 404(초기 지시 오류 → 구현에서 교정).
+- SSE는 Bearer 헤더 불가 → `POST /auth/sse-ticket`의 **1회용 ticket 쿼리** 사용, 재연결 시 새 티켓 필요.
+- refresh 자동재발급은 미배선(엔드포인트 확정 후 별도).
+
+### 배포 전략 — 메인페이지 미완성 관련
+
+- **미완성 메인페이지를 프로덕션(데모 도메인)에 올리지 않는다.** P2P E2E 검증은 `/login → /game` 경로만 필요하므로 메인페이지 완성과 무관.
+- 검증은 **스테이징(고정 서브도메인) 또는 로컬 2-브라우저**로 수행. 로컬이면 `localhost:5173`을 배포 백엔드 `CORS_ALLOWED_ORIGINS`에 등록 필요. Vercel 프리뷰 URL은 배포마다 바뀌어 CORS 관리가 번거로우니 **고정 스테이징 도메인** 하나 사용 권장.
+- 실브라우저 2대 WebRTC 영상 E2E는 프론트 배포 + 그 도메인 CORS 등록 후 진행(TURN은 이미 라이브).
+
+### 브랜치 정리 상태 (2026-07-25)
+
+- **AI**: `feature/khs-ai-fingerspelling-server` (모델·학습물·T-135/137/138·이 문서). 다른 지문자 AI 담당(이인성)의 `feature/AI-0##-*`와 분리, MR 아닌 직접 브랜치.
+- **프론트**: P2P 전환(MR !79) + P0-C 실인증(MR !80) 모두 `frontend`에 병합 완료.
+- **MR !78**(370→ai)은 닫음(AI를 위 전용 브랜치로 이관).
