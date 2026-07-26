@@ -1374,7 +1374,10 @@ T-137이 "숫자는 데이터만 있으면 학습된다"를 보였으므로, 다
 - **배경:** T-141 하이브리드는 자모=이미지 모델, 숫자=landmark ExtraTrees/KNN로 라우팅했다. 그러나 (1) 하이브리드와 단일 모델의 **자모 경로는 완전히 동일한 이미지 모델**이고, (2) T-148에서 OSS Number 통합으로 **이미지 숫자가 96.5%**까지 올라 landmark(97.2%)와 대등해졌다.
 - **T-148 단일 모델 프로필(honest 대형 test):** 전체 accuracy **92.77%** / macroF1 92.24%. 자모 도메인 accuracy **91.75%**(macroF1 0.882, min-recall 0.703), 숫자 도메인 accuracy **96.46%**(macroF1 0.874, min-recall 0.871 — 전 숫자 ≥0.87). 41종 중 <0.90 12개, <0.80 3개(모두 저support 유사 모음, 데이터로 개선 중).
 - **비교(하이브리드 → 단일):** 자모 동일. 숫자만 landmark 97.2% → 이미지 96.46%로 **−0.7%p**(측정 노이즈 수준). 그 대가로 **MediaPipe 랜드마크 추출·feat_v3 파이프라인·2-모델 라우팅을 전부 제거** → 추론·배포 대폭 단순화, 단일 checkpoint로 41종 처리.
-- **결정:** **단일 41-class 이미지 모델(`code-v3/outputs/t148-khs-jamo-num-oss/model.pt`)을 운영 후보로 채택**, 랜드마크 숫자 하이브리드는 폐기. 잔존 저support 유사 모음(<0.90)은 OSS류 신규-signer 데이터 추가 통합(T-147/148 방식 반복)으로 계속 개선한다. signer-independent 잠금 test에서 재검증 후 최종 확정한다.
+- **결정(잠정):** 이미지 모델 계열에서는 단일 41-class 모델(`code-v3/outputs/t148-khs-jamo-num-oss/model.pt`)이 최적. 잔존 저support 유사 모음(<0.90)은 OSS류 신규-signer 데이터 추가 통합으로 개선.
+
+- **⚠️ 아키텍처 정정(중요):** 실제 배포 서버(`app/model_adapter.py`·`recognition_session.py`)는 **랜드마크-시퀀스 기반**이다 — 프론트의 MediaPipe 21-랜드마크를 `feature_v2`로 변환해 `(1, seq, feature)` 시퀀스로 TFLite(자모31)·sklearn Tree(41)·하이브리드에 넣는다. 따라서 **T-142~T-148의 이미지 EfficientNet 모델은 이 서버에 드롭인 불가**(입력이 이미지가 아님). 이미지 트랙은 "데이터가 병목/레버"임을 규명한 **오프라인 벤치마크**로서 가치가 있으나, 그 자체가 배포 모델은 아니다.
+- **배포 가능한 개선 경로:** 서버의 **랜드마크 Tree 모델(`models/jamo-number-41-tree-v1`)** 을 개선해야 한다. 이미지 트랙의 결론(OSS 신규-signer 데이터가 유효)을 배포에 반영하려면 **OSS Hangul/Number 이미지에서 MediaPipe 랜드마크를 추출 → `feature_v2` 변환 → Tree 재학습 → 모델 번들(manifest+artifact+sha256) 재패키징** 이 필요하다. 이미지 모델을 서버에 쓰려면 프론트가 이미지를 전송하고 서버가 CNN을 돌리는 **파이프라인 전면 변경**이 전제되며, 실시간성·계약 변경 부담이 크다.
 
 ## 지문자·지숫자 정확도 — 최종 요약 (T-138~T-149)
 
