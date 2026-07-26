@@ -6,6 +6,7 @@
 
 - **변경 없음(구조)**. `win_count`/`loss_count` 카운터는 RANK-01-02 마이그레이션으로 이미 삭제됨(전적은 `game_results` 집계). 활성 판정(FR-001)은 `deleted_at` 단일 기준으로 통합, soft delete를 Hibernate 레벨(`@SQLRestriction`/`@SQLDelete` 등)에서 강제(FR-007)해 모든 조회 경로에 일관 적용.
 - 비밀번호 해시: 해싱을 트랜잭션 밖에서 수행(FR-003) — 저장 값 형식 불변.
+- **인증 시맨틱(FR-006)**: 로그아웃/탈퇴 시 refresh token은 즉시 무효화되지만, 이미 발급된 **access token은 stateless(JWT)라 만료(`jwt.access-token-expiration-ms`, 기본 1h) 전까지 유효**하다. 즉 무효화 반영에 최대 AT 수명만큼 지연이 존재함을 계약으로 명시(즉시 차단이 필요하면 별도 블랙리스트가 필요하나 이번 범위 밖).
 - **State**: `ACTIVE`(deleted_at IS NULL) ↔ `WITHDRAWN`(deleted_at 설정, 이메일 변형). 도달 불가능한 `ACCOUNT_WITHDRAWN` 분기 제거.
 
 ## RefreshToken (갱신 토큰)
