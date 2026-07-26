@@ -28,7 +28,7 @@ SUDAL-PLAY는 Vercel에 React/Vite 정적 프런트를 배포하고, 운영 중�
 
 ### Vercel 환경변수
 
-Production과 Preview에 아래 공개 주소만 등록한다. `VITE_*` 값은 브라우저 번들에 포함되므로 비밀값을 넣지 않는다.
+`VITE_*` 값은 브라우저 번들에 포함되므로 비밀값을 넣지 않는다.
 
 ```dotenv
 VITE_API_BASE_URL=https://i15a405.p.ssafy.io/api
@@ -36,17 +36,29 @@ VITE_GAME_ROOM_API_BASE_URL=https://i15a405.p.ssafy.io/api
 VITE_GAME_WEBSOCKET_URL=wss://i15a405.p.ssafy.io/api/ws/game-rooms
 ```
 
-중요: 현재 저장소의 `.env.production` 기본값은 동일 origin Nginx 배포용 `/api`다. Vercel에는 `/api` reverse proxy가 없으므로 위 값을 Vercel Production/Preview 환경변수로 반드시 등록하고 재배포한다. 등록하지 않으면 로그인·회원가입 요청이 `https://sudal-play.vercel.app/api/auth/*`로 가서 404가 난다.
+2026-07-26 기준 위 세 값은 Vercel 프로젝트 `sudal-play`의 **Production** 환경변수로 등록하고 재배포했다. Preview 배포로 실연동을 검증할 경우에도 같은 값을 Preview 환경에 추가하고 다시 배포한다.
+
+중요: 현재 저장소의 `.env.production` 기본값은 동일 origin Nginx 배포용 `/api`다. Vercel에는 `/api` reverse proxy가 없으므로 위 값을 Vercel 환경변수로 등록하고 재배포한다. 등록하지 않으면 로그인·회원가입 요청이 `https://sudal-play.vercel.app/api/auth/*`로 가서 404가 난다.
 
 AI 운영 주소가 확정되기 전에는 `VITE_AI_WEBSOCKET_URL`을 등록하지 않는다.
 
 ## 3. 백엔드 연결 요청 사항
 
-백엔드 배포 담당자는 확정된 Vercel Production URL과 Preview URL을 CORS 허용 목록에 등록한다.
+백엔드 배포 담당자는 확정된 Vercel Production URL과 Preview URL을 CORS 허용 목록에 등록한다. Origin 비교는 scheme·host·port가 정확히 일치해야 하므로 끝의 `/`를 포함하지 않는다.
 
 ```text
 PROD_CORS_ALLOWED_ORIGINS=https://sudal-play.vercel.app,https://<preview-vercel-domain>
 ```
+
+### 즉시 전달할 인계 내용
+
+```text
+프런트 운영 Origin: https://sudal-play.vercel.app
+요청: GitLab CI/CD 변수 PROD_CORS_ALLOWED_ORIGINS에 위 Origin을 추가한 뒤 백엔드 운영 배포
+주의: URL 끝의 /는 넣지 않음. REST CORS와 게임 WebSocket Origin 정책 모두 동일 값 사용
+```
+
+2026-07-26 확인 결과 GitLab 프로젝트 변수 `PROD_CORS_ALLOWED_ORIGINS`는 존재하며 `All (default)` 범위로 적용돼 있다. 값은 Masked 상태이므로 프런트에서는 실제 포함 여부를 열람·검증할 수 없다. 백엔드/인프라 담당자가 변수 값을 확인하거나 수정한 뒤 운영 배포 완료 사실을 공유해야 한다.
 
 확인 범위는 REST뿐 아니라 다음 전체다.
 
@@ -95,3 +107,12 @@ AI 주소를 `/ai/` reverse proxy로 제공할지 별도 서브도메인으로 �
 6. AI 연결 후 손 인식, 자모·숫자 혼동쌍, 실패 UX와 재연결을 확인한다.
 
 배포마다 Vercel URL, Git SHA, API/AI 모델 버전, 테스트 계정 역할, TURN 사용 여부, 결과와 rollback 여부를 Jira 및 트러블슈팅 문서에 남긴다.
+
+## 7. 현재 상태와 다음 작업 순서
+
+1. **백엔드·인프라**: `PROD_CORS_ALLOWED_ORIGINS`에 `https://sudal-play.vercel.app` 포함 여부를 확인·반영하고 백엔드를 재배포한다.
+2. **프런트·백엔드 연동 확인**: 운영 URL에서 신규 회원가입과 로그인을 실행한다. 성공 시 인증 쿠키/토큰이 유지되는지와 API 요청이 `i15a405.p.ssafy.io/api`로 향하는지 확인한다.
+3. **실시간 기능 확인**: 서로 다른 계정·브라우저·가능하면 서로 다른 네트워크로 SSE, WSS signaling, WebRTC 영상, DataChannel 및 TURN fallback을 점검한다.
+4. **게임 완주 확인**: 블록쌓기와 턴 배틀 각각에서 host와 challenger를 바꿔가며 시작부터 `1:0` 또는 `0:1` 결과 저장까지 확인한다.
+5. **AI 연동 보류·재개**: AI 모델 학습·배포 endpoint가 확정된 뒤 Preview에서 `VITE_AI_WEBSOCKET_URL`을 추가해 자모↔자모·자모↔숫자 혼동쌍과 재연결을 검증한다.
+6. **기록**: 위 각 단계의 날짜, 담당자, 배포 SHA, 테스트 결과·실패 로그를 Jira와 트러블슈팅 문서에 갱신한다.
