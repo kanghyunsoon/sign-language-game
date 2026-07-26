@@ -21,6 +21,7 @@ public enum ErrorCode {
 
     // Game Rooms
     ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 게임방입니다."),
+    ROOM_CODE_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "방 코드 생성에 반복적으로 실패했습니다. 잠시 후 다시 시도해주세요."),
     ROOM_FULL(HttpStatus.CONFLICT, "정원이 가득 찬 방입니다."),
     ROOM_NOT_WAITING(HttpStatus.CONFLICT, "대기 중인 방이 아닙니다."),
     ROOM_NOT_IN_PROGRESS(HttpStatus.CONFLICT, "진행 중인 방이 아니라 처리할 수 없습니다."),

@@ -262,7 +262,7 @@ public class GameRoomService {
                 return candidate;
             }
         }
-        throw new IllegalStateException("고유한 방 코드 생성에 반복적으로 실패했습니다.");
+        throw new BusinessException(ErrorCode.ROOM_CODE_GENERATION_FAILED);
     }
 
     private String randomRoomCode() {
