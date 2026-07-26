@@ -1,14 +1,15 @@
-# SignMaster 배포·통합 가이드
+# SUDAL-PLAY 배포·통합 가이드
 
 ## 1. 목적과 현재 범위
 
-SignMaster는 Vercel에 React/Vite 정적 프런트를 배포하고, 운영 중인 백엔드·인프라와 직접 통신한다. Vercel은 API, SSE, WebSocket 또는 TURN 서버를 호스팅하지 않는다.
+SUDAL-PLAY는 Vercel에 React/Vite 정적 프런트를 배포하고, 운영 중인 백엔드·인프라와 직접 통신한다. Vercel은 API, SSE, WebSocket 또는 TURN 서버를 호스팅하지 않는다.
 
 - 프런트 기준 브랜치: `frontend`
 - 백엔드 기준 브랜치: `backend` (소스 변경은 백엔드 담당)
 - AI 기준 브랜치: `feature/khs-ai-fingerspelling-server` (학습 완료 전까지 운영 연결 보류)
-- 서비스 표시명: **SignMaster(싸인마스터)**
-- Vercel 프로젝트/기본 도메인: 소문자 영문 slug 사용 (`signmaster` 계열)
+- 서비스 표시명: **수어의 달인**
+- Vercel 운영 도메인: `https://sudal-play.vercel.app`
+- Vercel 프로젝트/기본 도메인: 소문자 영문 slug 사용 (`sudal-play`)
 
 ## 2. Vercel 프런트 배포 구성
 
@@ -35,6 +36,8 @@ VITE_GAME_ROOM_API_BASE_URL=https://i15a405.p.ssafy.io/api
 VITE_GAME_WEBSOCKET_URL=wss://i15a405.p.ssafy.io/api/ws/game-rooms
 ```
 
+중요: 현재 저장소의 `.env.production` 기본값은 동일 origin Nginx 배포용 `/api`다. Vercel에는 `/api` reverse proxy가 없으므로 위 값을 Vercel Production/Preview 환경변수로 반드시 등록하고 재배포한다. 등록하지 않으면 로그인·회원가입 요청이 `https://sudal-play.vercel.app/api/auth/*`로 가서 404가 난다.
+
 AI 운영 주소가 확정되기 전에는 `VITE_AI_WEBSOCKET_URL`을 등록하지 않는다.
 
 ## 3. 백엔드 연결 요청 사항
@@ -42,7 +45,7 @@ AI 운영 주소가 확정되기 전에는 `VITE_AI_WEBSOCKET_URL`을 등록하�
 백엔드 배포 담당자는 확정된 Vercel Production URL과 Preview URL을 CORS 허용 목록에 등록한다.
 
 ```text
-PROD_CORS_ALLOWED_ORIGINS=https://<production-vercel-domain>,https://<preview-vercel-domain>
+PROD_CORS_ALLOWED_ORIGINS=https://sudal-play.vercel.app,https://<preview-vercel-domain>
 ```
 
 확인 범위는 REST뿐 아니라 다음 전체다.
