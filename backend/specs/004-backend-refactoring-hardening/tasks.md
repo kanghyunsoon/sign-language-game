@@ -49,19 +49,19 @@ description: "Task list for Backend Refactoring & Hardening Backlog"
 
 ### Tests (US1)
 
-- [ ] T007 [P] [US1] 익명 인증 시 401(500 아님)·비밀번호 상한 400·탈퇴 계정 조회 차단 회귀 테스트 `.../test/.../auth/AuthSecurityTest.java`, `.../user/UserWithdrawTest.java` (USER-01-05-T03·08-T02·09-T02·12-T03)
+- [X] T007 [P] [US1] 익명 인증 시 401(500 아님)·비밀번호 상한 400·탈퇴 계정 조회 차단 회귀 테스트 `.../test/.../auth/AuthSecurityTest.java`, `.../user/UserWithdrawTest.java` (USER-01-05-T03·08-T02·09-T02·12-T03)
 
 ### Implementation (US1)
 
-- [ ] T008 [P] [US1] `UserService.findActiveByEmail` 추가 + `AuthService.login`이 재사용, `ErrorCode.ACCOUNT_WITHDRAWN` 및 관련 분기 삭제 `.../user/service/UserService.java`, `.../auth/service/AuthService.java`, `.../common/exception/ErrorCode.java` (FR-001)
-- [ ] T009 [P] [US1] `RefreshTokenService`(issue/rotate/revokeAll/hash) 신설 `.../auth/service/RefreshTokenService.java` (FR-002)
-- [ ] T010 [US1] `AuthService`가 `RefreshTokenService`를 조립만 하도록 리팩터링, `AuthService.TokenPair` 제거하고 `TokenResponse` 직접 반환, `UserService.withdraw`가 `RefreshTokenService.revokeAll(userId)` 호출 `.../auth/service/AuthService.java`, `.../user/service/UserService.java` (FR-002, depends T009)
-- [ ] T011 [P] [US1] `AuthService.login`·`UserService.signup`의 BCrypt 대조/인코딩을 `@Transactional` 밖으로 분리(토큰 발급만 쓰기 트랜잭션) (FR-003)
-- [ ] T012 [P] [US1] `CurrentUserArgumentResolver`에 `instanceof Long` 캐스팅 방어 추가 — `UNAUTHENTICATED` 예외는 이미 던지고 있으므로 핵심은 principal이 `Long`이 아닐 때(익명 등) `ClassCastException`→500을 막는 것 `.../common/security/CurrentUserArgumentResolver.java` (FR-004, USER-01-08)
-- [ ] T013 [P] [US1] 비밀번호 상한 검증 추가 — `SignupRequest`는 이미 `@Size(min=8)`이 있으므로 **`max=64`만 추가**, `LoginRequest`는 password에 검증이 전혀 없으므로 상한 `@Size(max=64)` 추가(로그인은 min 불필요, DB 대조 전 초장문 차단 목적) `.../auth/dto/SignupRequest.java`, `.../auth/dto/LoginRequest.java` (FR-005, USER-01-09)
-- [ ] T014 [P] [US1] 로그아웃/탈퇴 후 Access Token 유효 지연 트레이드오프를 `spec.md`/`data-model.md`에 한 줄 명시 (FR-006, USER-01-11)
-- [ ] T015 [P] [US1] `User`에 `@SQLRestriction("deleted_at IS NULL")` 적용, 네이티브/벌크 DML 우회 경로 문서화 `.../user/domain/User.java`. **적용 후 중복이 되는 수동 필터 정리**: `RankingService.getRankings`의 `.filter(u -> !u.isDeleted())`(L42) 등 각 서비스의 수동 `isDeleted()` 체크가 @SQLRestriction으로 대체 가능한지 감사·제거(단 login 등 명시적 오류 응답이 필요한 곳은 유지) `.../ranking/service/RankingService.java` (FR-007, USER-01-12-T02)
-- [ ] T016 [US1] `withdraw` flush 순서 확정 반영: `RefreshTokenRepository.revokeAllByUserId`의 `@Modifying(flushAutomatically,clearAutomatically)` 유지 확인(현행 정상) `.../auth/repository/RefreshTokenRepository.java` (FR-008)
+- [X] T008 [P] [US1] `UserService.findActiveByEmail` 추가 + `AuthService.login`이 재사용, `ErrorCode.ACCOUNT_WITHDRAWN` 및 관련 분기 삭제 `.../user/service/UserService.java`, `.../auth/service/AuthService.java`, `.../common/exception/ErrorCode.java` (FR-001)
+- [X] T009 [P] [US1] `RefreshTokenService`(issue/rotate/revokeAll/hash) 신설 `.../auth/service/RefreshTokenService.java` (FR-002)
+- [X] T010 [US1] `AuthService`가 `RefreshTokenService`를 조립만 하도록 리팩터링, `AuthService.TokenPair` 제거하고 `TokenResponse` 직접 반환, `UserService.withdraw`가 `RefreshTokenService.revokeAll(userId)` 호출 `.../auth/service/AuthService.java`, `.../user/service/UserService.java` (FR-002, depends T009)
+- [X] T011 [P] [US1] `AuthService.login`·`UserService.signup`의 BCrypt 대조/인코딩을 `@Transactional` 밖으로 분리(토큰 발급만 쓰기 트랜잭션) (FR-003)
+- [X] T012 [P] [US1] ~~`CurrentUserArgumentResolver`에 `instanceof Long` 캐스팅 방어 추가~~ **미도입 결정(N/A)**: 현행 `SecurityConfig`가 `.anyRequest().authenticated()`라 보호 경로는 리졸버 도달 전 상류에서 401 차단되고, `permitAll` + `@LoginUser` 조합이 코드베이스에 없어 익명 principal이 리졸버까지 도달하는 경로가 없음. 도달 불가능한 500을 위한 방어 코드는 도입하지 않음(코드 우선 원칙) `.../common/security/CurrentUserArgumentResolver.java` (FR-004, USER-01-08)
+- [X] T013 [P] [US1] 비밀번호 상한 검증 추가 — `SignupRequest`는 이미 `@Size(min=8)`이 있으므로 **`max=64`만 추가**, `LoginRequest`는 password에 검증이 전혀 없으므로 상한 `@Size(max=64)` 추가(로그인은 min 불필요, DB 대조 전 초장문 차단 목적) `.../auth/dto/SignupRequest.java`, `.../auth/dto/LoginRequest.java` (FR-005, USER-01-09)
+- [X] T014 [P] [US1] 로그아웃/탈퇴 후 Access Token 유효 지연 트레이드오프를 `spec.md`/`data-model.md`에 한 줄 명시 (FR-006, USER-01-11)
+- [X] T015 [P] [US1] `User`에 `@SQLRestriction("deleted_at IS NULL")` 적용, 네이티브/벌크 DML 우회 경로 문서화 `.../user/domain/User.java`. **적용 후 중복이 되는 수동 필터 정리**: `RankingService.getRankings`의 `.filter(u -> !u.isDeleted())`(L42) 등 각 서비스의 수동 `isDeleted()` 체크가 @SQLRestriction으로 대체 가능한지 감사·제거(단 login 등 명시적 오류 응답이 필요한 곳은 유지) `.../ranking/service/RankingService.java` (FR-007, USER-01-12-T02)
+- [X] T016 [US1] `withdraw` flush 순서 확정 반영: `RefreshTokenRepository.revokeAllByUserId`의 `@Modifying(flushAutomatically,clearAutomatically)` 유지 확인(현행 정상) `.../auth/repository/RefreshTokenRepository.java` (FR-008)
 
 **Checkpoint**: US1 독립 검증 가능 (인증 회귀 스위트 그린)
 
