@@ -52,7 +52,9 @@ public class GameRoomCleanupScheduler {
             }
         }
         if (!targets.isEmpty()) {
-            gameRoomRepository.deleteAll(targets);
+            // 개별 DELETE(N+1) 대신 단일 벌크 DELETE(... WHERE id IN (...))로 정리한다(FR-013).
+            List<Long> ids = targets.stream().map(GameRoom::getId).toList();
+            gameRoomRepository.deleteAllByIdIn(ids);
         }
     }
 

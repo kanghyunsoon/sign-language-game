@@ -3,11 +3,13 @@ package backend.ssafy.suhwa.game.repository;
 import backend.ssafy.suhwa.game.domain.GameRoom;
 import backend.ssafy.suhwa.game.domain.GameRoomStatus;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface GameRoomRepository extends JpaRepository<GameRoom, Long> {
 
@@ -28,4 +30,13 @@ public interface GameRoomRepository extends JpaRepository<GameRoom, Long> {
             + "WHERE g.status IN (backend.ssafy.suhwa.game.domain.GameRoomStatus.WAITING, "
             + "backend.ssafy.suhwa.game.domain.GameRoomStatus.IN_PROGRESS)")
     int closeAllActiveRooms();
+
+    /**
+     * 방치 방 정리(FR-013)를 개별 DELETE(N+1) 대신 단일 벌크 DELETE로 수행한다. 벌크 DML은
+     * 영속성 컨텍스트를 우회하므로, 삭제된 엔티티가 1차 캐시에 남아 이후 조회에 노출되지 않도록
+     * {@code clearAutomatically = true}로 컨텍스트를 비운다.
+     */
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM GameRoom g WHERE g.id IN :ids")
+    void deleteAllByIdIn(@Param("ids") Collection<Long> ids);
 }
