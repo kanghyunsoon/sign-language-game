@@ -158,3 +158,10 @@
   .lobbyPage .lobbySide { overflow: hidden; }
   .lobbyPage .lobbyBack { z-index: 5; pointer-events: auto; }
 }
+
+/* Keep every essential lobby card within a 16:9 desktop viewport. */
+@media (min-width: 761px) {
+  .lobbyPage .modeTip { display: none; }
+  .lobbyPage .lobbySide { grid-template-rows: auto minmax(0, 1fr); }
+  .lobbyPage .quickTip { min-height: 0; }
+}
