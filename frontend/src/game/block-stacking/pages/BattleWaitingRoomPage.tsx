@@ -176,8 +176,8 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   const canRequestStart = Boolean(isHost && room?.currentUserReady);
 
   return (
-    <main className={styles.page}>
-      <header className={styles.pageHeader}>
+    <main className={[styles.page, styles.waitingLobby].join(" ")}>
+      <header className={[styles.pageHeader, styles.waitingRoomHero].join(" ")}>
         <div>
           <span className={styles.eyebrow}>1:1 지문자 대전 대기실</span>
           <h1>{room?.title ?? "대기실 불러오는 중"}</h1>
@@ -196,7 +196,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
         <span>연결 유예<strong>10초</strong></span>
       </div>
       <div className={styles.waitingLayout}>
-        <aside className={styles.waitingSidebar}>
+        <aside className={[styles.waitingSidebar, styles.waitingSettings].join(" ")}>
           {room
             ? <ParticipantList participants={room.participants} currentUserId={user.userId} maxPlayers={room.maxPlayers} />
             : <div className={styles.emptyState}>방 정보를 확인하는 중입니다.</div>}
@@ -209,7 +209,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
             </dl>
           </section>
         </aside>
-        <section className={styles.videoArea} aria-label="내 카메라 미리보기">
+        <section className={[styles.videoArea, styles.waitingStage].join(" ")} aria-label="내 카메라 미리보기">
           <div className={styles.videoPair}>
             {localStream
               ? (
