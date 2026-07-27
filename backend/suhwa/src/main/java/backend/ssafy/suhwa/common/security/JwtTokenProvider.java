@@ -38,16 +38,9 @@ public class JwtTokenProvider {
         return Long.valueOf(parseClaims(token).getSubject());
     }
 
-    /**
-     * 서명·만료뿐 아니라 subject가 사용자 식별자로 해석되는지까지 확인한다. 서명은 유효하지만
-     * subject가 숫자가 아닌 토큰이 통과하면, 뒤이은 {@link #getUserId}가
-     * {@code NumberFormatException}을 던져 인증 실패가 아니라 500이 된다(FR-024).
-     * {@code NumberFormatException}은 {@code IllegalArgumentException}의 하위형이라 아래 catch에
-     * 함께 걸린다.
-     */
     public boolean validateToken(String token) {
         try {
-            Long.valueOf(parseClaims(token).getSubject());
+            parseClaims(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
             return false;

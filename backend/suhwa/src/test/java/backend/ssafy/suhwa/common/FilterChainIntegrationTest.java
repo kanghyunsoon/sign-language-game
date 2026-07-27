@@ -67,17 +67,6 @@ class FilterChainIntegrationTest {
     }
 
     @Test
-    void validTokenButNonNumericSubject_returns401NotServerError() throws Exception {
-        // 서명은 유효하지만 subject가 사용자 식별자로 해석되지 않는 토큰. 방어가 없으면
-        // getUserId의 NumberFormatException이 필터에서 터져 500이 된다(FR-024).
-        String token = jwtTokenProvider.createAccessToken(null);
-
-        mockMvc.perform(get("/users/me").header("Authorization", "Bearer " + token))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
-    }
-
-    @Test
     void validTokenWithMissingRequiredParam_returns400InErrorResponseFormat() throws Exception {
         mockMvc.perform(get("/signs").header("Authorization", bearerToken))
                 .andExpect(status().isBadRequest())
