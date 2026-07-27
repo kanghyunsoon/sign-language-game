@@ -7,14 +7,37 @@ spring:
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
+    # 커넥션 고갈 시 무한정 대기하지 않고 빠르게 실패시킨다(FR-023, research.md #5).
+    # 풀 크기는 부하 테스트로 확정할 값이라 환경변수로 열어둔다(STABLE-08-14-T02).
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:10}
+      connection-timeout: 3000
+      validation-timeout: 3000
 
+  # 응답을 다 쓸 때까지 영속성 컨텍스트와 커넥션을 붙잡지 않는다(FR-021). 이 코드베이스는 엔티티
+  # 연관관계를 쓰지 않아 뷰에서 지연 로딩이 일어날 여지가 없으므로 끄는 데 회귀 위험이 없다.
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:none}
     show-sql: ${JPA_SHOW_SQL:false}
     properties:
       hibernate:
         format_sql: ${JPA_FORMAT_SQL:false}
+        # 다건 INSERT/UPDATE를 묶어 왕복을 줄인다. 정렬 옵션이 없으면 배치가 잘게 쪼개진다(FR-023).
+        jdbc:
+          batch_size: 30
+        order_inserts: true
+        order_updates: true
+      jakarta:
+        persistence:
+          query:
+            timeout: 3000
+
+  # 오래 걸리는 트랜잭션이 커넥션을 물고 늘어지지 않게 전역 상한을 둔다(FR-022). 배치성 작업은
+  # 개별 메서드에서 @Transactional(timeout = ...)으로 늘린다(GameRoomCleanupScheduler 참조).
+  transaction:
+    default-timeout: 3s
 
   # 스키마 이력 관리(spec 004 FR-018, STABLE-08-09). ddl-auto는 none 유지(위 참조)하고
   # 스키마 변경은 db/migration/V*.sql 로만 관리한다. 기존 운영 DB에 최초 도입하므로

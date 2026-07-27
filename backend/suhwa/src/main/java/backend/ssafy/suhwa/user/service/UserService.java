@@ -5,6 +5,8 @@ import backend.ssafy.suhwa.common.exception.BusinessException;
 import backend.ssafy.suhwa.common.exception.ErrorCode;
 import backend.ssafy.suhwa.user.domain.User;
 import backend.ssafy.suhwa.user.repository.UserRepository;
+import java.util.Collection;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -43,6 +45,18 @@ public class UserService {
     public User findActiveByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS));
+    }
+
+    /**
+     * 여러 사용자를 한 번에 조회한다(랭킹 집계에서 닉네임을 붙일 때 사용). 탈퇴 회원은
+     * {@code @SQLRestriction}로 결과에서 자동 제외되므로, 요청한 id보다 적게 돌아올 수 있다.
+     *
+     * <p>다른 모듈이 {@code UserRepository}를 직접 잡지 않고 이 서비스를 거치게 하기 위한
+     * 진입점이다(모듈 경계 규칙, FR-020).
+     */
+    @Transactional(readOnly = true)
+    public List<User> findActiveByIds(Collection<Long> userIds) {
+        return userRepository.findAllById(userIds);
     }
 
     @Transactional(readOnly = true)
