@@ -36,7 +36,7 @@ export function PracticeSessionPage({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPracticeComplete, setIsPracticeComplete] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
-  const [comingSoonMenu, setComingSoonMenu] = useState<"테스트" | "사전" | null>(null);
+  const [comingSoonMenu, setComingSoonMenu] = useState<"테스트" | null>(null);
   const [cameraMessage, setCameraMessage] =
     useState("카메라 시작 버튼을 눌러주세요.");
 
@@ -209,7 +209,7 @@ export function PracticeSessionPage({
 
           <Link className="active" to="/practice">연습</Link>
           <button type="button" onClick={() => setComingSoonMenu("테스트")}>테스트</button>
-          <button type="button" onClick={() => setComingSoonMenu("사전")}>사전</button>
+          <Link to="/dictionary">사전</Link>
           <Link to="/game">게임</Link>
         </nav>
 
@@ -375,7 +375,7 @@ export function PracticeSessionPage({
 
       {comingSoonMenu ? (
         <div className="practice-session-coming-soon-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setComingSoonMenu(null); }}>
-          <section className="practice-session-coming-soon-dialog" data-theme={comingSoonMenu === "테스트" ? "test" : "dictionary"} role="dialog" aria-modal="true" aria-labelledby="practice-session-coming-soon-title">
+          <section className="practice-session-coming-soon-dialog" data-theme="test" role="dialog" aria-modal="true" aria-labelledby="practice-session-coming-soon-title">
             <button type="button" className="practice-session-coming-soon-close" aria-label="팝업 닫기" onClick={() => setComingSoonMenu(null)}><X aria-hidden="true" size={20} /></button>
             <Sparkles className="practice-session-coming-soon-sparkle" aria-hidden="true" size={30} />
             <img src={otterCharacter} alt="" />

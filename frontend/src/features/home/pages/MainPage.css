@@ -404,6 +404,7 @@ button {
   border-radius: 22px;
   color: inherit;
   text-align: left;
+  text-decoration: none;
   background: var(--panel-strong);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
