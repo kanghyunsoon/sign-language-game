@@ -3,12 +3,12 @@ import type { SignRecognitionEvent } from "../../../recognition/types/events";
 import type { BattleAttackEffect } from "../attack/BattleAttackEffect";
 import type { RemoteBoardReplica, RemoteSyncMessage } from "../sync/RemoteBoardReplica";
 import type { BattleGameTransport } from "../transport/BattleGameTransport";
-import type { AttackCreatedEvent, BattleConnectionOptions, BattleConnectionState, MatchFinishedEvent, ServerBattleMessage } from "../transport/battleTransportTypes";
+import type { AttackCreatedEvent, BattleConnectionOptions, BattleConnectionState, MatchFinishedEvent, OtterTransferEvent, ServerBattleMessage } from "../transport/battleTransportTypes";
 import type { BattleLocalBoard } from "./BattleLocalBoardRuntime";
 import { BattleStateMachine, type BattlePageState } from "./BattleStateMachine";
 
 export interface BattleControllerSnapshot { readonly state: BattlePageState; readonly gameConnectionState: BattleConnectionState; readonly aiConnectionState: string; readonly countdownMs: number; readonly reconnectDeadlineAt: number | null; readonly score: number; readonly combo: number; readonly maxCombo: number; readonly removedCount: number; readonly targetSymbol: string | null; readonly prediction: { readonly symbol: string; readonly confidence: number } | null; readonly message: string; readonly result: MatchFinishedEvent | null; }
-export interface BattleControllerOptions { readonly playerId: string; readonly roomId: string; readonly initialMatchId?: string; readonly transport: BattleGameTransport; readonly localBoard: BattleLocalBoard; readonly remoteBoard: RemoteBoardReplica; readonly attackEffect: BattleAttackEffect; readonly recognizer?: SignRecognizer; readonly reconnectIntervalMs?: number; readonly reconnectGraceMs?: number; readonly onMatchStarted?: (matchId: string) => void; readonly now?: () => number; readonly setTimer?: (callback: () => void, delay: number) => ReturnType<typeof setTimeout>; readonly clearTimer?: (timer: ReturnType<typeof setTimeout>) => void; readonly createCommandId?: () => string; }
+export interface BattleControllerOptions { readonly playerId: string; readonly roomId: string; readonly initialMatchId?: string; readonly transport: BattleGameTransport; readonly localBoard: BattleLocalBoard; readonly remoteBoard: RemoteBoardReplica; readonly attackEffect: BattleAttackEffect; readonly recognizer?: SignRecognizer; readonly reconnectIntervalMs?: number; readonly reconnectGraceMs?: number; readonly onMatchStarted?: (matchId: string) => void; readonly onOtterTransfer?: (event: OtterTransferEvent) => void; readonly now?: () => number; readonly setTimer?: (callback: () => void, delay: number) => ReturnType<typeof setTimeout>; readonly clearTimer?: (timer: ReturnType<typeof setTimeout>) => void; readonly createCommandId?: () => string; }
 
 export class BattleController {
   private readonly machine = new BattleStateMachine(); private readonly listeners = new Set<(snapshot: BattleControllerSnapshot) => void>();
@@ -47,6 +47,7 @@ export class BattleController {
     if (message.type === "SCORE_UPDATED") { if (message.playerId === this.options.playerId) { this.score = message.score; this.publish(); } return; }
     if (message.type === "COMBO_UPDATED") { if (message.playerId === this.options.playerId) { this.combo = message.combo; this.maxCombo = message.maxCombo; this.publish(); } return; }
     if (message.type === "ATTACK_CREATED" || message.type === "ATTACK_APPLIED") { if (message.targetPlayerId === this.options.playerId) this.options.attackEffect.apply(message as AttackCreatedEvent); return; }
+    if (message.type === "OTTER_TRANSFER") { this.options.onOtterTransfer?.(message); return; }
     if (message.type === "MATCH_FINISHED") { this.result = message; this.options.localBoard.stop(); this.message = "Match finished."; this.transition("FINISHED"); return; }
     if (message.type === "PLAYER_DISCONNECTED") { this.message = "Opponent disconnected. Reconnecting..."; if (this.machine.getState() === "PLAYING") this.transition("RECONNECTING"); return; }
     if (message.type === "PLAYER_RECONNECTED") { this.message = "Opponent reconnected."; if (this.machine.getState() === "RECONNECTING") this.transition("PLAYING"); return; }

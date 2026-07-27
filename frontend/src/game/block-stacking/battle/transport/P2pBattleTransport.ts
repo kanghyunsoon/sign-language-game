@@ -20,6 +20,8 @@ export class P2pBattleTransport implements BattleGameTransport {
   private sequence = 0;
   private spawnIndex = 0;
   private spawnTimer: ReturnType<typeof setInterval> | null = null;
+  private otterTimer: ReturnType<typeof setInterval> | null = null;
+  private readonly otterThrowTimers = new Set<ReturnType<typeof setTimeout>>();
   private unsubscribeCommands: (() => void) | null = null;
   private connectGeneration = 0;
 
@@ -43,7 +45,7 @@ export class P2pBattleTransport implements BattleGameTransport {
       this.delegate.send({ type: "REQUEST_MATCH_STATE", commandId: crypto.randomUUID(), matchId: this.matchId, occurredAt: Date.now() });
     }
   }
-  disconnect(): void { this.connectGeneration += 1; this.unsubscribeCommands?.(); this.unsubscribeCommands = null; if (this.spawnTimer) clearInterval(this.spawnTimer); this.spawnTimer = null; this.delegate.disconnect(); }
+  disconnect(): void { this.connectGeneration += 1; this.unsubscribeCommands?.(); this.unsubscribeCommands = null; if (this.spawnTimer) clearInterval(this.spawnTimer); if (this.otterTimer) clearInterval(this.otterTimer); for (const timer of this.otterThrowTimers) clearTimeout(timer); this.otterThrowTimers.clear(); this.spawnTimer = null; this.otterTimer = null; this.delegate.disconnect(); }
   send(message: ClientBattleMessage): void { if (this.isHost()) this.handle(message, this.localPlayerId); else this.delegate.send(message); }
   subscribe(listener: (message: ServerBattleMessage) => void): () => void { return this.delegate.subscribe(listener); }
   subscribeConnectionState(listener: (state: BattleConnectionState) => void): () => void { return this.delegate.subscribeConnectionState(listener); }
@@ -70,6 +72,26 @@ export class P2pBattleTransport implements BattleGameTransport {
       this.delegate.publishEvent({ type: "SPAWN_LETTER", sequence: ++this.sequence, matchId: this.matchId, playerId, letterId, spawnIndex: this.spawnIndex, symbol, spawnAt: Date.now(), normalizedX: 0.18 + ((this.spawnIndex * 37) % 64) / 100, initialAngle: 0 });
     }
     this.spawnIndex += 1;
+  }
+  private transferOtterLetter(): void {
+    if (this.playerIds.length !== 2 || [...this.players.values()].some((player) => player.gameOver)) return;
+    const sourcePlayerId = this.playerIds[Math.floor(Math.random() * this.playerIds.length)];
+    const sourceBody = (this.boards.get(sourcePlayerId) ?? []).find((body) => body.state !== "REMOVED");
+    if (!sourceBody) return;
+    const targetPlayerId = this.playerIds.find((playerId) => playerId !== sourcePlayerId);
+    if (!targetPlayerId) return;
+    const now = Date.now();
+    const direction = sourcePlayerId === this.playerIds[0] ? "left-to-right" : "right-to-left";
+    this.letters.delete(sourceBody.id);
+    this.delegate.publishEvent({ type: "OTTER_TRANSFER", sequence: ++this.sequence, matchId: this.matchId, sourcePlayerId, targetPlayerId, sourceLetterId: sourceBody.id, symbol: sourceBody.symbol, direction, pickupAt: now + 1_450, throwAt: now + 5_100 });
+    const timer = setTimeout(() => {
+      this.otterThrowTimers.delete(timer);
+      if (this.players.get(targetPlayerId)?.gameOver) return;
+      const letterId = this.matchId + "-" + targetPlayerId + "-otter-" + this.spawnIndex++;
+      this.letters.set(letterId, { playerId: targetPlayerId, symbol: sourceBody.symbol });
+      this.delegate.publishEvent({ type: "SPAWN_LETTER", sequence: ++this.sequence, matchId: this.matchId, playerId: targetPlayerId, letterId, spawnIndex: this.spawnIndex, symbol: sourceBody.symbol, spawnAt: Date.now(), normalizedX: .5, initialAngle: 0 });
+    }, 5_100);
+    this.otterThrowTimers.add(timer);
   }
   private handle(message: ClientBattleMessage, playerId: string): void {
     if (!this.isHost() || !(this.playerIds as readonly string[]).includes(playerId) || ("matchId" in message && message.matchId !== this.matchId)) return;
@@ -100,4 +122,4 @@ export class P2pBattleTransport implements BattleGameTransport {
 }
 function freshPlayer(): PlayerState { return { score: 0, combo: 0, maxCombo: 0, removedCount: 0, gameOver: false }; }
 const SYMBOLS = ["ㄱ", "ㄴ", "ㄷ", "ㄹ", "ㅁ", "ㅂ", "ㅅ", "ㅇ", "ㅈ", "ㅊ", "ㅋ", "ㅌ"] as const;
-function isBattleEvent(value: unknown): value is ServerBattleMessage { return !!value && typeof value === "object" && typeof (value as { type?: unknown }).type === "string" && ["START_MATCH", "MATCH_STARTED", "GAME_START", "SPAWN_LETTER", "REMOVE_LETTER_ACCEPTED", "REMOVE_LETTER_REJECTED", "SCORE_UPDATED", "COMBO_UPDATED", "ATTACK_CREATED", "ATTACK_APPLIED", "MATCH_FINISHED", "PLAYER_DISCONNECTED", "PLAYER_RECONNECTED", "BODY_TRANSFORM_BATCH", "BOARD_SNAPSHOT", "LETTER_SPAWNED_SYNC", "LETTER_STATE_SYNC", "LETTER_REMOVED_SYNC"].includes((value as { type: string }).type); }
+function isBattleEvent(value: unknown): value is ServerBattleMessage { return !!value && typeof value === "object" && typeof (value as { type?: unknown }).type === "string" && ["START_MATCH", "MATCH_STARTED", "GAME_START", "SPAWN_LETTER", "REMOVE_LETTER_ACCEPTED", "REMOVE_LETTER_REJECTED", "SCORE_UPDATED", "COMBO_UPDATED", "ATTACK_CREATED", "ATTACK_APPLIED", "MATCH_FINISHED", "PLAYER_DISCONNECTED", "PLAYER_RECONNECTED", "BODY_TRANSFORM_BATCH", "BOARD_SNAPSHOT", "LETTER_SPAWNED_SYNC", "LETTER_STATE_SYNC", "LETTER_REMOVED_SYNC", "OTTER_TRANSFER"].includes((value as { type: string }).type); }
