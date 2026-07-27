@@ -48,6 +48,29 @@ export class LocalBattleBotTransport implements BattleGameTransport {
     this.remoteBodies=[...this.remoteBodies.slice(-7),{id:`practice-bot-${index}`,symbol,x:.18+(index%5)*.16,y:.82-(this.remoteBodies.length%3)*.18,angle:0,velocityX:0,velocityY:0,angularVelocity:0,state:"SETTLED"}];
     this.emit({type:"BOARD_SNAPSHOT",sequence:++this.sequence,matchId:this.matchId,playerId:this.botPlayerId,sentAt:Date.now(),bodies:this.remoteBodies});
   }
+  /** 수달이 봇 판의 실제 현재 목표 블록을 집어 간다. */
+  takeBotTargetForOtter(): { readonly symbol: string; readonly nextSymbol: string | null } | null {
+    if(!this.options||this.state!=="CONNECTED")return null;
+    const target=this.remoteBodies[0];
+    if(!target)return null;
+    this.remoteBodies=this.remoteBodies.slice(1);
+    this.emit({type:"BOARD_SNAPSHOT",sequence:++this.sequence,matchId:this.matchId,playerId:this.botPlayerId,sentAt:Date.now(),bodies:this.remoteBodies});
+    return {symbol:target.symbol,nextSymbol:this.remoteBodies[0]?.symbol??null};
+  }
+  /** 수달 연출에서 전달된 글자를 봇의 실제 최우선 목표 블록으로 올린다. */
+  injectOtterTargetForBot(symbol:string):void{
+    if(!this.options||this.state!=="CONNECTED")return;
+    const index=this.spawnIndex++;
+    const body:BattleBodyTransform={id:`otter-bot-target-${index}`,symbol,x:.5,y:.11,angle:0,velocityX:0,velocityY:0,angularVelocity:0,state:"SETTLED"};
+    this.remoteBodies=[body,...this.remoteBodies].slice(0,8);
+    this.emit({type:"BOARD_SNAPSHOT",sequence:++this.sequence,matchId:this.matchId,playerId:this.botPlayerId,sentAt:Date.now(),bodies:this.remoteBodies});
+  }
+  /** 반대 방향 수달 전달은 플레이어 판에도 실제 목표 블록을 생성한다. */
+  injectOtterTargetForPlayer(symbol:string):void{
+    if(!this.options||this.state!=="CONNECTED")return;
+    const index=this.spawnIndex++;
+    this.emit({type:"SPAWN_LETTER",sequence:++this.sequence,matchId:this.matchId,playerId:this.options.playerId,letterId:`otter-player-target-${index}`,spawnIndex:index,symbol,spawnAt:Date.now()-60_000,normalizedX:.5,initialAngle:0});
+  }
   private acceptRemoval(message:Extract<ClientBattleMessage,{type:"REMOVE_LETTER_COMMAND"}>){
     this.score+=100;this.combo+=1;
     this.emit({type:"REMOVE_LETTER_ACCEPTED",sequence:++this.sequence,commandId:message.commandId,playerId:this.options!.playerId,letterId:message.letterId,symbol:message.symbol,score:this.score,combo:this.combo,maxCombo:this.combo,removedCount:this.score/100,acceptedAt:Date.now()});

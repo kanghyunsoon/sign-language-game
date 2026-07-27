@@ -9,7 +9,7 @@ interface LetterRecord { readonly id: string; readonly symbol: string; readonly 
 
 export interface BattleLocalBoard {
   start(): void; stop(): void; spawn(event: SpawnLetterEvent): void; selectRemoval(symbol: string): string | null;
-  acceptRemoval(letterId: string): void; rejectRemoval(letterId?: string): void; getTargetSymbol(): string | null; resize(width: number, height: number): void; setPublisher(publisher: LocalBoardPublisher): void; setGameOverHandler(handler: () => void): void; dispose(): void;
+  acceptRemoval(letterId: string): void; rejectRemoval(letterId?: string): void; getTargetSymbol(): string | null; takeTargetForOtter(): string | null; resize(width: number, height: number): void; setPublisher(publisher: LocalBoardPublisher): void; setGameOverHandler(handler: () => void): void; dispose(): void;
 }
 
 export class BattleLocalBoardRuntime implements BattleLocalBoard {
@@ -36,6 +36,16 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
   acceptRemoval(letterId: string): void { const record = this.letters.get(letterId); if (!record) return; this.renderer.highlightRemoval(letterId, this.config.removalEffectMs); this.updateTarget(); }
   rejectRemoval(letterId?: string): void { if (letterId) { const record = this.letters.get(letterId); if (record) record.pending = false; } else for (const record of this.letters.values()) record.pending = false; this.updateTarget(); }
   getTargetSymbol(): string | null { return this.currentTarget()?.symbol ?? null; }
+  /** 수달 이벤트가 현재 지정 블록 자체를 집어 갈 때 사용한다. */
+  takeTargetForOtter(): string | null {
+    const target = this.currentTarget();
+    if (!target) return null;
+    this.physics.removeLetter(target.id);
+    this.letters.delete(target.id);
+    this.updateTarget();
+    this.renderer.render(this.physics.getLetterStates());
+    return target.symbol;
+  }
   resize(width: number, height: number): void { this.width = width; this.height = height; this.physics.resize(width, height); }
   setPublisher(publisher: LocalBoardPublisher): void { this.publisher = publisher; }
   setGameOverHandler(handler: () => void): void { this.gameOverHandler = handler; }

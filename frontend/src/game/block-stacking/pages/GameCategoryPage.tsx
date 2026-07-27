@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowLeft, Flower2, Layers3, Sparkles, Swords, X } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import otterCharacter from "../assets/game-menu-otter.png";
 import { useGameModuleContext } from "../../app/GameModuleContext";

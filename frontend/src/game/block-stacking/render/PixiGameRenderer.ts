@@ -18,6 +18,7 @@ const ROTATION_RENDER_EPSILON = 0.0005;
 export class PixiGameRenderer implements GameRenderer {
   private readonly lettersLayer = new Container();
   private readonly overlayLayer = new Container();
+  private readonly boardScenery = new Graphics();
   private readonly boardGrid = new Graphics();
   private readonly dangerLine = new Graphics();
   private readonly views = new Map<string, LetterView>();
@@ -35,7 +36,8 @@ export class PixiGameRenderer implements GameRenderer {
     this.width = config.width;
     this.height = config.height;
     this.overlayLayer.addChild(this.dangerLine);
-    this.app.stage.addChild(this.boardGrid, this.lettersLayer, this.overlayLayer);
+    this.app.stage.addChild(this.boardScenery, this.boardGrid, this.lettersLayer, this.overlayLayer);
+    this.drawBoardScenery();
     this.drawBoardGrid();
     this.drawDangerLine();
   }
@@ -50,8 +52,8 @@ export class PixiGameRenderer implements GameRenderer {
     await app.init({
       width: resolvedConfig.width,
       height: resolvedConfig.height,
-      backgroundColor: 0x294b5d,
-      backgroundAlpha: 0,
+      backgroundColor: 0xdff1ff,
+      backgroundAlpha: 1,
       antialias: false,
       preference: "webgl",
       resolution: 1,
@@ -59,6 +61,8 @@ export class PixiGameRenderer implements GameRenderer {
     });
 
     mount.replaceChildren(app.canvas);
+    // Render the complete solo-style scenery inside the game canvas.
+    app.renderer.background.alpha = 1;
     const renderer = new PixiGameRenderer(app, resolvedConfig);
     app.stop();
     return renderer;
@@ -70,6 +74,7 @@ export class PixiGameRenderer implements GameRenderer {
     this.width = width;
     this.height = height;
     this.app.renderer.resize(width, height);
+    this.drawBoardScenery();
     this.drawBoardGrid();
     this.drawDangerLine();
     this.app.render();
@@ -206,14 +211,43 @@ export class PixiGameRenderer implements GameRenderer {
     this.dangerLine.fill({ color: 0xf0ba55, alpha: 0.78 });
   }
 
+  private drawBoardScenery(): void {
+    const { width, height } = this;
+    const horizon = height * .69;
+    this.boardScenery.clear();
+    this.boardScenery.rect(0, 0, width, horizon).fill({ color: 0xdff1ff, alpha: 1 });
+    this.boardScenery.rect(0, horizon, width, height * .18).fill({ color: 0xc9e59d, alpha: 1 });
+    this.boardScenery.rect(0, height * .87, width, height * .13).fill({ color: 0xa9cd7c, alpha: 1 });
+    this.boardScenery.ellipse(width * .54, height * 1.05, width * .62, height * .25).fill({ color: 0xb8d98c, alpha: 1 });
+    this.boardScenery.ellipse(width * .08, height * 1.04, width * .43, height * .17).fill({ color: 0xc8e59d, alpha: 1 });
+    this.drawCloud(width * .17, height * .18, 1);
+    this.drawCloud(width * .65, height * .36, .72);
+    this.drawCloud(width * .31, height * .51, .54);
+    this.boardScenery.circle(width * .82, height * .16, Math.min(width, height) * .055).fill({ color: 0xffe56c, alpha: .58 });
+    this.boardScenery.circle(width * .82, height * .16, Math.min(width, height) * .076).stroke({ color: 0xfff4b4, width: Math.max(2, Math.min(width, height) * .012), alpha: .24 });
+  }
+  private drawCloud(x: number, y: number, scale: number): void {
+    const unit = Math.max(10, Math.min(this.width, this.height) * .035) * scale;
+    this.boardScenery.rect(x - unit * 1.3, y, unit * 2.8, unit * .74).fill({ color: 0xffffff, alpha: .76 });
+    this.boardScenery.circle(x - unit * .55, y, unit * .78).fill({ color: 0xffffff, alpha: .76 });
+    this.boardScenery.circle(x + unit * .18, y - unit * .26, unit).fill({ color: 0xffffff, alpha: .76 });
+    this.boardScenery.circle(x + unit * .85, y + unit * .05, unit * .7).fill({ color: 0xffffff, alpha: .76 });
+  }
   private drawBoardGrid(): void {
     const cell = Math.max(42, Math.min(56, Math.round(Math.min(this.width, this.height) / 10)));
     this.boardGrid.clear();
     for (let x = cell; x < this.width; x += cell) this.boardGrid.moveTo(x, 0).lineTo(x, this.height);
     for (let y = cell; y < this.height; y += cell) this.boardGrid.moveTo(0, y).lineTo(this.width, y);
-    this.boardGrid.stroke({ color: 0xffffff, width: 1, alpha: .12 });
+    this.boardGrid.stroke({ color: 0xffffff, width: 1, alpha: .62 });
   }
 
+  private drawGridCloud(x: number, y: number, scale: number): void {
+    const unit = Math.max(10, Math.min(this.width, this.height) * .035) * scale;
+    this.boardGrid.rect(x - unit * 1.3, y, unit * 2.8, unit * .74).fill({ color: 0xffffff, alpha: .8 });
+    this.boardGrid.circle(x - unit * .55, y, unit * .78).fill({ color: 0xffffff, alpha: .8 });
+    this.boardGrid.circle(x + unit * .18, y - unit * .26, unit).fill({ color: 0xffffff, alpha: .8 });
+    this.boardGrid.circle(x + unit * .85, y + unit * .05, unit * .7).fill({ color: 0xffffff, alpha: .8 });
+  }
   private assertActive(): void {
     if (this.destroyed) {
       throw new Error("PixiGameRenderer has already been destroyed.");

@@ -5,6 +5,11 @@ import { GameVideoTile } from "../../../media/components/GameVideoTile";
 import { useSharedCameraOwnerCleanup } from "../../../media/camera/useSharedCameraOwnerCleanup";
 import { HandCamera } from "../../../recognition/mediapipe/HandCamera";
 import { SignGuideImage } from "../../../recognition/components/SignGuideImage";
+import otterWalkFrame0 from "../../assets/solo-walking-otter-frame-0.png";
+import otterWalkFrame1 from "../../assets/solo-walking-otter-frame-1.png";
+import otterWalkFrame2 from "../../assets/solo-walking-otter-frame-2.png";
+import otterWalkFrame3 from "../../assets/solo-walking-otter-frame-3.png";
+import otterWalkFrame4 from "../../assets/solo-walking-otter-frame-4.png";
 import { DEFAULT_PHYSICS_CONFIG } from "../../physics/types";
 import { MatterPhysicsWorld } from "../../physics/MatterPhysicsWorld";
 import type { GameRenderer } from "../../render/types";
@@ -19,6 +24,11 @@ import { RemoteBoardRenderer } from "../render/RemoteBoardRenderer";
 import { RemoteBoardReplica } from "../sync/RemoteBoardReplica";
 import { PythonWebSocketSignRecognizer } from "../../../recognition/websocket/PythonWebSocketSignRecognizer";
 import styles from "../battle.module.css";
+
+const OTTER_WALK_FRAMES = [otterWalkFrame0, otterWalkFrame1, otterWalkFrame2, otterWalkFrame3, otterWalkFrame4] as const;
+type OtterZone = "none" | "left" | "right";
+type OtterDirection = "left-to-right" | "right-to-left";
+type OtterTransfer = { readonly symbol: string; readonly direction: OtterDirection; readonly phase: "carry" | "throw" } | null;
 
 const INITIAL: BattleControllerSnapshot = { state: "IDLE", gameConnectionState: "DISCONNECTED", aiConnectionState: "DISCONNECTED", countdownMs: 0, reconnectDeadlineAt: null, score: 0, combo: 0, maxCombo: 0, removedCount: 0, targetSymbol: null, prediction: null, message: "게임을 준비하고 있습니다.", result: null };
 
@@ -35,10 +45,62 @@ export function BattleBotPracticePage() {
   const [localRenderer, setLocalRenderer] = useState<GameRenderer | null>(null);
   const [remoteRenderer, setRemoteRenderer] = useState<GameRenderer | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [otterWalking, setOtterWalking] = useState(false);
+  const [otterZone, setOtterZone] = useState<OtterZone>("none");
+  const [otterDirection, setOtterDirection] = useState<OtterDirection>("left-to-right");
+  const [otterTransfer, setOtterTransfer] = useState<OtterTransfer>(null);
+  const [opponentTargetSymbol, setOpponentTargetSymbol] = useState<string | null>(null);
   const localRuntimeRef = useRef<BattleLocalBoardRuntime | null>(null);
   const localViewportRef = useRef({ width: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, height: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight });
   const remoteLoopRef = useRef<number | null>(null);
   useSharedCameraOwnerCleanup(sharedCameraSession, () => activePlayerSession?.clearRegistration());
+
+  useEffect(() => {
+    if (snapshot.state !== "PLAYING") {
+      setOtterWalking(false);
+      setOtterZone("none");
+      setOtterTransfer(null);
+      return undefined;
+    }
+    let pickupTimer: number | undefined;
+    let rightZoneTimer: number | undefined;
+    let throwTimer: number | undefined;
+    let finishTimer: number | undefined;
+    const triggerWalk = () => {
+      const direction: OtterDirection = Math.random() < 0.5 ? "left-to-right" : "right-to-left";
+      let carriedSymbol: string | null = null;
+      setOtterDirection(direction);
+      setOtterTransfer(null);
+      setOtterWalking(true);
+      setOtterZone(direction === "left-to-right" ? "left" : "right");
+      window.clearTimeout(pickupTimer); window.clearTimeout(rightZoneTimer); window.clearTimeout(throwTimer); window.clearTimeout(finishTimer);
+      pickupTimer = window.setTimeout(() => {
+        if (direction === "left-to-right") {
+          carriedSymbol = localRuntimeRef.current?.takeTargetForOtter() ?? null;
+          const nextTarget = localRuntimeRef.current?.getTargetSymbol() ?? null;
+          setSnapshot((current) => ({ ...current, targetSymbol: nextTarget }));
+        } else {
+          const picked = transport.takeBotTargetForOtter();
+          carriedSymbol = picked?.symbol ?? null;
+          setOpponentTargetSymbol(picked?.nextSymbol ?? null);
+        }
+        if (carriedSymbol) setOtterTransfer({ symbol: carriedSymbol, direction, phase: "carry" });
+      }, 1_450);
+      rightZoneTimer = window.setTimeout(() => setOtterZone(direction === "left-to-right" ? "right" : "left"), 6_000);
+      throwTimer = window.setTimeout(() => {
+        if (!carriedSymbol) return;
+        setOtterTransfer({ symbol: carriedSymbol, direction, phase: "throw" });
+        if (direction === "left-to-right") {
+          transport.injectOtterTargetForBot(carriedSymbol);
+          setOpponentTargetSymbol(carriedSymbol);
+        } else transport.injectOtterTargetForPlayer(carriedSymbol);
+      }, 5_100);
+      finishTimer = window.setTimeout(() => { setOtterWalking(false); setOtterZone("none"); setOtterTransfer(null); }, 12_000);
+    };
+    const previewTimer = window.setTimeout(triggerWalk, 3_000);
+    const interval = window.setInterval(triggerWalk, 60_000);
+    return () => { window.clearTimeout(previewTimer); window.clearTimeout(pickupTimer); window.clearTimeout(rightZoneTimer); window.clearTimeout(throwTimer); window.clearTimeout(finishTimer); window.clearInterval(interval); };
+  }, [snapshot.state, transport]);
 
   useEffect(() => {
     let active = true;
@@ -70,14 +132,19 @@ export function BattleBotPracticePage() {
         <BattleBoardPanel title="내 게임판" subtitle="PLAYER" toolbar={<div className={styles.boardStats}><span>지정 <strong>{snapshot.targetSymbol ?? "-"}</strong></span><span>점수 <strong>{snapshot.score}</strong></span><span>콤보 <strong>{snapshot.combo}</strong></span><i data-state={snapshot.gameConnectionState}/></div>} rendererConfig={{ letterWidth: BATTLE_LETTER_SIZE, letterHeight: BATTLE_LETTER_SIZE, dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO }} onRendererReady={(renderer, viewport) => { localViewportRef.current = viewport; setLocalRenderer(renderer); localRuntimeRef.current?.resize(viewport.width, viewport.height); }} onViewportResize={(viewport) => { localViewportRef.current = viewport; localRuntimeRef.current?.resize(viewport.width, viewport.height); }}/>
         <div className={styles.practiceUtility}>
           <div className={styles.practiceCamera}>{stream ? <HandCamera compact sharedStream={stream} autoStart performanceMonitor={recognizer.getPerformanceMonitor()} temporalDecoder={recognizer.getTemporalDecoder()} onLandmarkFrame={(frame) => recognizer.sendLandmarkFrame(frame)} onHandNotDetected={(at) => recognizer.notifyHandNotDetected(at)} targetSymbol={snapshot.targetSymbol} prediction={snapshot.prediction} connectionState={recognizer.getConnectionState()}/> : <GameVideoTile kind="LOCAL" label="내 카메라" stream={null} cameraEnabled={false} connectionState="DISCONNECTED"/>}</div>
-          <section className={styles.signGuide} aria-label="현재 지정 글자 수어 안내"><span>현재 지정 글자</span><strong>{snapshot.targetSymbol ?? "-"}</strong><div><SignGuideImage symbol={snapshot.targetSymbol} responsive /></div></section>
+          <section className={[styles.signGuide, otterZone === "left" ? styles.otterPassing : ""].filter(Boolean).join(" ")} aria-label="현재 지정 글자 수어 안내"><span>현재 지정 글자</span><strong>{snapshot.targetSymbol ?? "-"}</strong><div><SignGuideImage symbol={snapshot.targetSymbol} responsive />{otterZone === "left" ? <div className={styles.hintBreak}><strong>수달 통과 중!</strong><small>그림 힌트가 잠시 쉬어요</small></div> : null}</div></section>
         </div>
       </section>
       <section className={styles.practiceColumn} aria-label="봇 플레이 영역">
-        <BattleBoardPanel title="연습 봇 게임판" subtitle="BOT" toolbar={<div className={styles.boardStats}><span>자동 경기 중</span><i data-state="CONNECTED"/></div>} rendererConfig={{ letterWidth: BATTLE_LETTER_SIZE, letterHeight: BATTLE_LETTER_SIZE, dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO }} onRendererReady={(renderer, viewport) => { setRemoteRenderer(renderer); replica.resize(viewport.width, viewport.height); }} onViewportResize={(viewport) => replica.resize(viewport.width, viewport.height)}/>
-        <section className={styles.botStatus}><strong>연습 봇 자동 경기 중</strong><span>봇도 빨간색으로 지정된 블록만 순서대로 제거합니다.</span></section>
+        <BattleBoardPanel title="연습 봇 게임판" subtitle="BOT" toolbar={<div className={styles.boardStats}><span>지정 <strong>{opponentTargetSymbol ?? "-"}</strong></span><span>자동 경기 중</span><i data-state="CONNECTED"/></div>} rendererConfig={{ letterWidth: BATTLE_LETTER_SIZE, letterHeight: BATTLE_LETTER_SIZE, dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO }} onRendererReady={(renderer, viewport) => { setRemoteRenderer(renderer); replica.resize(viewport.width, viewport.height); }} onViewportResize={(viewport) => replica.resize(viewport.width, viewport.height)}/>
+        <section className={[styles.botStatus, otterZone === "right" ? styles.botOtterPassing : ""].filter(Boolean).join(" ")} aria-label="봇 게임 상태">
+          <div className={styles.botMessage}><i>BOT MODE</i><strong>연습 봇 자동 경기 중</strong><span>봇도 빨간색으로 지정된 블록만 순서대로 제거합니다.</span></div>
+          {otterZone === "right" ? <div className={styles.botPassingMessage}><strong>수달 통과 중!</strong><small>봇 진영을 지나가고 있어요</small></div> : null}
+        </section>
       </section>
     </div>
+    {otterWalking ? <div className={styles.battleOtterWalk} data-direction={otterDirection} aria-hidden="true"><span className={styles.battleOtterBody}><span className={styles.otterWalkCycle}>{OTTER_WALK_FRAMES.map((src, index) => <img key={src} className={index === 0 ? styles.otterWalkFrame0 : index === 1 ? styles.otterWalkFrame1 : index === 2 ? styles.otterWalkFrame2 : index === 3 ? styles.otterWalkFrame3 : styles.otterWalkFrame4} src={src} alt="" draggable={false} />)}</span>{otterTransfer?.phase === "carry" ? <span className={styles.otterCargo}>{otterTransfer.symbol}</span> : null}</span></div> : null}
+    {otterTransfer?.phase === "throw" ? <div className={styles.otterThrownLetter} data-direction={otterTransfer.direction} aria-hidden="true">{otterTransfer.symbol}</div> : null}
     {snapshot.state === "COUNTDOWN" ? <div className={styles.countdown}>{Math.max(1, Math.ceil(snapshot.countdownMs / 1000))}</div> : null}
     <BattleResultModal
       result={snapshot.result}
