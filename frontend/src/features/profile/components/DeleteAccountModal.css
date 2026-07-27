@@ -1,0 +1,170 @@
+.delete-account-backdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  background: rgba(66, 55, 47, 0.38);
+  backdrop-filter: blur(4px);
+}
+
+.delete-account-modal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 920px;
+  min-height: 625px;
+  padding: 80px 96px 54px;
+  border: 1px solid rgba(109, 83, 69, 0.08);
+  border-radius: 14px;
+  color: #493a32;
+  background: #fffdf8;
+  box-shadow: 0 20px 50px rgba(58, 43, 34, 0.2);
+  box-sizing: border-box;
+  text-align: center;
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
+  transform-origin: center;
+}
+
+.delete-account-modal h2 {
+  margin: 0;
+  color: #3f3028;
+  font-size: 48px;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+}
+
+.delete-account-info {
+  width: 700px;
+  margin: 50px auto 0;
+  padding: 26px 48px 28px;
+  border: 1px solid #f0ded5;
+  border-radius: 13px;
+  background: #fff9f6;
+  box-sizing: border-box;
+}
+
+.delete-account-info strong {
+  display: block;
+  margin-bottom: 18px;
+  color: #55443a;
+  font-size: 26px;
+  font-weight: 900;
+}
+
+.delete-account-info ul {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px 60px;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  list-style: none;
+}
+
+.delete-account-info li {
+  position: relative;
+  padding-left: 18px;
+  color: #76675e;
+  font-size: 23px;
+  font-weight: 700;
+}
+
+.delete-account-info li:nth-child(odd) {
+  justify-self: end;
+}
+
+.delete-account-info li::before {
+  position: absolute;
+  top: 0.08em;
+  left: 0;
+  color: #d68b71;
+  content: "•";
+  font-size: 22px;
+  line-height: 1;
+}
+
+.delete-account-warning {
+  margin: 42px 0 0;
+  color: #74675f;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.delete-account-actions {
+  display: flex;
+  justify-content: center;
+  gap: 48px;
+  margin-top: 36px;
+}
+
+.delete-account-actions button {
+  width: 192px;
+  min-height: 56px;
+  border: 1px solid rgba(102, 78, 61, 0.12);
+  border-radius: 10px;
+  color: #5a493d;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 900;
+  white-space: nowrap;
+  background: #eee9e1;
+  box-shadow: 0 4px 10px rgba(72, 52, 39, 0.08);
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.delete-account-actions button:hover {
+  color: #fff;
+  background: #765b48;
+  box-shadow:
+    0 4px 0 #5f4738,
+    0 8px 15px rgba(72, 52, 39, 0.18);
+}
+
+.delete-account-actions .delete-account-confirm:hover {
+  background: #d88973;
+  box-shadow:
+    0 4px 0 #ba715c,
+    0 8px 15px rgba(116, 69, 52, 0.18);
+}
+
+.delete-account-actions button:active {
+  transform: translateY(2px);
+}
+
+.delete-account-modal-final {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: 48px;
+  padding-bottom: 48px;
+}
+
+.delete-account-character {
+  width: 230px;
+  height: 210px;
+  object-fit: contain;
+}
+
+.delete-account-modal .delete-account-final-message {
+  width: 510px;
+  margin: 18px 0 0;
+  padding: 17px 28px;
+  border-radius: 10px;
+  color: #5e4b40;
+  font-size: 23px;
+  line-height: 1.35;
+  letter-spacing: -0.03em;
+  background: #f5efe7;
+  box-sizing: border-box;
+}
+
+.delete-account-final-actions {
+  margin-top: 34px;
+}

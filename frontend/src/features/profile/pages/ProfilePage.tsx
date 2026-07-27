@@ -1,6 +1,8 @@
 import { Flame, Leaf, Pencil, Settings, Sparkles } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
+import { DeleteAccountModal } from "../components/DeleteAccountModal";
 import graduationIcon from "../assets/graduation.png";
 import learningRecordIcon from "../assets/learning-record-icon.png";
 import otterProfile from "../assets/otter_profile.png";
@@ -19,6 +21,8 @@ const profileStats = [
 ] as const;
 
 export function ProfilePage() {
+  const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
+
   return (
     <main className="profile-page">
       <div className="profile-canvas">
@@ -119,9 +123,21 @@ export function ProfilePage() {
             <button type="button">로그아웃</button>
           </div>
 
-          <button className="profile-main-button" type="button">회원탈퇴</button>
+          <button
+            className="profile-main-button"
+            type="button"
+            onClick={() => setIsDeleteAccountModalOpen(true)}
+          >
+            회원탈퇴
+          </button>
         </aside>
       </div>
+
+      {isDeleteAccountModalOpen && (
+        <DeleteAccountModal
+          onClose={() => setIsDeleteAccountModalOpen(false)}
+        />
+      )}
     </main>
   );
 }
