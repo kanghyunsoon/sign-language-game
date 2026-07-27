@@ -8,6 +8,7 @@ import { MainPage } from "./features/home/pages/MainPage";
 import { PreLoginPage } from "./features/home/pages/PreLoginPage";
 import { DictionaryPage } from "./features/learning/pages/DictionaryPage";
 import { PracticeHomePage } from "./features/learning/pages/PracticeHomePage";
+import { TestPage } from "./features/learning/pages/TestPage";
 import { ProfilePage } from "./features/profile/pages/ProfilePage";
 import { GameModule } from "./game";
 import { PROD_GAME_CONFIG } from "./game/config/prodConfig";
@@ -31,6 +32,7 @@ export function App() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/practice" element={<PracticeHomePage />} />
         <Route path="/dictionary" element={<DictionaryPage />} />
+        <Route path="/test" element={<TestPage />} />
         <Route
           path="/game/*"
           element={

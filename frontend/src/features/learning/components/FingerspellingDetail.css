@@ -1,0 +1,82 @@
+/* 메인페이지 .panel과 동일한 패널 토큰 */
+.fingerspelling-detail {
+  min-height: 640px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 34px 40px 40px;
+  border: 1px solid #e7d9c7;
+  border-radius: 30px;
+  background: rgba(255, 250, 242, 0.94);
+  box-shadow: 0 18px 38px rgba(82, 54, 35, 0.1);
+  text-align: center;
+}
+
+.fingerspelling-detail-badge {
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: #eef2e3;
+  color: #5f724a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.fingerspelling-detail-symbol {
+  margin: 8px 0 0;
+  color: #3f2b20;
+  font-size: 96px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.fingerspelling-detail-name {
+  margin: 0;
+  color: #827368;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* 연습 화면 정답 이미지와 동일한 310px 원형 컨테이너 */
+.fingerspelling-detail-image {
+  width: 310px;
+  height: 310px;
+  flex: 0 0 310px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 14px 30px rgba(82, 54, 35, 0.1);
+}
+
+.fingerspelling-detail-image img {
+  width: 85%;
+  height: 85%;
+  object-fit: contain;
+}
+
+.fingerspelling-detail-description {
+  width: min(560px, 100%);
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 20px 24px;
+  border: 1px solid #eee7de;
+  border-radius: 20px;
+  background: #fffdf8;
+}
+
+.fingerspelling-detail-description h3 {
+  margin: 0 0 2px;
+  color: #3f2b20;
+  font-size: 16px;
+}
+
+.fingerspelling-detail-description p {
+  margin: 0;
+  color: #8a7e73;
+  font-size: 14px;
+  line-height: 1.7;
+  word-break: keep-all;
+}

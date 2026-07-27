@@ -1,9 +1,9 @@
 import "./DictionaryPage.css";
 import { useEffect, useState } from "react";
 import type { ChangeEvent } from "react";
-import { ChevronDown, Search, Sparkles, X } from "lucide-react";
+import { ChevronDown, Search, X } from "lucide-react";
 import { Link } from "react-router-dom";
-import otterCharacter from "../../../game/block-stacking/assets/game-menu-otter.png";
+import { FingerspellingDetail } from "../components/FingerspellingDetail";
 import type { FingerspellingCategoryId } from "../data/fingerspelling";
 import {
   DEFAULT_FINGERSPELLING_SYMBOL,
@@ -31,7 +31,6 @@ export function DictionaryPage() {
   const [openCategoryMap, setOpenCategoryMap] = useState(
     initialOpenCategoryMap,
   );
-  const [comingSoonMenu, setComingSoonMenu] = useState<"테스트" | null>(null);
 
   const isSearching = searchQuery.trim().length > 0;
 
@@ -94,9 +93,7 @@ export function DictionaryPage() {
         <nav className="dictionary-nav" aria-label="주요 메뉴">
           <Link to="/main">메인페이지</Link>
           <Link to="/practice">연습</Link>
-          <button type="button" onClick={() => setComingSoonMenu("테스트")}>
-            테스트
-          </button>
+          <Link to="/test">테스트</Link>
           <Link className="active" to="/dictionary">
             사전
           </Link>
@@ -286,45 +283,9 @@ export function DictionaryPage() {
             )}
           </aside>
 
-          <section className="dictionary-detail" aria-live="polite">
-            <span className="dictionary-detail-badge">
-              지문자 · {selectedEntry.categoryLabel}
-            </span>
-
-            <h2 className="dictionary-detail-symbol">{selectedEntry.symbol}</h2>
-
-            <p className="dictionary-detail-name">{selectedEntry.name}</p>
-
-            <div className="dictionary-detail-image">
-              <img
-                src={selectedEntry.image}
-                alt={`${selectedEntry.name} 지문자 동작`}
-              />
-            </div>
-
-            <div className="dictionary-detail-description">
-              <h3>수형 설명</h3>
-
-              {selectedEntry.description.map((sentence) => (
-                <p key={sentence}>{sentence}</p>
-              ))}
-            </div>
-          </section>
+          <FingerspellingDetail entry={selectedEntry} />
         </div>
       </main>
-
-      {comingSoonMenu ? (
-        <div className="dictionary-coming-soon-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setComingSoonMenu(null); }}>
-          <section className="dictionary-coming-soon-dialog" role="dialog" aria-modal="true" aria-labelledby="dictionary-coming-soon-title">
-            <button type="button" className="dictionary-coming-soon-close" aria-label="팝업 닫기" onClick={() => setComingSoonMenu(null)}><X aria-hidden="true" size={20} /></button>
-            <Sparkles className="dictionary-coming-soon-sparkle" aria-hidden="true" size={30} />
-            <img src={otterCharacter} alt="" />
-            <h2 id="dictionary-coming-soon-title">수달이 개발중..</h2>
-            <p>조금만 기다려 주세요!<br />{comingSoonMenu} 기능을 만들고 있어요.</p>
-            <button type="button" className="dictionary-coming-soon-confirm" onClick={() => setComingSoonMenu(null)}>기다릴게!</button>
-          </section>
-        </div>
-      ) : null}
       </div>
     </div>
   );
