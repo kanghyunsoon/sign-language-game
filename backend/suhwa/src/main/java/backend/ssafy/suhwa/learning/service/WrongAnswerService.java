@@ -5,14 +5,10 @@ import backend.ssafy.suhwa.common.exception.ErrorCode;
 import backend.ssafy.suhwa.learning.domain.Sign;
 import backend.ssafy.suhwa.learning.domain.SignCategory;
 import backend.ssafy.suhwa.learning.domain.WrongAnswerLog;
-import backend.ssafy.suhwa.learning.dto.SignResponse;
 import backend.ssafy.suhwa.learning.dto.WrongAnswerResponse;
 import backend.ssafy.suhwa.learning.repository.SignRepository;
 import backend.ssafy.suhwa.learning.repository.WrongAnswerLogRepository;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -39,16 +35,7 @@ public class WrongAnswerService {
     }
 
     public List<WrongAnswerResponse> getRecentWrongAnswers(Long userId, SignCategory category) {
-        List<WrongAnswerLog> logs = wrongAnswerLogRepository.findRecentByUserIdAndCategory(
+        return wrongAnswerLogRepository.findRecentByUserIdAndCategory(
                 userId, category, PageRequest.of(0, RECENT_LIMIT));
-
-        Map<Long, Sign> signsById = signRepository
-                .findAllById(logs.stream().map(WrongAnswerLog::getSignId).toList())
-                .stream()
-                .collect(Collectors.toMap(Sign::getId, Function.identity()));
-
-        return logs.stream()
-                .map(log -> WrongAnswerResponse.of(log, SignResponse.from(signsById.get(log.getSignId()))))
-                .toList();
     }
 }

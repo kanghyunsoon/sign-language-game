@@ -119,14 +119,17 @@ description: "Task list for Backend Refactoring & Hardening Backlog"
 
 ### Tests (US4)
 
-- [ ] T029 [P] [US4] 오답노트 단일 쿼리·콘텐츠 캐시 히트·랭킹 인덱스 사용 검증 테스트 `.../test/.../learning/`, `.../test/.../ranking/` (TEST-01-04-T02, LEARN-01-02, RANK-01-04)
+- [X] T029 [P] [US4] 오답노트 단일 쿼리·콘텐츠 캐시 히트·랭킹 인덱스 사용 검증 테스트 `.../test/.../learning/`, `.../test/.../ranking/` (TEST-01-04-T02, LEARN-01-02, RANK-01-04) — `LearningQueryOptimizationTest` 신설, Hibernate 통계(`generate_statistics`)의 PreparedStatement 수로 검증: ① 오답노트 조회 = 정확히 1쿼리, ② 콘텐츠 2회차 조회 = 추가 쿼리 0(캐시 히트). **랭킹 인덱스 사용 검증은 대상 없음(N/A)** — T033에서 인덱스를 추가하지 않기로 확정했고, EXPLAIN 결과는 환경(행 수)에 따라 달라져 단위 테스트로 고정하면 거짓 실패를 낳는다. 근거는 T033에 실행계획으로 기록
 
 ### Implementation (US4)
 
-- [ ] T030 [US4] 오답노트 조회를 DTO 프로젝션 단일 쿼리로 전환(`getRecentWrongAnswers`) `.../learning/repository/WrongAnswerLogRepository.java`, `.../learning/service/WrongAnswerService.java` (FR-009, TEST-01-04-T01/T02)
-- [ ] T031 [US4] 연관관계 없는 엔티티 간 ad-hoc JPQL JOIN 패턴 정리(T030 반영 후 잔존 확인) `.../learning/` (FR-010, TEST-01-05)
-- [ ] T032 [US4] `SignService.getActiveSignsByCategory`에 `@Cacheable`(CacheConfig 재사용) `.../learning/service/SignService.java` (FR-011, LEARN-01-02-T02, depends T004)
-- [ ] T033 [US4] **[재확인 필요]** `V3__ranking_indexes.sql`: 정리 스케줄러용 `game_rooms(status, updated_at)` 인덱스 추가. **주의: RANK-01-04 원안의 `users(deleted_at, win_count DESC, loss_count ASC)` 인덱스는 `win_count` 삭제로 무효** — 랭킹은 이제 `game_results`(game_type+score) 집계이며 `idx_game_result_type_score(game_type, score)`·`idx_game_result_user_type(user_id, game_type)`가 이미 존재하므로, 집계 쿼리 실행계획을 보고 **추가 인덱스가 실제 필요한지 재확정** 후 반영 `.../resources/db/migration/` (FR-017, RANK-01-04·GAME-02-14-T03, depends T006. **버전 `V3` 고정 — T023(`V2`)와 충돌 금지**)
+- [X] T030 [US4] 오답노트 조회를 DTO 프로젝션 단일 쿼리로 전환(`getRecentWrongAnswers`) `.../learning/repository/WrongAnswerLogRepository.java`, `.../learning/service/WrongAnswerService.java` (FR-009, TEST-01-04-T01/T02) — 중첩 생성자 표현식으로 `WrongAnswerResponse(… new SignResponse(…) …)`를 쿼리에서 직접 생성. 서비스의 `findAllById` + 인메모리 조인 제거, 더 이상 쓰이지 않는 `WrongAnswerResponse.of` 삭제
+- [X] T031 [US4] 연관관계 없는 엔티티 간 ad-hoc JPQL JOIN 패턴 정리(T030 반영 후 잔존 확인) `.../learning/` (FR-010, TEST-01-05) — **결정(연관관계 매핑 미도입)**: 이 코드베이스는 `GameRoom.hostUserId` 등 전반이 연관관계 없이 식별자 참조로 통일돼 있어 `WrongAnswerLog`에만 `@ManyToOne`을 넣으면 오히려 패턴이 갈린다. 대신 ad-hoc JOIN을 서비스가 아닌 리포지토리 프로젝션 쿼리 한 곳으로 수렴시키고 의도를 주석으로 고정. T030 반영 후 main 전체에 남은 ad-hoc JOIN은 이 1건뿐임을 확인
+- [X] T032 [US4] `SignService.getActiveSignsByCategory`에 `@Cacheable`(CacheConfig 재사용) `.../learning/service/SignService.java` (FR-011, LEARN-01-02-T02, depends T004) — 캐시에 담기는 `Sign`은 세터·연관관계·쓰기 API가 없어 detach 공유가 안전함을 주석으로 명시
+- [X] T033 [US4] **[재확인 필요]** `V3__ranking_indexes.sql`: 정리 스케줄러용 `game_rooms(status, updated_at)` 인덱스 추가. **주의: RANK-01-04 원안의 `users(deleted_at, win_count DESC, loss_count ASC)` 인덱스는 `win_count` 삭제로 무효** — 랭킹은 이제 `game_results`(game_type+score) 집계이며 `idx_game_result_type_score(game_type, score)`·`idx_game_result_user_type(user_id, game_type)`가 이미 존재하므로, 집계 쿼리 실행계획을 보고 **추가 인덱스가 실제 필요한지 재확정** 후 반영 `.../resources/db/migration/` (FR-017, RANK-01-04·GAME-02-14-T03, depends T006. **버전 `V3` 고정 — T023(`V2`)와 충돌 금지**) — **결정(로컬 MySQL 실행계획 확인 후)**: 파일명은 `V2__game_room_cleanup_index.sql`(T023이 V2를 안 써서 당겨 씀).
+    - **랭킹 인덱스 추가 안 함**: `SELECT … FROM game_results WHERE game_type=?`의 EXPLAIN에서 `possible_keys=idx_game_result_type_score`로 기존 인덱스가 정상 후보다. 현재 `type=ALL`인 것은 행이 67건뿐이라 옵티마이저가 전체 스캔을 고른 결과일 뿐 인덱스 부재가 아니다. 정렬·집계는 서비스 계층에서 하므로 커버링 인덱스 이득도 없음
+    - **`game_rooms(status, updated_at)` 복합 인덱스 추가**: `WHERE status=? AND updated_at<?`가 `type=ref, key_len=1, Extra="Using where"` — status만 인덱스로 좁히고 updated_at은 행 필터였다. 중복이 되는 `idx_room_status`(새 인덱스의 최좌측 접두사)는 함께 제거
+    - **⚠️ 미적용 상태**: 이 마이그레이션은 **아직 어떤 DB에도 적용되지 않는다**. Spring Boot 4는 자동설정이 모듈로 분리돼 `org.flywaydb:flyway-core`만으로는 Flyway 자동설정이 활성화되지 않고 `org.springframework.boot:spring-boot-flyway` 모듈이 필요한데 build.gradle에 없다(runtimeClasspath에 `spring-boot-jpa`·`spring-boot-cache`는 있으나 `spring-boot-flyway`는 없음). 실제로 로컬 MySQL에 `flyway_schema_history` 테이블이 생성된 적이 없어 V1 baseline조차 실행된 적 없음 → **T005/T006(Foundational)의 재작업 필요**. 이 브랜치 범위 밖이라 별도 처리
 
 **Checkpoint**: US1~US4 독립 동작
 

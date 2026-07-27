@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import backend.ssafy.suhwa.learning.domain.Sign;
 import backend.ssafy.suhwa.learning.domain.SignCategory;
 import backend.ssafy.suhwa.learning.domain.WrongAnswerLog;
+import backend.ssafy.suhwa.learning.dto.WrongAnswerResponse;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,12 +35,18 @@ class WrongAnswerLogRepositoryTest {
         wrongAnswerLogRepository.save(WrongAnswerLog.builder().userId(1L).signId(consonant.getId()).build());
         wrongAnswerLogRepository.save(WrongAnswerLog.builder().userId(2L).signId(consonant.getId()).build());
 
-        List<WrongAnswerLog> result = wrongAnswerLogRepository.findRecentByUserIdAndCategory(
+        List<WrongAnswerResponse> result = wrongAnswerLogRepository.findRecentByUserIdAndCategory(
                 1L, SignCategory.CONSONANT, PageRequest.of(0, 5));
 
+        // 응답 DTO 프로젝션이라 userId는 결과에 없다 — 다른 사용자(2L)의 로그가 빠졌다는 사실은
+        // 건수로 검증하고, 카테고리 필터와 Sign 조인 결과는 sign 필드로 검증한다(FR-009).
         assertThat(result).hasSize(2);
-        assertThat(result).allMatch(log -> log.getUserId().equals(1L));
-        assertThat(result).allMatch(log -> log.getSignId().equals(consonant.getId()));
+        assertThat(result).allMatch(r -> r.sign().id().equals(consonant.getId()));
+        assertThat(result).allMatch(r -> r.sign().category() == SignCategory.CONSONANT);
+        assertThat(result).allSatisfy(r -> {
+            assertThat(r.id()).isNotNull();
+            assertThat(r.wrongAt()).isNotNull();
+        });
     }
 
     @Test
@@ -49,7 +56,7 @@ class WrongAnswerLogRepositoryTest {
             wrongAnswerLogRepository.save(WrongAnswerLog.builder().userId(3L).signId(sign.getId()).build());
         }
 
-        List<WrongAnswerLog> result = wrongAnswerLogRepository.findRecentByUserIdAndCategory(
+        List<WrongAnswerResponse> result = wrongAnswerLogRepository.findRecentByUserIdAndCategory(
                 3L, SignCategory.NUMBER, PageRequest.of(0, 5));
 
         assertThat(result).hasSize(5);
