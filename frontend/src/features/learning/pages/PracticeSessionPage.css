@@ -422,9 +422,18 @@
   width: 310px;
   height: 310px;
   flex: 0 0 310px;
+  display: grid;
+  place-items: center;
   margin-top: 0;
+  overflow: hidden;
   border-radius: 50%;
   background: #ffffff;
+}
+
+.practice-answer-placeholder img {
+  width: 85%;
+  height: 85%;
+  object-fit: contain;
 }
 
 /* 현재 문제 이름 */
