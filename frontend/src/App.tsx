@@ -6,6 +6,7 @@ import { LoginPage } from "./features/auth/pages/LoginPage";
 import { SignUpPage } from "./features/auth/pages/SignUpPage";
 import { MainPage } from "./features/home/pages/MainPage";
 import { PreLoginPage } from "./features/home/pages/PreLoginPage";
+import { DictionaryPage } from "./features/learning/pages/DictionaryPage";
 import { PracticeHomePage } from "./features/learning/pages/PracticeHomePage";
 import { ProfilePage } from "./features/profile/pages/ProfilePage";
 import { GameModule } from "./game";
@@ -29,6 +30,7 @@ export function App() {
         <Route path="/main" element={<MainPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/practice" element={<PracticeHomePage />} />
+        <Route path="/dictionary" element={<DictionaryPage />} />
         <Route
           path="/game/*"
           element={

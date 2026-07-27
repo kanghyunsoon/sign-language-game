@@ -11,7 +11,7 @@ import otterCharacter from "../../../game/block-stacking/assets/game-menu-otter.
 
 // export default function MainPage() {
 export function MainPage() {
-  const [comingSoonMenu, setComingSoonMenu] = useState<"테스트" | "사전" | null>(null);
+  const [comingSoonMenu, setComingSoonMenu] = useState<"테스트" | null>(null);
   const handleClick = () => {
     alert("시작합니다!");
   };
@@ -23,7 +23,7 @@ export function MainPage() {
           <a className="active" href="/">메인페이지</a>
           <Link to="/practice">연습</Link>
           <button type="button" onClick={() => setComingSoonMenu("테스트")}>테스트</button>
-          <button type="button" onClick={() => setComingSoonMenu("사전")}>사전</button>
+          <Link to="/dictionary">사전</Link>
           <Link to="/game">게임</Link>
         </nav>
 
@@ -159,14 +159,14 @@ export function MainPage() {
                 </span>
               </button>
 
-              <button className="menu-card" type="button">
+              <Link className="menu-card" to="/dictionary">
                 <span className="menu-icon dictionary">A</span>
 
                 <span>
                   <h3>사전</h3>
                   <p>자음, 모음, 숫자와 자주 쓰는 표현을 찾아봐요.</p>
                 </span>
-              </button>
+              </Link>
 
               <button className="menu-card" type="button">
                 <span className="menu-icon game">🎮</span>
@@ -189,7 +189,7 @@ export function MainPage() {
 
       {comingSoonMenu ? (
         <div className="main-coming-soon-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setComingSoonMenu(null); }}>
-          <section className="main-coming-soon-dialog" data-theme={comingSoonMenu === "테스트" ? "test" : "dictionary"} role="dialog" aria-modal="true" aria-labelledby="main-coming-soon-title">
+          <section className="main-coming-soon-dialog" data-theme="test" role="dialog" aria-modal="true" aria-labelledby="main-coming-soon-title">
             <button type="button" className="main-coming-soon-close" aria-label="팝업 닫기" onClick={() => setComingSoonMenu(null)}><X aria-hidden="true" size={20} /></button>
             <Sparkles className="main-coming-soon-sparkle" aria-hidden="true" size={30} />
             <img src={otterCharacter} alt="" />
