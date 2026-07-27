@@ -1,9 +1,7 @@
 import "./PracticeSessionPage.css";
 import { useEffect, useRef, useState } from "react";
-import { Sparkles, X } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import otterClapImage from "../assets/otter_clap.png";
-import otterCharacter from "../../../game/block-stacking/assets/game-menu-otter.png";
 import type { FingerspellingCategoryId } from "../data/fingerspelling";
 import { fingerspellingItems } from "../data/fingerspelling";
 
@@ -36,7 +34,6 @@ export function PracticeSessionPage({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPracticeComplete, setIsPracticeComplete] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
-  const [comingSoonMenu, setComingSoonMenu] = useState<"테스트" | null>(null);
   const [cameraMessage, setCameraMessage] =
     useState("카메라 시작 버튼을 눌러주세요.");
 
@@ -209,7 +206,7 @@ export function PracticeSessionPage({
           <Link to="/main">메인페이지</Link>
 
           <Link className="active" to="/practice">연습</Link>
-          <button type="button" onClick={() => setComingSoonMenu("테스트")}>테스트</button>
+          <Link to="/test">테스트</Link>
           <Link to="/dictionary">사전</Link>
           <Link to="/game">게임</Link>
         </nav>
@@ -373,19 +370,6 @@ export function PracticeSessionPage({
           </div>
         )}
       </main>
-
-      {comingSoonMenu ? (
-        <div className="practice-session-coming-soon-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setComingSoonMenu(null); }}>
-          <section className="practice-session-coming-soon-dialog" data-theme="test" role="dialog" aria-modal="true" aria-labelledby="practice-session-coming-soon-title">
-            <button type="button" className="practice-session-coming-soon-close" aria-label="팝업 닫기" onClick={() => setComingSoonMenu(null)}><X aria-hidden="true" size={20} /></button>
-            <Sparkles className="practice-session-coming-soon-sparkle" aria-hidden="true" size={30} />
-            <img src={otterCharacter} alt="" />
-            <h2 id="practice-session-coming-soon-title">수달이 개발중..</h2>
-            <p>조금만 기다려 주세요!<br />{comingSoonMenu} 기능을 만들고 있어요.</p>
-            <button type="button" className="practice-session-coming-soon-confirm" onClick={() => setComingSoonMenu(null)}>기다릴게!</button>
-          </section>
-        </div>
-      ) : null}
       </div>
     </div>
   );

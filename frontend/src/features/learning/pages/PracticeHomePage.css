@@ -62,19 +62,6 @@
   color: #3f2b20;
 }
 
-.practice-home-coming-soon-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: min(1.041667vw, 1.666667vh); background: rgba(72,56,45,.28); backdrop-filter: blur(min(0.260417vw, 0.416667vh)); }
-.practice-home-coming-soon-dialog { position: relative; display: grid; width: min(min(20.3125vw, 32.5vh), 100%); justify-items: center; padding: min(1.5625vw, 2.5vh) min(1.5625vw, 2.5vh) min(1.40625vw, 2.25vh); border: min(0.208333vw, 0.333333vh) solid #8fa071; border-radius: min(1.458333vw, 2.333333vh); background: #fffdf5; box-shadow: 0 min(0.625vw, 1vh) 0 #6f8052, 0 min(1.25vw, 2vh) min(2.604167vw, 4.166667vh) rgba(82,54,35,.28); text-align: center; animation: practiceHomeComingSoonPop .25s cubic-bezier(.2,.9,.3,1.2); }
-.practice-home-coming-soon-dialog::before, .practice-home-coming-soon-dialog::after { position: absolute; color: #f0c84d; content: "✦"; font-size: min(1.145833vw, 1.833333vh); }
-.practice-home-coming-soon-dialog::before { top: min(1.354167vw, 2.166667vh); left: min(1.666667vw, 2.666667vh); transform: rotate(-14deg); }
-.practice-home-coming-soon-dialog::after { top: min(3.958333vw, 6.333333vh); right: min(1.458333vw, 2.333333vh); transform: rotate(13deg); }
-.practice-home-coming-soon-dialog img { width: min(7.708333vw, 12.333333vh); height: min(7.708333vw, 12.333333vh); object-fit: contain; }
-.practice-home-coming-soon-dialog h2 { margin: min(0.364583vw, 0.583333vh) 0 min(0.416667vw, 0.666667vh); color: #5f402b; font-size: min(1.5625vw, 2.5vh); letter-spacing: -.05em; }
-.practice-home-coming-soon-dialog p { margin: 0; color: #827368; font-size: min(0.729167vw, 1.166667vh); line-height: 1.6; }
-.practice-home-coming-soon-close { position: absolute; top: min(0.729167vw, 1.166667vh); right: min(0.729167vw, 1.166667vh); display: grid; width: min(1.875vw, 3vh); height: min(1.875vw, 3vh); place-items: center; border: 0; border-radius: 50%; background: #f1ede8; color: #74675e; cursor: pointer; }
-.practice-home-coming-soon-sparkle { position: absolute; top: min(3.385417vw, 5.416667vh); left: min(1.927083vw, 3.083333vh); color: #e8b938; transform: rotate(-10deg); }
-.practice-home-coming-soon-confirm { min-width: min(7.395833vw, 11.833333vh); min-height: min(2.34375vw, 3.75vh); margin-top: min(1.041667vw, 1.666667vh); border: 0; border-radius: min(0.78125vw, 1.25vh); background: #8fa071; box-shadow: 0 min(0.260417vw, 0.416667vh) 0 #6f8052; color: #fff; font: inherit; font-weight: 900; cursor: pointer; }
-.practice-home-coming-soon-confirm:active { transform: translateY(min(0.15625vw, 0.25vh)); box-shadow: 0 min(0.104167vw, 0.166667vh) 0 #6f8052; }
-@keyframes practiceHomeComingSoonPop { from { opacity: 0; transform: translateY(min(0.9375vw, 1.5vh)) scale(.92); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
 .practice-home-nav a.active::after {
   position: absolute;
