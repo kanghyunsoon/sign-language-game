@@ -54,7 +54,6 @@
 
 .practice-home-coming-soon-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(72,56,45,.28); backdrop-filter: blur(5px); }
 .practice-home-coming-soon-dialog { position: relative; display: grid; width: min(390px, 100%); justify-items: center; padding: 30px 30px 27px; border: 4px solid #8fa071; border-radius: 28px; background: #fffdf5; box-shadow: 0 12px 0 #6f8052, 0 24px 50px rgba(82,54,35,.28); text-align: center; animation: practiceHomeComingSoonPop .25s cubic-bezier(.2,.9,.3,1.2); }
-.practice-home-coming-soon-dialog[data-theme="dictionary"] { border-color: #8fa071; box-shadow: 0 12px 0 #6f8052, 0 24px 50px rgba(82,54,35,.28); }
 .practice-home-coming-soon-dialog::before, .practice-home-coming-soon-dialog::after { position: absolute; color: #f0c84d; content: "✦"; font-size: 22px; }
 .practice-home-coming-soon-dialog::before { top: 26px; left: 32px; transform: rotate(-14deg); }
 .practice-home-coming-soon-dialog::after { top: 76px; right: 28px; transform: rotate(13deg); }
@@ -64,9 +63,7 @@
 .practice-home-coming-soon-close { position: absolute; top: 14px; right: 14px; display: grid; width: 36px; height: 36px; place-items: center; border: 0; border-radius: 50%; background: #f1ede8; color: #74675e; cursor: pointer; }
 .practice-home-coming-soon-sparkle { position: absolute; top: 65px; left: 37px; color: #e8b938; transform: rotate(-10deg); }
 .practice-home-coming-soon-confirm { min-width: 142px; min-height: 45px; margin-top: 20px; border: 0; border-radius: 15px; background: #8fa071; box-shadow: 0 5px 0 #6f8052; color: #fff; font: inherit; font-weight: 900; cursor: pointer; }
-.practice-home-coming-soon-dialog[data-theme="dictionary"] .practice-home-coming-soon-confirm { background: #8fa071; box-shadow: 0 5px 0 #6f8052; }
 .practice-home-coming-soon-confirm:active { transform: translateY(3px); box-shadow: 0 2px 0 #6f8052; }
-.practice-home-coming-soon-dialog[data-theme="dictionary"] .practice-home-coming-soon-confirm:active { box-shadow: 0 2px 0 #6f8052; }
 @keyframes practiceHomeComingSoonPop { from { opacity: 0; transform: translateY(18px) scale(.92); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
 .nav a.active::after {
