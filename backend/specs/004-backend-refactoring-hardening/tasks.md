@@ -143,17 +143,24 @@ description: "Task list for Backend Refactoring & Hardening Backlog"
 
 ### Tests (US5)
 
-- [ ] T034 [P] [US5] 필터 체인을 켠 `@SpringBootTest` 통합 테스트(유효 토큰+잘못된 파라미터/토큰 없음/깨진 JSON → 400/401 포맷) `.../test/.../common/FilterChainIntegrationTest.java` (FR-025, STABLE-08-16-T01)
-- [ ] T035 [P] [US5] `CorsConfig` 값 설정/미설정 양쪽 동작 테스트 `.../test/.../common/config/CorsConfigTest.java` (FR-019, STABLE-08-10-T01/T04)
+- [X] T034 [P] [US5] 필터 체인을 켠 `@SpringBootTest` 통합 테스트(유효 토큰+잘못된 파라미터/토큰 없음/깨진 JSON → 400/401 포맷) `.../test/.../common/FilterChainIntegrationTest.java` (FR-025, STABLE-08-16-T01)
+- [X] T035 [P] [US5] `CorsConfig` 값 설정/미설정 양쪽 동작 테스트 `.../test/.../common/config/CorsConfigTest.java` (FR-019, STABLE-08-10-T01/T04)
 
 ### Implementation (US5)
 
-- [ ] T036 [P] [US5] `application.yaml`에 `spring.jpa.open-in-view: false` (FR-021, STABLE-08-12 — 연관관계 부재로 회귀 위험 없음)
-- [ ] T037 [P] [US5] 트랜잭션/쿼리 타임아웃 설정 — `application.yaml`에 전역 기본(3s), **cleanup 스케줄러 30s override는 `GameRoomCleanupScheduler.cleanupStaleRooms`에 `@Transactional(timeout=30)`로 직접 적용** `backend/suhwa/src/main/resources/application.yaml`, `.../game/scheduler/GameRoomCleanupScheduler.java` (FR-022, STABLE-08-13)
-- [ ] T038 [P] [US5] `application.yaml`에 HikariCP(`maximum-pool-size`, `connection-timeout=3000`) + `hibernate.jdbc.batch_size=30`/`order_inserts`/`order_updates` (FR-023, STABLE-08-14-T01; 최종 풀 크기는 부하 테스트로 확정 STABLE-08-14-T02)
-- [ ] T039 [US5] CORS 빈 값 동작 명시화 — **현재 `CorsConfig`는 빈 값 시 `setAllowedOrigins([])`로 이미 "차단"(fail-closed) 동작함**(우리 정책 R5와 일치, 지라 STABLE-08-10 원안의 "전체 허용"과는 반대이므로 정책 확정 필요). 실제 남은 작업은 **미설정 시 기동 경고 로그 추가** + 정책 주석/문서화. `RealtimeWebSocketConfig`도 동일 확인 `.../common/config/CorsConfig.java`, `.../game/realtime/RealtimeWebSocketConfig.java` (FR-019, STABLE-08-10-T02/T03)
-- [ ] T040 [US5] ArchUnit 모듈 경계 규칙 3종(리포지토리 접근 제한, 컨트롤러 리포지토리 직접참조 금지, 서비스 표준예외 금지) 작성 `.../test/.../architecture/ModuleBoundaryTest.java` (FR-020, STABLE-08-11-T02/T03, depends T003. **주의: 현재 `auth↔user` 양방향 의존(`AuthService→user.UserRepository`, `UserService→auth.RefreshTokenRepository`)이 존재하고 T008/T010 후에도 유지됨 → "리포지토리는 같은 모듈에서만 접근" 규칙이 이를 위반으로 잡음. 규칙에 허용 예외를 두거나 두 모듈 간 의존을 서비스 인터페이스로 정리할지 STABLE-08-11-T04에서 함께 결정**)
-- [ ] T041 [US5] `GlobalExceptionHandler` 보강 — **이미 존재**(추가 금지): `BusinessException`, `OptimisticLockingFailureException`→409, `MissingServletRequestParameter`/`MethodArgumentTypeMismatch`→400, `MethodArgumentNotValid`→400. **실제로 없어서 추가할 것만**: `HttpMessageNotReadableException`→400(깨진 JSON), `ConstraintViolationException`→400, **catch-all `Exception`→500+`log.error`**, 그리고 `JwtTokenProvider.getUserId`의 `NumberFormatException` 방어 `.../common/exception/GlobalExceptionHandler.java`, `.../common/security/JwtTokenProvider.java` (FR-024, STABLE-08-15. **동일 파일을 수정하는 T020(DataAccessException)보다 뒤에 수행 — T020 → T041 순서. catch-all은 `DataAccessException` 등 구체 핸들러보다 특이도가 낮아 공존 가능**)
+- [X] T036 [P] [US5] `application.yaml`에 `spring.jpa.open-in-view: false` (FR-021, STABLE-08-12 — 연관관계 부재로 회귀 위험 없음)
+- [X] T037 [P] [US5] 트랜잭션/쿼리 타임아웃 설정 — `application.yaml`에 전역 기본(3s), **cleanup 스케줄러 30s override는 `GameRoomCleanupScheduler.cleanupStaleRooms`에 `@Transactional(timeout=30)`로 직접 적용** `backend/suhwa/src/main/resources/application.yaml`, `.../game/scheduler/GameRoomCleanupScheduler.java` (FR-022, STABLE-08-13)
+- [X] T038 [P] [US5] `application.yaml`에 HikariCP(`maximum-pool-size`, `connection-timeout=3000`) + `hibernate.jdbc.batch_size=30`/`order_inserts`/`order_updates` (FR-023, STABLE-08-14-T01; 최종 풀 크기는 부하 테스트로 확정 STABLE-08-14-T02)
+- [X] T039 [US5] CORS 빈 값 동작 명시화 — **현재 `CorsConfig`는 빈 값 시 `setAllowedOrigins([])`로 이미 "차단"(fail-closed) 동작함**(우리 정책 R5와 일치, 지라 STABLE-08-10 원안의 "전체 허용"과는 반대이므로 정책 확정 필요). 실제 남은 작업은 **미설정 시 기동 경고 로그 추가** + 정책 주석/문서화. `RealtimeWebSocketConfig`도 동일 확인 `.../common/config/CorsConfig.java`, `.../game/realtime/RealtimeWebSocketConfig.java` (FR-019, STABLE-08-10-T02/T03)
+- [X] T040 [US5] ArchUnit 모듈 경계 규칙 3종(리포지토리 접근 제한, 컨트롤러 리포지토리 직접참조 금지, 서비스 표준예외 금지) 작성 `.../test/.../architecture/ModuleBoundaryTest.java` (FR-020, STABLE-08-11-T02/T03, depends T003. **주의: 현재 `auth↔user` 양방향 의존(`AuthService→user.UserRepository`, `UserService→auth.RefreshTokenRepository`)이 존재하고 T008/T010 후에도 유지됨 → "리포지토리는 같은 모듈에서만 접근" 규칙이 이를 위반으로 잡음. 규칙에 허용 예외를 두거나 두 모듈 간 의존을 서비스 인터페이스로 정리할지 STABLE-08-11-T04에서 함께 결정**) — **전제 정정 + 결정**:
+    - **`auth↔user` 양방향 의존은 이미 해소됨**: US1(T008/T010)에서 `AuthService`가 `UserService`를 거치도록 바뀌면서 사라졌다. 위 경고는 낡은 정보다
+    - **실제로 잡힌 위반은 `gameresult` 리포지토리 공유**였다 — `game.GameRoomService`(결과 기록)와 `ranking.RankingService`(집계 조회)가 `GameResultRepository`를 직접 참조. plan.md(spec 003)가 "3곳이 공유"로 명시한 설계였으나, **`GameResultService`를 신설해 경유하도록 정리**(규칙 예외 0). 부수 효과로 "승자 1점/패자 0점" 불변식이 `GameRoomService` 인라인에서 gameresult 모듈 한곳으로 모였다
+    - **`RankingService` → `UserRepository`**: `UserService.findActiveByIds` 추가로 경유 전환
+    - **표준예외 금지 규칙 범위**: `IllegalStateException`은 대상에서 제외했다. `RefreshTokenService`가 `NoSuchAlgorithmException`(JVM에 SHA-256이 없는, 도달 불가능한 상황)을 감싸는 데 쓰는데 이는 비즈니스 오류가 아니라 환경 결함이라 도메인 예외로 옮기는 것이 부정확하다
+- [X] T041 [US5] `GlobalExceptionHandler` 보강 — **이미 존재**(추가 금지): `BusinessException`, `OptimisticLockingFailureException`→409, `MissingServletRequestParameter`/`MethodArgumentTypeMismatch`→400, `MethodArgumentNotValid`→400. **실제로 없어서 추가할 것만**: `HttpMessageNotReadableException`→400(깨진 JSON), `ConstraintViolationException`→400, **catch-all `Exception`→500+`log.error`**, 그리고 `JwtTokenProvider.getUserId`의 `NumberFormatException` 방어 `.../common/exception/GlobalExceptionHandler.java`, `.../common/security/JwtTokenProvider.java` (FR-024, STABLE-08-15. **동일 파일을 수정하는 T020(DataAccessException)보다 뒤에 수행 — T020 → T041 순서. catch-all은 `DataAccessException` 등 구체 핸들러보다 특이도가 낮아 공존 가능**) — **구현 중 발견**:
+    - catch-all이 **Spring Security 예외까지 삼켜 403이 500으로 뒤바뀌는 회귀**가 났다(`SecurityConfigTest.accessDeniedException_returnsUnifiedErrorFormat` 실패). 필터 단계의 `accessDeniedHandler`는 컨트롤러 안에서 던져진 `AccessDeniedException`을 못 받는데, catch-all이 그걸 먼저 잡는다. `AccessDeniedException`/`AuthenticationException` 전용 핸들러를 catch-all 앞에 추가해 해결
+    - 같은 이유로 Spring MVC가 상태 코드를 이미 정한 예외(405/415/404 등)도 500으로 덮이므로, catch-all에서 `org.springframework.web.ErrorResponse` 구현 여부를 보고 **4xx는 상태를 보존**하도록 처리
+    - `JwtTokenProvider`: `getUserId`에 방어를 두는 대신 **`validateToken`이 subject 파싱까지 확인**하도록 했다. `NumberFormatException`이 `IllegalArgumentException` 하위형이라 기존 catch에 그대로 걸려 분기 추가 없이 해결된다
 
 **Checkpoint**: 전 스토리 독립 동작
 
