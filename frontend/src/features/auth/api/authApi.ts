@@ -112,6 +112,20 @@ export function getMe(accessToken: string): Promise<MeResponse> {
   });
 }
 
+export function logout(accessToken: string): Promise<void> {
+  return requestJson<void>("/auth/logout", {
+    method: "POST",
+    headers: authHeader(accessToken),
+  });
+}
+
+export function deleteAccount(accessToken: string): Promise<void> {
+  return requestJson<void>("/users/me", {
+    method: "DELETE",
+    headers: authHeader(accessToken),
+  });
+}
+
 /**
  * 리프레시 토큰으로 accessToken을 재발급한다.
  *

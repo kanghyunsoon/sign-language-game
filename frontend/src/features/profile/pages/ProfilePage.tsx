@@ -1,7 +1,9 @@
 import { Flame, Leaf, Pencil, Settings, Sparkles } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
+import { useAuth } from "../../auth/AuthContext";
+import { AuthApiError, deleteAccount } from "../../auth/api/authApi";
 import { DeleteAccountModal } from "../components/DeleteAccountModal";
 import graduationIcon from "../assets/graduation.png";
 import learningRecordIcon from "../assets/learning-record-icon.png";
@@ -21,7 +23,39 @@ const profileStats = [
 ] as const;
 
 export function ProfilePage() {
+  const navigate = useNavigate();
+  const { accessToken, logout } = useAuth();
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
+  const [deleteAccountError, setDeleteAccountError] = useState<string | null>(null);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+
+  async function handleLogout() {
+    try {
+      await logout();
+    } finally {
+      navigate("/login");
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (!accessToken || deletingAccount) return;
+
+    setDeleteAccountError(null);
+    setDeletingAccount(true);
+    try {
+      await deleteAccount(accessToken);
+      await logout();
+      navigate("/login");
+    } catch (caught) {
+      setDeleteAccountError(
+        caught instanceof AuthApiError
+          ? caught.message
+          : "회원탈퇴 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.",
+      );
+    } finally {
+      setDeletingAccount(false);
+    }
+  }
 
   return (
     <main className="profile-page">
@@ -132,7 +166,7 @@ export function ProfilePage() {
 
           <div className="profile-quick-actions">
             <button type="button">회원 정보 수정</button>
-            <button type="button">로그아웃</button>
+            <button type="button" onClick={handleLogout}>로그아웃</button>
           </div>
 
           <button
@@ -147,7 +181,10 @@ export function ProfilePage() {
 
       {isDeleteAccountModalOpen && (
         <DeleteAccountModal
+          error={deleteAccountError}
+          submitting={deletingAccount}
           onClose={() => setIsDeleteAccountModalOpen(false)}
+          onConfirmDelete={handleDeleteAccount}
         />
       )}
     </main>
