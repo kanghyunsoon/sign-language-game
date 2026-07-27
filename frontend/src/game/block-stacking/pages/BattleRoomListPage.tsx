@@ -95,8 +95,8 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
   };
 
   return (
-    <main className={styles.page}>
-      <header className={styles.pageHeader}>
+    <main className={`${styles.page} ${styles.lobbyPage}`}>
+      <header className={`${styles.pageHeader} ${styles.lobbyHero}`}>
         <div>
           <span className={styles.eyebrow}>{mode === "TURN" ? "턴 배틀 1:1" : "블록쌓기 1:1"} ·  지문자 대전</span>
           <h1>대전방</h1>
@@ -117,7 +117,7 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
         </button>
       </div>
       {error ? <p className={styles.errorBanner} role="alert">{error}</p> : null}
-      <section className={styles.roomGrid} aria-label="대전방 목록">
+      <section className={`${styles.roomGrid} ${styles.lobbyRoomGrid}`} aria-label="대전방 목록">
         {!loading && rooms.length === 0
           ? <div className={styles.emptyState}>아직 열린 방이 없습니다. 새 방을 만들어 시작하세요.</div>
           : null}

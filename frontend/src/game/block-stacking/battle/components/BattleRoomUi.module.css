@@ -63,3 +63,35 @@
 .startReason { min-height: 22px; margin: 10px 0 0; color: #755512; font-size: 13px; text-align: right; }
 @media (max-width: 900px) { .roomGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .waitingLayout { grid-template-columns: 1fr; } }
 @media (max-width: 620px) { .page { padding: 18px 12px 28px; } .pageHeader { align-items: flex-start; flex-direction: column; } .roomGrid, .videoPair { grid-template-columns: 1fr; } .connectionStrip { grid-template-columns: 1fr; } }
+
+
+/* Sky-and-grass theme for the live room flows. Connection logic remains unchanged. */
+.lobbyPage, .waitingPage { position: relative; width: 100%; min-height: 100dvh; max-width: none; box-sizing: border-box; overflow: hidden; padding: clamp(44px, 7vw, 92px) clamp(18px, 9vw, 144px); background: linear-gradient(#e3f2ff 0 72%, #c5e494 72% 89%, #a7ca7c 89%); }
+.lobbyPage::before, .waitingPage::before { position: absolute; top: 8%; left: 11%; z-index: 0; width: 220px; height: 70px; border-radius: 999px; background: rgba(255,255,255,.65); box-shadow: 78px -30px 0 12px rgba(255,255,255,.58), 160px 8px 0 6px rgba(255,255,255,.5); content: ""; animation: roomCloudDrift 19s ease-in-out infinite alternate; }
+.lobbyPage::after, .waitingPage::after { position: absolute; right: 4%; bottom: 11%; z-index: 0; width: 300px; height: 105px; border-radius: 60% 60% 0 0; background: rgba(238,249,209,.75); content: ""; }
+.lobbyPage > *, .waitingPage > * { position: relative; z-index: 1; }
+.lobbyHero, .waitingHero { max-width: 1060px; margin: 0 auto 18px; padding: 20px 26px; border: 1px solid rgba(255,255,255,.95); border-radius: 21px; background: rgba(255,255,255,.92); box-shadow: 0 14px 30px rgba(67,111,132,.14); }
+.lobbyHero h1, .waitingHero h1 { color: #35444b; font-size: clamp(28px,3vw,42px); letter-spacing: -.075em; }
+.lobbyHero .headerActions, .waitingHero .headerActions { justify-content: flex-end; }
+.lobbyHero .headerActions a, .waitingHero .headerActions button { border: 0; border-radius: 11px; background: #fff; box-shadow: 0 4px 0 #c8dce3; }
+.lobbyHero .primaryButton { background: #b8d648 !important; box-shadow: 0 5px 0 #91b23b !important; }
+.lobbyPage .toolbar { max-width: 1060px; margin: 0 auto 12px; padding: 12px 15px; border-radius: 14px; background: rgba(255,255,255,.78); box-shadow: 0 8px 20px rgba(67,111,132,.08); }
+.lobbyPage .toolbar button { border: 0; border-radius: 10px; box-shadow: 0 3px 0 #c8dce3; }
+.lobbyRoomGrid { grid-template-columns: repeat(3, minmax(0,1fr)); max-width: 1060px; margin: 0 auto; gap: 15px; }
+.lobbyRoomGrid .roomCard { border: 1px solid rgba(255,255,255,.9); border-radius: 18px; background: rgba(255,255,255,.93); box-shadow: 0 13px 25px rgba(67,111,132,.13); transition: transform 150ms ease, box-shadow 150ms ease; }
+.lobbyRoomGrid .roomCard:hover { transform: translateY(-6px) rotate(-.3deg); box-shadow: 0 19px 30px rgba(67,111,132,.19); }
+.lobbyRoomGrid .joinButton { border: 0; border-radius: 10px; background: #b8d648 !important; box-shadow: 0 4px 0 #91b23b; }
+.waitingPage .connectionStrip { max-width: 1060px; margin: 0 auto 14px; }
+.waitingPage .connectionStrip span { border-color: #d7e8ad; border-radius: 12px; background: rgba(246,251,233,.92); }
+.waitingPage .waitingLayout { max-width: 1060px; margin: 0 auto; grid-template-columns: minmax(0,1fr) 270px; }
+.waitingPage .waitingSidebar { grid-column: 2; grid-row: 1; }
+.waitingPage .videoArea { grid-column: 1; grid-row: 1; padding: 16px; border: 1px solid rgba(255,255,255,.9); border-radius: 20px; background: rgba(255,255,255,.91); box-shadow: 0 14px 30px rgba(67,111,132,.14); }
+.waitingPage .videoPair { grid-template-columns: minmax(0,1fr); }
+.waitingPage .videoPair > * { overflow: hidden; border-radius: 16px; }
+.waitingPage .waitingSidebar > * { border: 0; border-radius: 18px; box-shadow: 0 12px 25px rgba(67,111,132,.11); }
+.waitingPage .waitingActions button { border: 0; border-radius: 10px; box-shadow: 0 4px 0 #c8dce3; }
+.waitingPage .waitingActions .primaryButton { background: #8bc6e9 !important; box-shadow: 0 4px 0 #68a9d0; }
+.waitingPage .startReason { padding: 11px 14px; border-radius: 10px; background: #fff8df; text-align: left; }
+@keyframes roomCloudDrift { from { transform: translateX(-30px); } to { transform: translateX(95px); } }
+@media (max-width: 900px) { .lobbyRoomGrid { grid-template-columns: repeat(2,minmax(0,1fr)); } .waitingPage .waitingLayout { grid-template-columns: 1fr; } .waitingPage .waitingSidebar { grid-column: 1; grid-row: 2; grid-template-columns: 1fr 1fr; } .waitingPage .videoArea { grid-column: 1; grid-row: 1; } }
+@media (max-width: 620px) { .lobbyPage, .waitingPage { padding: 28px 14px 50px; overflow: auto; } .lobbyRoomGrid, .waitingPage .waitingSidebar { grid-template-columns: 1fr; } }
