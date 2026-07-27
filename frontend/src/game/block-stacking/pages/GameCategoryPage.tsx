@@ -45,6 +45,7 @@ const CATEGORIES: readonly GameSelectionCard[] = [
 
 export function GameCategoryPage() {
   const { user, onExit } = useGameModuleContext();
+  const navigate = useNavigate();
   const [showComingSoon, setShowComingSoon] = useState(false);
   return (
     <main className={styles.categoryPage}>
@@ -52,11 +53,9 @@ export function GameCategoryPage() {
       <div className={`${styles.skyCloud} ${styles.cloudRight}`} aria-hidden="true" />
 
       <header className={styles.categoryTopBar}>
-        {onExit ? (
-          <button type="button" className={styles.categoryUtilityButton} onClick={onExit} aria-label="게임에서 나가기">
-            <ArrowLeft aria-hidden="true" size={18} />
-          </button>
-        ) : <span />}
+        <button type="button" className={styles.categoryUtilityButton} onClick={() => { if (onExit) onExit(); else navigate("/main"); }} aria-label="이전 화면으로 돌아가기">
+          <ArrowLeft aria-hidden="true" size={18} />
+        </button>
         <span className={styles.categoryUser}>{user.displayName}</span>
       </header>
 
