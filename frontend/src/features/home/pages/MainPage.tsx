@@ -4,14 +4,10 @@
 // import bannerGraphicSvg from "../assets/banner-stats-graphic.svg";
 
 import './MainPage.css'; // 작성한 CSS 불러오기
-import { useState } from "react";
-import { Sparkles, X } from "lucide-react";
 import { Link } from "react-router-dom";
-import otterCharacter from "../../../game/block-stacking/assets/game-menu-otter.png";
 
 // export default function MainPage() {
 export function MainPage() {
-  const [comingSoonMenu, setComingSoonMenu] = useState<"테스트" | null>(null);
   const handleClick = () => {
     alert("시작합니다!");
   };
@@ -22,7 +18,7 @@ export function MainPage() {
         <nav className="nav" aria-label="주요 메뉴">
           <a className="active" href="/">메인페이지</a>
           <Link to="/practice">연습</Link>
-          <button type="button" onClick={() => setComingSoonMenu("테스트")}>테스트</button>
+          <Link to="/test">테스트</Link>
           <Link to="/dictionary">사전</Link>
           <Link to="/game">게임</Link>
         </nav>
@@ -92,23 +88,23 @@ export function MainPage() {
             </div>
 
             <div className="menu-grid">
-              <button className="menu-card" type="button">
+              <Link className="menu-card" to="/practice">
                 <span className="menu-icon practice">✋</span>
 
                 <span>
                   <h3>연습·학습</h3>
                   <p>가이드 동작을 보며 수어 표현을 천천히 익혀요.</p>
                 </span>
-              </button>
+              </Link>
 
-              <button className="menu-card" type="button">
+              <Link className="menu-card" to="/test">
                 <span className="menu-icon test">✓</span>
 
                 <span>
                   <h3>테스트</h3>
                   <p>배운 내용을 퀴즈 형식으로 확인하고 점수를 기록해요.</p>
                 </span>
-              </button>
+              </Link>
 
               <Link className="menu-card" to="/dictionary">
                 <span className="menu-icon dictionary">A</span>
@@ -138,18 +134,6 @@ export function MainPage() {
         <a href="#">문의하기</a>
       </footer>
 
-      {comingSoonMenu ? (
-        <div className="main-coming-soon-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setComingSoonMenu(null); }}>
-          <section className="main-coming-soon-dialog" data-theme="test" role="dialog" aria-modal="true" aria-labelledby="main-coming-soon-title">
-            <button type="button" className="main-coming-soon-close" aria-label="팝업 닫기" onClick={() => setComingSoonMenu(null)}><X aria-hidden="true" size={20} /></button>
-            <Sparkles className="main-coming-soon-sparkle" aria-hidden="true" size={30} />
-            <img src={otterCharacter} alt="" />
-            <h2 id="main-coming-soon-title">수달이 개발중..</h2>
-            <p>조금만 기다려 주세요!<br />{comingSoonMenu} 기능을 만들고 있어요.</p>
-            <button type="button" className="main-coming-soon-confirm" onClick={() => setComingSoonMenu(null)}>기다릴게!</button>
-          </section>
-        </div>
-      ) : null}
     </div>
   );
 }
