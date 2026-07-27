@@ -161,20 +161,25 @@ export function SoloGamePage({
   useEffect(() => recognitionController.subscribe(setRecognition), [recognitionController]);
 
   useEffect(() => {
+    if (snapshot.runState !== "RUNNING") {
+      setOtterWalking(false);
+      return undefined;
+    }
+
     let finishTimer: number | undefined;
     const triggerWalk = () => {
       setOtterWalking(true);
       window.clearTimeout(finishTimer);
       finishTimer = window.setTimeout(() => setOtterWalking(false), 12_000);
     };
-    const previewTimer = window.setTimeout(triggerWalk, 3_000);
+    const firstWalkTimer = window.setTimeout(triggerWalk, 60_000);
     const interval = window.setInterval(triggerWalk, 60_000);
     return () => {
-      window.clearTimeout(previewTimer);
+      window.clearTimeout(firstWalkTimer);
       window.clearTimeout(finishTimer);
       window.clearInterval(interval);
     };
-  }, []);
+  }, [snapshot.runState]);;
 
   useEffect(() => {
     if (snapshot.runState !== "GAME_OVER" || savedGameOverRef.current) return;

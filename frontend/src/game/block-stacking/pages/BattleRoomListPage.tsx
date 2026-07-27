@@ -1,6 +1,6 @@
 import { ArrowLeft, Plus, RefreshCw, Search, Trophy } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useGameModuleContext } from "../../app/GameModuleContext";
 import { BattleRoomCard } from "../battle/components/BattleRoomCard";
 import { CreateRoomModal } from "../battle/components/CreateRoomModal";
@@ -32,7 +32,7 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
   const joinRoom = async (roomId: string) => { setJoiningRoomId(roomId); setError(null); try { const session = await gateway.joinRoom(roomId); rememberSession(session); navigate(session.roomId); } catch (cause) { setError(errorMessage(cause, "방에 입장하지 못했습니다.")); } finally { setJoiningRoomId(null); } };
   const joinByCode = () => { const normalized = roomCode.trim(); if (!normalized || joiningRoomId) return; void joinRoom(normalized); };
   return <main className={[styles.page, styles.lobbyPage].join(" ")}>
-    <Link className={styles.lobbyBack} to={mode === "TURN" ? "/game" : "../block"} aria-label="모드 선택으로 돌아가기"><ArrowLeft aria-hidden="true" size={19} /></Link>
+    <button type="button" className={styles.lobbyBack} onClick={() => navigate(mode === "TURN" ? "/game" : "/game/block")} aria-label="게임 모드 선택으로 돌아가기"><ArrowLeft aria-hidden={true} size={19} /></button>
     <button type="button" className={styles.lobbyProfile}>개발 사용자</button>
     <header className={styles.lobbyHero}><span>{mode === "TURN" ? "1:1 TURN BATTLE" : "1:1 BLOCK BATTLE"}</span><h1>게임방 찾기</h1><p>참여할 게임을 선택하고, 입장 가능한 방을 찾아보세요.</p></header>
     {error ? <p className={styles.errorBanner} role="alert">{error}</p> : null}

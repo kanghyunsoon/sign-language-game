@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
 
-import { HttpSoloGameApi } from "../block-stacking/solo/api";
+import { HttpSoloGameApi, LocalSoloGameApi } from "../block-stacking/solo/api";
 import { DevBattleRoomGateway, SwaggerBattleRoomGateway } from "../block-stacking/battle/room";
 import type { BattleRoomSession } from "../block-stacking/battle/room";
 import type {
@@ -104,7 +104,11 @@ function createDefaultServices(user: GameModuleUser, accessToken: string | undef
   const useSwaggerContract =
     Boolean(accessToken) || import.meta.env.VITE_P2P_E2E === "true" || isProduction;
   return {
-    soloGameApi: new HttpSoloGameApi({ baseUrl: config.soloApiBaseUrl, credentials: "include", headers }),
+    // The deployed backend does not currently expose the legacy /game/solo/sessions contract.
+    // Keep solo play and local score history available until that API is formally enabled.
+    soloGameApi: import.meta.env.VITE_ENABLE_REMOTE_SOLO_GAME_API === "true"
+      ? new HttpSoloGameApi({ baseUrl: config.soloApiBaseUrl, credentials: "include", headers })
+      : new LocalSoloGameApi({ userId: user.userId }),
     battleRoomGateway: useSwaggerContract
       ? new SwaggerBattleRoomGateway({ baseUrl: config.roomApiBaseUrl, currentUser: user, credentials: "include", headers, gameType: "TETRIS_DUEL" })
       : new DevBattleRoomGateway({ baseUrl: config.roomApiBaseUrl, currentUser: user, credentials: "include", headers }),
