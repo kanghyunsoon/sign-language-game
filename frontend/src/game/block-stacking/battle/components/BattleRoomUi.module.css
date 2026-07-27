@@ -145,3 +145,16 @@
 .waitingLobby .waitingActions { margin:0; }
 .waitingLobby .startReason { min-height:0; margin:0; padding:8px 10px; font-size:.67rem; text-align:left; }
 @media (max-width:900px) { .waitingLobby { height:auto; min-height:100dvh; overflow:auto; } .waitingLobby .waitingLayout { height:auto; overflow:visible; grid-template-columns:1fr; } .waitingLobby .waitingStage { min-height:520px; } }
+
+/* Desktop lobby: one fixed game screen; only the room list may scroll when it has content. */
+@media (min-width: 761px) {
+  .lobbyPage { height: 100dvh; min-height: 0; box-sizing: border-box; display: grid; grid-template-rows: auto minmax(0,1fr); gap: 0; padding-top: 34px; padding-bottom: 28px; overflow: hidden; }
+  .lobbyPage .lobbyHero { min-height: 0; padding: 58px 0 28px; }
+  .lobbyPage .lobbyGrid { min-height: 0; height: 100%; }
+  .lobbyPage .rankingPanel, .lobbyPage .lobbyRooms, .lobbyPage .lobbySide { min-height: 0; }
+  .lobbyPage .rankingPanel { overflow: hidden; }
+  .lobbyPage .lobbyRooms { display: grid; grid-template-rows: auto auto minmax(0,1fr); overflow: hidden; }
+  .lobbyPage .roomGrid { min-height: 0; overflow: auto; align-content: start; }
+  .lobbyPage .lobbySide { overflow: hidden; }
+  .lobbyPage .lobbyBack { z-index: 5; pointer-events: auto; }
+}
