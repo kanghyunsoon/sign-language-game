@@ -82,55 +82,6 @@ export function MainPage() {
           <section className="panel">
             <div className="panel-heading">
               <div>
-                <h2>오늘의 학습 현황</h2>
-                <p>현재 진행률과 복습해야 할 표현을 확인하세요.</p>
-              </div>
-            </div>
-
-            <div className="progress-label-row">
-              <strong>일일 학습 진행률</strong>
-              <span>68%</span>
-            </div>
-
-            <div className="progress-track" aria-label="일일 학습 진행률 68%">
-              <div className="progress-bar"></div>
-            </div>
-
-            <div className="stats">
-              <div className="stat-card">
-                <strong>12개</strong>
-                <span>오늘 완료한</span>
-                <span>학습 표현</span>
-              </div>
-
-              <div className="stat-card">
-                <strong>87%</strong>
-                <span>오늘 평균</span>
-                <span>정확도</span>
-              </div>
-
-              <div className="stat-card">
-                <strong>4개</strong>
-                <span>다시 볼</span>
-                <span>오답 표현</span>
-              </div>
-            </div>
-
-            <div className="review-box">
-              <div>
-                <h3>복습이 필요한 표현이 있어요.</h3>
-                <p>정확도가 낮았던 표현 4개를 다시 확인해보세요.</p>
-              </div>
-
-              <button className="review-button" type="button">
-                오답노트 보기
-              </button>
-            </div>
-          </section>
-
-          <section className="panel">
-            <div className="panel-heading">
-              <div>
                 <h2>학습 메뉴</h2>
                 <p>필요한 기능을 선택해 바로 시작하세요.</p>
               </div>
