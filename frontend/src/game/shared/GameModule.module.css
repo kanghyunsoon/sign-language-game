@@ -522,3 +522,7 @@
   .modeArenaHud { display: none; }
   .modeTip { align-items: flex-start; padding-block: 12px; }
 }
+
+.module :global(.solo-title-group) { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.module :global(.solo-back-button) { display: grid; flex: 0 0 auto; width: 36px; height: 36px; padding: 0; place-items: center; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 4px 0 #b6cf8d, 0 7px 14px rgba(63,108,126,.14); color: #597044; cursor: pointer; }
+.module :global(.solo-back-button:hover) { transform: translateY(-1px); }

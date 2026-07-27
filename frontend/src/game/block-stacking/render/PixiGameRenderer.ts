@@ -53,7 +53,7 @@ export class PixiGameRenderer implements GameRenderer {
       width: resolvedConfig.width,
       height: resolvedConfig.height,
       backgroundColor: 0xdff1ff,
-      backgroundAlpha: 1,
+      backgroundAlpha: 0,
       antialias: false,
       preference: "webgl",
       resolution: 1,

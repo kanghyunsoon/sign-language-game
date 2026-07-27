@@ -1,5 +1,6 @@
-import { Pause, Play, RotateCcw } from "lucide-react";
+import { ArrowLeft, Pause, Play, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { useGameModuleContext } from "../../app/GameModuleContext";
 import { GameCanvas } from "../components/GameCanvas";
@@ -74,6 +75,7 @@ export function SoloGamePage({
   soloGameApiFactory,
   signRecognizerFactory,
 }: SoloGamePageProps = {}) {
+  const navigate = useNavigate();
   const { config, services, sharedCameraSession, activePlayerSession } = useGameModuleContext();
   const resolvedSoloGameApiFactory = useMemo(
     () => soloGameApiFactory ?? (() => services.soloGameApi),
@@ -245,6 +247,10 @@ export function SoloGamePage({
     runtime.start();
   }, [recognition.playableSymbols, recognitionController, sessionStarting]);
   const pause = useCallback(() => runtimeRef.current?.pause(), []);
+  const leaveGame = useCallback(() => {
+    runtimeRef.current?.pause();
+    navigate("/game/block");
+  }, [navigate]);
   const restart = useCallback(() => {
     if (sessionCoordinatorRef.current?.hasPendingCompletion()) {
       setCompletionError("Retry result saving before restarting.");
@@ -276,9 +282,14 @@ export function SoloGamePage({
   return (
     <div className="solo-game-page">
       <header className="app-header solo-game-header">
-        <div>
+        <div className="solo-title-group">
+          <button type="button" className="solo-back-button" onClick={leaveGame} aria-label="게임 모드 선택으로 돌아가기">
+            <ArrowLeft aria-hidden="true" size={18} />
+          </button>
+          <div>
           <p className="eyebrow">SOLO · BLOCK STACK</p>
           <h1 aria-label="지문자 테트리수">지문자 테트리<span aria-hidden="true">수</span></h1>
+        </div>
         </div>
         <div className="solo-controls">
           <button type="button" onClick={startOrResume} disabled={snapshot.runState === "RUNNING" || sessionStarting}>
