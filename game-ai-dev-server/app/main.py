@@ -22,8 +22,10 @@ from .model_adapter import ModelRunner, create_model_runner, load_recognition_re
 from .recognition_session import RecognitionSession
 
 
-HOST = "localhost"
-PORT = 8765
+import os
+
+HOST = os.getenv("HANDPRACTICE_AI_HOST", "127.0.0.1").strip()
+PORT = int(os.getenv("HANDPRACTICE_AI_PORT", "8765"))
 
 
 def process_request(session: RecognitionSession, raw_message: str) -> list[dict[str, object]]:
