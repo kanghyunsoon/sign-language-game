@@ -99,13 +99,13 @@ description: "Task list for Backend Refactoring & Hardening Backlog"
 
 ### Tests (US3)
 
-- [ ] T025 [P] [US3] 최초 입장→상대 `PEER_JOINED` 수신 & 재접속 분기·전송 실패 격리 통합 테스트 `.../test/.../game/realtime/GameRoomWebSocketHandlerTest.java` (GAME-02-21-T04/T05)
+- [X] T025 [P] [US3] 최초 입장→상대 `PEER_JOINED` 수신 & 재접속 분기·전송 실패 격리 통합 테스트 `.../test/.../game/realtime/GameRoomWebSocketHandlerTest.java` (GAME-02-21-T04/T05) — 3건 추가(최초 입장 전파 / 재접속은 `PEER_RECONNECTED`만 / 상대 세션 없어도 연결 수립 성공). **기존 테스트 3건 기대값 갱신**: 먼저 접속한 참가자의 큐에 `PEER_JOINED`가 선행하므로 `setReady`·`startGame`·`SIGNAL` 테스트에서 `drainPeerJoined`로 명시 소비(계약 추가에 따른 정상 변경)
 
 ### Implementation (US3)
 
-- [ ] T026 [US3] `PEER_JOINED` 메시지 타입을 `backend/specs/002-realtime-sse-websocket/contracts/realtime-websocket-messages.md`에 추가(본 스펙 contracts delta 반영) (FR-016, GAME-02-21-T01)
-- [ ] T027 [US3] `RoomRealtimeNotifier.notifyPeerJoined(roomId, userId)` 추가 + `WebSocketRoomRealtimeNotifier` 구현(sendToOthers PEER_JOINED) `.../game/realtime/RoomRealtimeNotifier.java`, `.../game/realtime/WebSocketRoomRealtimeNotifier.java` (FR-016, GAME-02-21-T02)
-- [ ] T028 [US3] `afterConnectionEstablished`의 **최초 확정(비-재접속)** 경로에서 `notifyPeerJoined` 호출 `.../game/realtime/GameRoomWebSocketHandler.java` (FR-016, GAME-02-21-T03, depends T027)
+- [X] T026 [US3] `PEER_JOINED` 메시지 타입을 `backend/specs/002-realtime-sse-websocket/contracts/realtime-websocket-messages.md`에 추가(본 스펙 contracts delta 반영) (FR-016, GAME-02-21-T01) — 서버→클라이언트 표에 행 추가 + 핸드셰이크 "성공 시" 항목에 최초 확정/재접속 분기 명시. FR 번호가 spec 002의 FR-016(PEER_LEFT)과 겹치므로 `spec 004 FR-016`으로 표기
+- [X] T027 [US3] `RoomRealtimeNotifier.notifyPeerJoined(roomId, userId)` 추가 + `WebSocketRoomRealtimeNotifier` 구현(sendToOthers PEER_JOINED) `.../game/realtime/RoomRealtimeNotifier.java`, `.../game/realtime/WebSocketRoomRealtimeNotifier.java` (FR-016, GAME-02-21-T02)
+- [X] T028 [US3] `afterConnectionEstablished`의 **최초 확정(비-재접속)** 경로에서 `notifyPeerJoined` 호출 `.../game/realtime/GameRoomWebSocketHandler.java` (FR-016, GAME-02-21-T03, depends T027) — 기존 `reconnect` 판정만으로는 부족: 이미 확정된 세션이 살아있는 상태의 추가 연결(멀티탭)은 `reconnect=false`라 `else`로 두면 `PEER_JOINED`가 중복 발송된다. `setConfirmed(true)` 이전 값을 `firstConfirmation`으로 따로 캡처해 최초 확정에서만 발송
 
 **Checkpoint**: US1~US3 독립 동작
 
