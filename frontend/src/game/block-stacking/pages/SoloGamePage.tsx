@@ -178,7 +178,7 @@ export function SoloGamePage({
     if (snapshot.runState !== "GAME_OVER" || savedGameOverRef.current) return;
     savedGameOverRef.current = true;
     const coordinator = sessionCoordinatorRef.current;
-    if (coordinator === null || coordinator.getActiveSession() === null) return;
+    if (coordinator === null) return;
     setCompletionError(null);
     void coordinator.complete(toCompleteSoloSessionRequest(snapshot, recognition.learningStats, Date.now()))
       .then((result) => setSavedResult(result))
@@ -236,8 +236,8 @@ export function SoloGamePage({
       try {
         await coordinator.start({ difficulty: "BEGINNER", symbolRange: recognition.playableSymbols, playMode: "AI" });
       } catch (error) {
-        // Score persistence must not make the local game unplayable.
-        setCompletionError("점수 서버와 연결하지 못해 이번 판은 로컬 게임으로 진행합니다. 결과 저장 API가 연결되면 자동 저장을 다시 사용할 수 있습니다.");
+        setCompletionError(error instanceof Error ? error.message : "Failed to start the solo session.");
+        return;
       } finally {
         setSessionStarting(false);
       }

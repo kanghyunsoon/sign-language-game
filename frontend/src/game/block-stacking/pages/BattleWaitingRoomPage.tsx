@@ -176,8 +176,8 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   const canRequestStart = Boolean(isHost && room?.currentUserReady);
 
   return (
-    <main className={`${styles.page} ${styles.waitingPage}`}>
-      <header className={`${styles.pageHeader} ${styles.waitingHero}`}>
+    <main className={styles.page}>
+      <header className={styles.pageHeader}>
         <div>
           <span className={styles.eyebrow}>1:1 지문자 대전 대기실</span>
           <h1>{room?.title ?? "대기실 불러오는 중"}</h1>
