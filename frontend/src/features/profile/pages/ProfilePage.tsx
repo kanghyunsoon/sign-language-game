@@ -31,8 +31,20 @@ export function ProfilePage() {
         <img className="profile-ring profile-ring-right" src={profileRingRight} alt="" aria-hidden="true" />
 
         <header className="profile-header">
-          <Link className="profile-home-button" to="/main" aria-label="메인페이지로 이동">
-            <span>메인 페이지</span>
+          <nav className="profile-nav" aria-label="주요 메뉴">
+            <Link to="/main">메인페이지</Link>
+            <Link to="/practice">연습</Link>
+            <Link to="/test">테스트</Link>
+            <Link to="/dictionary">사전</Link>
+            <Link to="/game">게임</Link>
+          </nav>
+
+          <Link
+            className="profile-mypage-button active"
+            to="/profile"
+            aria-current="page"
+          >
+            마이페이지
           </Link>
 
           {/* <div className="profile-header-summary">
