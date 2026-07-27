@@ -27,6 +27,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-cache'
     implementation 'com.github.ben-manes.caffeine:caffeine'
+    // Spring Boot 4는 자동설정이 모듈로 쪼개져 있어, flyway-core만 넣으면 라이브러리는 클래스패스에
+    // 있지만 자동설정이 붙지 않아 spring.flyway.* 설정이 통째로 무시된다(마이그레이션이 실행되지 않음).
+    implementation 'org.springframework.boot:spring-boot-flyway'
     implementation 'org.flywaydb:flyway-core'
     implementation 'org.flywaydb:flyway-mysql'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'
@@ -56,6 +59,11 @@ tasks.named('test') {
     useJUnitPlatform {
         excludeTags 'benchmark'
     }
+    // 테스트에서는 Flyway를 돌리지 않는다. 슬라이스 테스트는 H2 + ddl-auto로 스키마를 만들고
+    // (MySQL 전용 DDL인 V1이 H2에서 실행되면 깨진다), 통합 테스트는 이미 준비된 개발 DB 스키마를
+    // 쓰므로 테스트가 개발자 DB에 마이그레이션을 적용해버리는 것도 막아야 한다.
+    // 마이그레이션 자체의 검증은 전용 컨테이너를 쓰는 FlywayMigrationTest가 담당한다.
+    systemProperty 'spring.flyway.enabled', 'false'
 }
 
 // 인덱스 효과 측정 등 성능 벤치마크 전용. 실행: ./gradlew benchmark
