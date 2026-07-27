@@ -168,9 +168,12 @@ description: "Task list for Backend Refactoring & Hardening Backlog"
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T042 [P] 운영 배포 문서에 CORS 필수 환경변수·Flyway 컨벤션 명시 `docs/` 또는 `quickstart.md` (STABLE-08-09-T05, STABLE-08-10-T05)
-- [ ] T043 `quickstart.md` 검증 시나리오 전체 실행(회귀 0 확인)
-- [ ] T044 `./gradlew build` 그린 확인(기존 + 신규 테스트 통과, SC-006)
+- [X] T042 [P] ~~운영 배포 문서에 CORS 필수 환경변수·Flyway 컨벤션 명시~~ **문서 미작성 결정(N/A)** — 사용자 판단으로 별도 배포 문서를 두지 않는다. 두 항목의 근거와 규칙은 코드 주석에 남아 있다: CORS 미설정 fail-closed 정책과 사유는 `CorsConfig` javadoc + 기동 경고 로그, Flyway 컨벤션(`ddl-auto=none` 유지, baseline-on-migrate 의미, 테스트에서 비활성화하는 이유)은 `application.yaml` 주석과 `FlywayMigrationTest` javadoc (STABLE-08-09-T05, STABLE-08-10-T05)
+- [X] T043 `quickstart.md` 검증 시나리오 전체 실행(회귀 0 확인) — 전 항목 확인. **검증 공백 3건을 발견해 함께 해소**:
+    - **FR-014에 테스트가 없었다** — T022에서 도메인 예외로 전환만 하고 검증을 두지 않았다. `GameRoomCodeGenerationTest` 신설: 리포지토리가 항상 "중복"이라고 답하게 해 재시도 한도를 소진시키고, 표준 예외가 아닌 `ROOM_CODE_GENERATION_FAILED`가 나오는지와 저장이 일어나지 않는지 확인
+    - **FR-021/022/023이 yaml에만 있고 런타임 반영 검증이 없었다** — 키를 오타내도 기동은 성공하므로 값이 조용히 무시될 수 있다. `OperationalPropertiesTest` 신설: `open-in-view=false`, 트랜잭션 3s·쿼리 타임아웃 3000ms, Hikari connection/validation timeout, `batch_size=30`·`order_inserts/updates`를 빈에서 직접 읽어 단언
+    - **FR-018/019는 앱 기동이 필요했다** — 실제 기동으로 확인 완료: Flyway가 `flyway_schema_history`를 생성하고 v1을 baseline으로 기록한 뒤 v2를 적용(`Successfully applied 1 migration ... now at version v2`), `CorsConfig` 경고 로그 출력 확인. 적용 후 `game_rooms` 인덱스가 `idx_room_status_updated_at(status, updated_at)`로 교체되고 `idx_room_status`는 제거됐으며, 정리 조회 EXPLAIN이 `key_len=1 → 6`, `Extra="Using where; Using index"`로 바뀌어 **커버링 인덱스가 실제로 성립**함을 확인
+- [X] T044 `./gradlew build` 그린 확인(기존 + 신규 테스트 통과, SC-006) — BUILD SUCCESSFUL
 
 ---
 
