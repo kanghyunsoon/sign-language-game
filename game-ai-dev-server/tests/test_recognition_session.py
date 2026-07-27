@@ -5,6 +5,7 @@ from unittest.mock import ANY
 
 import numpy as np
 
+from app.feature_adapter import FEATURE_SIZE
 from app.messages import Landmark, capabilities_message, parse_request
 from app.model_adapter import LABELS, MODEL_VERSION, ModelContract, load_recognition_readiness
 from app.recognition_session import RecognitionConfig, RecognitionSession
@@ -26,7 +27,7 @@ class RecognitionSessionTests(unittest.TestCase):
             {"symbol": "ㄱ", "confidence": ANY},
             {"symbol": "ㄴ", "confidence": ANY},
         ])
-        self.assertEqual(runner.calls[0].shape, (1, 2, 55))
+        self.assertEqual(runner.calls[0].shape, (1, 2, FEATURE_SIZE))
 
     def test_server_never_confirms_or_locks_a_held_pose(self) -> None:
         runner = MockModelRunner([np.array([0.95, 0.05], dtype=np.float32)] * 3)
@@ -43,7 +44,7 @@ class RecognitionSessionTests(unittest.TestCase):
         self.assertEqual(session.process_hand_not_detected(1100), [])
         self.assertEqual(session.process_hand_not_detected(1200), [])
         session.process_landmark_frame(2, 1300, parsed_landmarks(2, 1300))
-        self.assertEqual(runner.calls[-1].shape, (1, 2, 55))
+        self.assertEqual(runner.calls[-1].shape, (1, 2, FEATURE_SIZE))
         np.testing.assert_array_equal(runner.calls[-1][0, 0], runner.calls[-1][0, 1])
 
     def test_prediction_top_candidates_are_unique_sorted_and_match_top_one(self) -> None:
