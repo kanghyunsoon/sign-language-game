@@ -145,7 +145,7 @@ button {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  height: 100;
+  min-height: 600px;
   /* 
   display: grid; */
   /* 핵심 변경 사항: 
