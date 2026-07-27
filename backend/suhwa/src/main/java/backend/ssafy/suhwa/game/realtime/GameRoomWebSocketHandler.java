@@ -64,6 +64,10 @@ public class GameRoomWebSocketHandler extends TextWebSocketHandler {
         // "재접속"을 의미한다 — 최초 연결도 join()이 걸어둔 확인 대기 타이머 때문에 pendingTask가
         // 항상 있으므로, pendingTask 존재 여부만으로 판단하면 최초 연결까지 재접속으로 오인한다.
         boolean reconnect = participant.isConfirmed() && participant.getPendingTask() != null;
+        // 아직 한 번도 확정된 적 없는 참가자의 연결만 "최초 입장"이다(spec 004 FR-016). 이미
+        // 확정된 세션이 살아있는 상태에서 들어오는 추가 연결(멀티탭)은 재접속도 입장도 아니므로
+        // 어느 쪽 신호도 보내지 않는다.
+        boolean firstConfirmation = !participant.isConfirmed();
         participant.cancelPending();
         participant.setConfirmed(true);
 
@@ -75,6 +79,8 @@ public class GameRoomWebSocketHandler extends TextWebSocketHandler {
 
         if (reconnect) {
             notifier.notifyPeerReconnected(roomId, userId);
+        } else if (firstConfirmation) {
+            notifier.notifyPeerJoined(roomId, userId);
         }
     }
 

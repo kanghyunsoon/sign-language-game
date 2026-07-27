@@ -10,12 +10,13 @@ OpenAPI 3.0은 WebSocket을 표현할 수 없어 이 문서에서 별도로 정�
 - **엔드포인트**: `/ws/game-rooms/{roomId}?ticket=...` — 브라우저 표준 `WebSocket` API는 `EventSource`와 마찬가지로 핸드셰이크에 커스텀 헤더를 실어보낼 수 없으므로(초안에서 "Authorization 헤더로 검증"이라고 잘못 설계했던 부분을 리뷰로 발견해 수정), 로비 SSE와 동일하게 `POST /auth/sse-ticket`으로 발급받은 단기 1회용 티켓을 쿼리 파라미터로 전달한다(FR-024, research.md #8).
 - **인증**: `HandshakeInterceptor`가 `ticket` 쿼리 파라미터를 조회 즉시 소비(consume)해 `userId`를 얻는다. 유효하지 않거나 이미 소비된 티켓이면 핸드셰이크를 거부한다.
 - **방 소속 검증**: 인증된 `userId`가 해당 `roomId`의 `RoomParticipantRegistry`에 참가자로 등록돼 있는지 확인한다. `create()`/`join()` 시점에 이미 등록돼 있으므로(FR-029, research.md #14) 정상 경로에서는 DB 재조회가 필요 없다. 등록돼 있지 않으면 핸드셰이크 자체를 거부(FR-024, User Story 13).
-- **성공 시**: 해당 참가자의 `ParticipantLiveState`가 아직 미확정(`confirmed=false`, 방금 생성/입장한 직후)이었다면 확인 대기 타이머를 취소하고 확정 처리하며, 이미 확정된 참가자의 재접속이었다면 유예 타이머를 취소한다 — 두 경우 모두 같은 코드 경로다(FR-020, FR-029, research.md #12). 기존 세션이 아직 열려 있으면(멀티탭 등) 서버가 `close()`한 뒤 새 세션 참조로 교체한다.
+- **성공 시**: 해당 참가자의 `ParticipantLiveState`가 아직 미확정(`confirmed=false`, 방금 생성/입장한 직후)이었다면 확인 대기 타이머를 취소하고 확정 처리하며, 이미 확정된 참가자의 재접속이었다면 유예 타이머를 취소한다 — 두 경우 모두 같은 코드 경로다(FR-020, FR-029, research.md #12). 기존 세션이 아직 열려 있으면(멀티탭 등) 서버가 `close()`한 뒤 새 세션 참조로 교체한다. 최초 확정이었다면 나머지 참가자에게 `PEER_JOINED`를, 재접속이었다면 `PEER_RECONNECTED`를 발송한다(spec 004 FR-016).
 
 ## 서버 → 클라이언트 메시지
 
 | type | 발생 시점 | payload | 대응 FR |
 |---|---|---|---|
+| `PEER_JOINED` | 같은 방의 신규 참가자가 **최초로** 연결을 확정했을 때(본인 제외 나머지 참가자에게 전송). 이미 확정됐던 참가자의 재연결은 `PEER_RECONNECTED`로만 보내며 이 메시지를 보내지 않고, 확정된 세션이 살아있는 상태의 추가 연결(멀티탭)은 둘 다 보내지 않는다. 상대 세션이 없거나 닫혀 있어 전송에 실패해도 연결 수립 자체는 성공으로 처리한다 | `{ "userId": number }` | spec 004 FR-016 |
 | `PEER_DISCONNECTED` | 같은 방의 상대방 연결이 끊겨 유예 시간이 시작될 때 | `{ "userId": number }` | FR-019 |
 | `PEER_RECONNECTED` | 유예 시간 안에 상대방이 재접속에 성공했을 때 | `{ "userId": number }` | FR-019 |
 | `PEER_LEFT` | 다음 세 경로 중 하나로 `leave()`가 호출된 결과: (1) 재접속 유예 시간이 만료되어 실제 퇴장이 확정됐을 때, (2) 상대방이 명시적으로 `POST /game-rooms/{roomId}/leave`를 호출해 즉시 퇴장했을 때, (3) 방 생성/입장 후 최초 연결 확인 대기 시간(15초)이 만료됐을 때(FR-029) — 세 경로 모두 `GameRoomService.leave()` 내부의 동일한 브로드캐스트 호출 하나로 처리된다(research.md #12) | `{ "userId": number, "newHostUserId": number \| null }` | FR-016, FR-018, FR-019, FR-029 |

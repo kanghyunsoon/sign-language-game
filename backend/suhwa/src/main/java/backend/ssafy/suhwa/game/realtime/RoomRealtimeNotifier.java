@@ -7,6 +7,12 @@ package backend.ssafy.suhwa.game.realtime;
  */
 public interface RoomRealtimeNotifier {
 
+    /**
+     * spec 004 FR-016 — 신규 참가자가 최초로 실시간 연결을 확정했을 때(재접속은 제외) 같은 방
+     * 상대방에게. 재연결은 {@link #notifyPeerReconnected}가 담당한다.
+     */
+    void notifyPeerJoined(Long roomId, Long userId);
+
     /** FR-019 — 같은 방 상대방 연결이 끊겨 유예 시간이 시작될 때. */
     void notifyPeerDisconnected(Long roomId, Long userId);
 

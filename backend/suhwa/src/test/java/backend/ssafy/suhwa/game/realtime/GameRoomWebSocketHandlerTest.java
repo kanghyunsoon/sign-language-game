@@ -80,6 +80,65 @@ class GameRoomWebSocketHandlerTest {
                 .get(5, TimeUnit.SECONDS);
     }
 
+    /**
+     * 먼저 접속해 있던 참가자는 뒤이어 들어온 참가자의 최초 입장 신호(PEER_JOINED, spec 004
+     * FR-016)를 받는다. 입장 신호 자체가 검증 대상이 아닌 테스트에서 뒤따르는 단언이 이 메시지에
+     * 걸리지 않도록 먼저 비운다.
+     */
+    private void drainPeerJoined(BlockingQueue<String> messages) throws InterruptedException {
+        assertThat(messages.poll(3, TimeUnit.SECONDS)).contains("PEER_JOINED");
+    }
+
+    @Test
+    void firstConnection_notifiesPeerJoinedToAlreadyConnectedPeer() throws Exception {
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
+        gameRoomService.join(room.roomCode(), guestId);
+
+        BlockingQueue<String> hostMessages = new LinkedBlockingQueue<>();
+        connect(room.id(), hostId, hostMessages);
+        connect(room.id(), guestId, new LinkedBlockingQueue<>());
+
+        assertThat(hostMessages.poll(3, TimeUnit.SECONDS))
+                .as("신규 참가자의 최초 확정 시 이미 접속 중인 상대에게 PEER_JOINED가 가야 한다")
+                .contains("PEER_JOINED")
+                .contains("\"userId\":" + guestId);
+    }
+
+    @Test
+    void reconnect_sendsPeerReconnectedOnly_notPeerJoined() throws Exception {
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
+        gameRoomService.join(room.roomCode(), guestId);
+
+        BlockingQueue<String> guestMessages = new LinkedBlockingQueue<>();
+        WebSocketSession hostSession = connect(room.id(), hostId, new LinkedBlockingQueue<>());
+        connect(room.id(), guestId, guestMessages);
+
+        hostSession.close();
+        assertThat(guestMessages.poll(3, TimeUnit.SECONDS)).contains("PEER_DISCONNECTED");
+
+        connect(room.id(), hostId, new LinkedBlockingQueue<>());
+
+        assertThat(guestMessages.poll(3, TimeUnit.SECONDS))
+                .as("이미 확정됐던 참가자의 재연결은 PEER_RECONNECTED이며 PEER_JOINED가 아니어야 한다")
+                .contains("PEER_RECONNECTED")
+                .doesNotContain("PEER_JOINED");
+    }
+
+    @Test
+    void firstConnection_succeedsEvenWhenPeerHasNoLiveSession() throws Exception {
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
+        gameRoomService.join(room.roomCode(), guestId);
+        // host는 실시간 연결을 맺지 않은 상태 — 상대에게 보낼 PEER_JOINED 전송이 불가능해도
+        // guest의 연결 수립 자체는 성공해야 한다(전송 실패 격리).
+
+        WebSocketSession guestSession = connect(room.id(), guestId, new LinkedBlockingQueue<>());
+
+        assertThat(guestSession.isOpen()).isTrue();
+        assertThat(gameRoomRepository.findById(room.id()).orElseThrow().getStatus())
+                .isEqualTo(GameRoomStatus.WAITING);
+        guestSession.close();
+    }
+
     @Test
     void disconnect_reconnectWithinGrace_cancelsLeave() throws Exception {
         GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
@@ -153,6 +212,7 @@ class GameRoomWebSocketHandlerTest {
         BlockingQueue<String> hostMessages = new LinkedBlockingQueue<>();
         connect(room.id(), hostId, hostMessages);
         connect(room.id(), guestId, new LinkedBlockingQueue<>());
+        drainPeerJoined(hostMessages);
 
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
@@ -247,6 +307,7 @@ class GameRoomWebSocketHandlerTest {
         BlockingQueue<String> guestMessages = new LinkedBlockingQueue<>();
         connect(room.id(), hostId, hostMessages);
         connect(room.id(), guestId, guestMessages);
+        drainPeerJoined(hostMessages);
 
         gameRoomService.start(room.id(), hostId);
 
@@ -263,6 +324,7 @@ class GameRoomWebSocketHandlerTest {
         BlockingQueue<String> guestMessages = new LinkedBlockingQueue<>();
         WebSocketSession hostSession = connect(room.id(), hostId, hostMessages);
         connect(room.id(), guestId, guestMessages);
+        drainPeerJoined(hostMessages);
 
         Long otherRoomUserId = userRepository.save(User.builder()
                         .email("wsother-" + System.nanoTime() + "@test.com").passwordHash("h").nickname("wsother")
