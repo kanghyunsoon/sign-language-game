@@ -36,8 +36,12 @@ public class GameRoomCleanupScheduler {
         this.waitingRoomRetentionMinutes = waitingRoomRetentionMinutes;
     }
 
+    /**
+     * 전역 트랜잭션 타임아웃(3초, FR-022)은 사용자 요청 기준이라, 방이 많이 쌓였을 때의 벌크
+     * 정리에는 짧다. 이 배치만 30초로 늘린다.
+     */
     @Scheduled(fixedDelay = 60_000)
-    @Transactional
+    @Transactional(timeout = 30)
     public void cleanupStaleRooms() {
         LocalDateTime now = LocalDateTime.now();
         List<GameRoom> targets = new ArrayList<>();
