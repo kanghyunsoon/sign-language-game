@@ -21,6 +21,11 @@ public class WebSocketRoomRealtimeNotifier implements RoomRealtimeNotifier {
     }
 
     @Override
+    public void notifyPeerJoined(Long roomId, Long userId) {
+        sendToOthers(roomId, userId, "PEER_JOINED", Map.of("userId", userId));
+    }
+
+    @Override
     public void notifyPeerDisconnected(Long roomId, Long userId) {
         sendToOthers(roomId, userId, "PEER_DISCONNECTED", Map.of("userId", userId));
     }
