@@ -75,17 +75,17 @@ description: "Task list for Backend Refactoring & Hardening Backlog"
 
 ### Tests (US2)
 
-- [ ] T017 [P] [US2] 동시 `reportResult` 경합/데드락 재현 테스트 `.../test/.../game/ReportResultConcurrencyTest.java` (GAME-02-13-T03. **재확인: 현행은 User 행 갱신이 없고 `game_results` INSERT뿐이라 원안 데드락 구조가 없을 수 있음 — 실제 경합 여부부터 테스트로 확인**)
-- [ ] T018 [P] [US2] 대전 결과 `game_results` 기록 정합성(같은 방/게임 중복 행 없음) 검증 테스트 `.../test/.../gameresult/GameResultIntegrityTest.java` (GAME-02-16-T04. **스키마 변경 반영: `game_sessions`·`users.win_count`는 RANK-01-02 마이그레이션(04_drop)으로 이미 삭제됨 → 검증 대상은 `game_results`**)
+- [X] T017 [P] [US2] 동시 `reportResult` 경합/데드락 재현 테스트 `.../test/.../game/ReportResultConcurrencyTest.java` (GAME-02-13-T03. **재확인: 현행은 User 행 갱신이 없고 `game_results` INSERT뿐이라 원안 데드락 구조가 없을 수 있음 — 실제 경합 여부부터 테스트로 확인**)
+- [X] T018 [P] [US2] 대전 결과 `game_results` 기록 정합성(같은 방/게임 중복 행 없음) 검증 테스트 `.../test/.../gameresult/GameResultIntegrityTest.java` (GAME-02-16-T04. **스키마 변경 반영: `game_sessions`·`users.win_count`는 RANK-01-02 마이그레이션(04_drop)으로 이미 삭제됨 → 검증 대상은 `game_results`**)
 
 ### Implementation (US2)
 
-- [ ] T019 [US2] **[재확인 필요]** `reportResult` 데드락 안전성 확보. **주의: GAME-02-13 원안(winnerId/loserId 정렬 후 `users` 단일 조회·갱신)은 win_count 삭제로 User 갱신이 사라져 무효.** 현행 `game_results` INSERT 2건(winner score=1 / loser score=0)의 FK 락 순서 등 실제 경합이 T017에서 확인되면 삽입 순서 고정 등으로 대응, 없으면 조치 불요 `.../game/service/GameRoomService.java` (FR-012, GAME-02-13)
-- [ ] T020 [US2] **[조건부]** `GlobalExceptionHandler`에 `DataAccessException` 전용 핸들러(`ErrorResponse` 500) 추가 — 현재 없음. 단 T041의 catch-all `Exception`→500이 들어가면 사실상 커버되므로, DB 오류를 별도 로깅/코드로 구분할 필요가 있을 때만 별도 추가 `.../common/exception/GlobalExceptionHandler.java` (FR-012→FR-024, GAME-02-13-T02)
-- [ ] T021 [US2] `GameRoomCleanupScheduler.cleanupStaleRooms`의 `deleteAll(targets)`를 `@Modifying` 단일 벌크 DELETE로 전환 `.../game/scheduler/GameRoomCleanupScheduler.java`, `.../game/repository/GameRoomRepository.java` (FR-013, GAME-02-14-T01)
-- [ ] T022 [P] [US2] `ErrorCode.ROOM_CODE_GENERATION_FAILED` 추가 + `generateUniqueRoomCode` 실패를 `BusinessException`으로 전환 `.../common/exception/ErrorCode.java`, `.../game/service/GameRoomService.java` (FR-014, GAME-02-15-T01)
-- [ ] T023 [US2] **[재확인 필요]** `game_results` 결과 기록 정합성 강화. **주의: GAME-02-16 원안(`game_sessions` 보강·`started_at` 컬럼·win_count 파생캐시 불일치)은 RANK-01-02 마이그레이션으로 `game_sessions`/`win_count`가 삭제되며 대부분 무효화됨.** 남은 실질 작업은 대전 결과 중복 행 방지 제약(예: 방·게임 단위 유니크)이 필요한지 현행 `game_results` 스키마 기준으로 재확정 후, 필요 시 `V2__game_results_integrity.sql` 작성 `.../resources/db/migration/` (FR-015, GAME-02-16, depends T006. **버전 선점: `V2`, T033=`V3`**)
-- [ ] T024 [US2] `game_results` 기반 랭킹/전적 정합성 검증 쿼리 작성·문서화(중복·누락 탐지). game_sessions/win_count 대조는 폐기 `data-model.md` 또는 `.../resources/db/queries/` (FR-015, GAME-02-16-T03)
+- [X] T019 [US2] **[재확인 필요]** `reportResult` 데드락 안전성 확보. **주의: GAME-02-13 원안(winnerId/loserId 정렬 후 `users` 단일 조회·갱신)은 win_count 삭제로 User 갱신이 사라져 무효.** 현행 `game_results` INSERT 2건(winner score=1 / loser score=0)의 FK 락 순서 등 실제 경합이 T017에서 확인되면 삽입 순서 고정 등으로 대응, 없으면 조치 불요 `.../game/service/GameRoomService.java` (FR-012, GAME-02-13) — **결정(조치 불요)**: 현행 `reportResult`는 User 행 갱신 없이 `game_results` INSERT + `game_rooms` 상태전이(`@Version` 낙관적 락)뿐이라 원안 데드락 구조가 없음. 동시 보고는 낙관적 락 충돌(409) 또는 상태 가드(ROOM_NOT_IN_PROGRESS)로 정확히 1회만 기록됨을 `ReportResultConcurrencyTest`(T017)로 확인. 코드 변경 없음.
+- [X] T020 [US2] **[조건부]** `GlobalExceptionHandler`에 `DataAccessException` 전용 핸들러(`ErrorResponse` 500) 추가 — 현재 없음. 단 T041의 catch-all `Exception`→500이 들어가면 사실상 커버되므로, DB 오류를 별도 로깅/코드로 구분할 필요가 있을 때만 별도 추가 `.../common/exception/GlobalExceptionHandler.java` (FR-012→FR-024, GAME-02-13-T02) — **결정(US5 T041로 위임)**: `DataAccessException` 전용 핸들러는 추가하지 않고, US5의 catch-all `Exception`→500(T041, `ErrorResponse` 일관 포맷)으로 커버. 현시점 DB 오류를 별도 코드로 구분할 요구가 없음.
+- [X] T021 [US2] `GameRoomCleanupScheduler.cleanupStaleRooms`의 `deleteAll(targets)`를 `@Modifying` 단일 벌크 DELETE로 전환 `.../game/scheduler/GameRoomCleanupScheduler.java`, `.../game/repository/GameRoomRepository.java` (FR-013, GAME-02-14-T01)
+- [X] T022 [P] [US2] `ErrorCode.ROOM_CODE_GENERATION_FAILED` 추가 + `generateUniqueRoomCode` 실패를 `BusinessException`으로 전환 `.../common/exception/ErrorCode.java`, `.../game/service/GameRoomService.java` (FR-014, GAME-02-15-T01)
+- [X] T023 [US2] **[재확인 필요]** `game_results` 결과 기록 정합성 강화. **주의: GAME-02-16 원안(`game_sessions` 보강·`started_at` 컬럼·win_count 파생캐시 불일치)은 RANK-01-02 마이그레이션으로 `game_sessions`/`win_count`가 삭제되며 대부분 무효화됨.** 남은 실질 작업은 대전 결과 중복 행 방지 제약(예: 방·게임 단위 유니크)이 필요한지 현행 `game_results` 스키마 기준으로 재확정 후, 필요 시 `V2__game_results_integrity.sql` 작성 `.../resources/db/migration/` (FR-015, GAME-02-16, depends T006. **버전 선점: `V2`, T033=`V3`**) — **결정(마이그레이션 불필요)**: `game_results`는 insert-only 로그이고 `room_id`가 없으며 재대결마다 행이 누적되는 것이 정상이라 중복방지 유니크 제약이 오히려 부정확함. 낙관적 락(T019)이 동시 중복 기록을 이미 차단. 따라서 V2 미작성 — **`V2` 버전 번호는 미사용으로 남고, T033은 그대로 `V2`로 당겨 사용 가능**. 정합성은 사후 진단 쿼리(T024)로 대체.
+- [X] T024 [US2] `game_results` 기반 랭킹/전적 정합성 검증 쿼리 작성·문서화(중복·누락 탐지). game_sessions/win_count 대조는 폐기 `data-model.md` 또는 `.../resources/db/queries/` (FR-015, GAME-02-16-T03)
 
 **Checkpoint**: US1 + US2 각각 독립 동작
 

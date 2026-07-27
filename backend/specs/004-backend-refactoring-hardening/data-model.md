@@ -18,8 +18,8 @@
 ## GameResult (게임 결과)
 
 - **현행 스키마**: `game_results(id, user_id, game_type, score, recorded_at)` — 세 게임 종류 공통 결과 기록. 구 `game_sessions` 테이블은 RANK-01-02 마이그레이션(`04_drop_game_sessions_and_users_counters.sql`)으로 **삭제됨**.
-- **제약 보강(FR-015) [재확인 필요]**: GAME-02-16 원안(game_sessions·win_count 파생캐시 불일치)은 무효화됨. 현행 `game_results` 기준으로 대전 결과 중복 행 방지 등 남은 정합성 제약만 재확정 후 Flyway로 반영.
-- 저장 후 검증 쿼리로 기록 정합성 확인.
+- **제약 보강(FR-015) — 재확인 완료(마이그레이션 불필요)**: GAME-02-16 원안(game_sessions·win_count 파생캐시 불일치)은 무효화됨. 현행 `game_results`는 insert-only 로그이고 `room_id`가 없으며 **재대결마다 행 누적이 정상**이라 중복방지 유니크 제약이 부정확함. 동시 중복 기록은 방(@Version) 낙관적 락으로 이미 차단(FR-012). 따라서 스키마 제약을 추가하지 않는다.
+- **정합성은 사후 진단 쿼리로 확인**(`resources/db/queries/game_results_integrity.sql`, FR-015): 탈퇴/부재 사용자 참조·대전 score 범위(0/1) 위반·음수 점수 탐지(정상 시 0건).
 
 ## GameRoom (게임방)
 
