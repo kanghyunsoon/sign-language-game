@@ -4,9 +4,10 @@ import { Sparkles, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import otterImage from "../assets/otter.png";
 import otterCharacter from "../../../game/block-stacking/assets/game-menu-otter.png";
+import type { FingerspellingCategoryId } from "../data/fingerspelling";
 import { PracticeSessionPage } from "./PracticeSessionPage";
 
-type PracticeCategoryId = "consonant" | "vowel" | "number";
+type PracticeCategoryId = FingerspellingCategoryId;
 
 interface PracticeCategory {
   id: PracticeCategoryId;
@@ -45,7 +46,7 @@ export function PracticeHomePage() {
     useState<PracticeCategoryId | null>(null);
   const [activeCategory, setActiveCategory] =
     useState<PracticeCategoryId | null>(null);
-  const [comingSoonMenu, setComingSoonMenu] = useState<"테스트" | "사전" | null>(null);
+  const [comingSoonMenu, setComingSoonMenu] = useState<"테스트" | null>(null);
 
   const selectedPracticeCategory = practiceCategories.find(
     (category) => category.id === selectedCategory,
@@ -92,7 +93,7 @@ export function PracticeHomePage() {
           <Link to="/main">메인페이지</Link>
           <Link className="active" to="/practice">연습</Link>
           <button type="button" onClick={() => setComingSoonMenu("테스트")}>테스트</button>
-          <button type="button" onClick={() => setComingSoonMenu("사전")}>사전</button>
+          <Link to="/dictionary">사전</Link>
           <Link to="/game">게임</Link>
         </nav>
 
@@ -183,7 +184,7 @@ export function PracticeHomePage() {
 
       {comingSoonMenu ? (
         <div className="practice-home-coming-soon-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setComingSoonMenu(null); }}>
-          <section className="practice-home-coming-soon-dialog" data-theme={comingSoonMenu === "테스트" ? "test" : "dictionary"} role="dialog" aria-modal="true" aria-labelledby="practice-home-coming-soon-title">
+          <section className="practice-home-coming-soon-dialog" data-theme="test" role="dialog" aria-modal="true" aria-labelledby="practice-home-coming-soon-title">
             <button type="button" className="practice-home-coming-soon-close" aria-label="팝업 닫기" onClick={() => setComingSoonMenu(null)}><X aria-hidden="true" size={20} /></button>
             <Sparkles className="practice-home-coming-soon-sparkle" aria-hidden="true" size={30} />
             <img src={otterCharacter} alt="" />

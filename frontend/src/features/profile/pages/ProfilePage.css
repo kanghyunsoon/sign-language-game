@@ -71,12 +71,15 @@
   display: grid;
   place-items: center;
   padding: 0 min(.8333vw, 1.3333vh);
-  border: 1px solid rgba(104,79,62,.12);
+  border: min(.0521vw, .0833vh) solid rgba(104,79,62,.12);
   border-radius: 999px;
   color: #705f52;
   text-decoration: none;
   background: rgba(255,255,255,.9);
-  box-shadow: 0 4px 13px rgba(92,72,58,.1);
+  box-shadow:
+    0 min(.2083vw, .3333vh)
+    min(.6771vw, 1.0833vh)
+    rgba(92,72,58,.1);
   cursor: pointer;
 }
 
@@ -155,7 +158,7 @@
   justify-content: center;
   gap: min(.4167vw, .6667vh);
   padding: 0 min(1.5625vw, 2.5vh);
-  border: 1px solid rgba(105,80,60,.1);
+  border: min(.0521vw, .0833vh) solid rgba(105,80,60,.1);
   border-radius: min(1.5625vw, 2.5vh);
   background: rgba(255,253,247,.91);
   box-shadow: 0 min(.5208vw, .8333vh) min(1.5625vw, 2.5vh) rgba(72,51,37,.08);
@@ -170,6 +173,8 @@
 }
 
 .profile-achievement svg {
+  width: min(1.25vw, 2vh);
+  height: min(1.25vw, 2vh);
   color: #e9cf83;
   fill: #e9cf83;
 }
@@ -230,7 +235,10 @@
   font-weight: 800;
   white-space: nowrap;
   background: #fffdf8;
-  box-shadow: 0 3px 9px rgba(72,52,39,.11);
+  box-shadow:
+    0 min(.1563vw, .25vh)
+    min(.4688vw, .75vh)
+    rgba(72,52,39,.11);
   transform: translateX(-50%) rotate(-4deg);
 }
 
@@ -391,6 +399,11 @@
   cursor: pointer;
 }
 
+.profile-name button svg {
+  width: min(1.5625vw, 2.5vh);
+  height: min(1.5625vw, 2.5vh);
+}
+
 .profile-image-change {
   position: absolute;
   bottom: 15%;
@@ -480,7 +493,9 @@
 
 .profile-quick-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns:
+    repeat(2, min(10.4167vw, 16.6667vh));
+  justify-content: center;
   gap: min(.8333vw, 1.3333vh);
   margin-top: min(1.0417vw, 1.6667vh);
 }
@@ -488,14 +503,25 @@
 .profile-quick-actions button,
 .profile-main-button {
   min-height: min(2.7083vw, 4.3333vh);
-  border: 1px solid rgba(102,78,61,.12);
+  border: min(.0521vw, .0833vh) solid rgba(102,78,61,.12);
   border-radius: min(.625vw, 1vh);
   color: #5a493d;
   font-size: min(1.0417vw, 1.6667vh);
   font-weight: 900;
+  white-space: nowrap;
   background: rgba(255,255,255,.88);
-  box-shadow: 0 4px 10px rgba(72,52,39,.06);
+  box-shadow:
+    0 min(.2083vw, .3333vh)
+    min(.5208vw, .8333vh)
+    rgba(72,52,39,.06);
   cursor: pointer;
+}
+
+.profile-quick-actions button {
+  width: min(10.4167vw, 16.6667vh);
+  height: min(2.7083vw, 4.3333vh);
+  min-height: 0;
+  padding: 0;
 }
 
 .profile-quick-actions button:first-child {
@@ -515,181 +541,3 @@
   background: #765b48;
 }
 
-@media (max-width: 760px) {
-  .profile-page {
-    position: relative;
-    min-height: 100vh;
-    height: auto;
-    overflow: auto;
-  }
-
-  .profile-canvas {
-    width: 100%;
-    min-height: 100vh;
-    aspect-ratio: auto;
-    overflow: visible;
-  }
-
-  .profile-header {
-    position: relative;
-    height: 64px;
-  }
-
-  .profile-home-button {
-    top: 16px;
-    left: 18px;
-    min-width: 76px;
-    min-height: 32px;
-    padding: 0 10px;
-  }
-
-  .profile-home-button span {
-    font-size: 10px;
-  }
-
-  .profile-header-summary {
-    top: 16px;
-    right: 18px;
-  }
-
-  .profile-header-summary > span {
-    min-height: 32px;
-    padding: 0 9px;
-    font-size: 9px;
-  }
-
-  .profile-header-summary > span:nth-child(2),
-  .profile-header-summary > button {
-    display: none;
-  }
-
-  .profile-hero,
-  .profile-sidebar {
-    position: relative;
-    inset: auto;
-    width: calc(100% - 32px);
-    margin: 24px auto 0;
-  }
-
-  .profile-hero {
-    height: 600px;
-  }
-
-  .profile-achievement {
-    left: 50%;
-    width: auto;
-    height: 58px;
-    transform: translateX(-50%);
-  }
-
-  .profile-achievement h1 {
-    font-size: min(2.6042vw, 4.1667vh);
-  }
-
-  .profile-character-stage {
-    top: 90px;
-    left: 12%;
-    width: 76%;
-    height: 330px;
-  }
-
-  .profile-floating-item {
-    width: 68px;
-  }
-
-  .profile-floating-item span {
-    padding: 4px 8px;
-    font-size: 13px;
-  }
-
-  .profile-item-sprout { top: 150px; left: 1%; }
-  .profile-item-cap { top: 90px; right: 0; }
-  .profile-item-note { top: 360px; left: 0; }
-  .profile-item-record { top: 330px; right: 0; }
-
-  .profile-level-card {
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    min-height: 96px;
-    grid-template-columns: 22% 1fr 25%;
-    padding: 14px;
-  }
-
-  .profile-level-card > div:first-child span,
-  .profile-total-xp span,
-  .profile-level-progress small,
-  .profile-level-goal span {
-    font-size: 8px;
-  }
-
-  .profile-level-card > div:first-child strong {
-    font-size: 18px;
-  }
-
-  .profile-sidebar {
-    margin-bottom: 36px;
-  }
-
-  .profile-user-card {
-    height: 120px;
-    padding: 16px;
-  }
-
-  .profile-avatar {
-    width: 58px;
-  }
-
-  .profile-name {
-    top: 22px;
-  }
-
-  .profile-name strong {
-    font-size: 18px;
-  }
-
-  .profile-image-change {
-    bottom: 14px;
-    left: 16px;
-    min-height: 25px;
-    padding: 0 8px;
-    font-size: 8px;
-  }
-
-  .profile-stat-card {
-    min-height: 320px;
-    padding: 24px 16px 16px;
-  }
-
-  .profile-stat-list {
-    gap: 20px;
-  }
-
-  .profile-stat-row > span,
-  .profile-stat-row > strong {
-    font-size: 11px;
-  }
-
-  .profile-stat-track {
-    height: 27px;
-  }
-
-  .profile-stat-track small,
-  .profile-total-xp strong,
-  .profile-view-more,
-  .profile-quick-actions button,
-  .profile-page .profile-main-button {
-    font-size: 10px;
-  }
-
-  .profile-view-more {
-    min-width: 92px;
-    min-height: 36px;
-  }
-
-  .profile-quick-actions button,
-  .profile-page .profile-main-button {
-    min-height: 46px;
-    font-size: 13px;
-  }
-}
