@@ -3,7 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import otterDeleteImage from "../assets/otter_delete.png";
 
 interface DeleteAccountModalProps {
+  error?: string | null;
   onClose: () => void;
+  onConfirmDelete: () => Promise<void>;
+  submitting?: boolean;
 }
 
 const deletedAccountData = [
@@ -15,7 +18,12 @@ const deletedAccountData = [
   "랭킹 기록",
 ] as const;
 
-export function DeleteAccountModal({ onClose }: DeleteAccountModalProps) {
+export function DeleteAccountModal({
+  error,
+  onClose,
+  onConfirmDelete,
+  submitting = false,
+}: DeleteAccountModalProps) {
   const initialDevicePixelRatio = useRef(window.devicePixelRatio || 1);
   const initialModalScale = useRef(
     Math.min(window.innerWidth / 1920, window.innerHeight / 1200, 1),
@@ -74,15 +82,22 @@ export function DeleteAccountModal({ onClose }: DeleteAccountModalProps) {
                 className="delete-account-cancel"
                 type="button"
                 onClick={onClose}
+                disabled={submitting}
               >
                 계속 이용하기
               </button>
+              {error && (
+                <p className="delete-account-error" role="alert">
+                  {error}
+                </p>
+              )}
               <button
                 className="delete-account-confirm"
                 type="button"
-                onClick={onClose}
+                onClick={onConfirmDelete}
+                disabled={submitting}
               >
-                탈퇴하기
+                {submitting ? "탈퇴 중..." : "탈퇴하기"}
               </button>
             </div>
           </>

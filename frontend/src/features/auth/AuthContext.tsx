@@ -10,7 +10,7 @@ import {
 } from "react";
 
 import { getAccessToken, clearTokens, setTokens } from "./token/tokenStore";
-import { AuthApiError, getMe, login as loginRequest } from "./api/authApi";
+import { AuthApiError, getMe, login as loginRequest, logout as logoutRequest } from "./api/authApi";
 
 /** GameModule이 요구하는 형태와 동일한 인증 사용자. userId = String(id), displayName = nickname. */
 export interface AuthUser {
@@ -24,7 +24,7 @@ export interface AuthContextValue {
   /** 초기 세션 복원(localStorage 토큰 검증)이 끝났는지 여부. */
   readonly ready: boolean;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const USER_CACHE_KEY = "handpractice.auth.user";
@@ -62,11 +62,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [ready, setReady] = useState(false);
   const mountedRef = useRef(true);
 
-  const logout = useCallback(() => {
-    clearTokens();
-    writeCachedUser(null);
-    setAccessToken(null);
-    setUser(null);
+  const logout = useCallback(async () => {
+    const token = getAccessToken();
+    try {
+      if (token) await logoutRequest(token);
+    } finally {
+      clearTokens();
+      writeCachedUser(null);
+      setAccessToken(null);
+      setUser(null);
+    }
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
@@ -101,7 +106,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       } catch (error) {
         if (!mountedRef.current) return;
         // 401 등 토큰 무효 시 세션을 정리한다(네트워크 오류는 캐시 유지).
-        if (error instanceof AuthApiError && error.status === 401) logout();
+        if (error instanceof AuthApiError && error.status === 401) void logout();
       } finally {
         if (mountedRef.current) setReady(true);
       }
