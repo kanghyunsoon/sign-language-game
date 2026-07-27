@@ -138,7 +138,7 @@ export function SignUpPage() {
                 <span>이용약관 및 개인정보처리방침에 동의합니다.</span>
               </label>
               {error && (
-                <p className="signup-error" role="alert" style={{ color: "#d64545", margin: 0 }}>
+                <p className="signup-error" role="alert">
                   {error}
                 </p>
               )}
