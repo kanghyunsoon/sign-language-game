@@ -124,3 +124,37 @@ Use `wss://` when the frontend is served over HTTPS. Browsers block insecure `ws
 ## Solo score persistence (current deployment)
 
 The backend currently does not publish an authorized POST /game/solo/sessions contract. The frontend therefore keeps the solo game playable and stores completed solo scores in browser local storage by default. Set VITE_ENABLE_REMOTE_SOLO_GAME_API=true only after the backend publishes and accepts the start/complete solo-session endpoints; otherwise it will reproduce the 401 seen in production.
+
+---
+
+## 2026-07-27 ??Production solo game start returned HTTP 401
+
+### Symptom
+
+On `https://sudal-play.vercel.app/game/solo`, pressing **게임 ?�작** displayed `Solo game API returned 401.` and did not start the game.
+
+### Investigation
+
+- The production bundle uses `https://i15a405.p.ssafy.io/api` for both auth and game REST calls.
+- The failing request is `POST /api/game/solo/sessions`.
+- The route reaches the backend and returns `401`; it is not a Vercel deployment, CORS, or WebSocket failure.
+- The current backend/Swagger integration does not publish the legacy solo-session start/complete contract used by this frontend. The authenticated room and result contracts must not be inferred to include it.
+
+### Resolution
+
+- Do not block solo gameplay on the unsupported remote session endpoint.
+- `LocalSoloGameApi` now creates the session and stores the completed aggregate score in browser local storage, scoped by user ID.
+- No camera frames, landmarks, or images are saved.
+- Remote solo persistence remains opt-in through `VITE_ENABLE_REMOTE_SOLO_GAME_API=true`, and must only be enabled after the backend formally provides and authorizes the start/complete session contract.
+
+### Verification
+
+- Local unit test for session creation and persisted score: passed.
+- TypeScript/Vite production build: passed.
+- GitLab pipeline `#157088` and its Vercel production deploy: passed.
+- Production browser retest: **게임 ?�작** changes the game to running state and no alert is rendered.
+
+### Backend follow-up
+
+If cross-device solo score history or a server-side solo ranking is required, backend needs to publish the request/response DTO and authorization policy for a solo score endpoint. Until then, local browser storage is the only supported persistence path.
+
