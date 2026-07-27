@@ -195,8 +195,26 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
     }
   };
 
+  useEffect(() => {
+    if (!roomId || !room?.hostReady || room.guestReady || room.playerCount < room.maxPlayers || room.hostUserId !== user.userId || !gateway.setReady) return;
+    let active = true;
+    const syncReadyState = async () => {
+      try {
+        const next = await gateway.setReady!(roomId, true);
+        if (active) rememberRoom(next);
+      } catch {
+        // The next interval retries. The start button remains safely disabled.
+      }
+    };
+    const timer = window.setInterval(() => void syncReadyState(), 1_000);
+    void syncReadyState();
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [gateway, rememberRoom, room?.guestReady, room?.hostReady, room?.hostUserId, room?.maxPlayers, room?.playerCount, roomId, user.userId]);
   const startGame = async () => {
-    if (!roomId || !room || startingGame) return;
+    if (!roomId || !room || startingGame || !room.hostReady || !room.guestReady || room.playerCount < room.maxPlayers) return;
     setStartingGame(true);
     setError(null);
     try {
@@ -229,7 +247,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
 
   const isHost = room?.hostUserId === user.userId;
   const full = room ? room.playerCount >= room.maxPlayers : false;
-  const canRequestStart = Boolean(isHost && room?.currentUserReady);
+  const canRequestStart = Boolean(isHost && full && room?.hostReady && room?.guestReady);
 
   return (
     <main className={[styles.page, styles.waitingLobby].join(" ")}>
