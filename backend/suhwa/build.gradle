@@ -42,6 +42,9 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-websocket-test'
     testImplementation 'com.tngtech.archunit:archunit-junit5:1.3.0'
+    // 인덱스 효과를 실제 MySQL에서 측정하는 벤치마크용(기본 test 실행에서는 제외 — @Tag("benchmark")).
+    testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
+    testImplementation 'org.testcontainers:testcontainers-mysql'
     testRuntimeOnly 'com.h2database:h2'
     testCompileOnly 'org.projectlombok:lombok'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -49,7 +52,25 @@ dependencies {
 }
 
 tasks.named('test') {
-    useJUnitPlatform()
+    // 벤치마크는 Docker가 필요하고 수 분이 걸리므로 일반 테스트 실행에서 제외한다.
+    useJUnitPlatform {
+        excludeTags 'benchmark'
+    }
+}
+
+// 인덱스 효과 측정 등 성능 벤치마크 전용. 실행: ./gradlew benchmark
+tasks.register('benchmark', Test) {
+    description = 'Testcontainers 기반 성능 벤치마크(@Tag("benchmark"))만 실행한다.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'benchmark'
+    }
+    testLogging {
+        showStandardStreams = true
+    }
+    outputs.upToDateWhen { false }
 }
 
 // 로컬 개발 편의: .env가 있으면 읽어서 bootRun/test 태스크의 환경 변수로 주입한다.
