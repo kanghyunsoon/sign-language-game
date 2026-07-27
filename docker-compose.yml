@@ -1,0 +1,17 @@
+services:
+  ai:
+    image: sudal-ai:latest
+    container_name: sudal-ai
+    restart: unless-stopped
+    init: true
+
+    environment:
+      HANDPRACTICE_AI_HOST: ${HANDPRACTICE_AI_HOST:-0.0.0.0}
+      HANDPRACTICE_AI_PORT: ${HANDPRACTICE_AI_PORT:-8765}
+      HANDPRACTICE_AI_MODEL: ${HANDPRACTICE_AI_MODEL:-baseline}
+
+    ports:
+      - "127.0.0.1:${AI_PORT:-8765}:${AI_PORT:-8765}"
+
+    volumes:
+      - ${AI_MODEL_DIR:-/opt/sudal/ai/models}:/app/models:ro

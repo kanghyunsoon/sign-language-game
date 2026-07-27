@@ -193,7 +193,7 @@ class HybridModelAdapter:
 
 
 def create_model_runner(profile: str | None = None) -> ModelRunner:
-    selected = (profile or os.getenv("HANDPRACTICE_AI_MODEL", "hybrid")).strip().lower()
+    selected = (profile or os.getenv("HANDPRACTICE_AI_MODEL", "baseline")).strip().lower()
     if selected == "baseline":
         return TFLiteModelAdapter()
     if selected == "expanded":

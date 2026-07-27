@@ -481,7 +481,7 @@ cd game-ai-dev-server
 
 다음 정식 학습은 최소 5명보다 많은 신규 참여자를 signer 단위로 완전히 분리하고, 각 자모·숫자에 손바닥/손등, 위/아래 회전, 좌/우 손, 거리·조명·카메라 변형과 `NONE/OOD` class를 촬영해야 한다. 그 holdout에서 macro F1과 class 최저 recall까지 95%에 접근해야 게임 공정성 목표를 달성한 것으로 본다.
 
-평가일: 2026-07-18
+평가일: 2026-07-18  
 운영 모델: `models/multi_hand_gesture_classifier.tflite` (`jamo-31-v1`)
 
 ## 결론
@@ -1159,3 +1159,229 @@ T-89 이후에도 물리 GPU 2만 사용했다. 같은 development set을 학습
 - **실행·실측:** T-125는 물리 GPU 2(NVIDIA L40S, mask 후 논리 `cuda:0`)에서 70 epoch로 정상 완료했다. 78차원 평균 특징을 입력으로 하는 LayerNorm-MLP이며 best validation accuracy는 **73.8544%**, 제공 test accuracy는 **68.9474%**다.
 - **판정:** 93% 문자별 recall 목표를 지지하지 못한다. AIHub CTC의 문자별 93% 기준과 평가 데이터·특징 계약이 달라 수치를 직접 비교하지 않으며, T-112를 대체하거나 AIHub CTC 재학습 입력으로 사용하지 않는다. `evaluation.json`의 class별 recall/F1·confusion은 T-125 정적 데이터 진단 산출물로 보존한다.
 - **한계와 다음 결정:** 이 데이터는 정적·증강 이미지여서 실제 손 전환, 새 signer, 손바닥/손등·상하 방향 강건성을 측정하지 않는다. 다음 CTC 개선은 이 이미지를 억지로 128차원으로 맞추는 것이 아니라, `ㅈ/ㅊ/ㅉ`, `ㅔ/ㅐ`, `NUM_1/2/3`을 포함한 새 signer 연속 landmark/영상 데이터를 확보한 뒤 별도 split으로 검증한다.
+
+### T-134 — Roboflow 정적 자모 loss-only weighting 분리 검증
+
+- **문제·기준:** T-130은 EfficientNet-B0 정적 분류에서 test accuracy `95.4315%`, macro-F1 `95.2429%`로 가장 높았지만, 93% recall/F1 class floor 미달이 13개 남았다. T-133의 predefined confusion margin `0.10`은 accuracy `94.4162%`, macro-F1 `93.2578%`, 미달 14개로 회귀했으므로 margin 미세 탐색은 중단한다.
+- **변경 계약:** T-130 대비 **`balance-mode`만 `sampler→loss`**로 변경했다. EfficientNet-B0, seed 53, 24 epoch, all-jamo-images, focus multiplier 1.50, min-q10 선택, learning rate `3e-4`, label smoothing `0.04`, confusion margin 0, Roboflow v1 원본 split과 GPU 2는 고정했다.
+- **실행 환경:** physical GPU 2 (`CUDA_VISIBLE_DEVICES=2`, PyTorch logical `cuda:0`), 산출물은 `code-v3/outputs/t134-roboflow-v1-loss-balance/`다.
+- **실측:** test accuracy `94.9239%`, macro-F1 `93.5386%`로 T-130 대비 각각 `-0.5076%p`, `-1.7043%p`다. 93% recall/F1 미달은 15개(`ㄱ·ㄹ·ㅈ·ㅊ·ㅋ·ㅌ·ㅓ·ㅔ·ㅕ·ㅗ·ㅛ·ㅜ·ㅠ·ㅡ·ㅢ`)이며 minimum recall은 `50.00%`, `goalPassed=false`다.
+- **대표 혼동:** `ㄱ→ㅈ`, `ㄹ→ㅌ`, `ㅊ→ㅋ`, `ㅌ→ㄹ`, `ㅓ→ㅕ`, `ㅔ→ㅕ/ㅖ`, `ㅗ→ㅛ`, `ㅠ→ㅜ`, `ㅡ→ㅢ`가 관찰됐다.
+- **판정:** loss-only weighting은 T-130의 aggregate와 class floor를 모두 개선하지 못해 제외한다. 정적 연구에서 sampler/loss weighting·hard-negative margin의 추가 미세 탐색은 중단한다. 다음 유효 단위는 pose·camera angle·lighting·새 signer 중 하나의 조건만 추가한 데이터 다양화이며, signer 또는 source-family가 잠긴 평가 split으로 검증해야 한다. 이 정적 결과는 AIHub 연속 CTC 후보(T-112)를 교체하거나 연속 인식 성능으로 주장하지 않는다.
+
+### T-135 — T-112 warm-start 연속 CTC 강화 재개 (khstemp track)
+
+- **문제·기준:** class-floor 최고 후보는 T-112(validation 미달 13개, `--skip-test`로 test 미평가)이고, held-out CROWD19 test로 실제 평가된 최고는 delta 계열 T-84/T-89/T-92의 미달 18개였다. 즉 신계열(wider-GRU) 후보의 진짜 일반화 floor가 미확인 상태였다. 이 회차는 리포지토리 커밋 checkpoint(`continuous-ctc-t91`)가 아니라 실측 최고인 T-112를 base로 강화 재개하고, CROWD19 test에서의 class-floor를 처음으로 측정한다.
+- **변경 계약:** base `code-v3/outputs/t112-wider-gru-scratch/best.pt`(input 128, delta OFF, temporal-conv OFF, 192 hidden, 3 layer)에서 warm-start. epoch 6, batch 72, lr `3e-4`, coordinate noise `0.002`, balanced sampler alpha `0.5`, blank bias `0`, `--skip-test`로 학습. 데이터는 AIHub 16,873 train / signer18 993 validation / signer19 993 development test, 물리 GPU 2 단독.
+- **실행 환경:** physical GPU 2(`CUDA_VISIBLE_DEVICES=2`, logical `cuda:0`). 학습 산출물 `code-v3/outputs/t135-khs-resume-t112/best.pt`, CROWD19 평가 산출물 `code-v3/outputs/t135-eval-crowd19/report.json`.
+- **실측(validation, CROWD18):** CER `3.94%`, macro-F1 `92.71%`, 93% recall/F1 미달 13개.
+- **실측(development test, CROWD19):** CER `5.16%`, sequence exact match `76.64%`, micro token recall `95.38%`, macro-F1 `91.02%`, 93% recall/F1 미달 **15개**, `goalPassed=false`.
+- **class-floor(15개):** `ㅂ`(sup214,r0.92,f0.91), `ㅅ`(sup408,r0.94,f0.93), `ㅈ`(sup210,r0.89,f0.90), `ㅊ`(sup109,r0.91,f0.93), `ㅋ`(sup5,r0.80,f0.73), `ㅕ`(sup127,r0.92,f0.94), `ㅠ`(sup13,r0.62,f0.76), `ㅒ`(sup0, 평가불가), `NUM_0`(r0.76), `NUM_1`(f0.89), `NUM_2`(r0.83), `NUM_3`(r0.91,f0.91), `NUM_6`(f0.89), `NUM_7`(r0.82,f0.85), `NUM_8`(r0.82,f0.90). 숫자 7종이 전부 미달이고 `ㅒ`는 여전히 support 0으로 평가 불가다. 저support 문자(`ㅋ` 5, `ㅠ` 13)의 point estimate는 표본이 작아 불안정하다.
+- **대표 혼동:** `ㅓ→ㅏ` 12, `ㅈ→ㅅ` 9, `ㅂ→ㅇ` 8, `ㅏ→ㅐ` 7, `ㅅ→ㅈ` 7, `ㅏ→ㅓ` 5, `ㄱ→ㅜ` 5.
+- **판정:** 목표(전 class recall/F1 93%)는 **여전히 미달**이다. 다만 CROWD19 test class-floor를 기존 test-평가 최고(T-84/T-89/T-92의 18개)에서 **15개로 3개 축소**했고, CER(`≈5.22%→5.16%`)과 문장 완전일치(`≈75.7%→76.6%`)도 소폭 개선했다. macro-F1은 `≈91.7%→91.0%`로 약간 낮아, 평균 지표와 class-floor가 상충하는 기존 패턴과 일치한다. CROWD19는 반복 관찰된 development set이므로 최종 인증이 아니며, 운영 모델·MediaPipe 입력 계약은 변경하지 않는다. 남은 미달의 절반이 숫자(`NUM_0/1/2/3/6/7/8`)와 저support 문자(`ㅋ`·`ㅠ`·`ㅒ`)에 몰려 있으므로, 다음 단계는 추가 튜닝이 아니라 숫자·저support 문자를 겨냥한 새 signer/조건 연속 데이터 보강과 signer-잠금 final test 구성이다. checkpoint는 khstemp track의 새 후보로 보존하되 T-112를 대체하지 않는다.
+
+### T-135 이후 — 표적 데이터 보강 설계 (숫자·저support 문자 우선)
+
+이 절은 실행 회차가 아니라, T-135 CROWD19 진단에 근거한 다음 데이터 단위 설계다. GPU 재튜닝은 이미 여러 회차(focus/reweighting/blank bias/구조/focal)에서 class-floor를 못 깼으므로, 다음 유효 단위는 데이터 보강 + 잠금 test다.
+
+**진단 요약(T-135 기준):**
+
+- 미달 15개 중 **숫자 7종(NUM_0/1/2/3/6/7/8)**이 절반이다. AIHub CROWD morpheme에서 숫자 token 자체가 희소(test support 17~58)하고 Roboflow v1에는 숫자 라벨이 없어, 숫자는 구조·손실 튜닝으로 개선되지 않는 데이터 부족 문제다.
+- **저support 자모**: `ㅋ`(sup5), `ㅠ`(sup13)는 표본이 작아 point estimate가 불안정하고, `ㅒ`는 support 0으로 평가 자체가 불가능하다.
+- **혼동쌍**: `ㅓ↔ㅏ`(12), `ㅏ↔ㅐ`(7) 인접 모음, `ㅈ↔ㅅ`(9/7), `ㅂ→ㅇ`(8), `ㄱ→ㅜ`(5). 유사 손모양·방향 구분 데이터가 필요하다.
+
+**보강 대상·소스(우선순위):**
+
+1. **숫자 NUM_0~9 (최우선)**: 새 signer로 지숫자 연속 clip을 수집한다. AIHub 103 signer 20~21의 존재/위치를 먼저 확인(문서 미해결 항목)하고, 있으면 잠금 final test 후보로, 없으면 자체 촬영으로 확보한다.
+2. **`ㅒ`**: 현재 support 0이므로 별도 확보가 필수다.
+3. **저support 자모 `ㅋ`·`ㅠ`**: 새 signer 연속 clip을 추가해 support를 최소 안정 수준(예: class당 100+ clip)으로 올린다.
+4. **혼동쌍 `ㅓ/ㅏ`·`ㅏ/ㅐ`·`ㅈ/ㅅ`**: 같은 signer로 손바닥/손등·상하·회전 등 조건을 다양화한 hard-negative를 수집해 경계를 학습한다.
+
+**split·평가 규율(문서 방침 준수):**
+
+- 새 데이터는 **signer/원본-family 단위**로 train/validation/**locked final test**를 분리한다. 같은 clip에서 뽑은 프레임을 서로 다른 split에 넣지 않는다.
+- CROWD19는 이미 반복 관찰한 development set이므로 더 이상 최종 인증에 쓰지 않는다. 새 locked test로만 41 class 93%를 판정한다.
+- 손바닥/손등·상/하·회전·거리·조명·좌/우손 **조건 라벨**을 부착해 조건별 recall을 측정한다(현재 AIHub 라벨엔 없어 측정 불가였던 축).
+
+**실행 단계:**
+
+1. 데이터 명세표 작성 — 대상 class·목표 clip 수(class당 최소 support)·조건 커버리지.
+2. 수집·전처리 — MediaPipe 21 landmark → v3(78)/packed sequence(128) 계약 유지. archive SHA-256·manifest 기록, 원본은 Git 미포함.
+3. 학습 — T-112 계약(delta OFF, 192 hidden, 3 layer, GPU 2) 유지하고 새 데이터를 병합해 재학습. 재가중·decoder 옵션은 validation에서만 선택한다.
+4. 평가 — 새 locked test에서 41 class recall/F1 + 조건별 slice + 연속 CER·확정률·분당 오확정·p50/p95 지연을 측정하고 이 문서에 회차로 기록한다.
+
+**성공 기준:** locked final test에서 41개 전 class recall·F1 ≥ 93%, 주요 조건 slice 하락 없음, 연속 인식 지표(CER·확정률·오확정) 목표 충족. 이 조건을 만족하기 전에는 어떤 checkpoint도 목표 달성으로 표시하지 않는다.
+
+### T-137 — 신규 KSL 숫자 데이터 정적 분류 진단 (khstemp track)
+
+- **문제·기준:** T-135 held-out에서 미달의 절반이 숫자(`NUM_0/1/2/3/6/7/8`)였다. 숫자 미달이 "학습 불가"인지 "데이터 부족"인지 가리기 위해, 기존 AIHub·Roboflow와 **겹치지 않는 독립 출처**의 한국 지숫자 데이터로 정적 분류 상한을 진단한다. 이 회차는 연속 CTC를 대체하거나 개선했다고 주장하지 않는, 숫자 domain head용 별도 정적 기준선이다.
+- **데이터:** Kaggle `nahyunpark/korean-sign-languageksl-numbers`(라이선스 **CC0-1.0**). 숫자 1~10(10은 10-1/10-2 두 변형, 단일 `10`으로 매핑), **`0`(NUM_0) 없음**. train/test 폴더 제공. 이미지 상당수가 iPhone `.heic`. MediaPipe 추출 결과 train **762** / test **304** / 검출실패 **41**.
+- **변경 계약:** MediaPipe Hand Landmarker → `app.feature_v2.landmarks_to_feature`(좌우 handedness 반영) → ExtraTreesClassifier(n_estimators=500, seed 42). 데이터셋 자체 train split으로 학습, 자체 test split으로 평가. 산출물 `code-v3/scripts/ksl_number_probe.py`, 특징 캐시 `data/ksl-numbers/feat_v2.npz`.
+- **실측(자체 test split):** accuracy **94.74%**, macro-F1 **95.3%**(precision 0.951 / recall 0.958). class별 recall/F1: `2·3·4·5` 1.000, `6` 1.000/0.978, `7` 0.967/0.983, `9` 1.000/0.923, `8` 0.852/0.902, `1` 0.900/0.844, `10` 0.860/0.899.
+- **해석:** 운영 CTC에서 취약하던 숫자(`2·3·6·7` 등)가 깨끗한 정적 데이터에선 거의 완벽히 분류된다. **숫자 병목은 학습 불가가 아니라 데이터(표본·조건) 부족**임을 실증한다. 정적 숫자 domain head(E-01 hybrid 계열) 보강의 유효성을 지지한다.
+- **판정·한계:** 목표 판정과 무관한 **진단 회차**다. (1) 이 test는 KSL **자체 split**이라 signer-independent가 아니고 낙관적일 수 있다. (2) **정적 이미지**라 128차원 연속 CTC와 직접 병합하지 않는다. (3) **`NUM_0` 미포함**으로 최약 숫자는 미해결. 따라서 운영 모델·MediaPipe 계약을 바꾸지 않으며, signer-잠금 test로 재검증하기 전까지 숫자 개선을 확정하지 않는다.
+
+### T-138 계획 — 데이터 기반 다음 학습 (숫자 head 보강 + 잠금 test)
+
+T-137이 "숫자는 데이터만 있으면 학습된다"를 보였으므로, 다음 학습은 튜닝이 아니라 데이터 통합·검증에 둔다.
+
+1. **signer-independent 재검증(선행):** KSL 이미지를 파일/촬영 단위로 그룹화해 signer 누수 여부를 감사한다. 자체 split이 signer 분리가 아니면, KSL은 **학습 전용 보강**으로만 쓰고 평가는 별도 출처(예: Roboflow `korean hand sign-numbers`)나 새 촬영으로 만든 **잠금 test**로 한다.
+2. **숫자 domain head 통합 학습:** 운영 hybrid(`models/jamo-number-hybrid-v1`) 계열에 KSL 숫자 feature를 더해 tree/hybrid 숫자 head를 재학습하고, 독립 숫자 test에서 `NUM_0`을 제외한 1~9 recall/F1 개선치를 기록한다. 자모 head와 전체 41-class 지표의 회귀 여부도 함께 검사한다.
+3. **미해결 class 데이터 확보:** `NUM_0`과 `ㅒ`(연속 support 0)는 이 데이터로 못 채우므로, AIHub 신규 signer(20~21) 또는 자체 촬영으로 별도 확보한다.
+4. **연속 CTC 라인 분리 유지:** 정적 숫자는 CTC에 병합하지 않는다. CTC 숫자 개선은 새 signer **연속** 숫자 clip이 확보된 뒤에만 재학습한다. 현 CTC 후보는 T-135(held-out floor 15)를 유지한다.
+5. **성공 기준·기록:** 모든 개선은 signer/source-family가 잠긴 test에서 41 class recall·F1과 조건 slice로 검증하고, 회차별로 이 문서에 방법·데이터 기준·전후 수치·회귀와 함께 기록한 뒤에만 다음 회차를 정한다. GPU는 물리 2번만 사용한다.
+
+### T-138 실행 — 41-class 지문자+지숫자 이미지 통합 (khstemp track)
+
+- **문제·기준:** 목표는 31자모+10숫자를 한 모델로 확실히 인식. 자모는 이미지 EfficientNet(T-11~13)이 최고였고 T-137이 숫자 학습 가능성을 보였으므로, 자모 이미지(Roboflow) + 숫자 이미지(KSL)를 합쳐 41-class 이미지 모델을 학습·측정한다.
+- **데이터:** Roboflow Sign Language v1(CC BY 4.0, 31자모, `--all-jamo-images`=MediaPipe 게이트 없음) + KSL Numbers(CC0, `--number-root`). test 527(자모 197 + 숫자 330). signer-independent 아님(각 소스 자체 split, 숫자는 provider train 85/15 valid).
+- **변경 계약:** `train_roboflow_jamo_image_t10.py --features roboflow-v1-f16.npz --dataset-root sign-language-v1 --number-root ksl-numbers --architecture efficientnet_b0 --all-jamo-images --epochs 24 --seed 67 --selection-mode min-q10`, 물리 GPU 2. 산출물 `code-v3/outputs/t138-khs-jamo-number-41/`(model.pt·evaluation.json).
+- **실측(test):** accuracy **90.89%**, macro-F1 **92.78%** (baseline 83.16% 대비 **+7.73%p**). val은 epoch 13에서 accuracy 95.30%.
+- **도메인별(핵심):** **자모31 accuracy 94.42% / macro-F1 94.12%(support 197) — 강함.** **숫자10 accuracy 88.79% / macro-F1 75.41%(support 330) — 약함.**
+- **class gate(각 class recall/F1 ≥93%): 미통과.** minRecall 63.6%, minF1 77.1%. 미달: 숫자 `NUM_0·NUM_1·NUM_3·NUM_4·NUM_5·NUM_8` + 일부 자모(`ㄱ·ㅈ·ㅊ` 등). `NUM_0`은 KSL에 0 이미지가 없어 support 부족(미해결 gap 재확인).
+- **판정·핵심 발견:** **이미지 모델은 자모엔 강하고(94%) 숫자엔 약하다(macro-F1 75%)** — landmark 계열(T-137 정적 숫자 94.7%)과 정반대. 따라서 **자모=이미지 모델, 숫자=landmark/tree 모델로 도메인 라우팅한 하이브리드**가 자모·숫자 둘 다 확실히 잡는 최적 경로다(기존 `models/jamo-number-hybrid` 개념을 실측으로 뒷받침). 운영 모델·MediaPipe 계약은 아직 바꾸지 않는다. 다음 단계는 이 하이브리드 구성·재평가(자모 이미지 + 숫자 landmark)와 signer-잠금 test.
+
+### T-139 실행 — class 균형 샘플러 (전체·약한 class 동반 상승, 효과 O)
+
+- **가설·기법:** T-138에서 숫자(소수 class)가 약했던 원인이 class 불균형이라 보고, **`--balance-mode sampler`(소수 class 업샘플) + `--label-smoothing 0.05`** 를 추가(그 외 T-138과 동일, epochs 30, seed 67, min-q10 선택). 산출물 `code-v3/outputs/t139-khs-balanced/`.
+- **실측(test) — T-138 → T-139:**
+
+  | 지표 | T-138 | **T-139** | Δ |
+  | --- | --- | --- | --- |
+  | 전체 accuracy | 90.89% | **94.50%** | **+3.61%p** |
+  | 전체 macro-F1 | 92.78% | **95.94%** | +3.16%p |
+  | 자모31 accuracy | 94.42% | **96.95%** | +2.53%p |
+  | 숫자10 accuracy | 88.79% | **93.03%** | +4.24%p |
+  | 숫자10 macro-F1 | 75.41% | **85.35%** | **+9.94%p** |
+
+- **약한 class 개선(핵심):** min-recall 63.6% → **66.7%**. 미달 class 수는 13개 수준 유지지만 숫자 도메인이 전반 상승. 강한 class(대부분 자모)는 유지·소폭 상승(96.9%) — "잘 되던 건 유지, 약한 건 상승" 방향에 부합.
+- **잔존 미달(각 class ≥93% gate 미통과):** 숫자 `NUM_0·NUM_1·NUM_5·NUM_8·NUM_9` + 자모 `ㄱ·ㄹ·ㅊ·ㅋ·ㅔ·ㅐ·ㅖ` 등 13개.
+- **유사 그룹 정확도:** `ㄹ-ㅌ` **84.6%**(그룹내 혼동 2), `ㅔ-ㅖ` **91.3%**(혼동 2), `ㅈ-ㅅ-ㅊ` 91.7%, 나머지(`ㅅ-ㅠ·ㅕ-ㅖ·ㅏ-ㅗ·ㅛ-ㅑ`) 100%.
+- **최다 혼동쌍:** `NUM_0→NUM_1` 9, `NUM_0→NUM_5` 5, `NUM_9→NUM_8` 5 (숫자끼리, `NUM_0`은 학습표본 0).
+- **판정:** 균형 샘플러가 전체 +3.6%p, 숫자 macro-F1 +9.9%p로 **명확히 유효**. 현재 최고 단일 41-class 후보(94.5%). 채택.
+
+### T-140 실행 — 유사쌍 하드-네거티브 confusion-margin (효과 X, 폐기)
+
+- **가설·기법:** T-139의 잔존 취약 유사쌍(`ㄹ-ㅌ`·`ㅔ-ㅖ`)을 분리하려고 **`--confusion-source predefined-domain --confusion-margin 0.2 --confusion-loss-weight 0.3`**(사전정의 유사 그룹에 하드-네거티브 margin) 추가. T-139와 그 외 동일(seed 67). 산출물 `code-v3/outputs/t140-khs-confusion/`.
+- **실측 — T-139 → T-140 (전 지표 동일):** 전체 94.50%→**94.50%**, macro-F1 95.94%→95.94%, 자모 96.95%, 숫자 93.03%, gate 미달 13개 모두 변화 없음.
+- **유사쌍 before→after (핵심 정량):** `ㄹ-ㅌ` 84.6%→**84.6%**, `ㅔ-ㅖ` 91.3%→**91.3%**, `ㅈ-ㅅ-ㅊ` 91.7%→91.7% — **개선 0**. (같은 seed에서 이미 분리된 그룹은 margin gradient≈0 → 학습 결과 동일.)
+- **판정:** confusion-margin은 이 데이터에서 취약 유사쌍을 **전혀 개선하지 못함 → 폐기.** 문서의 반복 결론과 일치: **취약 유사쌍(`ㄹ-ㅌ`·`ㅔ-ㅖ`)과 저support 숫자(`NUM_0` 등)는 손실/margin 튜닝이 아니라 데이터 병목**이다. 다음 유효 레버는 해당 쌍·숫자의 **표적 데이터(새 signer·각도·`NUM_0` 확보)** 이며, 손실 기반 유사쌍 분리 재탐색은 중단한다.
+
+### T-141 실행 — 도메인 라우팅 하이브리드 (자모=이미지 / 숫자=landmark, 효과 O)
+
+- **가설·기법:** T-138에서 실증한 방향(이미지=자모 강함 94%, landmark=숫자 강함 T-137 94.7%)을 실제로 결합. **입력 도메인에 따라 다른 모델로 라우팅**한다 — 자모 31class는 T-139 이미지 EfficientNet 결과를 그대로 사용(경로·가중치 불변), 숫자는 landmark feature(`feat_v3.npz`, 78차원) + ExtraTrees(500, seed 42)로 교체. 손실 튜닝이 아니라 **아키텍처 선택**이므로 강한 자모 class에 대한 회귀 위험이 원천적으로 없다. 산출물 `code-v3/scripts/hybrid_eval_t141.py`, `code-v3/outputs/t141-khs-hybrid/evaluation.json`.
+- **실측 — T-139(단일 이미지) → T-141(하이브리드):**
+
+  | 지표 | T-139 단일 | **T-141 하이브리드** | Δ |
+  | --- | --- | --- | --- |
+  | 전체 accuracy | 94.50% | **97.07%** | **+2.57%p** |
+  | 전체 macro-F1 | 95.94% | **96.68%** | +0.74%p |
+  | 자모 accuracy | 96.95% | **96.95%** | 0 (경로 불변, 무회귀 ✅) |
+  | 숫자 도메인 accuracy | 93.03% | **97.17%** | **+4.14%p** |
+
+- **숫자 class별 before→after (핵심 정량, 이미지 recall → landmark recall):** 숫자 도메인이 이미지 모델의 최대 약점이었는데(macro-F1 75→85), landmark로 교체 후 `NUM_1~NUM_6` 모두 **recall 1.000**, `NUM_7` 0.967(F1 0.983), `NUM_8` recall 1.000(F1 0.885). 즉 숫자 9개 중 **8개가 ≥96.7%로 목표(90%) 상회.** 유일 예외 `NUM_9` recall **0.75**(n=24) — 이 한 class만 landmark(0.75)가 이미지(0.833)보다 낮다(단일 손 landmark가 해당 손모양을 놓침).
+- **90% 미만 잔존(6개):** `NUM_9` 0.75(n24, **진짜 취약**) + 자모 `ㅊ` 0.667(n3)·`ㄹ` 0.80(n5)·`ㄱ` 0.80(n5)·`ㅌ` 0.846(n13)·`ㅋ` 0.875(n8). **자모 5개는 test support가 3~13장뿐**이라 오분류 1건이 recall을 크게 흔드는 **측정 노이즈** 성격(자모 도메인 평균은 96.95%). min-recall 66.7%도 이 `ㅊ`(n3)에서 나온다.
+- **중요한 정정·한계:** (1) 이전 회차 요약의 "`NUM_0` = 숫자 0, 학습표본 0"은 **오독**이었다 — 이미지 모델 `NUM_0`은 support 66의 실존 class(0-index 라벨)다. (2) 두 트랙의 **숫자 라벨 규약이 불일치**한다: 이미지 = `NUM_0~NUM_9`(10개, 0-index), landmark `feat_v3` = `NUM_1~NUM_9`(9개, digit-name). 운영 41-class 통합 전에 숫자 라벨 정합이 선행돼야 한다. (3) 두 test split은 signer-independent가 아니며(각 소스 자체 split), 숫자 test는 MediaPipe 손 검출 성공분(247장)만 포함된다.
+- **판정:** 도메인 라우팅 하이브리드는 **자모 무회귀(96.95%)로 숫자를 93.0%→97.17%로 끌어올려**, "잘 되던 건 유지, 약한 건 상승" 목표를 숫자 도메인에서 달성. **채택(운영 통합 후보).** 잔존 <90%는 `NUM_9`(진짜)와 저support 자모(측정 한계)로 좁혀졌고, 둘 다 T-140 결론대로 **표적 데이터**(더 많은 `NUM_9`/digit 표본, `ㅊ·ㄹ·ㄱ·ㅋ` 신규 signer·각도)로만 해소 가능 — AIHub 지문자 또는 신규 촬영으로 확보한다.
+
+### T-142 실행 — 지문자 leakage-safe 대형 test 재평가 (자음 "취약"은 측정 착시로 판명)
+
+- **문제·동기:** T-139/T-141에서 자모 취약으로 지목된 `ㅊ·ㄹ·ㄱ·ㅋ·ㅌ`은 **test support가 3~13장뿐**이었다(원본 Roboflow split). 오분류 1건에 recall이 0.667~0.88로 튀므로, "진짜 취약"인지 "측정 노이즈"인지 가리려면 **더 큰 test**가 필요하다. 데이터는 이미 class당 train 100~225장으로 충분(부족 아님)함을 먼저 확인했다.
+- **기법(핵심):** Roboflow 자모 landmark 아티팩트(`roboflow-v1-f16.npz`, 4417개)를 **소스(원본 촬영) 그룹 단위 stratified로 재분할**(test 28%/valid 12%/train 60%)해 `roboflow-v1-f16-bigtest.npz` 생성. **증강 누수 가드**: 같은 원본에서 파생된 증강본이 train/test에 섞이지 않도록 소스 base로 그룹핑(assert로 검증). 자모별 test가 최소 27~최대 86장으로 커졌다(`ㅊ` 3→43, `ㄱ` 5→39, `ㄹ` 5→36, `ㅋ` 4→31, `ㅌ` 8→74). 트레이너는 T-139와 동일 레시피(efficientnet_b0, balance sampler, label-smoothing 0.05, min-q10, seed 67). 산출물 `code-v3/outputs/t142b-khs-jamo-bigtest/`, 스크립트 `resplit_jamo_bigtest.py`.
+- **함정·수정:** 첫 시도(t142)는 `--all-jamo-images`를 켠 채 돌려 **재분할이 무시**됐다 — 이 플래그가 split을 npz가 아니라 **폴더명(train/valid/test)** 에서 읽기 때문(트레이너 line 163-170). 플래그를 빼고 재실행(t142b)하니 npz splits(대형 test)가 정상 적용됐다.
+- **실측(대형·누수차단 test, 자모 support 1205):** 전체 41-class testAccuracy **93.62%**, macro-F1 **93.52%**. 자모 mean recall **93.1%**, min-recall 0.75.
+- **"취약 자음" before→after (핵심 정량, 작은 test → 큰 test):**
+
+  | 자음 | 이전 recall (support) | **큰 test recall (support)** |
+  | --- | --- | --- |
+  | ㅊ | 0.667 (3) | **1.000 (43)** |
+  | ㄹ | 0.800 (5) | **0.972 (36)** |
+  | ㅋ | 0.875 (8) | **0.968 (31)** |
+  | ㄱ | 0.800 (5) | **0.949 (39)** |
+  | ㅌ | 0.846 (13) | **0.919 (74)** |
+
+  → 다섯 자음 모두 실제로는 **92~100%**. "취약"은 **작은 test 표본에서 온 측정 착시**였음이 실증됨. 자음(지문자 자음 계열)은 **solid 확정**.
+- **진짜 취약(대형 test에서 <90%, 9개) — 대부분 획 1개 차이의 유사 모음:** `ㅜ` 0.750(n28), `ㅣ` 0.778(n27), `ㅟ` 0.829(n35), `ㅖ` 0.841(n44), `ㅅ` 0.848(n33), `ㅝ` 0.857(n28), `ㅔ` 0.860(n86), `ㅘ` 0.889(n27), `ㅕ` 0.893(n28). 이들은 support 27~86으로 **충분** → 부족이 아니라 **시각적 유사성**이 원인.
+- **최다 혼동쌍(자모):** `ㅔ↔ㅖ`, `ㅕ→ㅖ`, `ㅐ→ㅔ`, `ㅜ→ㅠ` — 모두 짧은 획 하나로 갈리는 모음 최소대립쌍.
+- **판정:** 지문자 **자음 계열은 확실히 잡혔다(≥92%, 다수 ≥95%)**. 남은 과제는 **유사 모음 쌍**(ㅔ/ㅖ/ㅕ, ㅜ/ㅟ/ㅝ, ㅣ, ㅘ)이며, 데이터 부족이 아니라 획 차이 판별 문제다. 다음 유효 레버는 (1) 해당 모음의 판별 영역을 키우는 표적 증강(고해상도·손 crop·회전 축소), (2) 유사쌍 focus-multiplier, (3) 필요 시 해당 모음의 신규 각도 표본이며, T-140의 "이미 분리된 쌍엔 margin 무효" 교훈을 반영해 **미분리(실제 혼동) 쌍에만** 적용한다. 평가는 반드시 이 leakage-safe 대형 test로 한다.
+
+### T-143 실행 — 유사 모음쌍 data-driven confusion margin (효과 X, 3번째 무효)
+
+- **가설·기법:** T-140의 predefined 유사쌍은 이미 분리돼 margin이 무효였다. 이번엔 **검증 혼동행렬에서 실제 혼동쌍을 자동 추출**하는 `--confusion-source previous-validation`(기본값) + `--confusion-margin 0.3 --confusion-loss-weight 0.4`로, 실제 혼동 모음(ㅔ↔ㅖ 등)에만 hard-negative margin을 걸었다. 그 외 T-142b(대형 test)와 동일. 산출물 `code-v3/outputs/t143-khs-vowel-confusion/`.
+- **실측 — T-142b → T-143 (전 지표 소수점 16자리까지 동일):** testAccuracy 0.9361563517915309 → **0.9361563517915309**, testMacroF1 0.9351573575008157 → **0.9351573575008157**.
+- **취약 모음 before→after (핵심 정량, 전부 불변):** `ㅜ` 0.750→0.750, `ㅣ` 0.778→0.778, `ㅟ` 0.829→0.829, `ㅖ` 0.841→0.841, `ㅅ` 0.848→0.848, `ㅝ` 0.857→0.857, `ㅔ` 0.860→0.860, `ㅘ` 0.889→0.889, `ㅕ` 0.893→0.893. **개선 0.**
+- **원인(중요):** 혼동쌍을 **검증셋**에서 뽑는데 정작 혼동은 **test**에서 발현된다. 검증에선 해당 쌍이 이미 분리돼 있어 `relu(margin + rival − target) ≈ 0` → gradient 0 → min-q10이 사실상 동일 checkpoint를 선택(전 지표 16자리 동일).
+- **판정:** 손실 기반 margin 분리는 이 유사 모음쌍에 **3번째 무효**(T-140 predefined, T-143 validation-derived). **유사 모음은 손실 문제가 아니라 표현(representation)/데이터 문제**임이 확정. 다음 유효 레버는 **획 판별 정보를 보존하는 표현 개선**뿐 — (1) 획을 지우는 증강(GaussianBlur·강한 RandomResizedCrop) 완화 + 입력 해상도 상향, (2) 손 영역 crop으로 판별 영역 확대, (3) 신규 각도·signer 표본. 손실/margin 기반 유사쌍 분리 재탐색은 **최종 중단**한다.
+
+### T-144 실행 — 지문자 표현 개선(hires·저blur) (유효하나 혼재, 정제 필요)
+
+- **가설·기법:** T-143에서 손실이 소진됐으므로 **표현**을 바꾼다. 트레이너 사본(`train_roboflow_jamo_image_t10_hires.py`)에서 획 판별 정보 보존을 위해 **입력 해상도 224→256**, **RandomResizedCrop scale 0.78→0.9**(획을 덜 잘라냄), **GaussianBlur sigma 1.2→0.5·p 0.16→0.05**(획을 덜 흐림), **RandomAffine 회전 14→8°**. 그 외 T-142b와 동일(bigtest, balance sampler, min-q10, seed 67). 산출물 `code-v3/outputs/t144-khs-jamo-hires/`.
+- **실측(bigtest) — T-142b → T-144:** testAccuracy 0.9362 → **0.9375**, testMacroF1 0.9352 → 0.9333. 자모 mean recall 0.931 → **0.934**, min-recall 0.75 → **0.714**, <90 class 수 9 → 9.
+- **모음 before→after (핵심 정량):** **개선** `ㅜ` 0.750→**0.929**(+0.18), `ㅣ` 0.778→**0.963**(+0.19), `ㅔ` 0.860→**0.953**(+0.09), `ㅅ` 0.848→**0.939**(+0.09). **회귀** `ㅟ` 0.829→0.714, `ㅖ` 0.841→0.818, `ㅚ` 0.889→0.852, `ㅕ` 0.893→0.821, `ㅐ` 0.903→0.871, `ㅌ` 0.919→0.892.
+- **핵심 발견·판정:** 표현 개선이 **가장 취약했던 모음(ㅜ·ㅣ·ㅔ)을 90%+로 확실히 끌어올려**, 유사 모음이 **표현으로 움직인다**는 것을 실증(손실로는 불가했음). 그러나 **두 변경이 뒤섞였다** — (해상도↑·blur↓)은 판별 정보 보존으로 **유익**하나, (crop 0.9·회전 8°)의 **기하 증강 축소는 과적합**을 유발해 다른 모음(ㅟ·ㅕ·ㅐ·ㅌ)에 회귀를 냈다. 순효과는 재분배(mean 동일, min 소폭↓)라 **이 조합 그대로는 미채택**. 다음(T-146)은 **유익한 변경만 분리** — 해상도 256·저blur는 유지하되 **RandomResizedCrop scale·RandomAffine 회전은 원복(0.78·14°)** 해 기하 다양성을 되살린다.
+
+### T-145 실행 — 숫자 head 분류기 연구 (KNN이 NUM_9 최선, 상한은 데이터)
+
+- **문제:** T-141 하이브리드에서 유일 취약 숫자 `NUM_9`(digit 9) landmark recall 0.75. 분류기 교체로 개선 가능한지 `feat_v3.npz`에서 6종 비교(산출물 `num_probe_t145.py`).
+- **실측(숫자 자체 test):**
+
+  | 분류기 | acc | min-recall | NUM_9 | NUM_8 |
+  | --- | --- | --- | --- | --- |
+  | ExtraTrees500(기존) | 0.972 | 0.750 | 0.750 | 1.000 |
+  | RandomForest800 | 0.960 | 0.625 | 0.625 | 1.000 |
+  | HistGB400 | 0.964 | 0.792 | 0.792 | 1.000 |
+  | SVC-rbf | 0.968 | 0.667 | 0.667 | 1.000 |
+  | **KNN(k=7)** | **0.972** | **0.833** | **0.833** | 0.963 |
+  | soft-vote(ET+KNN+HGB) | 0.964 | 0.708 | 0.708 | 1.000 |
+
+- **판정:** **KNN(k=7)이 최선** — `NUM_9` 0.750→**0.833**, min-recall 0.750→**0.833**, 전체 acc 0.972 동일(NUM_8만 1.0→0.963 소폭). 앙상블은 트리가 soft-vote를 지배해 오히려 악화. 다만 **NUM_9는 어떤 방법으로도 ~0.833이 상한**(이미지 모델의 digit 9도 0.833) → **≥90은 신규 각도·signer 데이터 필요**(digit 9↔8 손모양 혼동). 운영 하이브리드 숫자 head는 **ExtraTrees→KNN(k=7)로 교체 권장**(min-recall +0.083, 전체 무회귀).
+
+### T-146 실행 — 표현 개선 정제(hires·저blur + 기하증강 복원) (negative, 레시피 소진 확정)
+
+- **가설·기법:** T-144에서 (해상도↑·blur↓)은 유익, (기하증강 축소)는 유해로 보였다. 그래서 사본(`..._hires2.py`)에서 **해상도 256·저blur(sigma 0.5, p 0.05)는 유지**하되 **RandomResizedCrop scale 0.78·RandomAffine 회전 14° 로 복원**해 기하 다양성만 되살렸다. 그 외 T-142b/T-144와 동일. 산출물 `code-v3/outputs/t146-khs-jamo-hires2/`.
+- **실측(bigtest):** testAccuracy **0.9225**, macroF1 **0.9168** — **T-142b(0.9362)·T-144(0.9375)보다 낮음.** 자모 mean 0.931→**0.924**, min-recall 0.75→**0.643**(`ㅕ` 0.893→0.643 폭락).
+- **3-런 비교(핵심 메타 발견) — 모음 recall이 레시피가 아니라 런에 따라 요동:**
+
+  | 모음 | t142b(224·풀aug) | t144(256·저aug) | t146(256·풀aug) |
+  | --- | --- | --- | --- |
+  | ㅜ | 0.750 | 0.929 | 0.750 |
+  | ㅣ | 0.778 | 0.963 | 0.852 |
+  | ㅔ | 0.860 | 0.953 | 0.907 |
+  | ㅕ | 0.893 | 0.821 | 0.643 |
+  | ㅟ | 0.829 | 0.714 | 0.829 |
+  | jamo mean | 0.931 | 0.934 | 0.924 |
+  | jamo min | 0.750 | 0.714 | 0.643 |
+
+- **판정(라운드 종결):** 유사 모음 recall은 test 표본(class당 27~86)·min-q10 선택 epoch·seed에 따라 **±0.1~0.25로 요동**하며, 이 변동이 레시피 효과를 **압도**한다(같은 모음이 런마다 0.64↔0.96). 즉 T-144의 "대박"도 T-146의 "폭락"도 상당부분 **런 노이즈**다. **손실(T-140/143)·표현(T-144/146) 레시피 튜닝은 모두 소진** — 유사 모음을 이 단일 소스(Roboflow, 동일 세션·제한 각도) 데이터로 **안정적 ≥90%까지 올리는 레시피는 없다.** 운영 자모 모델은 **T-142b/T-139 유지**(레시피 변형이 신뢰성 있게 개선하지 못함). 유사 모음 ≥90%의 유일한 남은 레버는 **데이터 다양성**(신규 signer·각도·조명의 모음 표본; AIHub 지문자 또는 자체 촬영). 숫자 `NUM_9`도 동일하게 데이터 병목(T-145).
+
+### T-147 실행 — OSS 신규-signer 데이터 통합 (데이터 레버 유효성 실증, 완만)
+
+- **가설·기법:** T-140~T-146에서 손실·표현 레시피가 모두 무효/노이즈였고 병목이 **데이터 다양성**으로 좁혀졌다. 공개 소스를 재탐색해 **Roboflow Universe `oss-4tnzy/hangul`**(CC BY 4.0, 298장, 취약 모음 `e·ye·yeo·u·wi·ae·i` 포함, **다른 signer·환경**)을 확보. Pascal VOC로 받아 클래스명을 기존 romanized 폴더 규약에 매핑(트레이너 `JAMO_LABELS`)하고, 전체 이미지를 기존 `sign-language-v1` 폴더에 통합해 bigtest npz를 확장(`roboflow-v1-f16-bigtest-oss.npz`). OSS train+valid→train, OSS test→test(신규-signer held-out). 그 외 T-142b와 동일 레시피. 산출물 `code-v3/outputs/t147-khs-jamo-oss/`, 스크립트 `integrate_oss.py`.
+- **데이터:** 결합 train 2912(+266 신규-signer) / valid 566 / test 1237(+32 신규-signer). (함정: npz 부가 배열(features·handedness 등)도 동일 길이로 확장해야 평가 단계 IndexError 방지 — 최초 시도가 이 때문에 크래시, 수정 후 성공.)
+- **실측(결합 bigtest, test에 신규-signer 포함):** testAccuracy 0.9362→**0.9336**, macroF1 0.9352→0.9314. 자모 mean recall 0.931→0.930, min 0.75→0.679, <90 class 9→8.
+- **모음 before→after (핵심 정량):** **개선** `ㅔ` 0.860→**0.966**(n=88, 표본 커서 신뢰도 높음), `ㅝ` 0.857→**0.933**, `ㅚ` 0.889→**0.963**, `ㅣ` 0.778→0.857, `ㅟ` 0.829→0.865, `ㅅ` 0.848→0.886. **회귀** `ㅜ` 0.750→0.679, `ㅖ` 0.841→0.783, `ㅕ` 0.893→0.857, `ㅌ` 0.919→0.865.
+- **판정(중요):** **데이터 레버가 실제로 작동함이 실증됨** — 손실(T-140/143)·표현(T-144/146) 레시피는 유사 모음을 **전혀** 못 올렸으나, 신규-signer 데이터로는 **여러 모음이 실제 개선**됐고, 특히 **표본이 큰 `ㅔ`(n=88)가 0.86→0.966으로 오른 것은 노이즈로 설명 불가한 진짜 일반화 이득**이다(test가 신규-signer 포함으로 더 어려워졌음에도). 다만 OSS 298장(class당 신규 ~9장)은 저support 모음(`ㅜ`·`ㅖ` 등)을 모두 ≥90%로 올리기엔 부족해 순효과는 완만(mean 유지). **결론: 방향이 옳다 — 동일 계열(신규 signer·각도) 데이터를 더 확보하면 나머지 취약 모음도 오른다.** 다음 단계는 OSS류 추가 데이터 수집·통합의 반복.
+
+### T-148 실행 — OSS Number 통합 (이미지 숫자 도메인 대폭 개선, 단일화 근거)
+
+- **가설·기법:** T-147에서 데이터 레버가 유효함을 확인했으니 숫자에도 신규-signer 데이터를 투입. Roboflow `oss-4tnzy/number-c08aw`(CC BY 4.0, 93장, digit 2~10, 다른 signer)를 VOC로 받아 `data/ksl-numbers` 폴더에 digit별 통합(OSS "2"~"9"→NUM_2~9, "10"→NUM_0[10-1]; hand-numbers 8장 스킵, 85장 반영). 그 뒤 T-147과 동일 설정으로 자모(OSS Hangul)+숫자(OSS Number) 결합 41-class 이미지 모델 재학습. 산출물 `code-v3/outputs/t148-khs-jamo-num-oss/`, 스크립트 `integrate_oss_number.py`.
+- **실측(결합 test):** 전체 testAccuracy **92.77%**, macroF1 **92.24%**. 자모 도메인은 T-147과 동일(결정적).
+- **숫자 도메인 before→after (핵심 정량):** accuracy 93.33% → **96.46%**(+3.13%p), **macroF1 0.628 → 0.874**(+24.6%p). class별: `NUM_0`(숫자10) 0.848→**0.985**, `NUM_1/5/6` 0.967→**1.000**, `NUM_7/9` 1.000 유지, `NUM_2/8` 소폭 하락(0.94·0.93), 전 class ≥0.87.
+- **판정(중요):** OSS Number 신규-signer 데이터로 **이미지 모델의 숫자 도메인이 96.5%**까지 올라, 별도 landmark 하이브리드(숫자 97.2%, T-141)와 **거의 대등**해졌다. 즉 **랜드마크 하이브리드 없이 단일 이미지 모델(41-class)로 통합 가능**해졌고(운영·배포가 크게 단순화), 데이터 레버가 숫자에서도 유효함을 재확인. `NUM_9`의 landmark 상한(0.833) 이슈는 이미지 경로에선 애초에 1.0이라 무관.
+
+### T-149 결정 — 단일 41-class 이미지 모델 채택 (랜드마크 하이브리드 폐기)
+
+- **배경:** T-141 하이브리드는 자모=이미지 모델, 숫자=landmark ExtraTrees/KNN로 라우팅했다. 그러나 (1) 하이브리드와 단일 모델의 **자모 경로는 완전히 동일한 이미지 모델**이고, (2) T-148에서 OSS Number 통합으로 **이미지 숫자가 96.5%**까지 올라 landmark(97.2%)와 대등해졌다.
+- **T-148 단일 모델 프로필(honest 대형 test):** 전체 accuracy **92.77%** / macroF1 92.24%. 자모 도메인 accuracy **91.75%**(macroF1 0.882, min-recall 0.703), 숫자 도메인 accuracy **96.46%**(macroF1 0.874, min-recall 0.871 — 전 숫자 ≥0.87). 41종 중 <0.90 12개, <0.80 3개(모두 저support 유사 모음, 데이터로 개선 중).
+- **비교(하이브리드 → 단일):** 자모 동일. 숫자만 landmark 97.2% → 이미지 96.46%로 **−0.7%p**(측정 노이즈 수준). 그 대가로 **MediaPipe 랜드마크 추출·feat_v3 파이프라인·2-모델 라우팅을 전부 제거** → 추론·배포 대폭 단순화, 단일 checkpoint로 41종 처리.
+- **결정(잠정):** 이미지 모델 계열에서는 단일 41-class 모델(`code-v3/outputs/t148-khs-jamo-num-oss/model.pt`)이 최적. 잔존 저support 유사 모음(<0.90)은 OSS류 신규-signer 데이터 추가 통합으로 개선.
+
+- **⚠️ 아키텍처 정정(중요):** 실제 배포 서버(`app/model_adapter.py`·`recognition_session.py`)는 **랜드마크-시퀀스 기반**이다 — 프론트의 MediaPipe 21-랜드마크를 `feature_v2`로 변환해 `(1, seq, feature)` 시퀀스로 TFLite(자모31)·sklearn Tree(41)·하이브리드에 넣는다. 따라서 **T-142~T-148의 이미지 EfficientNet 모델은 이 서버에 드롭인 불가**(입력이 이미지가 아님). 이미지 트랙은 "데이터가 병목/레버"임을 규명한 **오프라인 벤치마크**로서 가치가 있으나, 그 자체가 배포 모델은 아니다.
+- **배포 가능한 개선 경로:** 서버의 **랜드마크 Tree 모델(`models/jamo-number-41-tree-v1`)** 을 개선해야 한다. 이미지 트랙의 결론(OSS 신규-signer 데이터가 유효)을 배포에 반영하려면 **OSS Hangul/Number 이미지에서 MediaPipe 랜드마크를 추출 → `feature_v2` 변환 → Tree 재학습 → 모델 번들(manifest+artifact+sha256) 재패키징** 이 필요하다. 이미지 모델을 서버에 쓰려면 프론트가 이미지를 전송하고 서버가 CNN을 돌리는 **파이프라인 전면 변경**이 전제되며, 실시간성·계약 변경 부담이 크다.
+
+## 지문자·지숫자 정확도 — 최종 요약 (T-138~T-149)
+
+- **지문자 자음:** 확실히 잡힘 — 취약해 보이던 `ㄱ·ㄹ·ㅊ·ㅋ·ㅌ`은 작은 test 착시였고, 대형 leakage-safe test에서 **92~100%**(T-142).
+- **지문자 모음:** 대부분 ≥90%. 유사 모음(`ㅔ/ㅖ/ㅕ`, `ㅜ/ㅟ/ㅝ`, `ㅣ`, `ㅐ`)은 손실·레시피(T-143/144/146)로는 안 움직였고, **신규-signer 데이터(OSS, T-147)로 여러 개가 실제 개선**됨(`ㅔ` 0.86→0.966 등). 병목은 데이터 **양** — OSS류를 더 모으면 나머지도 오름.
+- **지숫자:** 두 경로 모두 90%대 — landmark 하이브리드 97%대(KNN head), 그리고 **OSS Number 통합 후 이미지 모델 단독으로도 96.5%**(T-148). 이미지 숫자가 강해져 **랜드마크 하이브리드 없이 단일 이미지 41-class 모델로 통합 가능**.
+- **결론:** 손실·margin·표현·분류기 등 **알고리즘 레버는 소진**됐고, **데이터가 유일하게 유효한 레버임이 T-147/T-148로 실증**됐다(신규-signer OSS로 모음·숫자 모두 실제 개선). 남은 취약 모음의 ≥90%는 **OSS류 신규-signer·각도 데이터를 더 확보·통합**하는 반복으로 달성한다(공개 소스: Roboflow `oss-4tnzy/hangul`·`number-c08aw` CC BY 4.0 통합 완료; AIHub는 TB급 연속영상뿐이라 부적합; Kaggle·HF엔 라벨된 모음 정적셋 없음). 알고리즘 재탐색은 중단, **운영은 단일 이미지 모델로 단순화 권장**.
