@@ -52,12 +52,18 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   const [leaving, setLeaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const roomSocketRef = useRef<RoomRealtimeSocket | null>(null);
+  const roomRef = useRef<BattleRoomDetail | null>(room);
   const enteringGameRef = useRef(false);
 
   const rememberRoom = useCallback((next: BattleRoomDetail) => {
+    roomRef.current = next;
     setRoom(next);
     rememberSession({ ...next, currentUser: user });
   }, [rememberSession, user]);
+
+  useEffect(() => {
+    roomRef.current = room;
+  }, [room]);
 
   const startRtcAndEnter = useCallback(async () => {
     if (!roomId || !room || enteringGameRef.current) return;
@@ -84,12 +90,53 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   }, [roomSession, rememberRoom, room, roomId]);
 
   useEffect(() => {
+    if (!roomId || !gateway.subscribeRooms) return;
+    return gateway.subscribeRooms((rooms) => {
+      const current = roomRef.current;
+      if (!current) return;
+      const summary = rooms.find((candidate) => candidate.roomId === current.roomId || candidate.roomCode === current.roomCode);
+      if (!summary) return;
+
+      const playerCount = Math.min(summary.playerCount, current.maxPlayers);
+      if (playerCount === current.playerCount && summary.status === current.status) return;
+
+      const guest = current.participants.find((participant) => !participant.isHost);
+      const participants = playerCount > 1
+        ? [
+          ...current.participants.filter((participant) => participant.isHost),
+          guest ?? { userId: "pending-guest", displayName: "\uC0C1\uB300\uBC29", isHost: false, ready: current.guestReady ?? false },
+        ]
+        : current.participants.filter((participant) => participant.isHost);
+
+      rememberRoom({
+        ...current,
+        status: summary.status,
+        playerCount,
+        canJoin: summary.canJoin,
+        participants,
+      });
+    }, (cause) => setError(errorMessage(cause, "?湲곗떎 ?ㅼ떆媛??곹깭瑜?媛깆떊?섏? 紐삵뻽?듬땲??")));
+  }, [gateway, roomId, rememberRoom]);
+  useEffect(() => {
     if (!roomId || !services.roomRealtimeSocketFactory) return;
     const socket = services.roomRealtimeSocketFactory.create(roomId);
     roomSocketRef.current = socket;
     const unsubscribe = socket.subscribe((message) => {
       if (message.type === "GAME_STARTED") void startRtcAndEnter();
-      if (message.type === "PEER_LEFT") setError("상대방이 방을 나갔습니다.");
+      if (message.type === "PEER_LEFT") {
+        const current = roomRef.current;
+        if (current) {
+          rememberRoom({
+            ...current,
+            status: "WAITING",
+            playerCount: 1,
+            canJoin: true,
+            guestReady: false,
+            participants: current.participants.filter((participant) => participant.isHost),
+          });
+        }
+        setError("?곷?諛⑹씠 諛⑹쓣 ?섍컮?듬땲??");
+      }
       if (message.type === "ERROR") setError("방 실시간 연결에서 오류가 발생했습니다.");
     });
     const unsubscribeError = socket.subscribeError(() => setRealtimeState("ERROR"));
@@ -106,7 +153,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
       if (roomSocketRef.current === socket) roomSocketRef.current = null;
       socket.disconnect();
     };
-  }, [roomId, services.roomRealtimeSocketFactory, startRtcAndEnter]);
+  }, [roomId, services.roomRealtimeSocketFactory, startRtcAndEnter, rememberRoom]);
 
   const startCameraPreview = async () => {
     try {

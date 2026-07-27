@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 import { GameModuleContext, type GameModuleContextValue } from "../../app/GameModuleContext";
-import type { BattleRoomDetail, BattleRoomGateway, BattleRoomSession } from "../battle/room";
+import type { BattleRoomDetail, BattleRoomGateway, BattleRoomSession, BattleRoomSummary } from "../battle/room";
 import type { GameModuleServices } from "../../contracts";
 import type { SharedGameCameraSession } from "../../media/camera/SharedGameCameraSession";
 import { MockBattleMediaSession } from "../../media/mock/MockBattleMediaSession";
@@ -26,7 +26,20 @@ describe("BattleWaitingRoomPage backend flow", () => {
     expect(screen.getByText("Room WebSocket")).toBeTruthy();
   });
 
-  it("updates only its own ready state through REST", async () => {
+  it("reflects a lobby participant update without reload", async () => {
+    const subscribeRooms = vi.fn((listener: (rooms: readonly BattleRoomSummary[]) => void) => {
+      queueMicrotask(() => listener([{
+        roomId: "1", roomCode: "ABC123", title: "room", status: "FULL", playerCount: 2,
+        maxPlayers: 2, hostUserId: "1", hostName: "host", difficulty: "basic",
+        symbolRange: [], createdAt: null, canJoin: false,
+      }]));
+      return () => undefined;
+    });
+    renderPage({ gateway: gateway({ subscribeRooms }) });
+
+    expect((await screen.findAllByText("2/2")).length).toBeGreaterThan(0);
+    expect(subscribeRooms).toHaveBeenCalledTimes(1);
+  });  it("updates only its own ready state through REST", async () => {
     const setReady = vi.fn(async () => session({ hostReady: true, currentUserReady: true }));
     renderPage({ gateway: gateway({ setReady }) });
     fireEvent.click(await screen.findByRole("button", { name: "준비 완료" }));
