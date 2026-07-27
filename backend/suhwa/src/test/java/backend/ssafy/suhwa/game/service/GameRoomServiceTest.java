@@ -18,6 +18,7 @@ import backend.ssafy.suhwa.game.repository.GameRoomRepository;
 import backend.ssafy.suhwa.gameresult.domain.GameResult;
 import backend.ssafy.suhwa.gameresult.domain.GameResultType;
 import backend.ssafy.suhwa.gameresult.repository.GameResultRepository;
+import backend.ssafy.suhwa.gameresult.service.GameResultService;
 import backend.ssafy.suhwa.user.domain.User;
 import backend.ssafy.suhwa.user.repository.UserRepository;
 import java.util.List;
@@ -51,7 +52,7 @@ class GameRoomServiceTest {
     @BeforeEach
     void setUp() {
         gameRoomService = new GameRoomService(
-                gameRoomRepository, gameResultRepository,
+                gameRoomRepository, new GameResultService(gameResultRepository),
                 Mockito.mock(RoomRealtimeNotifier.class), Mockito.mock(LobbyBroadcastService.class),
                 new RoomParticipantRegistry(), new RealtimeTicketService(60L),
                 Mockito.mock(TaskScheduler.class), 15L,

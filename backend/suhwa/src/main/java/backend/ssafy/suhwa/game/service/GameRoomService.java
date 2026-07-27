@@ -14,9 +14,8 @@ import backend.ssafy.suhwa.game.realtime.RoomLiveState;
 import backend.ssafy.suhwa.game.realtime.RoomParticipantRegistry;
 import backend.ssafy.suhwa.game.realtime.RoomRealtimeNotifier;
 import backend.ssafy.suhwa.game.repository.GameRoomRepository;
-import backend.ssafy.suhwa.gameresult.domain.GameResult;
 import backend.ssafy.suhwa.gameresult.domain.GameResultType;
-import backend.ssafy.suhwa.gameresult.repository.GameResultRepository;
+import backend.ssafy.suhwa.gameresult.service.GameResultService;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.concurrent.ScheduledFuture;
@@ -42,7 +41,7 @@ public class GameRoomService {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final GameRoomRepository gameRoomRepository;
-    private final GameResultRepository gameResultRepository;
+    private final GameResultService gameResultService;
     private final RoomRealtimeNotifier roomRealtimeNotifier;
     private final LobbyBroadcastService lobbyBroadcastService;
     private final RoomParticipantRegistry roomParticipantRegistry;
@@ -53,7 +52,7 @@ public class GameRoomService {
 
     public GameRoomService(
             GameRoomRepository gameRoomRepository,
-            GameResultRepository gameResultRepository,
+            GameResultService gameResultService,
             RoomRealtimeNotifier roomRealtimeNotifier,
             LobbyBroadcastService lobbyBroadcastService,
             RoomParticipantRegistry roomParticipantRegistry,
@@ -62,7 +61,7 @@ public class GameRoomService {
             @Value("${game.room.join-confirmation-seconds}") long joinConfirmationSeconds,
             @Lazy GameRoomService self) {
         this.gameRoomRepository = gameRoomRepository;
-        this.gameResultRepository = gameResultRepository;
+        this.gameResultService = gameResultService;
         this.roomRealtimeNotifier = roomRealtimeNotifier;
         this.lobbyBroadcastService = lobbyBroadcastService;
         this.roomParticipantRegistry = roomParticipantRegistry;
@@ -226,17 +225,17 @@ public class GameRoomService {
         return new GameResultResponse(winnerUserId);
     }
 
-    /** 승자에게 score=1, 패자에게 score=0 행을 함께 기록한다(FR-026 동률 처리에 패수가 필요). 무승부는 기록하지 않는다(FR-033). */
+    /**
+     * 대전 결과를 기록한다. 무승부는 기록하지 않는다(FR-033). 승패를 어떤 형태로 남기는지는
+     * gameresult 모듈이 정하므로(FR-026 동률 처리에 패수가 필요), 여기서는 승자/패자만 가려낸다.
+     */
     private void recordGameResult(GameRoom room, Long winnerUserId) {
         if (winnerUserId == null) {
             return;
         }
         Long loserUserId = winnerUserId.equals(room.getHostUserId()) ? room.getGuestUserId() : room.getHostUserId();
-        GameResultType gameResultType = GameResultType.valueOf(room.getGameType().name());
-        gameResultRepository.save(GameResult.builder()
-                .userId(winnerUserId).gameType(gameResultType).score(1).build());
-        gameResultRepository.save(GameResult.builder()
-                .userId(loserUserId).gameType(gameResultType).score(0).build());
+        gameResultService.recordDuel(
+                winnerUserId, loserUserId, GameResultType.valueOf(room.getGameType().name()));
     }
 
     private void requireParticipant(GameRoom room, Long userId) {

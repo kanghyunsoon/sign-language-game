@@ -2,11 +2,11 @@ package backend.ssafy.suhwa.ranking.service;
 
 import backend.ssafy.suhwa.gameresult.domain.GameResult;
 import backend.ssafy.suhwa.gameresult.domain.GameResultType;
-import backend.ssafy.suhwa.gameresult.repository.GameResultRepository;
+import backend.ssafy.suhwa.gameresult.service.GameResultService;
 import backend.ssafy.suhwa.ranking.dto.RankingEntry;
 import backend.ssafy.suhwa.ranking.dto.RankingResponse;
 import backend.ssafy.suhwa.user.domain.User;
-import backend.ssafy.suhwa.user.repository.UserRepository;
+import backend.ssafy.suhwa.user.service.UserService;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -29,18 +29,18 @@ public class RankingService {
 
     private static final int TOP_N = 5;
 
-    private final GameResultRepository gameResultRepository;
-    private final UserRepository userRepository;
+    private final GameResultService gameResultService;
+    private final UserService userService;
 
     public RankingResponse getRankings(Long requesterId, GameResultType gameType) {
         boolean solo = gameType == GameResultType.TETRIS_SOLO;
 
-        Map<Long, List<GameResult>> byUser = gameResultRepository.findByGameType(gameType).stream()
+        Map<Long, List<GameResult>> byUser = gameResultService.findByGameType(gameType).stream()
                 .collect(Collectors.groupingBy(GameResult::getUserId));
 
-        // 탈퇴 회원은 User의 @SQLRestriction로 findAllById 결과에서 이미 제외된다(FR-007).
+        // 탈퇴 회원은 User의 @SQLRestriction로 조회 결과에서 이미 제외된다(FR-007).
         // 집계엔 있으나 회원이 조회되지 않는 항목은 아래 activeUsers 매칭에서 자연히 빠진다.
-        Map<Long, User> activeUsers = userRepository.findAllById(byUser.keySet()).stream()
+        Map<Long, User> activeUsers = userService.findActiveByIds(byUser.keySet()).stream()
                 .collect(Collectors.toMap(User::getId, u -> u));
 
         List<Scored> scored = byUser.entrySet().stream()
