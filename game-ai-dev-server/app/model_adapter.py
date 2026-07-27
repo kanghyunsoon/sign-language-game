@@ -18,26 +18,32 @@ from .project_paths import REPOSITORY_ROOT
 #
 # MODEL_VERSION is the *class contract* version (the 31-jamo label set and output
 # order that game-contracts/recognition/readiness.json pins), not the trained
-# head version. Retraining the head — including the feature_v2 -> feature_v3
-# switch and the jamo-31-v3 bundle below — keeps the same class contract, so this
-# stays "jamo-31-v1" and readiness.json needs no change. Bump it only when the
-# label set or output order itself changes.
+# head version. Retraining the heads — including the dual-head ensemble below —
+# keeps the same class contract, so this stays "jamo-31-v1" and readiness.json
+# needs no change. Bump it only when the label set or output order changes.
 MODEL_VERSION = "jamo-31-v1"
 LABELS = (
     "ㄱ", "ㄴ", "ㄷ", "ㄹ", "ㅁ", "ㅂ", "ㅅ", "ㅇ", "ㅈ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ",
     "ㅏ", "ㅑ", "ㅓ", "ㅕ", "ㅗ", "ㅛ", "ㅜ", "ㅠ", "ㅡ", "ㅣ", "ㅐ", "ㅒ", "ㅔ", "ㅖ", "ㅢ", "ㅚ", "ㅟ",
 )
-# Retrained jamo head on feature_v3 (3-D directions + palm normal, 78 values).
-# Trained from the jamo capture videos; see docs/recognition/model-evaluation.md.
-DEFAULT_MODEL_PATH = REPOSITORY_ROOT / "models" / "jamo-31-v3" / "jamo-31-v3.tflite"
+
+# Dual-head ensemble (see docs/recognition/model-evaluation.md):
+#   v2 head — feature_v2 (55), trained on session captures + capture video
+#   v3 head — feature_v3 (78), trained on capture video, adds depth/palm normal
+# Probabilities are averaged with ENSEMBLE_WEIGHT on the v2 head.
+MODEL_DIRECTORY = REPOSITORY_ROOT / "models" / "jamo-31-ensemble-v1"
+V2_MODEL_PATH = MODEL_DIRECTORY / "jamo31-v2big.tflite"
+V3_MODEL_PATH = MODEL_DIRECTORY / "jamo31-v3.tflite"
+ENSEMBLE_WEIGHT = 0.5
+SEQUENCE_LENGTH = 10
 READINESS_PATH = REPOSITORY_ROOT / "game-contracts" / "recognition" / "readiness.json"
 
 
 def load_recognition_readiness() -> dict[str, object]:
     """Load the 31-jamo safety gate for the fingerspelling deployment.
 
-    The contract fixes the jamo class set and TFLite output order. Numbers are
-    handled by a separate model and are not part of this gate.
+    The contract fixes the jamo class set and output order. Numbers are handled
+    by a separate model and are not part of this gate.
     """
     payload = json.loads(READINESS_PATH.read_text(encoding="utf-8"))
     if payload.get("modelVersion") != MODEL_VERSION:
@@ -45,7 +51,7 @@ def load_recognition_readiness() -> dict[str, object]:
     classes = payload.get("classes")
     symbols = [item.get("symbol") for item in classes if isinstance(item, dict)] if isinstance(classes, list) else []
     if symbols != list(LABELS):
-        raise ValueError("Recognition readiness classes do not match TFLite output order")
+        raise ValueError("Recognition readiness classes do not match model output order")
     return payload
 
 
@@ -75,60 +81,99 @@ class ModelRunner(Protocol):
     def predict(self, sequence: np.ndarray) -> np.ndarray: ...
 
 
-class TFLiteModelAdapter:
-    """Thin adapter around the jamo TFLite model."""
+class _TFLiteHead:
+    """One TFLite head with a fixed [1, sequence, feature] float32 contract."""
 
-    def __init__(self, model_path: Path = DEFAULT_MODEL_PATH) -> None:
+    def __init__(self, model_path: Path) -> None:
         import tensorflow as tf
 
         if not model_path.is_file():
             raise FileNotFoundError(f"TFLite model not found: {model_path}")
-
         self._interpreter = tf.lite.Interpreter(model_path=str(model_path), num_threads=4)
         self._interpreter.allocate_tensors()
         self._input = self._interpreter.get_input_details()[0]
         self._output = self._interpreter.get_output_details()[0]
         input_shape = tuple(int(value) for value in self._input["shape"])
         output_shape = tuple(int(value) for value in self._output["shape"])
-
         if len(input_shape) != 3 or input_shape[0] != 1:
             raise ValueError(f"Expected [1, sequence, feature] input, got {input_shape}")
         if len(output_shape) != 2 or output_shape[0] != 1:
             raise ValueError(f"Expected [1, classes] output, got {output_shape}")
         if self._input["dtype"] != np.float32 or self._output["dtype"] != np.float32:
             raise ValueError("The model must use float32 input and output tensors")
+        self.sequence_length = input_shape[1]
+        self.feature_size = input_shape[2]
+        self.output_size = output_shape[1]
 
+    def predict(self, sequence: np.ndarray) -> np.ndarray:
+        expected = (1, self.sequence_length, self.feature_size)
+        if sequence.shape != expected:
+            raise ValueError(f"Expected model input {expected}, got {sequence.shape}")
+        self._interpreter.set_tensor(self._input["index"], np.asarray(sequence, dtype=np.float32))
+        self._interpreter.invoke()
+        return np.asarray(self._interpreter.get_tensor(self._output["index"])[0], dtype=np.float32)
+
+
+class EnsembleModelAdapter:
+    """Dual-head jamo recogniser: feature_v2 head + feature_v3 head, averaged.
+
+    ``predict`` takes the pair of per-frame feature sequences produced by
+    ``feature_adapter.landmarks_to_features`` and returns the averaged 31-class
+    probability vector.
+    """
+
+    def __init__(
+        self,
+        v2_model_path: Path = V2_MODEL_PATH,
+        v3_model_path: Path = V3_MODEL_PATH,
+        weight: float = ENSEMBLE_WEIGHT,
+    ) -> None:
+        self._v2 = _TFLiteHead(v2_model_path)
+        self._v3 = _TFLiteHead(v3_model_path)
+        if self._v2.sequence_length != self._v3.sequence_length:
+            raise ValueError("Ensemble heads must share the same sequence length")
+        if self._v2.output_size != self._v3.output_size:
+            raise ValueError("Ensemble heads must share the same class count")
+        if not 0.0 <= weight <= 1.0:
+            raise ValueError("Ensemble weight must be between 0 and 1")
+        self._weight = float(weight)
         self._contract = ModelContract(
             labels=LABELS,
-            sequence_length=input_shape[1],
-            feature_size=input_shape[2],
-            output_size=output_shape[1],
+            sequence_length=self._v2.sequence_length,
+            feature_size=self._v3.feature_size,
+            output_size=self._v3.output_size,
         )
 
     @property
     def contract(self) -> ModelContract:
         return self._contract
 
-    def predict(self, sequence: np.ndarray) -> np.ndarray:
-        expected_shape = (1, self.contract.sequence_length, self.contract.feature_size)
-        if sequence.shape != expected_shape:
-            raise ValueError(f"Expected model input {expected_shape}, got {sequence.shape}")
+    @property
+    def feature_sizes(self) -> tuple[int, int]:
+        return self._v2.feature_size, self._v3.feature_size
 
-        input_data = np.asarray(sequence, dtype=np.float32)
-        self._interpreter.set_tensor(self._input["index"], input_data)
-        self._interpreter.invoke()
-        output = np.asarray(self._interpreter.get_tensor(self._output["index"])[0], dtype=np.float32)
+    def predict_pair(self, v2_sequence: np.ndarray, v3_sequence: np.ndarray) -> np.ndarray:
+        probabilities = (
+            self._weight * self._v2.predict(v2_sequence)
+            + (1.0 - self._weight) * self._v3.predict(v3_sequence)
+        )
+        output = np.asarray(probabilities, dtype=np.float32)
         if output.shape != (self.contract.output_size,):
             raise ValueError(f"Expected model output {(self.contract.output_size,)}, got {output.shape}")
         return output
 
+    def predict(self, sequence: np.ndarray) -> np.ndarray:
+        """Accepts the v3 sequence alone; both heads need the pair, so callers
+        that have only one feature set fall back to the v3 head."""
+        return self._v3.predict(sequence)
+
 
 def create_model_runner(profile: str | None = None) -> ModelRunner:
-    selected = (profile or os.getenv("HANDPRACTICE_AI_MODEL", "baseline")).strip().lower()
-    if selected == "baseline":
-        return TFLiteModelAdapter()
+    selected = (profile or os.getenv("HANDPRACTICE_AI_MODEL", "ensemble")).strip().lower()
+    if selected in {"ensemble", "baseline"}:
+        return EnsembleModelAdapter()
     raise ValueError(
-        "HANDPRACTICE_AI_MODEL must be 'baseline' (jamo-only build; number recognition is a separate model)",
+        "HANDPRACTICE_AI_MODEL must be 'ensemble' (jamo-only build; number recognition is a separate model)",
     )
 
 
