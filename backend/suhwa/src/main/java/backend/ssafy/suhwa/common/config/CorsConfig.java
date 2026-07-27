@@ -2,8 +2,7 @@ package backend.ssafy.suhwa.common.config;
 
 import java.util.Arrays;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,10 +21,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
  * 대신 설정 누락을 조용히 넘기지 않도록 기동 시 경고 로그를 남긴다. 실시간 WebSocket 핸드셰이크의
  * Origin 검사도 같은 값을 써서 동일하게 동작한다({@code RealtimeWebSocketConfig}).
  */
+@Slf4j
 @Configuration
 public class CorsConfig {
-
-    private static final Logger log = LoggerFactory.getLogger(CorsConfig.class);
 
     private final List<String> allowedOrigins;
 
