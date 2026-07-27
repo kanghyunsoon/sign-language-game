@@ -1,5 +1,5 @@
 import "./DictionaryPage.css";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ChangeEvent } from "react";
 import { ChevronDown, Search, Sparkles, X } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -22,6 +22,7 @@ const initialOpenCategoryMap: Record<FingerspellingCategoryId, boolean> = {
 };
 
 export function DictionaryPage() {
+  const [dictionaryScale, setDictionaryScale] = useState(1);
   const [selectedSymbol, setSelectedSymbol] = useState(
     DEFAULT_FINGERSPELLING_SYMBOL,
   );
@@ -33,6 +34,18 @@ export function DictionaryPage() {
   const [comingSoonMenu, setComingSoonMenu] = useState<"테스트" | null>(null);
 
   const isSearching = searchQuery.trim().length > 0;
+
+  useEffect(() => {
+    const updateDictionaryScale = () => {
+      setDictionaryScale(
+        Math.min(window.innerWidth / 1920, window.innerHeight / 1200),
+      );
+    };
+
+    updateDictionaryScale();
+    window.addEventListener("resize", updateDictionaryScale);
+    return () => window.removeEventListener("resize", updateDictionaryScale);
+  }, []);
   const searchResults = isSearching
     ? searchFingerspellingEntries(searchQuery)
     : [];
@@ -71,8 +84,14 @@ export function DictionaryPage() {
 
   return (
     <div className="dictionary-page">
-      <header className="header">
-        <nav className="nav" aria-label="주요 메뉴">
+      <div
+        className="dictionary-canvas"
+        style={{
+          transform: `translate(-50%, -50%) scale(${dictionaryScale})`,
+        }}
+      >
+      <header className="dictionary-header">
+        <nav className="dictionary-nav" aria-label="주요 메뉴">
           <Link to="/main">메인페이지</Link>
           <Link to="/practice">연습</Link>
           <button type="button" onClick={() => setComingSoonMenu("테스트")}>
@@ -84,7 +103,7 @@ export function DictionaryPage() {
           <Link to="/game">게임</Link>
         </nav>
 
-        <Link className="mypage-button" to="/profile">
+        <Link className="dictionary-mypage-button" to="/profile">
           마이페이지
         </Link>
       </header>
@@ -306,6 +325,7 @@ export function DictionaryPage() {
           </section>
         </div>
       ) : null}
+      </div>
     </div>
   );
 }

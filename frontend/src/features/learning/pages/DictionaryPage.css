@@ -1,7 +1,18 @@
 .dictionary-page {
-  width: min(100%, 1920px);
-  min-height: 100vh;
-  margin: 0 auto;
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  color: #3f2b20;
+  background: #faf7f1;
+}
+
+.dictionary-canvas {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1920px;
+  height: 1200px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -14,10 +25,11 @@
     Arial,
     sans-serif;
   background: #faf7f1;
+  transform-origin: center center;
 }
 
 /* 메인페이지와 동일한 네비게이션바 (기존 페이지와 동일하게 복제) */
-.header {
+.dictionary-header {
   position: relative;
   z-index: 5;
   height: 86px;
@@ -30,7 +42,7 @@
   box-shadow: 0 4px 18px rgba(85, 57, 37, 0.05);
 }
 
-.nav {
+.dictionary-nav {
   height: 100%;
   display: flex;
   align-items: center;
@@ -38,8 +50,8 @@
   gap: 58px;
 }
 
-.nav a,
-.nav button {
+.dictionary-nav a,
+.dictionary-nav button {
   position: relative;
   height: 100%;
   display: flex;
@@ -56,11 +68,11 @@
   cursor: pointer;
 }
 
-.nav a.active {
+.dictionary-nav a.active {
   color: #3f2b20;
 }
 
-.nav a.active::after {
+.dictionary-nav a.active::after {
   position: absolute;
   right: 0;
   bottom: 17px;
@@ -71,7 +83,7 @@
   content: "";
 }
 
-.mypage-button {
+.dictionary-mypage-button {
   position: absolute;
   top: 20px;
   right: 58px;
@@ -90,7 +102,7 @@
 
 .dictionary-main {
   flex: 1;
-  min-height: calc(100vh - 86px);
+  min-height: 0;
   padding: 34px 62px 40px;
   overflow-y: auto;
   background: #faf7f1;
@@ -145,9 +157,9 @@
 }
 
 .dictionary-sidebar {
-  position: sticky;
-  top: 24px;
-  max-height: calc(100vh - 150px);
+  position: relative;
+  top: auto;
+  max-height: 1050px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -159,6 +171,20 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #979797 transparent;
+}
+
+.dictionary-tree::-webkit-scrollbar,
+.dictionary-results::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dictionary-tree::-webkit-scrollbar-thumb,
+.dictionary-results::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #979797;
 }
 
 .dictionary-search {
@@ -171,6 +197,8 @@
 .dictionary-search-icon {
   position: absolute;
   left: 16px;
+  width: 18px;
+  height: 18px;
   color: #a3948a;
   pointer-events: none;
 }
@@ -215,6 +243,11 @@
   cursor: pointer;
 }
 
+.dictionary-search-clear svg {
+  width: 16px;
+  height: 16px;
+}
+
 .dictionary-tree-root {
   width: 100%;
   min-height: 52px;
@@ -233,8 +266,15 @@
 }
 
 .dictionary-tree-chevron {
+  width: 18px;
+  height: 18px;
   flex: 0 0 auto;
   transition: transform 0.2s ease;
+}
+
+.dictionary-tree-category .dictionary-tree-chevron {
+  width: 16px;
+  height: 16px;
 }
 
 .dictionary-tree-chevron.is-open {
@@ -278,16 +318,30 @@
 
 .dictionary-chip-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  grid-template-columns: repeat(
+    6,
+    44px
+  );
   gap: 8px;
+  justify-content: start;
+  justify-items: start;
   margin: 10px 0 2px;
   padding: 0 0 0 4px;
   list-style: none;
 }
 
+.dictionary-chip-grid > li {
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+}
+
 .dictionary-chip {
-  width: 100%;
-  aspect-ratio: 1;
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  height: 44px;
+  box-sizing: border-box;
   display: grid;
   place-items: center;
   border: 1px solid #e7d9c7;
@@ -480,83 +534,3 @@
 .dictionary-coming-soon-confirm { min-width: 142px; min-height: 45px; margin-top: 20px; border: 0; border-radius: 15px; background: #8fa071; box-shadow: 0 5px 0 #6f8052; color: #fff; font: inherit; font-weight: 900; cursor: pointer; }
 .dictionary-coming-soon-confirm:active { transform: translateY(3px); box-shadow: 0 2px 0 #6f8052; }
 @keyframes dictionaryComingSoonPop { from { opacity: 0; transform: translateY(18px) scale(.92); } to { opacity: 1; transform: translateY(0) scale(1); } }
-
-@media (max-width: 1180px) {
-  .dictionary-main {
-    padding: 26px 24px 32px;
-  }
-
-  .dictionary-layout {
-    grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
-    gap: 18px;
-  }
-
-  .dictionary-detail-image {
-    width: 260px;
-    height: 260px;
-    flex-basis: 260px;
-  }
-}
-
-@media (max-width: 900px) {
-  .dictionary-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .dictionary-sidebar {
-    position: static;
-    max-height: none;
-  }
-
-  .dictionary-tree,
-  .dictionary-results {
-    overflow: visible;
-  }
-}
-
-@media (max-width: 760px) {
-  .header {
-    height: auto;
-    min-height: 72px;
-    padding: 0 16px;
-  }
-
-  .nav {
-    width: 100%;
-    justify-content: flex-start;
-    gap: 24px;
-    overflow-x: auto;
-    padding-right: 110px;
-  }
-
-  .nav a,
-  .nav button {
-    font-size: 14px;
-  }
-
-  .mypage-button {
-    right: 14px;
-    width: 94px;
-    height: 38px;
-    font-size: 13px;
-  }
-
-  .dictionary-main {
-    min-height: calc(100vh - 72px);
-  }
-
-  .dictionary-detail {
-    min-height: auto;
-    padding: 24px 20px 30px;
-  }
-
-  .dictionary-detail-symbol {
-    font-size: 72px;
-  }
-
-  .dictionary-detail-image {
-    width: 220px;
-    height: 220px;
-    flex-basis: 220px;
-  }
-}

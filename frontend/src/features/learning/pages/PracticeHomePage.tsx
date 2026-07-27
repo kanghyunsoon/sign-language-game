@@ -88,8 +88,9 @@ export function PracticeHomePage() {
 
   return (
     <div className="practice-page">
-      <header className="header">
-        <nav className="nav" aria-label="주요 메뉴">
+      <div className="practice-canvas">
+      <header className="practice-home-header">
+        <nav className="practice-home-nav" aria-label="주요 메뉴">
           <Link to="/main">메인페이지</Link>
           <Link className="active" to="/practice">연습</Link>
           <button type="button" onClick={() => setComingSoonMenu("테스트")}>테스트</button>
@@ -97,7 +98,7 @@ export function PracticeHomePage() {
           <Link to="/game">게임</Link>
         </nav>
 
-        <Link className="mypage-button" to="/profile">
+        <Link className="practice-home-mypage-button" to="/profile">
           마이페이지
         </Link>
       </header>
@@ -194,6 +195,7 @@ export function PracticeHomePage() {
           </section>
         </div>
       ) : null}
+      </div>
     </div>
   );
 }
