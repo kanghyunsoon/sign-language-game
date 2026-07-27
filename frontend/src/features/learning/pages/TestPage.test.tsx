@@ -1,0 +1,233 @@
+// @vitest-environment jsdom
+
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter } from "react-router-dom";
+import { TestPage } from "./TestPage";
+
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
+
+beforeEach(() => {
+  // jsdom에는 카메라가 없다. 진행 화면이 안내 문구로 넘어가는 경로를 쓴다.
+  Object.defineProperty(navigator, "mediaDevices", {
+    value: undefined,
+    configurable: true,
+  });
+});
+
+const renderPage = () =>
+  render(
+    <MemoryRouter>
+      <TestPage />
+    </MemoryRouter>,
+  );
+
+/** 설정 화면에서 분류/문항 수를 고르고 테스트를 시작한다. */
+const startTest = (categoryLabel: string, count: string) => {
+  const setupCategory = screen.getByRole("button", { name: new RegExp(categoryLabel) });
+  if (setupCategory.getAttribute("aria-pressed") === "false") {
+    fireEvent.click(setupCategory);
+  }
+  fireEvent.click(screen.getByRole("button", { name: count }));
+  fireEvent.click(screen.getByRole("button", { name: "테스트 시작" }));
+};
+
+/** 자음만 남기고 시작해 문항 수를 통제한다. */
+const startConsonantOnly = (count: string) => {
+  fireEvent.click(screen.getByRole("button", { name: /자음/ })); // 기본 선택 해제
+  fireEvent.click(screen.getByRole("button", { name: /자음/ })); // 다시 선택
+  startTest("자음", count);
+};
+
+describe("TestPage 설정 화면", () => {
+  it("기본으로 자음이 선택되고 최대 문항 수를 안내한다", () => {
+    renderPage();
+
+    expect(
+      screen.getByRole("button", { name: /자음/ }).getAttribute("aria-pressed"),
+    ).toBe("true");
+    expect(screen.getByText("최대 14문항")).toBeTruthy();
+  });
+
+  it("분류를 모두 해제하면 시작할 수 없다", () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: /자음/ }));
+
+    expect(screen.getByText("분류를 한 개 이상 선택해 주세요.")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "테스트 시작" }),
+    ).toHaveProperty("disabled", true);
+  });
+
+  it("보유 글자보다 많은 문항을 고르면 축소 안내를 보여준다", () => {
+    renderPage();
+
+    // 자음(14) 해제 후 숫자(10)만 선택
+    fireEvent.click(screen.getByRole("button", { name: /자음/ }));
+    fireEvent.click(screen.getByRole("button", { name: /숫자/ }));
+    fireEvent.click(screen.getByRole("button", { name: "15개" }));
+
+    expect(
+      screen.getByText("선택한 분류에는 10자가 있어 10문항으로 출제됩니다."),
+    ).toBeTruthy();
+  });
+
+  it("분류를 중복 선택할 수 있다", () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: /모음/ }));
+
+    expect(screen.getByText("최대 31문항")).toBeTruthy();
+  });
+});
+
+describe("TestPage 진행 화면", () => {
+  it("문제 글자와 진행도, 타이머를 보여준다", () => {
+    renderPage();
+    startConsonantOnly("5개");
+
+    expect(screen.getByText("1 / 5")).toBeTruthy();
+    expect(screen.getByText("문제")).toBeTruthy();
+    expect(screen.getByRole("timer", { name: "남은 시간" }).textContent).toBe(
+      "10초",
+    );
+  });
+
+  it("카메라를 쓸 수 없으면 안내 문구를 보여준다", () => {
+    renderPage();
+    startConsonantOnly("5개");
+
+    expect(
+      screen.getByText("현재 환경에서는 카메라를 사용할 수 없습니다."),
+    ).toBeTruthy();
+  });
+
+  it("넘어가기를 누르면 다음 문항으로 이동한다", () => {
+    renderPage();
+    startConsonantOnly("5개");
+
+    fireEvent.click(screen.getByRole("button", { name: "넘어가기" }));
+
+    expect(screen.getByText("2 / 5")).toBeTruthy();
+  });
+
+  it("제한 시간이 지나면 자동으로 다음 문항으로 넘어간다", () => {
+    vi.useFakeTimers();
+    renderPage();
+    startConsonantOnly("5개");
+
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
+
+    expect(screen.getByText("2 / 5")).toBeTruthy();
+  });
+});
+
+describe("TestPage 결과 화면", () => {
+  /** 5문항을 모두 넘겨 결과 화면까지 진행한다. */
+  const finishAllWrong = () => {
+    for (let index = 0; index < 5; index += 1) {
+      fireEvent.click(screen.getByRole("button", { name: "넘어가기" }));
+    }
+  };
+
+  const resultItems = () =>
+    within(screen.getByRole("list")).getAllByRole("button");
+
+  /** 결과 목록 항목에 표시된 글자. */
+  const itemSymbol = (item: HTMLElement) =>
+    item.querySelector(".test-result-symbol")?.textContent;
+
+  /** 우측 상세 패널에 표시된 글자. */
+  const detailSymbol = () =>
+    screen.getByRole("heading", { level: 2 }).textContent;
+
+  it("마지막 문항을 끝내면 결과 화면으로 넘어간다", () => {
+    renderPage();
+    startConsonantOnly("5개");
+    finishAllWrong();
+
+    expect(
+      screen.getByText("5개 문자를 오답노트에 추가했어요!"),
+    ).toBeTruthy();
+    expect(
+      screen.getByText("총 5문항 중 정답 0개 · 오답 5개"),
+    ).toBeTruthy();
+  });
+
+  it("정답 처리한 문항은 정답으로 집계된다", () => {
+    renderPage();
+    startConsonantOnly("5개");
+
+    fireEvent.click(screen.getByRole("button", { name: "정답 처리 (임시)" }));
+    for (let index = 0; index < 4; index += 1) {
+      fireEvent.click(screen.getByRole("button", { name: "넘어가기" }));
+    }
+
+    expect(
+      screen.getByText("4개 문자를 오답노트에 추가했어요!"),
+    ).toBeTruthy();
+    expect(
+      screen.getByText("총 5문항 중 정답 1개 · 오답 4개"),
+    ).toBeTruthy();
+  });
+
+  it("문항 목록과 선택된 글자의 상세를 보여준다", () => {
+    renderPage();
+    startConsonantOnly("5개");
+    finishAllWrong();
+
+    const listItems = resultItems();
+
+    expect(listItems).toHaveLength(5);
+    // 기본 선택은 첫 문항이고, 상세 패널이 같은 글자를 보여준다.
+    expect(listItems[0].getAttribute("aria-pressed")).toBe("true");
+    expect(detailSymbol()).toBe(itemSymbol(listItems[0]));
+    expect(screen.getByText("수형 설명")).toBeTruthy();
+  });
+
+  it("목록 항목을 클릭하면 상세가 그 글자로 바뀐다", () => {
+    renderPage();
+    startConsonantOnly("5개");
+    finishAllWrong();
+
+    const listItems = resultItems();
+    const targetSymbol = itemSymbol(listItems[2]);
+
+    fireEvent.click(listItems[2]);
+
+    expect(listItems[2].getAttribute("aria-pressed")).toBe("true");
+    expect(listItems[0].getAttribute("aria-pressed")).toBe("false");
+    expect(detailSymbol()).toBe(targetSymbol);
+  });
+
+  it("오답노트 버튼은 개발중 팝업을 연다", () => {
+    renderPage();
+    startConsonantOnly("5개");
+    finishAllWrong();
+
+    fireEvent.click(screen.getByRole("button", { name: "오답노트" }));
+
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(screen.getByText("수달이 개발중..")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "기다릴게!" }));
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("다시 테스트를 누르면 설정 화면으로 돌아간다", () => {
+    renderPage();
+    startConsonantOnly("5개");
+    finishAllWrong();
+
+    fireEvent.click(screen.getByRole("button", { name: "다시 테스트" }));
+
+    expect(screen.getByRole("button", { name: "테스트 시작" })).toBeTruthy();
+  });
+});
