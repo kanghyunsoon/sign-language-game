@@ -54,6 +54,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   const roomSocketRef = useRef<RoomRealtimeSocket | null>(null);
   const roomRef = useRef<BattleRoomDetail | null>(room);
   const enteringGameRef = useRef(false);
+  const startRtcAndEnterRef = useRef<() => Promise<void>>(async () => undefined);
 
   const rememberRoom = useCallback((next: BattleRoomDetail) => {
     roomRef.current = next;
@@ -85,6 +86,10 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   }, [battleMediaSession, navigate, room, roomId, sharedCameraSession]);
 
   useEffect(() => {
+    startRtcAndEnterRef.current = startRtcAndEnter;
+  }, [startRtcAndEnter]);
+
+  useEffect(() => {
     if (!roomId || room || !roomSession) return;
     if (roomSession.roomId === roomId) rememberRoom(roomSession);
   }, [roomSession, rememberRoom, room, roomId]);
@@ -96,6 +101,10 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
       if (!current) return;
       const summary = rooms.find((candidate) => candidate.roomId === current.roomId || candidate.roomCode === current.roomCode);
       if (!summary) return;
+      if (summary.status === "PLAYING") {
+        void startRtcAndEnterRef.current();
+        return;
+      }
 
       const playerCount = Math.min(summary.playerCount, current.maxPlayers);
       if (playerCount === current.playerCount && summary.status === current.status) return;

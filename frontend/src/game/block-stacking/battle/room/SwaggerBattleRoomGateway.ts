@@ -163,7 +163,7 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   private currentRooms(): readonly BattleRoomSummary[] {
     const expected = this.options.gameType ?? "TETRIS_DUEL";
     return [...this.lobbyCache.values()]
-      .filter((room) => room.status === "WAITING" && (!room.gameType || room.gameType === expected))
+      .filter((room) => !room.gameType || room.gameType === expected)
       .map(toSummary);
   }
 
@@ -178,7 +178,7 @@ function toSummary(room: LobbyRoomSummary): BattleRoomSummary {
     // The list has no join-by-id API. The card carries the room code as its join key.
     roomId: room.roomCode,
     title: `대전방 ${room.roomCode}`,
-    status: room.participantCount >= room.capacity ? "FULL" : "WAITING",
+    status: room.status === "IN_PROGRESS" ? "PLAYING" : room.participantCount >= room.capacity ? "FULL" : "WAITING",
     playerCount: room.participantCount,
     maxPlayers: room.capacity,
     hostUserId: "",

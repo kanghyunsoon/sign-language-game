@@ -599,3 +599,67 @@
 .otterCargo, .otterThrownLetter { width:auto; min-width:0; height:auto; aspect-ratio:auto; border:0; border-radius:0; background:transparent; box-shadow:none; color:#df5b87; font-family:"Arial Rounded MT Bold","Malgun Gothic",sans-serif; font-size:clamp(2.35rem,4vw,3.7rem); font-weight:1000; line-height:.88; text-shadow:-2px -2px 0 #fffdf5,2px -2px 0 #fffdf5,-2px 2px 0 #fffdf5,2px 2px 0 #fffdf5,4px 5px 0 rgba(53,107,113,.28); }
 .otterCargo { display:block; }
 .otterThrownLetter { display:block; }
+
+/* Online 1:1 uses the same fixed solo-stage viewport as practice. */
+.battleFixedPage {
+  --sky: #e6f3ff;
+  --meadow: #c8df91;
+  --grass: #abc980;
+  --cream: #fffdf3;
+  --ink: #33434d;
+  --muted: #69818c;
+  --lime: #b7d64b;
+  --coral: #e36387;
+  --teal: #4a8d89;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  height: 100dvh !important;
+  min-width: 0 !important;
+  min-height: 100dvh !important;
+  margin: 0 !important;
+  padding: clamp(10px, 1.35vw, 22px) !important;
+  overflow: hidden !important;
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
+  background: radial-gradient(circle at 9% 13%, #ffffffa8 0 46px, transparent 48px), radial-gradient(circle at 87% 12%, #ffffffa0 0 58px, transparent 60px), linear-gradient(180deg, var(--sky) 0 72%, var(--meadow) 72% 90%, var(--grass) 90%) !important;
+  color: var(--ink) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.battleFixedPage .topbar { min-height: 0; padding: 0 4px; }
+.battleFixedPage .topbar h1 { color: var(--ink); font-size: clamp(1.1rem, 1.6vw, 1.5rem); }
+.battleFixedPage .topbar p { color: var(--muted); }
+.battleFixedPage .layout {
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr) clamp(150px, 23vh, 230px) !important;
+  gap: clamp(9px, 1vw, 16px);
+}
+.battleFixedPage .boardPanel, .battleFixedPage .videoCell {
+  min-height: 0;
+  overflow: hidden;
+  border: 2px solid rgba(255,255,255,.95);
+  border-radius: 18px;
+  background: var(--cream);
+  box-shadow: 0 6px 0 rgba(139,174,172,.34), 0 12px 22px rgba(76,112,126,.14);
+}
+.battleFixedPage .boardPanel { grid-template-rows: auto minmax(0,1fr); }
+.battleFixedPage .boardPanel header {
+  min-height: 56px;
+  padding: .72rem 1rem;
+  border: 0;
+  border-bottom: 1px solid #dfe9d7;
+  background: linear-gradient(100deg,#fffef9,#f4fae9);
+}
+.battleFixedPage .boardPanel header span { color: #719148; font-weight: 900; letter-spacing: .08em; }
+.battleFixedPage .boardPanel h2 { color: var(--ink); }
+.battleFixedPage .boardPlayArea { position: relative; min-height: 0; overflow: hidden; background: linear-gradient(180deg,#dff1ff 0 69%,#c9e59d 69% 87%,#a9cd7c 87%); }
+.battleFixedPage .boardCanvas { position: relative; z-index: 1; min-height: 0; background: transparent; }
+.battleFixedPage .boardCanvas canvas { background: transparent; }
+.battleFixedPage .videoCell { background: #263c47; }
+.battleFixedPage .hud { border: 0; border-radius: 15px; background: rgba(255,255,255,.88); box-shadow: 0 5px 0 rgba(139,174,172,.28); }
+.battleFixedPage .hud span { color: var(--muted); }
+.battleFixedPage .hud strong { color: var(--ink); }
+@media (max-width: 860px) {
+  .battleFixedPage { height: auto !important; min-height: 100dvh !important; overflow: auto !important; }
+  .battleFixedPage .layout { grid-template-columns: 1fr; grid-template-rows: minmax(360px,1fr) minmax(360px,1fr) 220px !important; }
+  .battleFixedPage .videos { grid-column: 1; }
+}

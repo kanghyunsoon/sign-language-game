@@ -35,7 +35,7 @@ export class WebRtcDataChannelTransport<TCommand, TEvent>
     const attempt = ++this.connectionAttempt;
     this.roomId = options.roomId;
     this.setState("CONNECTING");
-    const deadline = Date.now() + 5_000;
+    const deadline = Date.now() + 15_000;
     let channel = this.getChannel();
     while (attempt === this.connectionAttempt && !channel?.isOpen() && Date.now() < deadline) {
       await new Promise<void>((resolve) => setTimeout(resolve, 25));
