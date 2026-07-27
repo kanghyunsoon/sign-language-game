@@ -56,6 +56,9 @@ export class P2pBattleTransport implements BattleGameTransport {
     this.publishStart();
     if (this.spawnTimer) return;
     this.spawnTimer = setInterval(() => this.spawn(), 1_600);
+    this.otterTimer ??= setInterval(() => this.transferOtterLetter(), 60_000);
+    const firstOtterTimer = setTimeout(() => { this.otterThrowTimers.delete(firstOtterTimer); this.transferOtterLetter(); }, 18_000);
+    this.otterThrowTimers.add(firstOtterTimer);
     this.spawn();
   }
   private publishStart(): void {
@@ -76,20 +79,22 @@ export class P2pBattleTransport implements BattleGameTransport {
   private transferOtterLetter(): void {
     if (this.playerIds.length !== 2 || [...this.players.values()].some((player) => player.gameOver)) return;
     const sourcePlayerId = this.playerIds[Math.floor(Math.random() * this.playerIds.length)];
-    const sourceBody = (this.boards.get(sourcePlayerId) ?? []).find((body) => body.state !== "REMOVED");
-    if (!sourceBody) return;
+    const activeIds = new Set((this.boards.get(sourcePlayerId) ?? []).filter((body) => body.state !== "REMOVED").map((body) => body.id));
+    const sourceLetter = [...this.letters.entries()].find(([letterId, letter]) => letter.playerId === sourcePlayerId && activeIds.has(letterId));
+    if (!sourceLetter) return;
+    const [sourceLetterId, source] = sourceLetter;
     const targetPlayerId = this.playerIds.find((playerId) => playerId !== sourcePlayerId);
     if (!targetPlayerId) return;
     const now = Date.now();
     const direction = sourcePlayerId === this.playerIds[0] ? "left-to-right" : "right-to-left";
-    this.letters.delete(sourceBody.id);
-    this.delegate.publishEvent({ type: "OTTER_TRANSFER", sequence: ++this.sequence, matchId: this.matchId, sourcePlayerId, targetPlayerId, sourceLetterId: sourceBody.id, symbol: sourceBody.symbol, direction, pickupAt: now + 1_450, throwAt: now + 5_100 });
+    this.letters.delete(sourceLetterId);
+    this.delegate.publishEvent({ type: "OTTER_TRANSFER", sequence: ++this.sequence, matchId: this.matchId, sourcePlayerId, targetPlayerId, sourceLetterId, symbol: source.symbol, direction, pickupAt: now + 1_450, throwAt: now + 5_100 });
     const timer = setTimeout(() => {
       this.otterThrowTimers.delete(timer);
       if (this.players.get(targetPlayerId)?.gameOver) return;
       const letterId = this.matchId + "-" + targetPlayerId + "-otter-" + this.spawnIndex++;
-      this.letters.set(letterId, { playerId: targetPlayerId, symbol: sourceBody.symbol });
-      this.delegate.publishEvent({ type: "SPAWN_LETTER", sequence: ++this.sequence, matchId: this.matchId, playerId: targetPlayerId, letterId, spawnIndex: this.spawnIndex, symbol: sourceBody.symbol, spawnAt: Date.now(), normalizedX: .5, initialAngle: 0 });
+      this.letters.set(letterId, { playerId: targetPlayerId, symbol: source.symbol });
+      this.delegate.publishEvent({ type: "SPAWN_LETTER", sequence: ++this.sequence, matchId: this.matchId, playerId: targetPlayerId, letterId, spawnIndex: this.spawnIndex, symbol: source.symbol, spawnAt: Date.now(), normalizedX: .5, initialAngle: 0, targetPriority: true });
     }, 5_100);
     this.otterThrowTimers.add(timer);
   }

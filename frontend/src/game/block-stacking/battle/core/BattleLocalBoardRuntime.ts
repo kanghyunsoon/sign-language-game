@@ -13,7 +13,7 @@ export interface BattleLocalBoard {
 }
 
 export class BattleLocalBoardRuntime implements BattleLocalBoard {
-  private readonly letters = new Map<string, LetterRecord>(); private frame: number | null = null; private previousAt: number | null = null;
+  private readonly letters = new Map<string, LetterRecord>(); private frame: number | null = null; private previousAt: number | null = null; private priorityTargetId: string | null = null;
   private width: number; private height: number; private running = false; private disposed = false; private publisher?: LocalBoardPublisher;
   private gameOverHandler: (() => void) | null = null; private gameOverReported = false;
   constructor(
@@ -27,13 +27,13 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
   ) { this.width = config.boardWidth; this.height = config.boardHeight; this.publisher = publisher; }
   start(): void { if (this.running || this.disposed) return; this.running = true; this.previousAt = null; this.schedule(); }
   stop(): void { this.running = false; if (this.frame !== null) { this.cancelFrame(this.frame); this.frame = null; } }
-  spawn(event: SpawnLetterEvent): void { if (this.letters.has(event.letterId)) return; const x = chooseDistributedSpawnX(this.physics.getLetterStates(), this.width, this.height, BATTLE_LETTER_SIZE, event.normalizedX); this.physics.createLetter({ id: event.letterId, symbol: event.symbol, x, y: Math.max(-70, -Math.min(this.width, this.height) * .12), angle: event.initialAngle }); this.letters.set(event.letterId, { id: event.letterId, symbol: event.symbol, spawnedAt: event.spawnAt, pending: false }); this.updateTarget(); }
+  spawn(event: SpawnLetterEvent): void { if (this.letters.has(event.letterId)) return; const x = chooseDistributedSpawnX(this.physics.getLetterStates(), this.width, this.height, BATTLE_LETTER_SIZE, event.normalizedX); this.physics.createLetter({ id: event.letterId, symbol: event.symbol, x, y: Math.max(-70, -Math.min(this.width, this.height) * .12), angle: event.initialAngle }); this.letters.set(event.letterId, { id: event.letterId, symbol: event.symbol, spawnedAt: event.spawnAt, pending: false }); if (event.targetPriority) this.priorityTargetId = event.letterId; this.updateTarget(); }
   selectRemoval(symbol: string): string | null {
     const target = this.currentTarget();
     if (!target || target.symbol !== symbol) return null;
     target.pending = true; this.renderer.setTarget(target.id); return target.id;
   }
-  acceptRemoval(letterId: string): void { const record = this.letters.get(letterId); if (!record) return; this.renderer.highlightRemoval(letterId, this.config.removalEffectMs); this.updateTarget(); }
+  acceptRemoval(letterId: string): void { const record = this.letters.get(letterId); if (!record) return; if (this.priorityTargetId === letterId) this.priorityTargetId = null; this.renderer.highlightRemoval(letterId, this.config.removalEffectMs); this.updateTarget(); }
   rejectRemoval(letterId?: string): void { if (letterId) { const record = this.letters.get(letterId); if (record) record.pending = false; } else for (const record of this.letters.values()) record.pending = false; this.updateTarget(); }
   getTargetSymbol(): string | null { return this.currentTarget()?.symbol ?? null; }
   /** 수달 이벤트가 현재 지정 블록 자체를 집어 갈 때 사용한다. */
@@ -57,7 +57,7 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
     const states = this.physics.getLetterStates(); this.renderer.render(states); this.publisher?.update(Date.now(), states, this.width, this.height); this.checkDangerLine(states);
   }
   getStates(): readonly PhysicsLetterState[] { return this.physics.getLetterStates(); }
-  private currentTarget(): LetterRecord | undefined { return [...this.letters.values()].filter((letter) => !letter.pending && this.physics.getLetterState(letter.id)).sort((left, right) => left.spawnedAt - right.spawnedAt)[0]; }
+  private currentTarget(): LetterRecord | undefined { const priority = this.priorityTargetId ? this.letters.get(this.priorityTargetId) : undefined; if (priority && !priority.pending && this.physics.getLetterState(priority.id)) return priority; return [...this.letters.values()].filter((letter) => !letter.pending && this.physics.getLetterState(letter.id)).sort((left, right) => left.spawnedAt - right.spawnedAt)[0]; }
   private updateTarget(): void { this.renderer.setTarget(this.currentTarget()?.id ?? null); }
   private checkDangerLine(states: readonly PhysicsLetterState[]): void {
     if (this.gameOverReported) return;
