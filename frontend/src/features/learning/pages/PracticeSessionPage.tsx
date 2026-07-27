@@ -184,7 +184,8 @@ export function PracticeSessionPage({
 
   return (
     <div className="practice-session-page">
-      <header className="header">
+      <div className="practice-session-canvas">
+      <header className="practice-session-header">
         {onExit ? (
           <button
             className="practice-page-back-button"
@@ -204,7 +205,7 @@ export function PracticeSessionPage({
           </Link>
         )}
 
-        <nav className="nav" aria-label="주요 메뉴">
+        <nav className="practice-session-nav" aria-label="주요 메뉴">
           <Link to="/main">메인페이지</Link>
 
           <Link className="active" to="/practice">연습</Link>
@@ -213,7 +214,7 @@ export function PracticeSessionPage({
           <Link to="/game">게임</Link>
         </nav>
 
-        <Link className="mypage-button" to="/profile">
+        <Link className="practice-session-mypage-button" to="/profile">
           마이페이지
         </Link>
       </header>
@@ -385,6 +386,7 @@ export function PracticeSessionPage({
           </section>
         </div>
       ) : null}
+      </div>
     </div>
   );
 }
