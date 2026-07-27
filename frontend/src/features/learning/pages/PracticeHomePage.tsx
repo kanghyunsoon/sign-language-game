@@ -4,9 +4,10 @@ import { Sparkles, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import otterImage from "../assets/otter.png";
 import otterCharacter from "../../../game/block-stacking/assets/game-menu-otter.png";
+import type { FingerspellingCategoryId } from "../data/fingerspelling";
 import { PracticeSessionPage } from "./PracticeSessionPage";
 
-type PracticeCategoryId = "consonant" | "vowel" | "number";
+type PracticeCategoryId = FingerspellingCategoryId;
 
 interface PracticeCategory {
   id: PracticeCategoryId;
