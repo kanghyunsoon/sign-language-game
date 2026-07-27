@@ -34,9 +34,12 @@ public interface GameRoomRepository extends JpaRepository<GameRoom, Long> {
     /**
      * 방치 방 정리(FR-013)를 개별 DELETE(N+1) 대신 단일 벌크 DELETE로 수행한다. 벌크 DML은
      * 영속성 컨텍스트를 우회하므로, 삭제된 엔티티가 1차 캐시에 남아 이후 조회에 노출되지 않도록
-     * {@code clearAutomatically = true}로 컨텍스트를 비운다.
+     * {@code clearAutomatically = true}로 컨텍스트를 비운다. 또한 대상 조회와 삭제 사이에 방이
+     * IN_PROGRESS로 전환될 수 있고 id만으로 지우면 그 방까지 삭제되므로(엔티티 삭제와 달리 벌크
+     * DML은 {@code @Version} 검사도 하지 않는다), 삭제문 자체에서 IN_PROGRESS를 제외한다.
      */
     @Modifying(clearAutomatically = true)
-    @Query("DELETE FROM GameRoom g WHERE g.id IN :ids")
+    @Query("DELETE FROM GameRoom g WHERE g.id IN :ids "
+            + "AND g.status <> backend.ssafy.suhwa.game.domain.GameRoomStatus.IN_PROGRESS")
     void deleteAllByIdIn(@Param("ids") Collection<Long> ids);
 }
