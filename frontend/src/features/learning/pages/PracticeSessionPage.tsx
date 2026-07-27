@@ -1,9 +1,14 @@
 import "./PracticeSessionPage.css";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Sparkles, X } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import otterClapImage from "../assets/otter_clap.png";
 import otterCharacter from "../../../game/block-stacking/assets/game-menu-otter.png";
+import {
+  HandCamera,
+  PythonWebSocketSignRecognizer,
+  type RecognitionConnectionState,
+} from "../../../game/recognition";
 import type { FingerspellingCategoryId } from "../data/fingerspelling";
 import { fingerspellingItems } from "../data/fingerspelling";
 
@@ -24,24 +29,138 @@ const isPracticeCategoryId = (
   );
 };
 
+const getAiWebSocketUrl = () => {
+  const configuredUrl = import.meta.env.VITE_AI_WEBSOCKET_URL?.trim();
+
+  if (configuredUrl) {
+    return configuredUrl;
+  }
+
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+
+  return `${protocol}//${window.location.host}/ai/ws`;
+};
+
 export function PracticeSessionPage({
   category,
   onExit,
 }: PracticeSessionPageProps = {}) {
   const { categoryId: routeCategoryId } = useParams();
   const categoryId = category ?? routeCategoryId;
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const targetSymbolRef = useRef("");
+  const correctAnswerRef = useRef(false);
+  const currentIndexRef = useRef(0);
+  const correctItemIndexesRef = useRef(new Set<number>());
+  const recognizer = useMemo(
+    () =>
+      new PythonWebSocketSignRecognizer({
+        url: getAiWebSocketUrl(),
+      }),
+    [],
+  );
 
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [correctAnswerCount, setCorrectAnswerCount] = useState(0);
   const [isPracticeComplete, setIsPracticeComplete] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [connectionState, setConnectionState] =
+    useState<RecognitionConnectionState>("DISCONNECTED");
+  const [prediction, setPrediction] = useState<{
+    symbol: string;
+    confidence: number;
+    isStable?: boolean;
+  } | null>(null);
+  const [isCorrect, setIsCorrect] = useState(false);
+  const [recognitionMessage, setRecognitionMessage] =
+    useState("AI 연결을 준비하고 있습니다.");
   const [comingSoonMenu, setComingSoonMenu] = useState<"테스트" | null>(null);
   const [cameraMessage, setCameraMessage] =
     useState("카메라 시작 버튼을 눌러주세요.");
+  const targetSymbol = isPracticeCategoryId(categoryId)
+    ? fingerspellingItems[categoryId][currentIndex]?.symbol ?? ""
+    : "";
 
   useEffect(() => {
+    targetSymbolRef.current = targetSymbol;
+    correctAnswerRef.current = false;
+    setIsCorrect(false);
+    setPrediction(null);
+    setRecognitionMessage(
+      recognizer.getConnectionState() === "CONNECTED"
+        ? "손동작을 보여주세요."
+        : "AI 연결을 준비하고 있습니다.",
+    );
+  }, [recognizer, targetSymbol]);
+
+  useEffect(() => {
+    const unsubscribe = recognizer.subscribe((event) => {
+      if (event.type === "CONNECTION_STATE") {
+        setConnectionState(event.state);
+
+        if (event.state === "CONNECTED") {
+          setRecognitionMessage("손동작을 보여주세요.");
+        } else if (event.state === "CONNECTING") {
+          setRecognitionMessage("AI 인식 서버에 연결하고 있습니다.");
+        } else if (event.state === "ERROR") {
+          setRecognitionMessage("AI 인식 서버에 연결하지 못했습니다.");
+        }
+
+        return;
+      }
+
+      if (event.type === "PREDICTION") {
+        setPrediction({
+          symbol: event.symbol,
+          confidence: event.confidence,
+          isStable: event.isStable,
+        });
+        setRecognitionMessage(`AI 인식 중: ${event.symbol}`);
+
+        return;
+      }
+
+      if (event.type === "SIGN_CONFIRMED" && !correctAnswerRef.current) {
+        if (event.symbol === targetSymbolRef.current) {
+          correctAnswerRef.current = true;
+
+          if (!correctItemIndexesRef.current.has(currentIndexRef.current)) {
+            correctItemIndexesRef.current.add(currentIndexRef.current);
+            setCorrectAnswerCount(correctItemIndexesRef.current.size);
+          }
+
+          setIsCorrect(true);
+          setRecognitionMessage("맞췄습니다!");
+        } else {
+          setRecognitionMessage(
+            `${event.symbol}(으)로 인식했어요. 손을 내린 뒤 다시 시도해주세요.`,
+          );
+        }
+
+        return;
+      }
+
+      if (event.type === "HAND_RELEASED" && !correctAnswerRef.current) {
+        setPrediction(null);
+        setRecognitionMessage("손동작을 보여주세요.");
+
+        return;
+      }
+
+      if (event.type === "ERROR") {
+        setRecognitionMessage("AI 인식 중 오류가 발생했습니다.");
+      }
+    });
+
+    void recognizer.connect().catch(() => {
+      setRecognitionMessage("AI 인식 서버에 연결하지 못했습니다.");
+    });
+
     return () => {
+      unsubscribe();
+      recognizer.disconnect();
+
       const stream = streamRef.current;
 
       if (!stream) {
@@ -52,7 +171,7 @@ export function PracticeSessionPage({
         track.stop();
       });
     };
-  }, []);
+  }, [recognizer]);
 
   if (!isPracticeCategoryId(categoryId)) {
     return (
@@ -68,6 +187,11 @@ export function PracticeSessionPage({
   const currentPracticeItem = currentPracticeItems[currentIndex];
   const isFirstItem = currentIndex === 0;
   const isLastItem = currentIndex === currentPracticeItems.length - 1;
+  const correctProgress = Math.round(
+    (correctAnswerCount / currentPracticeItems.length) * 100,
+  );
+
+  currentIndexRef.current = currentIndex;
 
   const stopCamera = () => {
     const stream = streamRef.current;
@@ -78,12 +202,9 @@ export function PracticeSessionPage({
       });
     }
 
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-
     streamRef.current = null;
 
+    setCameraStream(null);
     setIsCameraActive(false);
     setCameraMessage("카메라 시작 버튼을 눌러주세요.");
   };
@@ -97,6 +218,8 @@ export function PracticeSessionPage({
   };
 
   const handleNextClick = () => {
+    setIsCorrect(false);
+
     if (isLastItem) {
       stopCamera();
       setIsPracticeComplete(true);
@@ -108,8 +231,24 @@ export function PracticeSessionPage({
   };
 
   const handleRetryClick = () => {
+    correctItemIndexesRef.current.clear();
     setCurrentIndex(0);
+    setCorrectAnswerCount(0);
     setIsPracticeComplete(false);
+    setIsCorrect(false);
+  };
+
+  const handleCorrectNext = () => {
+    setIsCorrect(false);
+
+    if (isLastItem) {
+      stopCamera();
+      setIsPracticeComplete(true);
+
+      return;
+    }
+
+    setCurrentIndex((previousIndex) => previousIndex + 1);
   };
 
   const handleCameraClick = async () => {
@@ -142,13 +281,7 @@ export function PracticeSessionPage({
       });
 
       streamRef.current = stream;
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-
-        await videoRef.current.play();
-      }
-
+      setCameraStream(stream);
       setIsCameraActive(true);
       setCameraMessage("");
     } catch (error) {
@@ -282,13 +415,25 @@ export function PracticeSessionPage({
                 isCameraActive ? "camera-active" : ""
               }`}
             >
-              <video
-                className="practice-camera-video"
-                ref={videoRef}
-                autoPlay
-                muted
-                playsInline
-              />
+              {cameraStream && (
+                <HandCamera
+                  sharedStream={cameraStream}
+                  autoStart
+                  compact
+                  targetSymbol={currentPracticeItem.symbol}
+                  prediction={prediction}
+                  connectionState={connectionState}
+                  performanceMonitor={recognizer.getPerformanceMonitor()}
+                  temporalDecoder={recognizer.getTemporalDecoder()}
+                  awaitingHandRelease={isCorrect}
+                  onLandmarkFrame={(frame) =>
+                    recognizer.sendLandmarkFrame(frame)
+                  }
+                  onHandNotDetected={(capturedAt) =>
+                    recognizer.notifyHandNotDetected(capturedAt)
+                  }
+                />
+              )}
 
               {isCameraActive && (
                 <span className="practice-camera-live">● LIVE</span>
@@ -296,6 +441,12 @@ export function PracticeSessionPage({
 
               {!isCameraActive && (
                 <p className="practice-camera-message">{cameraMessage}</p>
+              )}
+
+              {isCameraActive && (
+                <p className="practice-recognition-message" role="status">
+                  {recognitionMessage}
+                </p>
               )}
             </div>
           </article>
@@ -328,6 +479,29 @@ export function PracticeSessionPage({
           </button>
         </div>
 
+        {isCorrect && !isPracticeComplete && (
+          <div
+            className="practice-correct-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="practice-correct-title"
+          >
+            <section className="practice-correct-card">
+              <img
+                src={otterClapImage}
+                alt="정답을 축하하며 박수치는 수달"
+              />
+              <h2 id="practice-correct-title">맞췄습니다!</h2>
+              <p>
+                AI가 {currentPracticeItem.symbol} 동작을 정확히 인식했어요.
+              </p>
+              <button type="button" onClick={handleCorrectNext}>
+                {isLastItem ? "연습 완료" : "다음 문제"}
+              </button>
+            </section>
+          </div>
+        )}
+
         {isPracticeComplete && (
           <div
             className="practice-completion-overlay"
@@ -350,12 +524,12 @@ export function PracticeSessionPage({
 
               <div className="practice-completion-stats">
                 <div>
-                  <strong>{currentPracticeItems.length}개</strong>
+                  <strong>{correctAnswerCount}개</strong>
                   <span>완료 문제</span>
                 </div>
 
                 <div>
-                  <strong>100%</strong>
+                  <strong>{correctProgress}%</strong>
                   <span>진행률</span>
                 </div>
               </div>

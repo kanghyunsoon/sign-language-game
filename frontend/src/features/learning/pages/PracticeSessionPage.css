@@ -560,20 +560,26 @@
     );
 }
 
-.practice-camera-video {
+.practice-camera-placeholder > .camera-workspace {
   position: absolute;
+  z-index: 1;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  opacity: 0;
-  transform: scaleX(-1);
-  transition: opacity 0.2s ease;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
 }
 
-.practice-camera-placeholder.camera-active
-  .practice-camera-video {
-  opacity: 1;
+.practice-camera-placeholder .camera-stage {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: inherit;
+  aspect-ratio: auto;
 }
 
 .practice-camera-live {
@@ -613,6 +619,79 @@
   line-height: 1.6;
   text-align: center;
   word-break: keep-all;
+}
+
+.practice-recognition-message {
+  position: absolute;
+  right: min(0.833333vw, 1.333333vh);
+  bottom: min(0.833333vw, 1.333333vh);
+  left: min(0.833333vw, 1.333333vh);
+  z-index: 5;
+  margin: 0;
+  padding: min(0.520833vw, 0.833333vh) min(0.729167vw, 1.166667vh);
+  border-radius: min(0.625vw, 1vh);
+  color: #ffffff;
+  font-size: min(0.677083vw, 1.083333vh);
+  font-weight: 800;
+  text-align: center;
+  background: rgba(35, 45, 49, 0.78);
+  backdrop-filter: blur(min(0.208333vw, 0.333333vh));
+}
+
+.practice-correct-overlay {
+  position: absolute;
+  z-index: 12;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(63, 43, 32, 0.28);
+  backdrop-filter: blur(min(0.260417vw, 0.416667vh));
+}
+
+.practice-correct-card {
+  width: min(min(25vw, 40vh), calc(100% - min(2.083333vw, 3.333333vh)));
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: min(1.5625vw, 2.5vh);
+  border: min(0.15625vw, 0.25vh) solid #d8c8a9;
+  border-radius: min(1.25vw, 2vh);
+  color: #4c4037;
+  text-align: center;
+  background: #fffdf7;
+  box-shadow: 0 min(1.041667vw, 1.666667vh) min(2.1875vw, 3.5vh) rgba(59, 42, 35, 0.25);
+}
+
+.practice-correct-card img {
+  width: min(9.375vw, 15vh);
+  height: min(9.375vw, 15vh);
+  object-fit: contain;
+}
+
+.practice-correct-card h2 {
+  margin: min(0.416667vw, 0.666667vh) 0;
+  color: #5f402b;
+  font-size: min(1.5625vw, 2.5vh);
+}
+
+.practice-correct-card p {
+  margin: 0 0 min(1.041667vw, 1.666667vh);
+  color: #827368;
+  font-size: min(0.78125vw, 1.25vh);
+}
+
+.practice-correct-card button {
+  min-width: min(7.8125vw, 12.5vh);
+  min-height: min(2.5vw, 4vh);
+  border: 0;
+  border-radius: min(0.677083vw, 1.083333vh);
+  color: #ffffff;
+  font: inherit;
+  font-size: min(0.78125vw, 1.25vh);
+  font-weight: 900;
+  background: #8fa071;
+  box-shadow: 0 min(0.260417vw, 0.416667vh) 0 #6f8052;
+  cursor: pointer;
 }
 
 /* 카메라 인식 결과 */
