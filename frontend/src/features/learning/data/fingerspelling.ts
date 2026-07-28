@@ -94,7 +94,7 @@ export const fingerspellingItems: Record<
       image: giyeokImage,
       description: [
         "검지를 아래로 곧게 펴고, 엄지와 검지를 제외한 나머지 손가락은 접어주세요.",
-        "손등이 보이도록 손을 내립니다 합니다.",
+        "손등이 보이도록 손을 내립니다.",
       ],
     },
     {
