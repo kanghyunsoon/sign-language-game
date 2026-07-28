@@ -696,6 +696,10 @@
 .battleFixedPage .boardPlayArea .boardCanvas canvas { position:relative; z-index:1; background:transparent; }
 .battleFixedPage .videos { gap:clamp(9px,1vw,16px); }
 .battleFixedPage .videoCell { border-color:#fff; border-radius:18px; box-shadow:0 6px 0 rgba(139,174,172,.34),0 12px 22px rgba(76,112,126,.14); }
+.battleFixedPage .videoCell video {
+  object-fit:contain !important;
+  background:#101b23;
+}
 .battleFixedPage .hud { min-height:52px; padding:7px 13px; border:1px solid rgba(255,255,255,.9); }
 .battleFixedPage .targetMetric { border-radius:10px; background:linear-gradient(145deg,#fffbe6,#fff2c3)!important; }
 /* Pixi owns the board scenery for both players. Never layer CSS grids over only one board. */

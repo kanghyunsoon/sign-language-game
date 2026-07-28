@@ -183,10 +183,20 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
 
   const toggleReady = async () => {
     if (!roomId || !room || !gateway.setReady || readyBusy) return;
+    const nextReady = !room.currentUserReady;
+    const isCurrentUserHost = room.hostUserId === user.userId;
+    const optimisticRoom: BattleRoomDetail = {
+      ...room,
+      currentUserReady: nextReady,
+      hostReady: isCurrentUserHost ? nextReady : Boolean(room.hostReady),
+      guestReady: isCurrentUserHost ? Boolean(room.guestReady) : nextReady,
+      canStart: room.playerCount >= room.maxPlayers && (isCurrentUserHost ? nextReady : Boolean(room.hostReady)) && (isCurrentUserHost ? Boolean(room.guestReady) : nextReady),
+    };
+    rememberRoom(optimisticRoom);
     setReadyBusy(true);
     setError(null);
     try {
-      const next = await gateway.setReady(roomId, !room.currentUserReady);
+      const next = await gateway.setReady(roomId, nextReady);
       rememberRoom(next);
     } catch (cause) {
       setError(errorMessage(cause, "준비 상태를 변경하지 못했습니다."));
@@ -206,7 +216,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
         // The next interval retries. The start button remains safely disabled.
       }
     };
-    const timer = window.setInterval(() => void syncReadyState(), 1_000);
+    const timer = window.setInterval(() => void syncReadyState(), 250);
     void syncReadyState();
     return () => {
       active = false;
