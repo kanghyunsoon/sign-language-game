@@ -322,7 +322,11 @@ describe("TestPage 결과 화면", () => {
     startConsonantOnly("5개");
     finishAllWrong();
 
-    const noteLink = screen.getByRole("link", { name: "오답노트" });
+    // 네비게이션에도 같은 이름의 링크가 있으므로 결과 화면 하단 영역으로 좁힌다.
+    const actions = document.querySelector(
+      ".test-result-actions",
+    ) as HTMLElement;
+    const noteLink = within(actions).getByRole("link", { name: "오답노트" });
 
     expect(noteLink.getAttribute("href")).toBe("/review-notes");
   });
