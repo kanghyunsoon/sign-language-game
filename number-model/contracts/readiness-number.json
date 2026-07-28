@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "modelVersion": "number-10-v1",
+  "confirmationAuthority": "FRONTEND_TEMPORAL_DECODER",
+  "status": "not-evaluated",
+  "evaluation": {
+    "sampleCount": 0,
+    "sampling": "no model has been trained yet",
+    "trainingIndependent": false,
+    "warning": "This gate is a safe-by-default placeholder. No number-only model has been trained or measured, so every symbol is ineligible. Replace this file only with values produced by a participant-held-out locked test recorded in number-model-log.md."
+  },
+  "criteria": {
+    "minimumConfirmationRate": 0.85,
+    "minimumCompetitivePrecision": 0.9,
+    "minimumClassRecall": 0.93
+  },
+  "classes": [
+    { "symbol": "1", "threshold": 1.0, "competitiveEligible": false, "reason": "not evaluated" },
+    { "symbol": "2", "threshold": 1.0, "competitiveEligible": false, "reason": "not evaluated" },
+    { "symbol": "3", "threshold": 1.0, "competitiveEligible": false, "reason": "not evaluated" },
+    { "symbol": "4", "threshold": 1.0, "competitiveEligible": false, "reason": "not evaluated" },
+    { "symbol": "5", "threshold": 1.0, "competitiveEligible": false, "reason": "not evaluated" },
+    { "symbol": "6", "threshold": 1.0, "competitiveEligible": false, "reason": "not evaluated" },
+    { "symbol": "7", "threshold": 1.0, "competitiveEligible": false, "reason": "not evaluated" },
+    { "symbol": "8", "threshold": 1.0, "competitiveEligible": false, "reason": "not evaluated" },
+    { "symbol": "9", "threshold": 1.0, "competitiveEligible": false, "reason": "not evaluated" },
+    { "symbol": "10", "threshold": 1.0, "competitiveEligible": false, "reason": "not evaluated" }
+  ]
+}
