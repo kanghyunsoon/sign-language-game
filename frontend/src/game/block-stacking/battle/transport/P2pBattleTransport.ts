@@ -20,7 +20,8 @@ export class P2pBattleTransport implements BattleGameTransport {
   private sequence = 0;
   private spawnIndex = 0;
   private spawnTimer: ReturnType<typeof setInterval> | null = null;
-  private otterTimer: ReturnType<typeof setInterval> | null = null;
+  private otterTimer: ReturnType<typeof setTimeout> | null = null;
+  private matchStartedAt = 0;
   private readonly otterThrowTimers = new Set<ReturnType<typeof setTimeout>>();
   private unsubscribeCommands: (() => void) | null = null;
   private connectGeneration = 0;
@@ -45,7 +46,7 @@ export class P2pBattleTransport implements BattleGameTransport {
       this.delegate.send({ type: "REQUEST_MATCH_STATE", commandId: crypto.randomUUID(), matchId: this.matchId, occurredAt: Date.now() });
     }
   }
-  disconnect(): void { this.connectGeneration += 1; this.unsubscribeCommands?.(); this.unsubscribeCommands = null; if (this.spawnTimer) clearInterval(this.spawnTimer); if (this.otterTimer) clearInterval(this.otterTimer); for (const timer of this.otterThrowTimers) clearTimeout(timer); this.otterThrowTimers.clear(); this.spawnTimer = null; this.otterTimer = null; this.delegate.disconnect(); }
+  disconnect(): void { this.connectGeneration += 1; this.unsubscribeCommands?.(); this.unsubscribeCommands = null; if (this.spawnTimer) clearInterval(this.spawnTimer); if (this.otterTimer) clearTimeout(this.otterTimer); for (const timer of this.otterThrowTimers) clearTimeout(timer); this.otterThrowTimers.clear(); this.spawnTimer = null; this.otterTimer = null; this.matchStartedAt = 0; this.delegate.disconnect(); }
   send(message: ClientBattleMessage): void { if (this.isHost()) this.handle(message, this.localPlayerId); else this.delegate.send(message); }
   subscribe(listener: (message: ServerBattleMessage) => void): () => void { return this.delegate.subscribe(listener); }
   subscribeConnectionState(listener: (state: BattleConnectionState) => void): () => void { return this.delegate.subscribeConnectionState(listener); }
@@ -56,10 +57,18 @@ export class P2pBattleTransport implements BattleGameTransport {
     this.publishStart();
     if (this.spawnTimer) return;
     this.spawnTimer = setInterval(() => this.spawn(), 3_000);
-    this.otterTimer ??= setInterval(() => this.transferOtterLetter(), 60_000);
-    const firstOtterTimer = setTimeout(() => { this.otterThrowTimers.delete(firstOtterTimer); this.transferOtterLetter(); }, 18_000);
-    this.otterThrowTimers.add(firstOtterTimer);
+    this.matchStartedAt = Date.now();
+    this.scheduleNextOtterTransfer(18_000);
     this.spawn();
+  }
+  private scheduleNextOtterTransfer(delay?: number): void {
+    const elapsedMinutes = Math.floor((Date.now() - this.matchStartedAt) / 60_000);
+    const nextDelay = delay ?? Math.max(20_000, 60_000 - elapsedMinutes * 7_000);
+    this.otterTimer = setTimeout(() => {
+      this.otterTimer = null;
+      this.transferOtterLetter();
+      this.scheduleNextOtterTransfer();
+    }, nextDelay);
   }
   private publishStart(): void {
     const now = Date.now();

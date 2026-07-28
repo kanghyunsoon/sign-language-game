@@ -332,13 +332,15 @@ export class GameRuntime {
 
   private checkDangerLine(states: readonly PhysicsLetterState[]): void {
     const dangerLineY = this.boardHeight * (this.config.dangerLineY / this.config.boardHeight);
-    // The physics collider is intentionally larger than the painted glyph so
-    // letters have stable collisions.  Testing the collider's top made a
-    // visible gap above the line end a solo game.  End only when the visible
-    // centre of a settled glyph actually crosses the danger line.
+    // A block becomes dangerous as soon as it comes to rest on the stack with
+    // its visible top at the line.  Waiting for the full settlement timer made
+    // the loss feel one letter late.
     const visibleHalfHeight = this.config.letterHeight * 0.32;
     const danger = states.some((state) => (
-      state.settled
+      (state.settled || (
+        Math.abs(state.velocityY) <= 0.12
+        && Math.abs(state.angularVelocity) <= 0.025
+      ))
       && state.y - visibleHalfHeight <= dangerLineY
       && state.y + visibleHalfHeight >= dangerLineY
     ));

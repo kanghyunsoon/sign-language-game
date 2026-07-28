@@ -5,10 +5,10 @@ export interface DisplayLandmarkSample {
   readonly capturedAt: number;
 }
 
-const MAX_LEAD_MS = 120;
-const MAX_SAMPLE_LEAD_MULTIPLIER = 3;
-const MAX_GLOBAL_XY_OFFSET = 0.055;
-const MAX_GLOBAL_Z_OFFSET = 0.065;
+const MAX_LEAD_MS = 150;
+const MAX_SAMPLE_LEAD_MULTIPLIER = 4;
+const MAX_GLOBAL_XY_OFFSET = 0.065;
+const MAX_GLOBAL_Z_OFFSET = 0.075;
 const MAX_ARTICULATION_XY_OFFSET = 0.018;
 const MAX_ARTICULATION_Z_OFFSET = 0.024;
 const MOTION_DEAD_ZONE = 0.0015;

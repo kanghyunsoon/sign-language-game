@@ -30,7 +30,7 @@ interface CameraErrorState {
 }
 
 const FEEDBACK_REPORT_INTERVAL_MS = 250;
-const VISUAL_HAND_LOST_GRACE_MS = 260;
+const VISUAL_HAND_LOST_GRACE_MS = 90;
 const GAMEPLAY_HAND_DETECTION_CONFIG: ActiveHandDetectionConfig = Object.freeze({
   maximumDetectedHands: 2,
   minimumHandDetectionConfidence: .5,
@@ -63,6 +63,9 @@ export interface HandCameraProps {
 }
 
 export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE_CONFIG, performanceMonitor, temporalDecoder, activePlayerSession, recognitionSession, handDetectionConfig = GAMEPLAY_HAND_DETECTION_CONFIG, autoStart = false, onLandmarkFrame, onHandNotDetected, targetSymbol, prediction, referenceTemplate, onPoseFeedback, connectionState, modelVersion, connectionError, awaitingHandRelease = false, showDebug = false, compact = false, visionAdapterFactory }: HandCameraProps) {
+  // Registration/ownership is a debug-only tool. Gameplay always uses the
+  // first detected hand, so a registration state can never block recognition.
+  const userRegistrationEnabled = showDebug && Boolean(activePlayerSession);
   const defaultVisionAdapterFactory = useRecognitionVisionAdapterFactory();
   const resolvedVisionAdapterFactory = visionAdapterFactory ?? defaultVisionAdapterFactory;
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -112,7 +115,7 @@ export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE
   }, [onPoseFeedback, referenceTemplate]);
 
   useEffect(()=>{monitorRef.current.start();const unsubscribe=showDebug?monitorRef.current.subscribe(setPerformanceSnapshot):()=>undefined;return()=>{unsubscribe();monitorRef.current.stop();};},[showDebug]);
-  useEffect(()=>{if(activePlayerSession?.getSnapshot().state==="UNREGISTERED")activePlayerSession.beginRegistration();},[activePlayerSession]);
+  useEffect(()=>{if(userRegistrationEnabled&&activePlayerSession?.getSnapshot().state==="UNREGISTERED")activePlayerSession.beginRegistration();},[activePlayerSession,userRegistrationEnabled]);
 
   const releaseResources = useCallback((updateState: boolean) => {
     startGenerationRef.current += 1;
@@ -168,15 +171,15 @@ export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE
 
   const processPendingHands=useCallback(async()=>{if(processingHandRef.current)return;processingHandRef.current=true;try{while(mountedRef.current){const frame=handBufferRef.current.takeLatest();if(!frame)break;const adapter=visionAdapterRef.current;if(!adapter)break;let hands:readonly TrackedHand[];try{const detectionStartedAt=performance.now();hands=await adapter.detectHands({video:frame.video,timestamp:detectionStartedAt,frameId:frame.frameId});const detectionFinishedAt=performance.now();monitorRef.current.recordHandLatency(detectionFinishedAt-detectionStartedAt);monitorRef.current.mark("hand",detectionFinishedAt);setWorkerMode(adapter.getExecutionMode());}catch{setError({kind:"MEDIAPIPE_INIT_FAILED",message:"손 추적 처리에 실패했습니다. 영상과 게임은 계속됩니다."});break;}
     let primary:TrackedHand|undefined,preview:TrackedHand|undefined,activeSessionId:string|undefined,activeHandId:string|undefined;
-    if(activePlayerSession){const candidates:HandCandidate[]=hands.map((hand,index)=>({detectionId:`hand-${frame.frameId}-${index}`,landmarks:hand.landmarks,handedness:hand.handedness,handednessScore:hand.handednessScore??0,wrist:hand.landmarks[0]!,detectedAt:frame.capturedAt}));if(recognitionSession){const ownership=recognitionSession.resolveHandCandidates(candidates,frame.capturedAt);if(showDebug)setActiveHandSnapshot(ownership.ownership);const previewId=ownership.selected?.detectionId??ownership.ownership?.scores[0]?.handDetectionId,previewIndex=candidates.findIndex((candidate)=>candidate.detectionId===previewId);preview=previewIndex>=0?hands[previewIndex]:undefined;if(ownership.inputAllowed&&ownership.selected){const selectedIndex=candidates.findIndex((candidate)=>candidate.detectionId===ownership.selected!.detectionId);primary=hands[selectedIndex];activeSessionId=ownership.sessionId;activeHandId=ownership.activeHandId;}}else if(activeHandTrackerRef.current){const ownership=activeHandTrackerRef.current.update(candidates,activePlayerSession.getSnapshot(),frame.capturedAt);if(showDebug)setActiveHandSnapshot(ownership);const previewId=ownership.selected?.detectionId??ownership.scores[0]?.handDetectionId,previewIndex=candidates.findIndex((candidate)=>candidate.detectionId===previewId);preview=previewIndex>=0?hands[previewIndex]:undefined;if(ownership.inputAllowed&&ownership.selected&&ownership.session){const selectedIndex=candidates.findIndex((candidate)=>candidate.detectionId===ownership.selected!.detectionId);primary=hands[selectedIndex];activeSessionId=ownership.session.sessionId;activeHandId=ownership.session.activeHandId;}}}
+    if(userRegistrationEnabled&&activePlayerSession){const candidates:HandCandidate[]=hands.map((hand,index)=>({detectionId:`hand-${frame.frameId}-${index}`,landmarks:hand.landmarks,handedness:hand.handedness,handednessScore:hand.handednessScore??0,wrist:hand.landmarks[0]!,detectedAt:frame.capturedAt}));if(recognitionSession){const ownership=recognitionSession.resolveHandCandidates(candidates,frame.capturedAt);if(showDebug)setActiveHandSnapshot(ownership.ownership);const previewId=ownership.selected?.detectionId??ownership.ownership?.scores[0]?.handDetectionId,previewIndex=candidates.findIndex((candidate)=>candidate.detectionId===previewId);preview=previewIndex>=0?hands[previewIndex]:undefined;if(ownership.inputAllowed&&ownership.selected){const selectedIndex=candidates.findIndex((candidate)=>candidate.detectionId===ownership.selected!.detectionId);primary=hands[selectedIndex];activeSessionId=ownership.sessionId;activeHandId=ownership.activeHandId;}}else if(activeHandTrackerRef.current){const ownership=activeHandTrackerRef.current.update(candidates,activePlayerSession.getSnapshot(),frame.capturedAt);if(showDebug)setActiveHandSnapshot(ownership);const previewId=ownership.selected?.detectionId??ownership.scores[0]?.handDetectionId,previewIndex=candidates.findIndex((candidate)=>candidate.detectionId===previewId);preview=previewIndex>=0?hands[previewIndex]:undefined;if(ownership.inputAllowed&&ownership.selected&&ownership.session){const selectedIndex=candidates.findIndex((candidate)=>candidate.detectionId===ownership.selected!.detectionId);primary=hands[selectedIndex];activeSessionId=ownership.session.sessionId;activeHandId=ownership.session.activeHandId;}}}
     else primary=hands[0];
     const visualHand=primary??preview??hands[0],visualNow=Date.now();
     if(visualHand){const displaySample={landmarks:visualHand.landmarks,capturedAt:frame.capturedAt};previousDisplaySampleRef.current=currentDisplaySampleRef.current;currentDisplaySampleRef.current=displaySample;renderHandsRef.current=[visualHand];lastVisualHandSeenAtRef.current=visualNow;}else if(visualNow-lastVisualHandSeenAtRef.current>VISUAL_HAND_LOST_GRACE_MS){renderHandsRef.current=[];previousDisplaySampleRef.current=undefined;currentDisplaySampleRef.current=undefined;}
-    if(primary){if(activeSessionId&&lastActiveHandSessionIdRef.current!==activeSessionId){lightLandmarksRef.current=undefined;lastActiveHandSessionIdRef.current=activeSessionId;}const light=smoothHandLandmarks(lightLandmarksRef.current,primary.landmarks,.96);lightLandmarksRef.current=light;const output={frameId:frame.frameId,capturedAt:frame.capturedAt,handedness:primary.handedness,landmarks:light,rawLandmarks:primary.landmarks,activeHandId,activeHandSessionId:activeSessionId};if(recognitionSession)recognitionSession.submitLandmarkFrame(output);else handlersRef.current.onLandmarkFrame?.(output);const template=feedbackHandlersRef.current.referenceTemplate;if(template&&performance.now()-lastFeedbackReportAtRef.current>=FEEDBACK_REPORT_INTERVAL_MS){lastFeedbackReportAtRef.current=performance.now();feedbackHandlersRef.current.onPoseFeedback?.(compareTemplateToCurrentLandmarks(primary.landmarks,primary.handedness,template));}}else{lightLandmarksRef.current=undefined;if(recognitionSession)recognitionSession.notifyHandNotDetected(frame.capturedAt);else handlersRef.current.onHandNotDetected?.(frame.capturedAt);}if(hands.length!==lastHandCountRef.current){lastHandCountRef.current=hands.length;setHandCount(hands.length);}}}finally{processingHandRef.current=false;if(handBufferRef.current.hasPending())void processPendingHands();}},[activePlayerSession,drawLatest,recognitionSession,showDebug]);
+    if(primary){if(activeSessionId&&lastActiveHandSessionIdRef.current!==activeSessionId){lightLandmarksRef.current=undefined;lastActiveHandSessionIdRef.current=activeSessionId;}const light=smoothHandLandmarks(lightLandmarksRef.current,primary.landmarks,.985);lightLandmarksRef.current=light;const output={frameId:frame.frameId,capturedAt:frame.capturedAt,handedness:primary.handedness,landmarks:light,rawLandmarks:primary.landmarks,activeHandId,activeHandSessionId:activeSessionId};if(recognitionSession)recognitionSession.submitLandmarkFrame(output);else handlersRef.current.onLandmarkFrame?.(output);const template=feedbackHandlersRef.current.referenceTemplate;if(template&&performance.now()-lastFeedbackReportAtRef.current>=FEEDBACK_REPORT_INTERVAL_MS){lastFeedbackReportAtRef.current=performance.now();feedbackHandlersRef.current.onPoseFeedback?.(compareTemplateToCurrentLandmarks(primary.landmarks,primary.handedness,template));}}else{lightLandmarksRef.current=undefined;if(recognitionSession)recognitionSession.notifyHandNotDetected(frame.capturedAt);else handlersRef.current.onHandNotDetected?.(frame.capturedAt);}if(hands.length!==lastHandCountRef.current){lastHandCountRef.current=hands.length;setHandCount(hands.length);}}}finally{processingHandRef.current=false;if(handBufferRef.current.hasPending())void processPendingHands();}},[activePlayerSession,drawLatest,recognitionSession,showDebug,userRegistrationEnabled]);
 
   const queueHandFrame=useCallback((frame:RecognitionVideoFrame)=>{handBufferRef.current.push(frame);const dropped=handBufferRef.current.takeReplacementCount();if(dropped)monitorRef.current.drop("hand",dropped);void processPendingHands();},[processPendingHands]);
 
-  const processPendingPoses=useCallback(async()=>{if(processingPoseRef.current||!activePlayerSession)return;processingPoseRef.current=true;try{while(mountedRef.current){const frame=poseBufferRef.current.takeLatest();if(!frame)break;const adapter=visionAdapterRef.current;if(!adapter)break;try{const detections=await adapter.detectPoses({video:frame.video,timestamp:performance.now(),frameId:frame.frameId});monitorRef.current.mark("pose");activePlayerSession.process(detections,frame.capturedAt);setPoseError(null);}catch(cause){setPoseError(cause instanceof Error?cause.message:"Pose tracking failed");break;}}}finally{processingPoseRef.current=false;if(poseBufferRef.current.hasPending())void processPendingPoses();}},[activePlayerSession]);
+  const processPendingPoses=useCallback(async()=>{if(processingPoseRef.current||!activePlayerSession||!userRegistrationEnabled)return;processingPoseRef.current=true;try{while(mountedRef.current){const frame=poseBufferRef.current.takeLatest();if(!frame)break;const adapter=visionAdapterRef.current;if(!adapter)break;try{const detections=await adapter.detectPoses({video:frame.video,timestamp:performance.now(),frameId:frame.frameId});monitorRef.current.mark("pose");activePlayerSession.process(detections,frame.capturedAt);setPoseError(null);}catch(cause){setPoseError(cause instanceof Error?cause.message:"Pose tracking failed");break;}}}finally{processingPoseRef.current=false;if(poseBufferRef.current.hasPending())void processPendingPoses();}},[activePlayerSession,userRegistrationEnabled]);
   const queuePoseFrame=useCallback((frame:RecognitionVideoFrame)=>{poseBufferRef.current.push(frame);const dropped=poseBufferRef.current.takeReplacementCount();if(dropped)monitorRef.current.drop("pose",dropped);void processPendingPoses();},[processPendingPoses]);
 
   const startCamera = useCallback(async () => {
@@ -192,8 +195,8 @@ export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE
     try {
       const adapter = resolvedVisionAdapterFactory.create({
         handDetectionConfig,
-        maximumTrackedPeople: activePlayerSession?.getConfig().maximumTrackedPeople ?? 1,
-        enablePoseTracking: Boolean(activePlayerSession),
+        maximumTrackedPeople: userRegistrationEnabled ? activePlayerSession?.getConfig().maximumTrackedPeople ?? 1 : 1,
+        enablePoseTracking: userRegistrationEnabled,
         preferWorker: true,
       });
       visionAdapterRef.current = adapter;
@@ -202,8 +205,8 @@ export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE
         adapter.close();
         return;
       }
-      if(activePlayerSession)setPoseError(null);
-      if(activePlayerSession&&!recognitionSession)activeHandTrackerRef.current=new ActiveHandTracker();
+      if(userRegistrationEnabled) setPoseError(null);
+      if(userRegistrationEnabled&&activePlayerSession&&!recognitionSession)activeHandTrackerRef.current=new ActiveHandTracker();
       initializationStage = "CAMERA";
 
       if (!mountedRef.current) {
@@ -217,7 +220,7 @@ export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE
       video.srcObject = sharedStream;
       await video.play();
       if (!mountedRef.current || generation !== startGenerationRef.current) return;
-      const scheduler=new BrowserRecognitionFrameScheduler({video,config:rateConfig,monitor:monitorRef.current});scheduler.subscribeRenderFrame(drawLatest);scheduler.subscribeHandFrame(queueHandFrame);if(activePlayerSession)scheduler.subscribePoseFrame(queuePoseFrame);schedulerRef.current=scheduler;scheduler.start();
+      const scheduler=new BrowserRecognitionFrameScheduler({video,config:rateConfig,monitor:monitorRef.current});scheduler.subscribeRenderFrame(drawLatest);scheduler.subscribeHandFrame(queueHandFrame);if(userRegistrationEnabled)scheduler.subscribePoseFrame(queuePoseFrame);schedulerRef.current=scheduler;scheduler.start();
       startingRef.current = false;
       setStatus("RUNNING");
     } catch (cause) {
@@ -232,7 +235,7 @@ export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE
       setError(classifyCameraError(cause, initializationStage));
       setStatus("ERROR");
     }
-  }, [activePlayerSession, drawLatest, handDetectionConfig, queueHandFrame, queuePoseFrame, rateConfig, releaseResources, resolvedVisionAdapterFactory, sharedStream, showDebug]);
+  }, [activePlayerSession, drawLatest, handDetectionConfig, queueHandFrame, queuePoseFrame, rateConfig, releaseResources, resolvedVisionAdapterFactory, sharedStream, userRegistrationEnabled]);
 
   useEffect(() => {
     if (autoStart && sharedStream) void startCamera();
@@ -256,9 +259,9 @@ export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE
       <div ref={stageRef} className="camera-stage">
         <video ref={videoRef} className="camera-media mirrored" playsInline muted />
         <canvas ref={canvasRef} className="camera-overlay mirrored" />
-        <ActivePlayerStatusOverlay session={activePlayerSession} poseError={poseError} showDebug={showDebug} />
+        {userRegistrationEnabled&&<ActivePlayerStatusOverlay session={activePlayerSession} poseError={poseError} showDebug={showDebug} />}
         {showDebug&&<ActiveHandStatusOverlay snapshot={activeHandSnapshot} showDebug />}
-        {recognitionSession&&<><ActivePlayerRegistrationModal session={recognitionSession}/><RecognitionBlockedOverlay session={recognitionSession}/>{showDebug&&<RecognitionDebugOverlay session={recognitionSession}/>}</>}
+        {userRegistrationEnabled&&recognitionSession&&<><ActivePlayerRegistrationModal session={recognitionSession}/><RecognitionBlockedOverlay session={recognitionSession}/>{showDebug&&<RecognitionDebugOverlay session={recognitionSession}/>}</>}
         {status !== "RUNNING" && <div className="camera-placeholder"><Hand aria-hidden="true" size={34} strokeWidth={1.5}/><span>{status === "ERROR" ? "카메라를 시작하지 못했습니다." : "카메라 준비 중"}</span></div>}
         <div className="camera-compact-status"><span className={`status-dot ${status === "RUNNING" ? "is-running" : ""}`}/><strong>내 카메라</strong><small>{status}</small></div>
       </div>
@@ -291,9 +294,9 @@ export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE
       <div ref={stageRef} className="camera-stage">
         <video ref={videoRef} className="camera-media mirrored" playsInline muted />
         <canvas ref={canvasRef} className="camera-overlay mirrored" />
-        <ActivePlayerStatusOverlay session={activePlayerSession} poseError={poseError} showDebug={showDebug} />
+        {userRegistrationEnabled&&<ActivePlayerStatusOverlay session={activePlayerSession} poseError={poseError} showDebug={showDebug} />}
         {showDebug&&<ActiveHandStatusOverlay snapshot={activeHandSnapshot} showDebug />}
-        {recognitionSession&&<><ActivePlayerRegistrationModal session={recognitionSession}/><RecognitionBlockedOverlay session={recognitionSession}/>{showDebug&&<RecognitionDebugOverlay session={recognitionSession}/>}</>}
+        {userRegistrationEnabled&&recognitionSession&&<><ActivePlayerRegistrationModal session={recognitionSession}/><RecognitionBlockedOverlay session={recognitionSession}/>{showDebug&&<RecognitionDebugOverlay session={recognitionSession}/>}</>}
         {status !== "RUNNING" && (
           <div className="camera-placeholder">
             <Hand aria-hidden="true" size={42} strokeWidth={1.5} />

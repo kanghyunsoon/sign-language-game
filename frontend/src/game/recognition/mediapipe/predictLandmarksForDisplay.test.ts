@@ -24,7 +24,7 @@ describe("predictLandmarksForDisplay", () => {
       { landmarks: [{ x: 0.8, y: 0.8, z: 0.5 }], capturedAt: 133 },
       300,
     );
-    expect(result[0]).toEqual({ x: 0.8550000000000001, y: 0.8550000000000001, z: 0.565 });
+    expect(result[0]).toEqual({ x: 0.865, y: 0.865, z: 0.575 });
   });
 
   it("smooths tiny palm jitter but lets large palm motion catch up immediately", () => {

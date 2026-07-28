@@ -36,7 +36,7 @@ const INITIAL: BattleControllerSnapshot = { state: "IDLE", gameConnectionState: 
 
 export function BattleBotPracticePage() {
   const navigate = useNavigate();
-  const { user, config, sharedCameraSession, activePlayerSession } = useGameModuleContext();
+  const { user, config, sharedCameraSession } = useGameModuleContext();
   // Include the constructor identity so Vite Fast Refresh cannot preserve an
   // instance created from an older transport implementation.
   const transport = useMemo(() => new LocalBattleBotTransport(), [LocalBattleBotTransport]);
@@ -55,7 +55,7 @@ export function BattleBotPracticePage() {
   const localRuntimeRef = useRef<BattleLocalBoardRuntime | null>(null);
   const localViewportRef = useRef({ width: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, height: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight });
   const remoteLoopRef = useRef<number | null>(null);
-  useSharedCameraOwnerCleanup(sharedCameraSession, () => activePlayerSession?.clearRegistration());
+  useSharedCameraOwnerCleanup(sharedCameraSession);
 
   useEffect(() => {
     if (snapshot.state !== "PLAYING") {
@@ -99,9 +99,17 @@ export function BattleBotPracticePage() {
       }, 5_100);
       finishTimer = window.setTimeout(() => { setOtterWalking(false); setOtterZone("none"); setOtterTransfer(null); }, 12_000);
     };
-    const previewTimer = window.setTimeout(triggerWalk, 3_000);
-    const interval = window.setInterval(triggerWalk, 60_000);
-    return () => { window.clearTimeout(previewTimer); window.clearTimeout(pickupTimer); window.clearTimeout(rightZoneTimer); window.clearTimeout(throwTimer); window.clearTimeout(finishTimer); window.clearInterval(interval); };
+    const startedAt = Date.now();
+    let nextWalkTimer: number | undefined;
+    const scheduleNextWalk = (delay = 3_000) => {
+      nextWalkTimer = window.setTimeout(() => {
+        triggerWalk();
+        const elapsedMinutes = Math.floor((Date.now() - startedAt) / 60_000);
+        scheduleNextWalk(Math.max(20_000, 60_000 - elapsedMinutes * 7_000));
+      }, delay);
+    };
+    scheduleNextWalk();
+    return () => { window.clearTimeout(nextWalkTimer); window.clearTimeout(pickupTimer); window.clearTimeout(rightZoneTimer); window.clearTimeout(throwTimer); window.clearTimeout(finishTimer); };
   }, [snapshot.state, transport]);
 
   useEffect(() => {

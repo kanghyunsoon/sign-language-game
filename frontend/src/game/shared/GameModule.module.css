@@ -243,6 +243,15 @@
 .module :global(.solo-board::after) { position: absolute; z-index: 3; top: 16.66%; right: 0; left: 0; height: 7px; pointer-events: none; background: repeating-linear-gradient(90deg, #ef5685 0 14px, transparent 14px 23px); box-shadow: 0 -4px 12px rgba(239,86,133,.12), 0 4px 12px rgba(239,86,133,.12); content: ""; }
 .module :global(.solo-board canvas) { position: relative; z-index: 1; }
 .module :global(.game-over-overlay) { z-index: 12; }
+.module :global(.solo-start-overlay) { position: absolute; z-index: 11; inset: 31px 8px 8px; display: grid; place-items: center; overflow: hidden; background: linear-gradient(145deg, rgba(25,48,63,.9), rgba(41,78,94,.76)), url("../block-stacking/assets/game-menu-otter.png") center 64% / min(48%, 360px) auto no-repeat; color: #fff; text-align: center; }
+.module :global(.solo-start-overlay::before) { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(13,38,54,.48), transparent 45%, rgba(13,38,54,.36)); content: ""; }
+.module :global(.solo-start-overlay > div) { position: relative; z-index: 1; display: grid; justify-items: center; gap: 11px; max-width: 360px; padding: 26px; }
+.module :global(.solo-start-overlay p) { margin: 0; color: #ddebba; font-size: 11px; font-weight: 1000; letter-spacing: .15em; }
+.module :global(.solo-start-overlay strong) { font-family: "Arial Rounded MT Bold", sans-serif; font-size: clamp(28px, 4vw, 46px); text-shadow: 3px 4px 0 rgba(17,34,43,.45); }
+.module :global(.solo-start-overlay span) { color: #e3f1f5; font-size: 13px; font-weight: 800; }
+.module :global(.solo-start-overlay button) { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-width: 190px; min-height: 68px; margin-top: 10px; border: 0; border-radius: 17px; background: #b8d648; box-shadow: 0 7px 0 #7e9d2d, 0 13px 28px rgba(0,0,0,.24); color: #fff; cursor: pointer; font: inherit; font-size: 22px; font-weight: 1000; transition: transform 140ms ease, box-shadow 140ms ease; }
+.module :global(.solo-start-overlay button:hover:not(:disabled)) { transform: translateY(-3px); box-shadow: 0 10px 0 #7e9d2d, 0 16px 30px rgba(0,0,0,.28); }
+.module :global(.solo-start-overlay button:disabled) { opacity: .65; cursor: wait; }
 .module :global(.solo-board-wrap::after) { position: absolute; z-index: 4; top: 7px; right: 10px; padding: 3px 7px; border-radius: 6px; background: #2a4553; color: #ddebba; font-size: 8px; font-weight: 1000; letter-spacing: .08em; content: "STAGE 01"; }
 .module :global(.solo-game-page .solo-symbol-panel) { grid-column: 1 / -1; }
 

@@ -83,7 +83,7 @@ export function SoloGamePage({
   signRecognizerFactory,
 }: SoloGamePageProps = {}) {
   const navigate = useNavigate();
-  const { config, services, sharedCameraSession, activePlayerSession } = useGameModuleContext();
+  const { config, services, sharedCameraSession } = useGameModuleContext();
   const resolvedSoloGameApiFactory = useMemo(
     () => soloGameApiFactory ?? (() => services.soloGameApi),
     [services.soloGameApi, soloGameApiFactory],
@@ -110,7 +110,7 @@ export function SoloGamePage({
   const [otterWalking, setOtterWalking] = useState(false);
   const [cameraStream,setCameraStream]=useState(()=>sharedCameraSession.getStream());
   const rendererConfig = useMemo(() => ({ dangerLineY: 160, dangerLineRatio: 1 / 6, letterWidth: 140, letterHeight: 140 }), []);
-  useSharedCameraOwnerCleanup(sharedCameraSession,()=>activePlayerSession?.clearRegistration());
+  useSharedCameraOwnerCleanup(sharedCameraSession);
 
   if (controllerRef.current === null) {
     controllerRef.current = new RecognitionGameController({
@@ -183,14 +183,22 @@ export function SoloGamePage({
       window.clearTimeout(finishTimer);
       finishTimer = window.setTimeout(() => setOtterWalking(false), 12_000);
     };
-    const firstWalkTimer = window.setTimeout(triggerWalk, 60_000);
-    const interval = window.setInterval(triggerWalk, 60_000);
-    return () => {
-      window.clearTimeout(firstWalkTimer);
-      window.clearTimeout(finishTimer);
-      window.clearInterval(interval);
+    const startedAt = Date.now();
+    let nextWalkTimer: number | undefined;
+    const scheduleNextWalk = () => {
+      const elapsedMinutes = Math.floor((Date.now() - startedAt) / 60_000);
+      const delay = Math.max(20_000, 60_000 - elapsedMinutes * 7_000);
+      nextWalkTimer = window.setTimeout(() => {
+        triggerWalk();
+        scheduleNextWalk();
+      }, delay);
     };
-  }, [snapshot.runState]);;
+    scheduleNextWalk();
+    return () => {
+      window.clearTimeout(nextWalkTimer);
+      window.clearTimeout(finishTimer);
+    };
+  }, [snapshot.runState]);
 
   useEffect(() => {
     if (snapshot.runState !== "GAME_OVER" || savedGameOverRef.current) return;
@@ -223,7 +231,7 @@ export function SoloGamePage({
     const start=async()=>{try{let stream:MediaStream;try{stream=await sharedCameraSession.start();}catch(cause){if(!active||!(cause instanceof Error)||cause.message!=="Camera start was cancelled.")throw cause;await Promise.resolve();stream=await sharedCameraSession.start();}if(active){setCameraStream(stream);setCameraError(null);}}catch(cause){if(active)setCameraError(cause instanceof Error?cause.message:"카메라를 시작하지 못했습니다.");}};
     void start();
     return()=>{active=false;};
-  },[activePlayerSession,sharedCameraSession]);
+  },[sharedCameraSession]);
 
   const startOrResume = useCallback(async () => {
     const runtime = runtimeRef.current;
@@ -308,10 +316,6 @@ export function SoloGamePage({
         </div>
         </div>
         <div className="solo-controls">
-          <button type="button" onClick={startOrResume} disabled={snapshot.runState === "RUNNING" || sessionStarting}>
-            <Play aria-hidden="true" size={17} />
-            {snapshot.runState === "PAUSED" ? "계속하기" : "게임 시작"}
-          </button>
           <button type="button" className="secondary" onClick={pause} disabled={snapshot.runState !== "RUNNING"}>
             <Pause aria-hidden="true" size={17} /> 일시정지
           </button>
@@ -368,6 +372,19 @@ export function SoloGamePage({
             onViewportResize={resizeRuntime}
             onRendererDisposed={disposeRuntime}
           />
+          {(snapshot.runState === "IDLE" || snapshot.runState === "PAUSED") && (
+            <div className="solo-start-overlay" aria-label="게임 시작">
+              <div>
+                <p>SKY LETTER STAGE</p>
+                <strong>{snapshot.runState === "PAUSED" ? "계속하기" : "지문자 테트리수"}</strong>
+                <span>손모양을 맞춰 떨어지는 지문자 블록을 제거하세요.</span>
+                <button type="button" onClick={startOrResume} disabled={sessionStarting}>
+                  <Play aria-hidden="true" size={28} />
+                  {sessionStarting ? "준비 중" : snapshot.runState === "PAUSED" ? "게임 계속하기" : "게임 시작"}
+                </button>
+              </div>
+            </div>
+          )}
           {otterWalking && (
             <div className="solo-otter-walk" aria-hidden="true">
               <span className="solo-otter-body">
@@ -412,7 +429,6 @@ export function SoloGamePage({
                 rateConfig={SOLO_RECOGNITION_RATE_CONFIG}
                 performanceMonitor={recognizerRef.current?.getPerformanceMonitor()}
                 temporalDecoder={recognizerRef.current?.getTemporalDecoder()}
-                activePlayerSession={activePlayerSession}
                 onLandmarkFrame={sendLandmarkFrame}
                 onHandNotDetected={handNotDetected}
                 targetSymbol={recognition.targetSymbol}

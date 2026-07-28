@@ -149,10 +149,16 @@ export class RecognitionGameController {
     const targetSymbol = this.gameInput.getPreferredTargetSymbol(this.state.playableSymbols);
     if (targetSymbol === null || targetSymbol === this.state.targetSymbol) return;
 
+    // A removed/otter-carried target may change while the player still holds
+    // the previous sign.  Release the old input lock immediately so a correct
+    // next sign is never discarded after the board changes.
+    this.gameInput.releaseInput();
+    this.awaitingReleaseSymbol = null;
     this.state = {
       ...this.state,
       targetSymbol,
       answer: "IDLE",
+      awaitingHandRelease: false,
       message: `Guide target: ${targetSymbol}. It is the oldest letter on the board.`,
     };
     if (this.state.mode === "PYTHON_AI") this.recordTarget(targetSymbol);
