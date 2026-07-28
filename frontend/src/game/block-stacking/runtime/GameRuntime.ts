@@ -4,7 +4,6 @@ import type { PhysicsLetterState, PhysicsWorld } from "../physics/types";
 import type { GameRenderer } from "../render/types";
 import { ScoreTracker } from "../scoring/ScoreTracker";
 import { DEFAULT_SCORING_CONFIG, type ScoringConfig } from "../scoring/types";
-import { chooseDistributedSpawnX } from "./DistributedSpawnPolicy";
 import {
   DEFAULT_SOLO_GAME_CONFIG,
   type GameRuntimeListener,
@@ -15,6 +14,7 @@ import {
 } from "./types";
 
 const MAX_FRAME_DELTA_MS = 32;
+const PAPER_GROW_DURATION_MS = 420;
 
 export class GameRuntime {
   private readonly renderer: GameRenderer;
@@ -46,6 +46,10 @@ export class GameRuntime {
   private playTimeMs = 0;
   private lastRemovalAt: number | null = null;
   private readonly newlySettledIds = new Set<string>();
+  private queuedSymbol: string | null = null;
+  private paperBurstVersion = 0;
+  private paperBurstSymbol: string | null = null;
+  private pendingPaperDrop: { readonly symbol: string; remainingMs: number } | null = null;
   private lastMessage = "Start the game to spawn letters.";
   private disposed = false;
 
@@ -81,6 +85,9 @@ export class GameRuntime {
     }
     if (this.runState === "RUNNING") return;
     this.runState = "RUNNING";
+    // In manual-drop mode the first letter lives on the otter's paper, not in
+    // the physics world. Matching it is what releases the actual falling block.
+    if (!this.config.autoDropEnabled && this.queuedSymbol === null) this.queueNextSymbol();
     this.lastMessage = "Keyboard input is ready.";
     this.previousFrameAt = null;
     this.publish();
@@ -126,6 +133,10 @@ export class GameRuntime {
     this.playTimeMs = 0;
     this.lastRemovalAt = null;
     this.newlySettledIds.clear();
+    this.queuedSymbol = null;
+    this.paperBurstSymbol = null;
+    this.paperBurstVersion = 0;
+    this.pendingPaperDrop = null;
     this.lastMessage = "Game reset. Press start when ready.";
     this.publish();
   }
@@ -133,6 +144,11 @@ export class GameRuntime {
   submitSymbol(symbol: string): void {
     this.assertActive();
     if (this.runState !== "RUNNING" || !this.symbols.includes(symbol)) return;
+
+    if (!this.config.autoDropEnabled && this.queuedSymbol === symbol) {
+      this.releaseQueuedSymbol();
+      return;
+    }
 
     const events = this.core.confirmSymbol(symbol, this.now());
     for (const event of events) {
@@ -160,6 +176,7 @@ export class GameRuntime {
   }
 
   hasAvailableSymbol(symbol: string): boolean {
+    if (!this.config.autoDropEnabled && this.queuedSymbol === symbol) return true;
     return this.core.snapshot().letters.some((letter) => (
       letter.symbol === symbol && (letter.state === "FALLING" || letter.state === "SETTLED")
     ));
@@ -169,6 +186,9 @@ export class GameRuntime {
   getPreferredTargetSymbol(allowedSymbols: readonly string[]): string | null {
     const allowed = new Set(allowedSymbols);
     if (allowed.size === 0) return null;
+    if (!this.config.autoDropEnabled && this.queuedSymbol !== null && allowed.has(this.queuedSymbol)) {
+      return this.queuedSymbol;
+    }
 
     const oldest = this.core.snapshot().letters
       .filter((letter) => (
@@ -201,14 +221,18 @@ export class GameRuntime {
 
     const boundedDelta = Math.min(deltaMs, MAX_FRAME_DELTA_MS);
     this.playTimeMs += boundedDelta;
-    this.spawnElapsedMs += boundedDelta;
-    while (this.spawnElapsedMs >= this.config.spawnIntervalMs) {
-      this.spawnElapsedMs -= this.config.spawnIntervalMs;
-      this.spawnLetter();
+    this.advancePaperDrop(boundedDelta);
+    if (this.config.autoDropEnabled) {
+      this.spawnElapsedMs += boundedDelta;
+      while (this.spawnElapsedMs >= this.config.spawnIntervalMs) {
+        this.spawnElapsedMs -= this.config.spawnIntervalMs;
+        this.spawnLetter();
+      }
+
     }
 
-    // Every 5,000 points increases fall speed by another 0.5x: 1x, 1.5x,
-    // 2x, ... . Game time and spawning remain real-time, only gravity speeds up.
+    // Manual mode disables timer spawning only. A letter released from the
+    // paper must still use the same physics path as every other falling block.
     const fallSpeedMultiplier = 1 + Math.floor(this.score / 5_000) * .5;
     for (const event of this.physics.update(boundedDelta * fallSpeedMultiplier)) {
       if (event.type === "LETTER_SETTLED") this.newlySettledIds.add(event.id);
@@ -246,6 +270,9 @@ export class GameRuntime {
       playTimeMs: this.playTimeMs,
       activeLetterCount: this.physics.getLetterStates().length,
       lockedSymbol: this.core.snapshot().inputLock.lockedSymbol,
+      queuedSymbol: this.queuedSymbol,
+      paperBurstVersion: this.paperBurstVersion,
+      paperBurstSymbol: this.paperBurstSymbol,
       lastMessage: this.lastMessage,
     };
   }
@@ -266,34 +293,67 @@ export class GameRuntime {
     this.frameHandle = null;
   }
 
-  private spawnLetter(): void {
+  private spawnLetter(selectedSymbol?: string): void {
     if (this.symbols.length === 0) {
       this.lastMessage = "No playable symbols are configured.";
       this.publish();
       return;
     }
-    const symbol = this.symbols[Math.floor(this.random() * this.symbols.length)] ?? this.symbols[0];
+    const symbol = selectedSymbol ?? this.pickRandomSymbol();
+    const x = this.boardWidth / 2;
+    const releasedFromPaper = selectedSymbol !== undefined && !this.config.autoDropEnabled;
     const id = `letter-${this.nextLetterId}`;
     this.nextLetterId += 1;
-    const preferredX = this.config.spawnHorizontalPadding
-      + this.random() * Math.max(0, this.boardWidth - this.config.spawnHorizontalPadding * 2);
-    const x = chooseDistributedSpawnX(
-      this.physics.getLetterStates(),
-      this.boardWidth,
-      this.boardHeight,
-      this.config.letterHeight,
-      preferredX / this.boardWidth,
-    );
     this.physics.createLetter({
       id,
       symbol,
       x,
-      y: -this.config.spawnTopPadding,
-      angularVelocity: (this.random() - 0.5) * 0.025,
+      // Release below the paper. Starting inside its bounds makes the canvas
+      // glyph look as though it is hidden behind the otter illustration.
+      y: releasedFromPaper ? this.config.letterHeight * 1.95 : -this.config.spawnTopPadding,
+      angularVelocity: 0,
+      // Deliberately gentle: it feels more immediate than a timer spawn but
+      // still leaves the player time to follow the glyph.
+      velocityY: releasedFromPaper ? .7 : undefined,
     });
     this.core.spawnLetter(id, symbol, this.now());
+    if (releasedFromPaper) this.renderer.startSpawnEffect(id);
     this.updateRendererTarget();
     this.lastMessage = `${symbol} spawned.`;
+    this.publish();
+  }
+
+  private pickRandomSymbol(): string {
+    return this.symbols[Math.floor(this.random() * this.symbols.length)] ?? this.symbols[0];
+  }
+
+  private queueNextSymbol(): void {
+    if (this.symbols.length > 0) this.queuedSymbol = this.pickRandomSymbol();
+  }
+
+  private releaseQueuedSymbol(): void {
+    const symbol = this.queuedSymbol;
+    if (symbol === null) return;
+
+    this.queuedSymbol = null;
+    this.paperBurstSymbol = symbol;
+    this.paperBurstVersion += 1;
+    this.pendingPaperDrop = { symbol, remainingMs: PAPER_GROW_DURATION_MS };
+    this.lastMessage = `${symbol} is growing on the otter paper.`;
+    this.publish();
+  }
+
+  private advancePaperDrop(deltaMs: number): void {
+    const pending = this.pendingPaperDrop;
+    if (pending === null) return;
+    pending.remainingMs -= deltaMs;
+    if (pending.remainingMs > 0) return;
+
+    this.pendingPaperDrop = null;
+    this.paperBurstSymbol = null;
+    this.spawnLetter(pending.symbol);
+    this.queueNextSymbol();
+    this.lastMessage = `${pending.symbol} dropped from the otter paper.`;
     this.publish();
   }
 
@@ -338,6 +398,10 @@ export class GameRuntime {
   }
 
   private updateRendererTarget(): void {
+    if (!this.config.autoDropEnabled) {
+      this.renderer.setTarget(null);
+      return;
+    }
     const allowed = new Set(this.symbols);
     const target = this.core.snapshot().letters
       .filter((letter) => allowed.has(letter.symbol) && (letter.state === "FALLING" || letter.state === "SETTLED"))

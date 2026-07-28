@@ -196,8 +196,8 @@
 .module :global(.solo-metric span) { color: #b9ced5; font-size: 9px; font-weight: 900; letter-spacing: .08em; }
 .module :global(.solo-metric strong) { margin-top: 2px; color: #fff; font-family: "Arial Rounded MT Bold", sans-serif; font-size: 19px; font-weight: 1000; text-shadow: 2px 2px 0 rgba(239,86,133,.34); }
 .module :global(.solo-hud .solo-message), .module :global(.solo-hud .solo-lock-slot) { display: none; }
-.module :global(.solo-stage-column) { position: relative; display: grid; min-width: 0; min-height: 0; grid-template-rows: minmax(0, 1fr); padding: 0 !important; }
-.module :global(.solo-board-wrap) { position: relative; width: 100%; max-width: none; height: 100%; min-height: 0; justify-self: stretch; padding: 31px 8px 8px; overflow: hidden; border: 2px solid rgba(255,255,255,.96); border-radius: 16px !important; aspect-ratio: auto !important; background: rgba(255,255,255,.94); box-shadow: 0 6px 0 rgba(63,108,126,.15), 0 14px 28px rgba(49,91,110,.1) !important; contain: layout paint; }
+.module :global(.solo-stage-column) { position: relative; z-index: 1; display: grid; min-width: 0; min-height: 0; overflow: visible; grid-template-rows: minmax(0, 1fr); padding: 0 !important; }
+.module :global(.solo-board-wrap) { position: relative; width: 100%; max-width: none; height: 100%; min-height: 0; justify-self: stretch; padding: 31px 8px 8px; overflow: visible; border: 2px solid rgba(255,255,255,.96); border-radius: 16px !important; aspect-ratio: auto !important; background: rgba(255,255,255,.94); box-shadow: 0 6px 0 rgba(63,108,126,.15), 0 14px 28px rgba(49,91,110,.1) !important; contain: layout; }
 .module :global(.solo-board-wrap::before) { position: absolute; z-index: 3; top: 8px; left: 13px; color: #536d78; font-size: 10px; font-weight: 1000; letter-spacing: .12em; content: "▣  BLOCK PLAY FIELD"; }
 .module :global(.solo-board-wrap::after) { content: none; }
 .module :global(.solo-board) { overflow: hidden; border: 4px solid #476d7c; border-radius: 9px; background: #294b5d; box-shadow: inset 0 0 0 2px rgba(202,238,249,.18); }
@@ -233,6 +233,10 @@
 .module :global(.solo-camera-unavailable) { display: grid; width: 100%; height: 100%; place-content: center; justify-items: center; gap: 8px; padding: 18px; color: #e7f4f8; text-align: center; }
 .module :global(.solo-camera-unavailable strong) { color: #b8d648; font-size: 11px; letter-spacing: .12em; }
 .module :global(.solo-camera-unavailable span) { max-width: 220px; color: #c5d9e0; font-size: 11px; line-height: 1.45; }
+.module :global(.solo-camera-current-symbol) { position: absolute; z-index: 5; top: 12px; right: 12px; display: grid; min-width: 96px; place-items: center; align-content: center; gap: 2px; padding: 7px 11px; border: 2px solid rgba(213,231,238,.96); border-radius: 10px; background: rgba(245,250,252,.93); box-shadow: 0 3px 10px rgba(20,47,57,.2); color: #718286; text-align: center; pointer-events: none; }
+.module :global(.solo-camera-current-symbol span) { font-size: 10px; font-weight: 900; }
+.module :global(.solo-camera-current-symbol strong) { color: #2d566b; font-family: "Arial Rounded MT Bold", "Malgun Gothic", sans-serif; font-size: 38px; font-weight: 1000; line-height: .9; }
+.module :global(.solo-camera-current-symbol small) { min-height: 12px; color: #7b8c92; font-size: 9px; font-weight: 800; }
 .module :global(.solo-camera-recognition-values) { position: absolute; z-index: 4; top: 52px; right: 10px; left: 10px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; pointer-events: none; }
 .module :global(.solo-camera-recognition-values article) { display: grid; min-width: 0; min-height: 86px; place-items: center; align-content: center; padding: 7px; border: 2px solid rgba(223, 235, 202, .94); border-radius: 10px; background: rgba(248, 251, 239, .93); box-shadow: 0 3px 10px rgba(20, 47, 57, .2); text-align: center; }
 .module :global(.solo-camera-recognition-values article:last-child) { border-color: rgba(213, 231, 238, .96); background: rgba(245, 250, 252, .94); }
@@ -270,6 +274,16 @@
 .module :global(.solo-board-time) { position: absolute; z-index: 5; top: 6px; right: 84px; display: inline-flex; align-items: baseline; gap: 5px; padding: 3px 8px; border-radius: 7px; background: rgba(255,255,255,.78); box-shadow: 0 2px 0 rgba(91,133,105,.18); color: #536d78; }
 .module :global(.solo-board-time span) { color: #718b46; font-size: 8px; font-weight: 1000; letter-spacing: .1em; }
 .module :global(.solo-board-time strong) { color: #3d5960; font-family: "Arial Rounded MT Bold", sans-serif; font-size: 17px; font-weight: 1000; line-height: 1; }
+.module :global(.solo-letter-otter) { position: absolute; z-index: 30; top: -44px; left: 50%; width: 220px; isolation: isolate; pointer-events: none; transform: translateX(-50%); filter: drop-shadow(0 6px 7px rgba(73, 54, 41, .2)); }
+.module :global(.solo-letter-otter img) { position: relative; z-index: 0; display: block; width: 100%; height: auto; user-select: none; }
+.module :global(.solo-letter-otter strong) { position: absolute; z-index: 4; top: 63%; left: 50%; color: #d95b7d; font-family: "Arial Rounded MT Bold", "Malgun Gothic", sans-serif; font-size: 58px; font-weight: 1000; line-height: 1; text-shadow: 2px 2px 0 rgba(255,255,255,.94), 0 3px 8px rgba(104,55,68,.18); transform: translate(-50%, -50%) scale(1); transform-origin: center; will-change: transform, color; }
+.module :global(.solo-letter-otter strong.is-releasing) { animation: solo-paper-release .42s cubic-bezier(.22,.74,.24,1) both; }
+.module :global(.solo-letter-otter strong.is-releasing::before), .module :global(.solo-letter-otter strong.is-releasing::after) { position: absolute; z-index: -1; top: 50%; left: 50%; content: "✦"; color: #fff3a3; font-size: .48em; opacity: .95; transform: translate(-50%, -50%); }
+.module :global(.solo-letter-otter strong.is-releasing::before) { animation: solo-paper-spark-left .5s ease-out forwards; }
+.module :global(.solo-letter-otter strong.is-releasing::after) { color: #ffb24d; animation: solo-paper-spark-right .5s ease-out forwards; }
+@keyframes solo-paper-release { 0% { color: #d95b7d; transform: translate(-50%, -50%) scale(1); } 68% { color: #e85d7f; transform: translate(-50%, -50%) scale(1.34); } 100% { color: #f2a642; transform: translate(-50%, calc(-50% + 76px)) scale(1.08); } }
+@keyframes solo-paper-spark-left { to { opacity: 0; transform: translate(-360%, -230%) scale(1.25) rotate(-35deg); } }
+@keyframes solo-paper-spark-right { to { opacity: 0; transform: translate(250%, 150%) scale(1.25) rotate(35deg); } }
 .module :global(.solo-game-page .solo-symbol-panel) { grid-column: 1 / -1; }
 
 /* Solo stage: the same sky-and-grass world used by the game selection screen. */

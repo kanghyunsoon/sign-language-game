@@ -31,6 +31,7 @@ class FakeRenderer implements GameRenderer {
   render(): void {}
   resize(): void {}
   highlightRemoval(id: string): void { this.highlightedIds.push(id); }
+  startSpawnEffect(): void {}
   setTarget(id: string | null): void { this.targetIds.push(id); }
   updateEffects() { return this.finishedIds.splice(0).map((id) => ({ type: "REMOVAL_EFFECT_FINISHED" as const, id })); }
   clear(): void {}

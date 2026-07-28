@@ -32,6 +32,7 @@ import otterWalkFrame2 from "../assets/solo-walking-otter-frame-2.png";
 import otterWalkFrame3 from "../assets/solo-walking-otter-frame-3.png";
 import otterWalkFrame4 from "../assets/solo-walking-otter-frame-4.png";
 import resultOtter from "../assets/game-menu-otter.png";
+import letterOtter from "../assets/solo-letter-otter.png";
 
 const OTTER_WALK_FRAMES = [
   otterWalkFrame0,
@@ -55,6 +56,9 @@ const INITIAL_SNAPSHOT: GameRuntimeSnapshot = {
   playTimeMs: 0,
   activeLetterCount: 0,
   lockedSymbol: null,
+  queuedSymbol: null,
+  paperBurstVersion: 0,
+  paperBurstSymbol: null,
   lastMessage: "Preparing the game board.",
 };
 
@@ -124,6 +128,9 @@ export function SoloGamePage({
     });
   }
   const recognitionController = controllerRef.current;
+  const paperTargetSymbol = snapshot.queuedSymbol
+    ?? runtimeRef.current?.getPreferredTargetSymbol(SOLO_GAME_SYMBOLS)
+    ?? recognition.targetSymbol;
 
   if (sessionCoordinatorRef.current === null) {
     sessionCoordinatorRef.current = new SoloSessionCoordinator(resolvedSoloGameApiFactory());
@@ -150,6 +157,7 @@ export function SoloGamePage({
       soloConfig: {
         boardWidth: viewport.width,
         boardHeight: viewport.height,
+        autoDropEnabled: false,
         dangerLineY: 160,
         letterHeight: 140,
       },
@@ -262,16 +270,24 @@ export function SoloGamePage({
       recognitionController.resetSessionStatistics();
       runtime.restart();
     }
-    if (recognition.playableSymbols.length === 0) {
+    // Local UI work must remain playable while the optional Python AI service
+    // is offline. Production still requires the capability contract.
+    const sessionSymbols = recognition.playableSymbols.length > 0
+      ? recognition.playableSymbols
+      : import.meta.env.DEV
+        ? SOLO_GAME_SYMBOLS
+        : [];
+    if (sessionSymbols.length === 0) {
       setCompletionError("AI capabilities must load before a solo session can start.");
       return;
     }
+    runtime.setSpawnSymbols(sessionSymbols);
     setCompletionError(null);
     setSavedResult(null);
     if (coordinator.getActiveSession() === null) {
       setSessionStarting(true);
       try {
-        await coordinator.start({ difficulty: "BEGINNER", symbolRange: recognition.playableSymbols, playMode: "AI" });
+        await coordinator.start({ difficulty: "BEGINNER", symbolRange: sessionSymbols, playMode: "AI" });
       } catch (error) {
         setCompletionError(error instanceof Error ? error.message : "Failed to start the solo session.");
         return;
@@ -415,6 +431,17 @@ export function SoloGamePage({
             </div>
           )}
           </div>
+          {snapshot.runState === "RUNNING" && (
+            <div className="solo-letter-otter" aria-hidden="true">
+              <img src={letterOtter} alt="" draggable={false} />
+              <strong
+                key={snapshot.paperBurstVersion}
+                className={snapshot.paperBurstSymbol === null ? undefined : "is-releasing"}
+              >
+                {snapshot.paperBurstSymbol ?? paperTargetSymbol ?? "·"}
+              </strong>
+            </div>
+          )}
         </div>
 
         <aside className="solo-sidebar">
@@ -443,6 +470,11 @@ export function SoloGamePage({
                 <strong>CAMERA OFFLINE</strong>
                 <span>{cameraError??"공유 카메라를 준비하고 있습니다."}</span>
               </div>}
+              <div className="solo-camera-current-symbol" aria-live="polite">
+                <span>현재 인식</span>
+                <strong>{recognition.prediction?.symbol ?? "–"}</strong>
+                <small>{recognition.prediction ? `${Math.round(recognition.prediction.confidence * 100)}%` : "인식 대기"}</small>
+              </div>
             </div>
           </section>
 

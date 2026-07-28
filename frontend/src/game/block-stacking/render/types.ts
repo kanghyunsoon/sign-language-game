@@ -33,6 +33,8 @@ export interface GameRenderer {
   resize(width: number, height: number): void;
   render(letters: readonly PhysicsLetterState[]): void;
   highlightRemoval(id: string, durationMs?: number): void;
+  /** Plays the visual transition for a letter released from the otter paper. */
+  startSpawnEffect(id: string): void;
   setTarget(id: string | null): void;
   updateEffects(deltaMs: number): readonly RemovalEffectFinishedEvent[];
   clear(): void;

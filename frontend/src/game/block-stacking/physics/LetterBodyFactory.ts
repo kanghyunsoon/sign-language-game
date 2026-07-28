@@ -37,6 +37,7 @@ export class LetterBodyFactory {
     Body.setInertia(body, body.inertia * this.config.rotationInertiaScale);
     if (spec.angle !== undefined) Body.setAngle(body, spec.angle);
     if (spec.angularVelocity !== undefined) Body.setAngularVelocity(body, spec.angularVelocity);
+    if (spec.velocityY !== undefined) Body.setVelocity(body, { x: 0, y: spec.velocityY });
     return body;
   }
 

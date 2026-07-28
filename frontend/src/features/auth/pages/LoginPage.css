@@ -54,7 +54,7 @@
   width: 82.2917%;
   height: 67.5%;
   overflow: hidden;
-  border: 1px solid rgba(109, 83, 69, 0.07);
+  border: min(0.0521vw, 0.0833vh) solid rgba(109, 83, 69, 0.07);
   border-radius: min(1.4583vw, 2.3333vh);
   background: rgba(255, 253, 249, 0.91);
   box-shadow:
@@ -120,13 +120,16 @@
 .login-form {
   width: 100%;
   margin-top: min(1.875vw, 3vh);
+  display: flex;
+  flex-direction: column;
+  gap: min(1.0417vw, 1.6667vh);
 }
 
 .login-field {
   display: flex;
   flex-direction: column;
   gap: min(0.4688vw, 0.75vh);
-  margin-bottom: min(1.0417vw, 1.6667vh);
+  margin-bottom: 0;
 }
 
 .login-field > span {
@@ -139,7 +142,7 @@
   width: 100%;
   height: min(3.0208vw, 4.8333vh);
   padding: 0 min(1.0417vw, 1.6667vh);
-  border: 1px solid #d8cbbd;
+  border: min(0.0521vw, 0.0833vh) solid #d8cbbd;
   border-radius: min(0.625vw, 1vh);
   color: #4b3d35;
   font-family: inherit;
@@ -163,9 +166,13 @@
 
 .login-password-input {
   position: relative;
+  width: 100%;
+  height: min(3.0208vw, 4.8333vh);
 }
 
 .login-password-input input {
+  display: block;
+  height: 100%;
   padding-right: min(3.125vw, 5vh);
 }
 
@@ -184,6 +191,15 @@
   background: transparent;
   transform: translateY(-50%);
   cursor: pointer;
+}
+
+.login-password-toggle .password-visibility-icon {
+  width: min(1.0417vw, 1.6667vh);
+  height: min(1.0417vw, 1.6667vh);
+  max-width: 20px;
+  max-height: 20px;
+  display: block;
+  flex: 0 0 auto;
 }
 
 .login-password-toggle:hover,
@@ -237,6 +253,7 @@
   width: 100%;
   height: min(3.0208vw, 4.8333vh);
   margin-top: min(1.1458vw, 1.8333vh);
+  flex: 0 0 auto;
   border: 0;
   border-radius: min(0.7292vw, 1.1667vh);
   color: #ffffff;
