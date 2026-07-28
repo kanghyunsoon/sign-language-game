@@ -13,10 +13,10 @@
 | 대상 | 지숫자 10종(`1`~`10`) + `none` = **11 class** |
 | 제외 | 지문자 자모, 연속 문장 수어, 숫자 `0` |
 | 모델 단위 | **단일 프레임 분류** |
-| 입력 | `app/feature_v3.py`의 78차원 (3-D bone 60 + 관절각 15 + palm normal 3) |
+| 입력 | `numbermodel/features.py`의 78차원 (3-D bone 60 + 관절각 15 + palm normal 3) |
 | 시간 집계 | 모델이 아니라 `ai/config/recognition-policy.json` + 세션 계층이 담당 |
-| 산출물 | `models/number-10-v1/` (`number-10.joblib` + `manifest.json` + `evaluation.json`) |
-| 안전 gate | `game-contracts/recognition/readiness-number.json` (자모 `readiness.json`과 분리) |
+| 산출물 | `number-model/models/number-10-v1/` (`number-10.joblib` + `manifest.json` + `evaluation.json`) |
+| 안전 gate | `number-model/contracts/readiness-number.json` (자모 `readiness.json`과 분리) |
 
 `10`은 촬영 변형 `10-1`/`10-2`를 단일 `10`으로 매핑한다. 숫자 `0`은 제외한다 — KSL 데이터에 존재하지 않으며, `model-evaluation.md` T-141이 "이미지 트랙의 `NUM_0`은 숫자 0이 아니라 10"이라고 정정한 바 있다.
 
@@ -107,10 +107,10 @@ number-10-v1은 프레임 단위로 분류하므로 `std`/`delta` 채널 자체�
 
 ```bash
 # 원격 서버 (파일을 미리 옮길 필요 없음, 표준 라이브러리만 사용)
-ssh <host> 'python3 -' < game-ai-dev-server/scripts/survey_number_data.py
+ssh <host> 'python3 -' < number-model/scripts/survey_number_data.py
 
 # 로컬
-python3 game-ai-dev-server/scripts/survey_number_data.py --root <추가 경로>
+python3 number-model/scripts/survey_number_data.py --root <추가 경로>
 ```
 
 JSON으로 후보 경로별 존재 여부·이미지 수·라벨 폴더·레이아웃 추정, `hand_landmarker.task`의 SHA-256, 사용 가능한 인터프리터와 `mediapipe`/`scikit-learn` 설치 여부, git 체크아웃 상태를 함께 보고한다. 읽기 전용이며 아무것도 쓰지 않는다.
@@ -123,7 +123,7 @@ JSON으로 후보 경로별 존재 여부·이미지 수·라벨 폴더·레이�
 
 ```bash
 # 공개 데이터 (provider 레이아웃: <split>/<label>/<image>)
-python game-ai-dev-server/scripts/extract_number_frames.py \
+python number-model/scripts/extract_number_frames.py \
   --dataset  <ksl-numbers 루트> \
   --output   work/training/number_ksl_v3.npz \
   --layout   provider \
@@ -132,7 +132,7 @@ python game-ai-dev-server/scripts/extract_number_frames.py \
   --landmarker <hand_landmarker.task 경로>
 
 # 자체 촬영 (participant 레이아웃: <participantId>/<label>/<image>)
-python game-ai-dev-server/scripts/extract_number_frames.py \
+python number-model/scripts/extract_number_frames.py \
   --dataset  <촬영 루트> \
   --output   work/training/number_captured_v3.npz \
   --layout   participant \
@@ -140,9 +140,9 @@ python game-ai-dev-server/scripts/extract_number_frames.py \
   --landmarker <hand_landmarker.task 경로>
 
 # 학습·평가 (여러 npz를 함께 전달)
-python game-ai-dev-server/scripts/train_number_model.py \
+python number-model/scripts/train_number_model.py \
   --features work/training/number_ksl_v3.npz work/training/number_captured_v3.npz \
-  --output-dir models/number-10-v1 \
+  --output-dir number-model/models/number-10-v1 \
   --attempt-id T-150 --write-bundle
 ```
 
@@ -262,3 +262,100 @@ ExtraTrees-분리가 accuracy·macroF1 모두 최고지만 **minRecall은 KNN이
 #### 다음
 
 라벨 규약과 분류기 탐색은 여기서 멈춘다. 남은 유효 레버는 T-150 후보 목록의 ③ `none` 확보와 ④ 자체 촬영이며, 특히 `9`·`8`의 신규 각도·signer 표본이 필요하다. 분류기 최종 선택은 validation이 충분히 커진 뒤에 다시 판단한다.
+
+### T-152~T-153 — `none` 도입과 negative 선별
+
+- **데이터:** Roboflow `sign-language-2hatp` v1(CC BY 4.0)의 자모·제어 이미지를 `--force-label none --sample-per-folder 10`으로 추출. 5,667장 중 926장 표집, **869장 수용(93.8%)**. 36폴더(자모 31 + 제어 5)에 폴더당 20~30장.
+- **충돌 사전 진단:** `probe_none_collisions.py`로 숫자 전용 모델을 negative에 돌려, 어떤 손모양이 어느 숫자로 높은 확신도를 받는지 집계했다. 두 분류기가 같은 숫자를 지목한 폴더를 충돌 후보로 뽑았다.
+- **실측(provider split):** `none` 도입으로 미학습 손모양 오수용이 100% → **2.3%**(ExtraTrees). `none` recall 0.977.
+- **`space`·`bieup`ㅂ 제외:** 이 둘을 negative로 두면 숫자 `4`가 0.967 → **0.700**으로 무너진다. 제외하면 0.867로 회복. 실질적으로 같은 손모양이다.
+- **판정:** `space`·`bieup` 제외 확정. 5개를 다 빼는 것과 2개만 빼는 것이 동일 결과(0.9385 vs 0.9388)여서 최소 목록을 채택했다.
+
+### T-154 — 하이브리드 폐기, ExtraTrees 단독 채택
+
+- **배경:** T-153까지는 ET 게이트 + KNN 헤드 하이브리드를 최선으로 봤다(`compose_soft`). 근거는 "ET는 OOD 거부에 강하고 KNN은 숫자 판별에 강하다"였고, 그 순위는 **signer-dependent provider split**에서 나온 것이다.
+- **정정:** 자체 촬영 6명으로 **참가자 분리** 시험을 하자 순위가 뒤집혔다.
+
+  | 구성 | accuracy | 숫자 8 | `8`→`9` |
+  | --- | ---: | ---: | ---: |
+  | **ET 단독** | **0.9750** | **1.000** | **0건** |
+  | KNN 단독 | 0.9250 | 0.562 | 7건 |
+  | 하이브리드 | 0.9313 | 0.562 | 7건 |
+
+- **원인:** `9` 클래스가 특징공간에서 매우 밀집(내부 최근접 8.24~9.91)하고 `8`은 퍼져 있어(13~24), KNN 투표가 밀집한 쪽으로 쏠린다. 하이브리드는 KNN을 헤드로 쓰므로 그 약점을 그대로 물려받는다.
+- **판정:** **하이브리드 폐기, ET 단독 채택.** signer-dependent 분할로 분류기를 고르면 안 된다는 근거로 보존한다.
+
+### T-155~T-156 — 자체 촬영 6명 통합
+
+- **데이터:** 참가자 6명 × 숫자 1~10 각 8장 = 480장. **검출 480/480(100%)**, KSL(96.2%)보다 깨끗하다.
+- **촬영 품질 검증:** 1~2초 간격으로 찍혀 버스트를 의심했으나, 특징공간에서 같은 사람 8장의 내/외 거리비가 **0.78**(Roboflow 0.83, KSL 0.22~0.53)로 건강했다. **"한 장 찍고 손을 내렸다 다시 올리기"만 지키면 1~2초 간격도 충분하다.** 타임스탬프 간격만으로 버스트를 판정하면 오판한다.
+- **신규성:** 촬영 `8`·`9`가 KSL의 같은 숫자까지 거리 32.50 / 21.05로, KSL 클래스 내부 거리(13.11 / 8.24)의 **2.5배**다. KSL이 못 덮는 영역을 채웠다.
+- **숫자 9 해결:** 모든 분할·모든 분류기에서 `9` recall **1.000**. `9`→`8` 혼동 4건 → **0건**. T-145부터 다섯 회차 걸린 병목이 신규 signer 데이터로 풀렸다.
+
+### T-157 — negative 충돌 2건 확정 (`nieun`ㄴ↔6, `a`ㅏ↔1)
+
+- **`nieun`ㄴ 제외:** 숫자 `6` 0.812 → **1.000**, `6`→`none` 3건 → 0건. 미달 class 1 → 0.
+- **`a`ㅏ 제외:** 숫자 `1` 확정률 0.312 → **0.833**, `1`의 `none` 확률 0.216 → 0.086, 오확정 5.3% → **2.0%**. 웹캠 데모에서 `1`이 확정되지 않던 원인이었다.
+- **공통점:** 두 자모는 해당 지숫자와 실질적으로 같은 손모양이다. `none`으로 가르치면 모델에 모순을 주입한다. 두 경우 모두 **확정률과 오확정이 함께 개선**됐다 — 진짜 충돌의 특징이다.
+- **leave-one-out 전수 검사:** 남은 negative 폴더 32개를 하나씩 빼고 재측정했다. 이득은 전부 +0.02 이하인데 오확정은 +4~7%p씩 올랐다. `u`ㅜ·`ui`ㅢ를 빼면 숫자 `10`이 **−0.21** 떨어져 오히려 경계를 지켜주고 있었다. **negative 선별은 이 2건으로 소진됐다.**
+
+### T-158~T-160 — `none` 적정량과 확정률 지표
+
+- **`none` 양(참가자 분리 기준):**
+
+  | `none` train | 숫자 대비 | 평균 최저 recall | 확정률 | 오확정 |
+  | ---: | ---: | ---: | ---: | ---: |
+  | 0 | 0.00x | 0.896 | 0.950 | **40.2%** |
+  | **142** | **0.15x** | **0.917** | 0.860 | 10.6% |
+  | 711 | 0.76x | 0.646 | 0.731 | 2.4% |
+
+  **`none`이 학습의 절반을 차지하면 숫자를 밀어낸다.** 0.15x가 균형점이다. T-152의 "더 필요하다"는 결론은 signer-dependent 분할에서 잰 것이라 숫자 손실을 보지 못한 오판이었다.
+- **확정률을 정식 지표로 추가:** argmax recall은 배포 지표가 아니다. 프론트는 `candidate: 0.80`을 넘겨야 확정하므로, 정답을 0.44로 맞힌 프레임은 런타임에서 **정답이 아니라 무응답**이다. `confirmation_metrics`로 class별 확정률·negative 오확정률을 함께 기록한다.
+- **`--none-holdout-fraction`:** negative는 공개 소스라 참가자 규칙상 train 전용이 되어 거부 성능이 측정되지 않았다. **자모 폴더를 통째로 홀드아웃**해 "학습한 적 없는 손모양을 거부하는가"를 재도록 바꿨다. 이것이 런타임에 필요한 능력이다.
+- **검증 split 결함 수정:** 숫자 npz는 train/test만, negative npz는 train/valid/test를 제공한다. 병합하면 valid에 `none`만 남아 **숫자 지표가 전부 0**이었다. `top_up_valid`로 train에 있는 모든 라벨이 valid에 들어가게 했다. 회차마다 `--candidate`로 분류기를 고정해왔기 때문에 잘못된 선택은 일어나지 않았다.
+
+### 기각된 레버 (재시도 금지)
+
+| 레버 | 결과 |
+| --- | --- |
+| `feature_v4`(351) / v3+v4(429) | **기각.** 전체 데이터에서 확정률 0.896 → 0.804 / 0.862. 촬영 480장만으로 봤을 때의 이득(숫자 8 0.688→1.000)은 학습량이 2,000장 규모가 되자 사라졌다 |
+| 확률 교정 (isotonic / sigmoid) | 확정률은 +5~16%p 오르나 오확정 3~9배, argmax recall 하락. **최악 분할 최저 확정률 0.000은 그대로** |
+| 하이퍼파라미터 24조합 | `max_features` 0.7→0.3만 채택. 확정률 +0.002, 오확정은 33.7%→20.3%로 개선 |
+| 게이트 임계값 τ | `none`을 0.15x로 줄이면 불필요. 둘은 같은 레버이며 함께 쓰면 오확정만 폭증(6.9%→20.3%) |
+| IMAGE vs VIDEO 실행 모드 | 같은 사진의 특징 거리가 18.3(서로 다른 사진 15.3보다 크다)이지만 **성능 영향 0**. 문서가 T-06부터 미해결로 둔 항목에 답이 생겼다. 추출은 서빙과 맞추려 VIDEO로 통일했다 |
+| `10-1` 변형 제외 | 촬영 `10`은 KSL `10-2` 형태이고 `10-1`과는 거리 196.63(5배)이다. 그러나 제외해도 확정률 0.896→0.885, 오확정 1.6%→3.3%로 순손해 |
+| `ieung`ㅇ 제외 | 숫자 `10` 0.938→1.000이지만 오확정 1.6%→**8.9%**. 촬영 `10` 48장 중 44장의 최근접이 ㅇ이라, 빼면 방어가 사라진다. 트레이드오프이며 채택하지 않았다 |
+
+### T-161 — 신규 참가자 7명 시험 (정직한 일반화)
+
+- **데이터:** 카카오톡으로 받은 500장(중복 49장 제외 451장) + 별도 80장. 촬영 시각·전송 순번·해상도로 사람을 복원했다. 기존 6명 전원이 시간순 8장 블록 = 단일 라벨 구조였으므로 같은 규칙을 적용했다.
+- **사용 불가:** 저해상도 1명(180×320 썸네일), 라벨 검증 실패 3명. **`p08`·`p09`·`p13` 3명만 사용**했다.
+- **실측 (학습은 기존 6명 + KSL + none, 시험은 신규 3명 240장):**
+
+  | | 값 |
+  | --- | ---: |
+  | 숫자 정확도 | 0.946 |
+  | **확정률** | **0.800** |
+  | 오분류 | `4`→`7`(16%), `7`→`8`(20%), `4`→`8`(9%) 뿐 |
+
+- **학습에 8명(기존 6 + `p08`·`p09`)을 넣고 `p13`만 시험:** 숫자 정확도 **1.000**(80장 전수), 미학습 자모 오확정 3.7%. 그러나 확정률은 0.800 — **`8`과 `10`이 8장 전부 정답인데 확신도가 한 번도 0.80을 넘지 못한다.**
+- **판정:** 분류 경계는 이미 정확하다. 남은 문제는 **확신도 부족** 하나이며, 이는 (a) class별 임계값 조정 또는 (b) 표본 확대로 접근한다. (a)는 시험 표본이 숫자당 8장뿐이라 지금 정하면 과적합한다.
+
+### 측정 방법에 대한 교훈
+
+1. **단일 분할 수치는 낙관적이다.** 같은 모델이 p05 단독 홀드아웃에서 확정률 0.988, 3회전 평균에서 0.896이었다. 회차 판정은 반드시 여러 분할 평균으로 한다.
+2. **signer-dependent 분할로 분류기를 고르면 뒤집힌다.** T-153의 KNN 선택이 T-154에서 정반대로 판명됐다.
+3. **레시피를 조정한 데이터는 시험 데이터가 아니다.** `max_features`·`none` 양·negative 제외 목록을 모두 `p01`~`p06`으로 골랐으므로, 그 6명을 포함한 교차검증 수치(0.912)는 낙관적이다. 가장 신뢰할 값은 레시피 결정에 쓰이지 않은 신규 3명의 **0.800**이다.
+4. **잠금 시험 세트가 필요하다.** 앞으로 받는 참가자 중 일부를 봉인하고 최종 판정에만 한 번 쓴다.
+
+### 다음 회차
+
+병목은 **참가자 수**다. 실측한 인원 효과(시험 2명 고정, 모든 조합 평균):
+
+| 학습 인원 | 확정률 | 평균 최저 | 최악 최저 |
+| ---: | ---: | ---: | ---: |
+| 2 | 0.859 | 0.517 | 0.000 |
+| 3 | 0.917 | 0.681 | 0.062 |
+| 4 | 0.945 | 0.750 | 0.375 |
+
+1인당 장수는 6장에서 8장으로 늘려도 +0.008뿐이라 **이미 포화**다. 장수가 아니라 사람을 늘려야 한다. 1인당 숫자 1~10 각 8장(약 10분)으로 충분하며, 총 12명이 되면 5~6명을 홀드아웃해도 시험 표본이 숫자당 40~48장이 되어 **93%를 통계적으로 입증할 수 있다**(현재 8~24장으로는 불가).
