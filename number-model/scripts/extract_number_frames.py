@@ -22,6 +22,7 @@ and the trainer refuses to build a locked test out of them.
 from __future__ import annotations
 
 import argparse
+import collections
 import json
 from pathlib import Path
 import sys
@@ -51,6 +52,8 @@ from numbermodel.labels import LABELS, SOURCE_LABEL_MAP  # noqa: E402
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".heic"}
 PROVIDER_SPLITS = {"train", "valid", "validation", "test"}
 SPLIT_ALIASES = {"validation": "valid"}
+_VIDEO_SETTLE_FRAMES = 5
+_VIDEO_FRAME_STEP_MS = 40
 
 
 def parse_args() -> argparse.Namespace:
@@ -66,8 +69,28 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=REPOSITORY_ROOT / "frontend" / "public" / "mediapipe" / "hand_landmarker.task",
     )
+    parser.add_argument(
+        "--running-mode", choices=("image", "video"), default="image",
+        help="MediaPipe running mode. The browser uses VIDEO, so features extracted in IMAGE mode "
+             "sit off the distribution the model is actually served: measured on the same photos the "
+             "two modes differ by more than two different photos do. Use video to match serving.",
+    )
     parser.add_argument("--maximum-side", type=int, default=1024)
     parser.add_argument("--minimum-detection-confidence", type=float, default=0.25)
+    parser.add_argument(
+        "--force-label",
+        default="",
+        choices=("", *LABELS),
+        help="Label every accepted image as this, ignoring folder names. Used to turn a "
+             "non-number source into `none` negatives; the original folder stays in `sources`.",
+    )
+    parser.add_argument(
+        "--sample-per-folder",
+        type=int,
+        default=0,
+        help="Keep at most N evenly spaced images per source folder (0 = all). Spreads a large "
+             "negative source across every hand shape instead of over-weighting the biggest folders.",
+    )
     return parser.parse_args()
 
 
@@ -78,12 +101,37 @@ def load_rgb(path: Path, maximum_side: int) -> np.ndarray:
         return np.asarray(image)
 
 
-def classify_path(relative: Path, layout: str) -> tuple[str, str, str] | None:
+def select_sample(paths: list[Path], per_folder: int) -> list[Path]:
+    """Keep at most `per_folder` evenly spaced images from each source folder.
+
+    Evenly spaced rather than random so the selection is reproducible without a
+    seed, and so it spans whatever ordering the source has (capture sessions
+    usually sort together).
+    """
+    if per_folder <= 0:
+        return paths
+    by_folder: dict[str, list[Path]] = {}
+    for path in paths:
+        by_folder.setdefault(str(path.parent), []).append(path)
+    kept: list[Path] = []
+    for folder in sorted(by_folder):
+        group = sorted(by_folder[folder])
+        if len(group) <= per_folder:
+            kept.extend(group)
+            continue
+        step = len(group) / per_folder
+        kept.extend(group[int(index * step)] for index in range(per_folder))
+    return sorted(kept)
+
+
+def classify_path(relative: Path, layout: str, force_label: str = "") -> tuple[str, str, str] | None:
     """Return (label, split, group) or None when the path is outside the contract."""
     parts = relative.parts
     if len(parts) < 3:
         return None
-    label = SOURCE_LABEL_MAP.get(parts[1])
+    # A forced label accepts any folder name, because a negative source has no
+    # reason to use the number label vocabulary.
+    label = force_label or SOURCE_LABEL_MAP.get(parts[1])
     if label is None:
         return None
     if layout == "provider":
@@ -104,7 +152,8 @@ def main() -> None:
     if not args.landmarker.is_file():
         raise FileNotFoundError(f"MediaPipe hand landmarker not found: {args.landmarker}")
 
-    paths = sorted(path for path in args.dataset.rglob("*") if path.suffix.lower() in IMAGE_SUFFIXES)
+    discovered = sorted(path for path in args.dataset.rglob("*") if path.suffix.lower() in IMAGE_SUFFIXES)
+    paths = select_sample(discovered, args.sample_per_folder)
     heic_count = sum(1 for path in paths if path.suffix.lower() == ".heic")
     if heic_count and not heif_supported:
         # Much of the KSL source is iPhone HEIC, so silently losing it would
@@ -116,13 +165,14 @@ def main() -> None:
         )
     options = vision.HandLandmarkerOptions(
         base_options=python.BaseOptions(model_asset_path=str(args.landmarker)),
-        running_mode=vision.RunningMode.IMAGE,
+        running_mode=vision.RunningMode.VIDEO if args.running_mode == "video" else vision.RunningMode.IMAGE,
         num_hands=1,
         min_hand_detection_confidence=args.minimum_detection_confidence,
         min_hand_presence_confidence=args.minimum_detection_confidence,
     )
 
     features: list[np.ndarray] = []
+    raw_landmarks: list[np.ndarray] = []
     labels: list[str] = []
     splits: list[str] = []
     groups: list[str] = []
@@ -130,18 +180,27 @@ def main() -> None:
     handedness_values: list[str] = []
     failures: list[str] = []
     skipped = 0
+    video_timestamp = 0
 
     with vision.HandLandmarker.create_from_options(options) as landmarker:
         for index, path in enumerate(paths, start=1):
             relative = path.relative_to(args.dataset)
-            classified = classify_path(relative, args.layout)
+            classified = classify_path(relative, args.layout, args.force_label)
             if classified is None:
                 skipped += 1
                 continue
             label, split, group = classified
             try:
                 rgb = load_rgb(path, args.maximum_side)
-                result = landmarker.detect(mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb))
+                image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+                if args.running_mode == "video":
+                    # VIDEO mode tracks across calls, so a still is fed repeatedly until the
+                    # tracker settles on it; otherwise each result carries the previous image's ROI.
+                    for _ in range(_VIDEO_SETTLE_FRAMES):
+                        video_timestamp += _VIDEO_FRAME_STEP_MS
+                        result = landmarker.detect_for_video(image, video_timestamp)
+                else:
+                    result = landmarker.detect(image)
                 if not result.hand_landmarks or not result.handedness:
                     failures.append(relative.as_posix())
                     continue
@@ -152,6 +211,10 @@ def main() -> None:
                 failures.append(f"{relative.as_posix()}: {type(error).__name__}: {error}")
                 continue
             features.append(feature)
+            # Keep the landmarks too. Features are a lossy transform, so without
+            # them any change to the feature definition means re-running MediaPipe
+            # over every source image again.
+            raw_landmarks.append(np.asarray([(l.x, l.y, l.z) for l in landmarks], dtype=np.float32))
             labels.append(label)
             splits.append(split)
             groups.append(group)
@@ -172,13 +235,23 @@ def main() -> None:
         "featureVersion": "v3",
         "featureSize": FEATURE_SIZE,
         "frameInput": True,
+        "runningMode": args.running_mode,
+        "landmarksStored": True,
+        "imagesDiscovered": len(discovered),
         "images": len(paths),
+        "forcedLabel": args.force_label,
+        "samplePerFolder": args.sample_per_folder,
         "heicImages": heic_count,
         "heifSupported": heif_supported,
         "accepted": len(features),
         "failed": len(failures),
         "skippedOutsideContract": skipped,
         "perLabel": per_label,
+        # Original folder names survive a forced label, so a negative source can
+        # still be analysed per hand shape later.
+        "perSourceFolder": dict(
+            sorted(collections.Counter(value.split("/")[1] for value in sources if "/" in value).items()),
+        ),
         "missingLabels": [label for label, count in per_label.items() if count == 0],
         "groupsPresent": bool(any(groups)),
         "failures": failures,
@@ -202,6 +275,7 @@ def main() -> None:
     np.savez_compressed(
         args.output,
         features=stacked,
+        landmarks=np.asarray(raw_landmarks, dtype=np.float32),
         labels=np.asarray(labels),
         splits=np.asarray(splits),
         groups=np.asarray(groups),
