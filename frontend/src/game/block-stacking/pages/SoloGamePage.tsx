@@ -24,6 +24,8 @@ import {
 } from "../../recognition";
 import { SignGuideImage } from "../../recognition/components/SignGuideImage";
 import { GAME_SYMBOLS } from "../../recognition/core/symbols";
+import { RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG } from "../../recognition/runtime";
+import { RESPONSIVE_GAMEPLAY_SIGN_DECODER_CONFIG } from "../../recognition/temporal";
 import { useSharedCameraOwnerCleanup } from "../../media/camera/useSharedCameraOwnerCleanup";
 import otterWalkFrame0 from "../assets/solo-walking-otter-frame-0.png";
 import otterWalkFrame1 from "../assets/solo-walking-otter-frame-1.png";
@@ -38,6 +40,11 @@ const OTTER_WALK_FRAMES = [
   otterWalkFrame3,
   otterWalkFrame4,
 ] as const;
+
+// Gameplay prioritises prompt feedback. Frames are still latest-only, so a
+// busy AI connection drops stale work instead of making the hand overlay lag.
+const SOLO_RECOGNITION_RATE_CONFIG = RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG;
+const SOLO_DECODER_CONFIG = RESPONSIVE_GAMEPLAY_SIGN_DECODER_CONFIG;
 
 const INITIAL_SNAPSHOT: GameRuntimeSnapshot = {
   runState: "IDLE",
@@ -82,7 +89,11 @@ export function SoloGamePage({
     [services.soloGameApi, soloGameApiFactory],
   );
   const resolvedSignRecognizerFactory = useMemo(
-    () => signRecognizerFactory ?? (() => new PythonWebSocketSignRecognizer({ url: config.aiWebSocketUrl })),
+    () => signRecognizerFactory ?? (() => new PythonWebSocketSignRecognizer({
+      url: config.aiWebSocketUrl,
+      aiInferenceFps: SOLO_RECOGNITION_RATE_CONFIG.aiInferenceFps,
+      decoderConfig: SOLO_DECODER_CONFIG,
+    })),
     [config.aiWebSocketUrl, signRecognizerFactory],
   );
   const runtimeRef = useRef<GameRuntime | null>(null);
@@ -398,6 +409,7 @@ export function SoloGamePage({
                 sharedStream={cameraStream}
                 compact
                 autoStart
+                rateConfig={SOLO_RECOGNITION_RATE_CONFIG}
                 performanceMonitor={recognizerRef.current?.getPerformanceMonitor()}
                 temporalDecoder={recognizerRef.current?.getTemporalDecoder()}
                 activePlayerSession={activePlayerSession}

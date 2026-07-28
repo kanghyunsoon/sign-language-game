@@ -101,6 +101,8 @@ describe("BattleLocalBoardRuntime", () => {
     vi.mocked(world.update).mockReturnValue([{ type: "LETTER_SETTLED", id: "danger" }]);
     const handler = vi.fn(); runtime.setGameOverHandler(handler); runtime.start();
     runtime.advance(16); now = 751; vi.mocked(world.update).mockReturnValue([]); runtime.advance(16);
+    expect(handler).not.toHaveBeenCalled();
+    now = 6_751; runtime.advance(16);
     expect(handler).toHaveBeenCalledOnce();
   });
 });

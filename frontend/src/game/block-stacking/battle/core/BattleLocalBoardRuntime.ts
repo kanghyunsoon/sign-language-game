@@ -15,7 +15,7 @@ export interface BattleLocalBoard {
 export class BattleLocalBoardRuntime implements BattleLocalBoard {
   private readonly letters = new Map<string, LetterRecord>(); private frame: number | null = null; private previousAt: number | null = null; private priorityTargetId: string | null = null;
   private width: number; private height: number; private running = false; private disposed = false; private publisher?: LocalBoardPublisher;
-  private gameOverHandler: (() => void) | null = null; private gameOverReported = false;
+  private gameOverHandler: (() => void) | null = null; private gameOverReported = false; private dangerArmedAt: number | null = null;
   constructor(
     private readonly physics: PhysicsWorld,
     private readonly renderer: GameRenderer,
@@ -25,7 +25,7 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
     private readonly requestFrame: (callback: FrameRequestCallback) => number = (callback) => globalThis.requestAnimationFrame(callback),
     private readonly cancelFrame: (frame: number) => void = (frame) => globalThis.cancelAnimationFrame(frame),
   ) { this.width = config.boardWidth; this.height = config.boardHeight; this.publisher = publisher; }
-  start(): void { if (this.running || this.disposed) return; this.running = true; this.previousAt = null; this.schedule(); }
+  start(): void { if (this.running || this.disposed) return; this.running = true; this.gameOverReported = false; this.dangerArmedAt = this.now() + 6_000; this.previousAt = null; this.schedule(); }
   stop(): void { this.running = false; if (this.frame !== null) { this.cancelFrame(this.frame); this.frame = null; } }
   spawn(event: SpawnLetterEvent): void {
     if (this.letters.has(event.letterId)) return;
@@ -78,7 +78,7 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
   private currentTarget(): LetterRecord | undefined { const priority = this.priorityTargetId ? this.letters.get(this.priorityTargetId) : undefined; if (priority && !priority.pending && this.physics.getLetterState(priority.id)) return priority; return [...this.letters.values()].filter((letter) => !letter.pending && this.physics.getLetterState(letter.id)).sort((left, right) => left.spawnedAt - right.spawnedAt)[0]; }
   private updateTarget(): void { this.renderer.setTarget(this.currentTarget()?.id ?? null); }
   private checkDangerLine(states: readonly PhysicsLetterState[]): void {
-    if (this.gameOverReported) return;
+    if (this.gameOverReported || this.dangerArmedAt === null || this.now() < this.dangerArmedAt) return;
     const dangerLineY = this.height * this.config.dangerLineRatio;
     // A newly-created body can briefly report an idle velocity before gravity
     // has taken effect. It is not a stack yet, so it must never end the match.

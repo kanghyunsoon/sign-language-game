@@ -23,6 +23,8 @@ import { BATTLE_DANGER_LINE_RATIO, BATTLE_DANGER_LINE_Y, BATTLE_LETTER_SIZE, DEF
 import { RemoteBoardRenderer } from "../render/RemoteBoardRenderer";
 import { RemoteBoardReplica } from "../sync/RemoteBoardReplica";
 import { PythonWebSocketSignRecognizer } from "../../../recognition/websocket/PythonWebSocketSignRecognizer";
+import { RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG } from "../../../recognition/runtime";
+import { RESPONSIVE_GAMEPLAY_SIGN_DECODER_CONFIG } from "../../../recognition/temporal";
 import styles from "../battle.module.css";
 
 const OTTER_WALK_FRAMES = [otterWalkFrame0, otterWalkFrame1, otterWalkFrame2, otterWalkFrame3, otterWalkFrame4] as const;
@@ -38,7 +40,7 @@ export function BattleBotPracticePage() {
   // Include the constructor identity so Vite Fast Refresh cannot preserve an
   // instance created from an older transport implementation.
   const transport = useMemo(() => new LocalBattleBotTransport(), [LocalBattleBotTransport]);
-  const recognizer = useMemo(() => new PythonWebSocketSignRecognizer({ url: config.aiWebSocketUrl }), [config.aiWebSocketUrl]);
+  const recognizer = useMemo(() => new PythonWebSocketSignRecognizer({ url: config.aiWebSocketUrl, aiInferenceFps: RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG.aiInferenceFps, decoderConfig: RESPONSIVE_GAMEPLAY_SIGN_DECODER_CONFIG }), [config.aiWebSocketUrl]);
   const replica = useMemo(() => new RemoteBoardReplica(DEFAULT_BATTLE_RUNTIME_CONFIG.sync), []);
   const [snapshot, setSnapshot] = useState(INITIAL);
   const [stream, setStream] = useState(() => sharedCameraSession.getStream());
@@ -131,7 +133,7 @@ export function BattleBotPracticePage() {
       <section className={styles.practiceColumn} aria-label="내 플레이 영역">
         <BattleBoardPanel title="내 게임판" subtitle="PLAYER" toolbar={<div className={styles.boardStats}><span>지정 <strong>{snapshot.targetSymbol ?? "-"}</strong></span><span>점수 <strong>{snapshot.score}</strong></span><span>콤보 <strong>{snapshot.combo}</strong></span><i data-state={snapshot.gameConnectionState}/></div>} rendererConfig={{ letterWidth: BATTLE_LETTER_SIZE, letterHeight: BATTLE_LETTER_SIZE, dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO }} onRendererReady={(renderer, viewport) => { localViewportRef.current = viewport; setLocalRenderer(renderer); localRuntimeRef.current?.resize(viewport.width, viewport.height); }} onViewportResize={(viewport) => { localViewportRef.current = viewport; localRuntimeRef.current?.resize(viewport.width, viewport.height); }}/>
         <div className={styles.practiceUtility}>
-          <div className={styles.practiceCamera}>{stream ? <HandCamera compact sharedStream={stream} autoStart performanceMonitor={recognizer.getPerformanceMonitor()} temporalDecoder={recognizer.getTemporalDecoder()} onLandmarkFrame={(frame) => recognizer.sendLandmarkFrame(frame)} onHandNotDetected={(at) => recognizer.notifyHandNotDetected(at)} targetSymbol={snapshot.targetSymbol} prediction={snapshot.prediction} connectionState={recognizer.getConnectionState()}/> : <GameVideoTile kind="LOCAL" label="내 카메라" stream={null} cameraEnabled={false} connectionState="DISCONNECTED"/>}</div>
+          <div className={styles.practiceCamera}>{stream ? <HandCamera compact sharedStream={stream} autoStart rateConfig={RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG} performanceMonitor={recognizer.getPerformanceMonitor()} temporalDecoder={recognizer.getTemporalDecoder()} onLandmarkFrame={(frame) => recognizer.sendLandmarkFrame(frame)} onHandNotDetected={(at) => recognizer.notifyHandNotDetected(at)} targetSymbol={snapshot.targetSymbol} prediction={snapshot.prediction} connectionState={recognizer.getConnectionState()}/> : <GameVideoTile kind="LOCAL" label="내 카메라" stream={null} cameraEnabled={false} connectionState="DISCONNECTED"/>}</div>
           <section className={[styles.signGuide, otterZone === "left" ? styles.otterPassing : ""].filter(Boolean).join(" ")} aria-label="현재 지정 글자 수어 안내"><span>현재 지정 글자</span><strong>{snapshot.targetSymbol ?? "-"}</strong><div><SignGuideImage symbol={snapshot.targetSymbol} responsive />{otterZone === "left" ? <div className={styles.hintBreak}><strong>수달 통과 중!</strong><small>그림 힌트가 잠시 쉬어요</small></div> : null}</div></section>
         </div>
       </section>

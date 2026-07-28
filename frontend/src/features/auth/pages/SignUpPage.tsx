@@ -5,12 +5,15 @@ import { AuthApiError, signup } from "../api/authApi";
 import backgroundLeft from "../assets/background_left.png";
 import backgroundRight from "../assets/background_right.png";
 import otterBook from "../assets/otter_book.png";
+import { PasswordVisibilityIcon } from "../components/PasswordVisibilityIcon";
 import "./SignUpPage.css";
 
 export function SignUpPage() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
 
   async function handleSignUpSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -107,28 +110,56 @@ export function SignUpPage() {
               <label className="signup-field">
                 <span>비밀번호</span>
 
-                <input
-                  type="password"
-                  name="password"
-                  placeholder="영문, 숫자 포함 8자 이상"
-                  autoComplete="new-password"
-                  required
-                />
+                <div className="signup-password-input">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    placeholder="영문, 숫자 포함 8자 이상"
+                    autoComplete="new-password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="signup-password-toggle"
+                    onClick={() => setShowPassword((visible) => !visible)}
+                    aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
+                    aria-pressed={showPassword}
+                  >
+                    <PasswordVisibilityIcon visible={showPassword} />
+                  </button>
+                </div>
               </label>
 
               <label className="signup-field">
                 <span>비밀번호 확인</span>
 
-                <input
-                  type="password"
-                  name="passwordConfirm"
-                  placeholder="비밀번호를 다시 입력해주세요"
-                  autoComplete="new-password"
-                  required
-                />
+                <div className="signup-password-input">
+                  <input
+                    type={showPasswordConfirm ? "text" : "password"}
+                    name="passwordConfirm"
+                    placeholder="비밀번호를 다시 입력해주세요"
+                    autoComplete="new-password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="signup-password-toggle"
+                    onClick={() =>
+                      setShowPasswordConfirm((visible) => !visible)
+                    }
+                    aria-label={
+                      showPasswordConfirm
+                        ? "비밀번호 확인 숨기기"
+                        : "비밀번호 확인 보기"
+                    }
+                    aria-pressed={showPasswordConfirm}
+                  >
+                    <PasswordVisibilityIcon visible={showPasswordConfirm} />
+                  </button>
+                </div>
               </label>
 
-              <label className="signup-agreement">
+              {/* <label className="signup-agreement">
                 <input
                   type="checkbox"
                   name="agreement"
@@ -136,7 +167,7 @@ export function SignUpPage() {
                 />
 
                 <span>이용약관 및 개인정보처리방침에 동의합니다.</span>
-              </label>
+              </label> */}
               {error && (
                 <p className="signup-error" role="alert">
                   {error}

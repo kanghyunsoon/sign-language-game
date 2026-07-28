@@ -68,8 +68,10 @@ export class P2pBattleTransport implements BattleGameTransport {
   }
   private spawn(): void {
     if (this.playerIds.length !== 2 || [...this.players.values()].some((player) => player.gameOver)) return;
-    const symbol = SYMBOLS[this.spawnIndex % SYMBOLS.length];
-    for (const playerId of this.playerIds) {
+    for (const [playerIndex, playerId] of this.playerIds.entries()) {
+      // Each player gets an independent deterministic lane in the symbol
+      // sequence. Sharing one glyph made a 1:1 round feel like two mirrors.
+      const symbol = SYMBOLS[(this.spawnIndex + playerIndex * 5) % SYMBOLS.length];
       const letterId = `${this.matchId}-${playerId}-${this.spawnIndex}`;
       this.letters.set(letterId, { playerId, symbol });
       this.delegate.publishEvent({ type: "SPAWN_LETTER", sequence: ++this.sequence, matchId: this.matchId, playerId, letterId, spawnIndex: this.spawnIndex, symbol, spawnAt: Date.now(), normalizedX: 0.18 + ((this.spawnIndex * 37) % 64) / 100, initialAngle: 0 });

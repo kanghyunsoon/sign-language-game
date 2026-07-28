@@ -41,7 +41,18 @@ export class BattleController {
   dispose(): void { if (this.disposed) return; this.disposed = true; this.clearReconnectTimers(); this.clearStartTimer(); this.transportUnsubscribe?.(); this.transportStateUnsubscribe?.(); this.recognizerUnsubscribe?.(); this.options.transport.disconnect(); this.options.recognizer?.disconnect(); this.options.localBoard.dispose(); this.options.remoteBoard.clear(); this.options.attackEffect.dispose(); this.listeners.clear(); }
   private handleServer(message: ServerBattleMessage): void {
     if (message.type === "START_MATCH" || message.type === "MATCH_STARTED" || message.type === "GAME_START") { const currentState = this.machine.getState(); if (this.matchId === message.matchId && (currentState === "COUNTDOWN" || currentState === "PLAYING")) return; this.matchId = message.matchId; this.gameOverReported = false; this.options.onMatchStarted?.(message.matchId); const startAt = message.startAt; const serverNow = message.serverTime ?? this.now(); const delay = Math.max(0, startAt - serverNow); this.countdownMs = delay; this.message = "Match countdown started."; this.transition("COUNTDOWN"); this.startDeadlineAt = this.now() + delay; this.scheduleStartTick(); return; }
-    if (message.type === "SPAWN_LETTER") { if (message.playerId === this.options.playerId) { this.options.localBoard.spawn(message); this.message = `${message.symbol} is now the target.`; this.publish(); } return; }
+    if (message.type === "SPAWN_LETTER") {
+      if (message.playerId === this.options.playerId) {
+        this.options.localBoard.spawn(message);
+        this.message = `${message.symbol} is now the target.`;
+        this.publish();
+      } else {
+        // Show the opponent's own spawn immediately.  It is replaced by that
+        // player's authoritative board snapshot as soon as it arrives.
+        this.options.remoteBoard.spawn(message, this.now());
+      }
+      return;
+    }
     if (message.type === "REMOVE_LETTER_ACCEPTED") { if (message.playerId !== this.options.playerId) return; this.options.localBoard.acceptRemoval(message.letterId); this.score = message.score; this.combo = message.combo; this.maxCombo = message.maxCombo; this.removedCount = message.removedCount; this.message = `${message.symbol} accepted.`; this.publish(); return; }
     if (message.type === "REMOVE_LETTER_REJECTED") { this.options.localBoard.rejectRemoval(message.letterId); this.message = message.message; this.publish(); return; }
     if (message.type === "SCORE_UPDATED") { if (message.playerId === this.options.playerId) { this.score = message.score; this.publish(); } return; }

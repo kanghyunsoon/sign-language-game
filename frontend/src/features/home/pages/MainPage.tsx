@@ -16,7 +16,7 @@ export function MainPage() {
     <div className="page">
       <header className="header">
         <nav className="nav" aria-label="주요 메뉴">
-          <a className="active" href="/">메인페이지</a>
+          <a className="active" href="/main">메인페이지</a>
           <Link to="/practice">연습</Link>
           <Link to="/test">테스트</Link>
           <Link to="/dictionary">사전</Link>
