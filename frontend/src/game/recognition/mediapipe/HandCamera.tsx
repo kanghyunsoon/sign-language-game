@@ -65,7 +65,9 @@ export interface HandCameraProps {
 export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE_CONFIG, performanceMonitor, temporalDecoder, activePlayerSession, recognitionSession, handDetectionConfig = GAMEPLAY_HAND_DETECTION_CONFIG, autoStart = false, onLandmarkFrame, onHandNotDetected, targetSymbol, prediction, referenceTemplate, onPoseFeedback, connectionState, modelVersion, connectionError, awaitingHandRelease = false, showDebug = false, compact = false, visionAdapterFactory }: HandCameraProps) {
   // Registration/ownership is a debug-only tool. Gameplay always uses the
   // first detected hand, so a registration state can never block recognition.
-  const userRegistrationEnabled = showDebug && Boolean(activePlayerSession);
+  // Registration is not used by any game mode. Keep the prop surface for
+  // compatibility, but never render or start the registration flow.
+  const userRegistrationEnabled = false;
   const defaultVisionAdapterFactory = useRecognitionVisionAdapterFactory();
   const resolvedVisionAdapterFactory = visionAdapterFactory ?? defaultVisionAdapterFactory;
   const videoRef = useRef<HTMLVideoElement>(null);

@@ -203,7 +203,10 @@ export class GameRuntime {
       this.spawnLetter();
     }
 
-    for (const event of this.physics.update(boundedDelta)) {
+    // Every 5,000 points increases fall speed by another 0.5x: 1x, 1.5x,
+    // 2x, ... . Game time and spawning remain real-time, only gravity speeds up.
+    const fallSpeedMultiplier = 1 + Math.floor(this.score / 5_000) * .5;
+    for (const event of this.physics.update(boundedDelta * fallSpeedMultiplier)) {
       this.applyPhysicsEvent(event.type, event.id);
     }
 
@@ -332,17 +335,12 @@ export class GameRuntime {
 
   private checkDangerLine(states: readonly PhysicsLetterState[]): void {
     const dangerLineY = this.boardHeight * (this.config.dangerLineY / this.config.boardHeight);
-    // A block becomes dangerous as soon as it comes to rest on the stack with
-    // its visible top at the line.  Waiting for the full settlement timer made
-    // the loss feel one letter late.
+    // Only a letter which has actually joined the stack can end the game.
+    // Falling or bouncing letters must never trigger a premature game-over.
     const visibleHalfHeight = this.config.letterHeight * 0.32;
     const danger = states.some((state) => (
-      (state.settled || (
-        Math.abs(state.velocityY) <= 0.12
-        && Math.abs(state.angularVelocity) <= 0.025
-      ))
+      state.settled
       && state.y - visibleHalfHeight <= dangerLineY
-      && state.y + visibleHalfHeight >= dangerLineY
     ));
     if (!danger) return;
     this.runState = "GAME_OVER";

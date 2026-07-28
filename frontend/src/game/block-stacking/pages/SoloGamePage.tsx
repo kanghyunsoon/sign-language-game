@@ -187,7 +187,10 @@ export function SoloGamePage({
     let nextWalkTimer: number | undefined;
     const scheduleNextWalk = () => {
       const elapsedMinutes = Math.floor((Date.now() - startedAt) / 60_000);
-      const delay = Math.max(20_000, 60_000 - elapsedMinutes * 7_000);
+      const scoreStep = Math.floor((runtimeRef.current?.snapshot().score ?? 0) / 5_000);
+      // The interruption becomes noticeably more frequent as the round and
+      // score build: 35s initially, then progressively down to 12s.
+      const delay = Math.max(12_000, 35_000 - elapsedMinutes * 5_000 - scoreStep * 2_000);
       nextWalkTimer = window.setTimeout(() => {
         triggerWalk();
         scheduleNextWalk();

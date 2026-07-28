@@ -63,7 +63,9 @@ export class P2pBattleTransport implements BattleGameTransport {
   }
   private scheduleNextOtterTransfer(delay?: number): void {
     const elapsedMinutes = Math.floor((Date.now() - this.matchStartedAt) / 60_000);
-    const nextDelay = delay ?? Math.max(20_000, 60_000 - elapsedMinutes * 7_000);
+    const highScore = Math.max(0, ...[...this.players.values()].map((player) => player.score));
+    const scoreStep = Math.floor(highScore / 5_000);
+    const nextDelay = delay ?? Math.max(12_000, 35_000 - elapsedMinutes * 5_000 - scoreStep * 2_000);
     this.otterTimer = setTimeout(() => {
       this.otterTimer = null;
       this.transferOtterLetter();

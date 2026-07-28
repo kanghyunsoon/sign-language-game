@@ -154,6 +154,7 @@ export class RecognitionGameController {
     // next sign is never discarded after the board changes.
     this.gameInput.releaseInput();
     this.awaitingReleaseSymbol = null;
+    this.resetRecognitionGate();
     this.state = {
       ...this.state,
       targetSymbol,
@@ -241,11 +242,15 @@ export class RecognitionGameController {
         this.statistics.recordConfirmation(this.state.targetSymbol, false, confidence);
       }
       this.gameInput.recordIncorrectInput();
-      this.awaitingReleaseSymbol = symbol;
+      // A wrong sign is feedback, not a requirement to open the hand and
+      // perform the registration/release gesture again. Start a fresh
+      // candidate window so the player can retry immediately.
+      this.awaitingReleaseSymbol = null;
+      this.resetRecognitionGate();
       this.state = this.withStatistics({
         ...this.state,
         answer: "INCORRECT",
-        awaitingHandRelease: true,
+        awaitingHandRelease: false,
         message: `${symbol}로 인식했습니다. 목표 ${this.state.targetSymbol ?? "-"}와 달라 글자를 제거하지 않습니다.`,
       });
       this.emit();
@@ -253,19 +258,26 @@ export class RecognitionGameController {
     }
     const hasTargetOnBoard = this.gameInput.hasAvailableSymbol(symbol);
     if (hasTargetOnBoard) this.gameInput.submitSymbol(symbol);
-    this.awaitingReleaseSymbol = symbol;
+    this.awaitingReleaseSymbol = hasTargetOnBoard ? symbol : null;
     if (this.state.targetSymbol) {
       this.statistics.recordConfirmation(this.state.targetSymbol, symbol === this.state.targetSymbol, confidence);
     }
     this.state = this.withStatistics({
       ...this.state,
       answer: hasTargetOnBoard ? "CORRECT" : "NO_TARGET_ON_BOARD",
-      awaitingHandRelease: true,
+      awaitingHandRelease: hasTargetOnBoard,
       message: hasTargetOnBoard
         ? `${symbol} confirmed. Removing the guide letter.`
         : `No ${symbol} letter is currently on the board.`,
     });
+    if (!hasTargetOnBoard) this.resetRecognitionGate();
     this.emit();
+  }
+
+  private resetRecognitionGate(): void {
+    const decoder = (this.recognizer as (SignRecognizer & { getTemporalDecoder?: () => { beginInputSession?: () => void } }) | null)
+      ?.getTemporalDecoder?.();
+    decoder?.beginInputSession?.();
   }
 
   private symbolsForMode(mode: GameInputMode, supportedSymbols: readonly string[]): readonly string[] {
