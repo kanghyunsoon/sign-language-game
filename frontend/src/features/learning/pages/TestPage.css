@@ -414,17 +414,36 @@
   box-shadow: 0 10px 26px rgba(63, 43, 32, 0.1);
 }
 
-/* 카드 상단 머리말 바 */
+/* 카드 상단 머리말 바 — 안쪽에 타원형 뱃지를 얹는다. */
 .test-panel-label {
   min-height: 70px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
+  margin: 0;
   padding: 0 28px;
   border-bottom: 1px solid #eee7de;
-  color: #6b5c50;
-  font-size: 15px;
+}
+
+/* 결과 화면 뱃지와 동일한 타원형 필 */
+.test-panel-label > span {
+  padding: 7px 16px;
+  border-radius: 999px;
+  font-size: 14px;
   font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+/* 문제 뱃지 — TEST RESULT 뱃지와 동일한 베이지 계열 */
+.test-question-panel .test-panel-label > span {
+  background: #f1ece4;
+  color: #6b5c50;
+}
+
+/* 내 동작 뱃지 — 기존 그린 계열 유지 */
+.test-camera-panel .test-panel-label > span {
+  background: #e2ead8;
+  color: #5f724a;
 }
 
 .test-question-content {
@@ -868,20 +887,20 @@
   box-shadow: 0 2px 0 #6f8052;
 }
 
-/* 이미 담긴 글자는 빼기 동작이라 눌린 느낌의 보조 색을 쓴다. */
+/* 삭제는 파괴적 동작이라 톤다운한 로즈 계열로 구분한다.
+   베이지 팔레트와 맞물리도록 원색 대신 붉은 흙색 계열을 쓴다. */
 .test-wrong-note-toggle-remove {
-  border: 1px solid #dbc8b1;
-  background: #fffaf2;
-  box-shadow: 0 4px 0 #e0d2c0;
-  color: #5f402b;
+  background: #b4523a;
+  box-shadow: 0 4px 0 #8e3f2c;
+  color: #ffffff;
 }
 
 .test-wrong-note-toggle-remove:hover {
-  background: #f7f0e6;
+  background: #a24932;
 }
 
 .test-wrong-note-toggle-remove:active {
-  box-shadow: 0 2px 0 #e0d2c0;
+  box-shadow: 0 2px 0 #8e3f2c;
 }
 
 .test-coming-soon-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(72,56,45,.28); backdrop-filter: blur(5px); }

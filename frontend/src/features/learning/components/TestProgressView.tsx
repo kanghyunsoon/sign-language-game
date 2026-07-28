@@ -226,7 +226,9 @@ export function TestProgressView({
 
       <section className="test-progress-panel">
         <article className="test-question-panel">
-          <span className="test-panel-label">문제</span>
+          <p className="test-panel-label">
+            <span>문제</span>
+          </p>
 
           <div className="test-question-content">
             {/* ㅣ와 1처럼 헷갈리는 글자를 구분할 수 있도록 분류와 이름을 함께 보여준다. */}
@@ -245,7 +247,9 @@ export function TestProgressView({
         </article>
 
         <article className="test-camera-panel">
-          <span className="test-panel-label">내 동작</span>
+          <p className="test-panel-label">
+            <span>내 동작</span>
+          </p>
 
           {/* 영상은 LIVE 뱃지만 얹고, 안내·컨트롤은 영상 아래에 따로 둔다. */}
           <div className="test-camera-placeholder">

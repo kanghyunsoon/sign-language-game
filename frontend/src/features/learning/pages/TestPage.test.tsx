@@ -256,6 +256,15 @@ describe("TestPage 결과 화면", () => {
     expect(listItems[0].getAttribute("aria-pressed")).toBe("true");
     expect(detailSymbol()).toBe(itemSymbol(listItems[0]));
     expect(screen.getByText("수형 설명")).toBeTruthy();
+
+    // 손그림 이미지 경로가 문항에서 상세 패널까지 전달되어야 한다.
+    const image = document.querySelector(
+      ".fingerspelling-detail-image img",
+    ) as HTMLImageElement;
+
+    expect(image).toBeTruthy();
+    expect(image.getAttribute("src")).toMatch(/\.png$/);
+    expect(image.getAttribute("alt")).toContain("지문자 동작");
   });
 
   it("목록 항목을 클릭하면 상세가 그 글자로 바뀐다", () => {
@@ -271,6 +280,21 @@ describe("TestPage 결과 화면", () => {
     expect(listItems[2].getAttribute("aria-pressed")).toBe("true");
     expect(listItems[0].getAttribute("aria-pressed")).toBe("false");
     expect(detailSymbol()).toBe(targetSymbol);
+  });
+
+  it("카드 제목이 타원형 뱃지로 렌더된다", () => {
+    renderPage();
+    startConsonantOnly("5개");
+
+    const labels = document.querySelectorAll(".test-panel-label");
+    const badges = document.querySelectorAll(".test-panel-label > span");
+
+    expect(labels).toHaveLength(2);
+    expect(badges).toHaveLength(2);
+    expect([...badges].map((badge) => badge.textContent)).toEqual([
+      "문제",
+      "내 동작",
+    ]);
   });
 
   it("안내 문구와 컨트롤이 카메라 영역 밖에 배치된다", () => {
