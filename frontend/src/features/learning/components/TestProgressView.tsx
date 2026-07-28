@@ -291,6 +291,18 @@ export function TestProgressView({
                 {remainingSeconds}초
               </span>
 
+              {/*
+                임시 채점 수단. AI 인식 서버 없이도 진행 흐름을 확인할 수 있게
+                남겨 둔다. 인식이 안정화되면 다시 제거한다.
+              */}
+              <button
+                className="test-mark-correct-button"
+                type="button"
+                onClick={() => advanceRef.current("correct")}
+              >
+                정답 처리 (임시)
+              </button>
+
               <button
                 className="test-skip-button"
                 type="button"

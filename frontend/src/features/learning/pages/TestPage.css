@@ -632,7 +632,23 @@
   color: #b4523a;
 }
 
-.test-skip-button {
+/* 임시 채점 버튼. 점선 테두리로 정식 버튼과 구분한다. */
+.test-mark-correct-button {
+  margin-left: auto;
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1px dashed #8fa071;
+  border-radius: 14px;
+  background: #f3f6ea;
+  color: #5f724a;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* 임시 버튼이 앞에 있으면 오른쪽 정렬은 그쪽이 맡는다. */
+.test-mark-correct-button + .test-skip-button {
   margin-left: 0;
 }
 
