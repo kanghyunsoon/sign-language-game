@@ -7,7 +7,7 @@ import { SignUpPage } from "./features/auth/pages/SignUpPage";
 import { MainPage } from "./features/home/pages/MainPage";
 import { PreLoginPage } from "./features/home/pages/PreLoginPage";
 import { DictionaryPage } from "./features/learning/pages/DictionaryPage";
-import { IncorrectNotesPage } from "./features/learning/pages/IncorrectNotesPage";
+import { ReviewNotesPage } from "./features/learning/pages/ReviewNotesPage";
 import { PracticeHomePage } from "./features/learning/pages/PracticeHomePage";
 import { TestPage } from "./features/learning/pages/TestPage";
 import { ProfilePage } from "./features/profile/pages/ProfilePage";
@@ -41,7 +41,7 @@ export function App() {
         <Route path="/practice" element={<PracticeHomePage />} />
         <Route path="/dictionary" element={<DictionaryPage />} />
         <Route path="/test" element={<TestPage />} />
-        <Route path="/incorrect-notes" element={<IncorrectNotesPage />} />
+        <Route path="/review-notes" element={<ReviewNotesPage />} />
         <Route
           path="/game/*"
           element={

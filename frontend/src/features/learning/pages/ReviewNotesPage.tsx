@@ -1,4 +1,4 @@
-import "./IncorrectNotesPage.css";
+import "./ReviewNotesPage.css";
 import { useEffect, useMemo, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -6,7 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { FingerspellingDetail } from "../components/FingerspellingDetail";
 import type { FingerspellingCategoryId } from "../data/fingerspelling";
 import { fingerspellingCategories } from "../data/fingerspelling";
-import { useIncorrectNotes, useRemoveIncorrectNotes } from "../data/incorrectNotes";
+import { useReviewNotes, useRemoveReviewNotes } from "../data/reviewNotes";
 
 /** 카테고리 필터 값. "all"은 전체 보기. */
 type NoteFilterId = "all" | FingerspellingCategoryId;
@@ -25,10 +25,10 @@ const TOAST_DURATION_MS = 2000;
 /** 선택한 글자를 연습·테스트 화면으로 넘길 때 쓰는 query parameter 이름. */
 const SYMBOLS_PARAM = "symbols";
 
-export function IncorrectNotesPage() {
+export function ReviewNotesPage() {
   const navigate = useNavigate();
-  const notes = useIncorrectNotes();
-  const removeNotes = useRemoveIncorrectNotes();
+  const notes = useReviewNotes();
+  const removeNotes = useRemoveReviewNotes();
 
   const [pageScale, setPageScale] = useState(1);
   const [activeFilter, setActiveFilter] = useState<NoteFilterId>("all");
@@ -129,45 +129,45 @@ export function IncorrectNotesPage() {
   const hasNotes = notes.length > 0;
 
   return (
-    <div className="notes-page">
+    <div className="review-notes-page">
       <div
-        className="notes-canvas"
+        className="review-notes-canvas"
         style={{ transform: `translate(-50%, -50%) scale(${pageScale})` }}
       >
-        <header className="notes-header">
-          <nav className="notes-nav" aria-label="주요 메뉴">
+        <header className="review-notes-header">
+          <nav className="review-notes-nav" aria-label="주요 메뉴">
             <Link to="/main">메인페이지</Link>
             <Link to="/practice">연습</Link>
             <Link to="/test">테스트</Link>
             <Link to="/dictionary">사전</Link>
-            <Link className="active" to="/incorrect-notes">
+            <Link className="active" to="/review-notes">
               오답노트
             </Link>
             <Link to="/game">게임</Link>
           </nav>
 
-          <Link className="notes-mypage-button" to="/profile">
+          <Link className="review-notes-mypage-button" to="/profile">
             마이페이지
           </Link>
         </header>
 
-        <main className="notes-main">
-          <div className="notes-heading">
-            <span className="notes-badge">INCORRECT NOTES</span>
+        <main className="review-notes-main">
+          <div className="review-notes-heading">
+            <span className="review-notes-badge">REVIEW NOTES</span>
             <h1>오답노트</h1>
             <p>복습이 필요한 틀린 지문자를 확인하고 연습·테스트해 보세요.</p>
           </div>
 
-          <div className="notes-layout">
-            <section className="notes-list-panel" aria-label="오답 지문자 목록">
-              <div className="notes-controls">
-                <div className="notes-filters" role="group" aria-label="분류 필터">
+          <div className="review-notes-layout">
+            <section className="review-notes-list-panel" aria-label="오답 지문자 목록">
+              <div className="review-notes-controls">
+                <div className="review-notes-filters" role="group" aria-label="분류 필터">
                   {noteFilters.map((filter) => {
                     const isActive = filter.id === activeFilter;
 
                     return (
                       <button
-                        className={`notes-filter ${isActive ? "notes-filter-active" : ""}`}
+                        className={`review-notes-filter ${isActive ? "review-notes-filter-active" : ""}`}
                         key={filter.id}
                         type="button"
                         aria-pressed={isActive}
@@ -180,8 +180,8 @@ export function IncorrectNotesPage() {
                 </div>
 
                 <button
-                  className={`notes-select-toggle ${
-                    isMultiSelectMode ? "notes-select-toggle-active" : ""
+                  className={`review-notes-select-toggle ${
+                    isMultiSelectMode ? "review-notes-select-toggle-active" : ""
                   }`}
                   type="button"
                   disabled={!hasNotes}
@@ -193,13 +193,13 @@ export function IncorrectNotesPage() {
               </div>
 
               {visibleNotes.length === 0 ? (
-                <p className="notes-empty" role="status">
+                <p className="review-notes-empty" role="status">
                   {hasNotes
                     ? "이 분류에는 오답이 없어요."
                     : "오답노트가 비어있습니다."}
                 </p>
               ) : (
-                <ul className="notes-grid">
+                <ul className="review-notes-grid">
                   {visibleNotes.map((entry) => {
                     const isChecked = checkedSymbols.includes(entry.symbol);
                     const isHighlighted = isMultiSelectMode
@@ -209,15 +209,15 @@ export function IncorrectNotesPage() {
                     return (
                       <li key={entry.symbol}>
                         <button
-                          className={`notes-card ${isHighlighted ? "notes-card-active" : ""}`}
+                          className={`review-notes-card ${isHighlighted ? "review-notes-card-active" : ""}`}
                           type="button"
                           aria-pressed={isHighlighted}
                           aria-label={`${entry.symbol} ${entry.name}`}
                           onClick={() => handleCardClick(entry.symbol)}
                         >
-                          <span className="notes-card-tag">{entry.categoryLabel}</span>
-                          <span className="notes-card-symbol">{entry.symbol}</span>
-                          <span className="notes-card-name">{entry.name}</span>
+                          <span className="review-notes-card-tag">{entry.categoryLabel}</span>
+                          <span className="review-notes-card-symbol">{entry.symbol}</span>
+                          <span className="review-notes-card-name">{entry.name}</span>
                         </button>
                       </li>
                     );
@@ -226,13 +226,13 @@ export function IncorrectNotesPage() {
               )}
 
               {isMultiSelectMode && checkedInView.length > 0 && (
-                <div className="notes-action-bar" role="group" aria-label="선택 항목 작업">
-                  <span className="notes-action-count">
+                <div className="review-notes-action-bar" role="group" aria-label="선택 항목 작업">
+                  <span className="review-notes-action-count">
                     {checkedInView.length}개 선택됨
                   </span>
 
                   <button
-                    className="notes-action notes-action-practice"
+                    className="review-notes-action review-notes-action-practice"
                     type="button"
                     onClick={() => handleNavigateWithSelection("/practice")}
                   >
@@ -240,7 +240,7 @@ export function IncorrectNotesPage() {
                   </button>
 
                   <button
-                    className="notes-action notes-action-test"
+                    className="review-notes-action review-notes-action-test"
                     type="button"
                     onClick={() => handleNavigateWithSelection("/test")}
                   >
@@ -248,7 +248,7 @@ export function IncorrectNotesPage() {
                   </button>
 
                   <button
-                    className="notes-action notes-action-delete"
+                    className="review-notes-action review-notes-action-delete"
                     type="button"
                     onClick={handleDeleteChecked}
                   >
@@ -260,11 +260,11 @@ export function IncorrectNotesPage() {
 
             {selectedEntry ? (
               <FingerspellingDetail
-                className="notes-detail"
+                className="review-notes-detail"
                 entry={selectedEntry}
                 footer={
                   <button
-                    className="notes-detail-delete"
+                    className="review-notes-detail-delete"
                     type="button"
                     onClick={handleDeleteSelected}
                   >
@@ -273,8 +273,8 @@ export function IncorrectNotesPage() {
                 }
               />
             ) : (
-              <section className="notes-detail-empty" aria-live="polite">
-                <span className="notes-detail-empty-face" aria-hidden="true">
+              <section className="review-notes-detail-empty" aria-live="polite">
+                <span className="review-notes-detail-empty-face" aria-hidden="true">
                   ( ˘ ᵕ ˘ )
                 </span>
 
@@ -288,14 +288,14 @@ export function IncorrectNotesPage() {
       </div>
 
       {toastMessage && (
-        <div className="notes-toast" role="status">
-          <span className="notes-toast-face" aria-hidden="true">
+        <div className="review-notes-toast" role="status">
+          <span className="review-notes-toast-face" aria-hidden="true">
             ( ˘ ᵕ ˘ )
           </span>
 
-          <span className="notes-toast-message">{toastMessage}</span>
+          <span className="review-notes-toast-message">{toastMessage}</span>
 
-          <Sparkles className="notes-toast-sparkle" aria-hidden="true" size={18} />
+          <Sparkles className="review-notes-toast-sparkle" aria-hidden="true" size={18} />
         </div>
       )}
     </div>

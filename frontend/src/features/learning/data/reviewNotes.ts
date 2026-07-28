@@ -10,7 +10,7 @@ import { findFingerspellingEntry } from "./fingerspelling";
  * 화면은 아래 훅과 조작 함수만 사용하므로, 나중에 API로 바꿀 때
  * 이 파일의 read/write 구현만 교체하면 된다.
  */
-const STORAGE_KEY = "handpractice.incorrectNotes";
+const STORAGE_KEY = "handpractice.reviewNotes";
 
 /** localStorage를 못 쓰는 환경(SSR·프라이빗 모드)에서 쓰는 대체 저장소. */
 let memoryFallback: string[] | null = null;
@@ -67,7 +67,7 @@ function getSymbolSnapshot(): readonly string[] {
 }
 
 /** 오답노트에 글자를 추가한다. 이미 있으면 아무 일도 하지 않는다. */
-export function addIncorrectNote(symbol: string) {
+export function addReviewNote(symbol: string) {
   const symbols = getSymbolSnapshot();
   if (symbols.includes(symbol)) return;
   if (!findFingerspellingEntry(symbol)) return;
@@ -76,7 +76,7 @@ export function addIncorrectNote(symbol: string) {
 }
 
 /** 오답노트에서 여러 글자를 한 번에 뺀다. */
-export function removeIncorrectNotes(symbolsToRemove: readonly string[]) {
+export function removeReviewNotes(symbolsToRemove: readonly string[]) {
   const removalSet = new Set(symbolsToRemove);
   const symbols = getSymbolSnapshot();
   const next = symbols.filter((symbol) => !removalSet.has(symbol));
@@ -89,7 +89,7 @@ export function removeIncorrectNotes(symbolsToRemove: readonly string[]) {
  * 오답노트에 담긴 지문자 항목 목록.
  * 저장 순서를 유지해 사용자가 담은 순서대로 보이게 한다.
  */
-export function useIncorrectNotes(): readonly FingerspellingEntry[] {
+export function useReviewNotes(): readonly FingerspellingEntry[] {
   const symbols = useSyncExternalStore(subscribe, getSymbolSnapshot, () => EMPTY_SYMBOLS);
 
   return symbols
@@ -101,9 +101,9 @@ export function useIncorrectNotes(): readonly FingerspellingEntry[] {
 const EMPTY_SYMBOLS: readonly string[] = [];
 
 /** 오답노트 항목을 삭제하는 콜백. 컴포넌트에서 안정적인 참조로 쓰려고 훅으로 감쌌다. */
-export function useRemoveIncorrectNotes() {
+export function useRemoveReviewNotes() {
   return useCallback(
-    (symbols: readonly string[]) => removeIncorrectNotes(symbols),
+    (symbols: readonly string[]) => removeReviewNotes(symbols),
     [],
   );
 }

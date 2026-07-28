@@ -3,13 +3,13 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { MemoryRouter } from "react-router-dom";
-import { IncorrectNotesPage } from "./IncorrectNotesPage";
-import { addIncorrectNote, removeIncorrectNotes } from "../data/incorrectNotes";
+import { ReviewNotesPage } from "./ReviewNotesPage";
+import { addReviewNote, removeReviewNotes } from "../data/reviewNotes";
 
 /** 테스트마다 오답노트를 깨끗한 상태에서 시작한다. */
 const resetNotes = () => {
   window.localStorage.clear();
-  removeIncorrectNotes(["ㄱ", "ㄴ", "ㅏ", "1", "2"]);
+  removeReviewNotes(["ㄱ", "ㄴ", "ㅏ", "1", "2"]);
 };
 
 beforeEach(resetNotes);
@@ -21,13 +21,13 @@ afterEach(() => {
 const renderPage = () =>
   render(
     <MemoryRouter>
-      <IncorrectNotesPage />
+      <ReviewNotesPage />
     </MemoryRouter>,
   );
 
 /** 자음 2개·모음 1개·숫자 1개를 담아 필터를 검증할 수 있게 한다. */
 const seedNotes = () => {
-  ["ㄱ", "ㄴ", "ㅏ", "1"].forEach(addIncorrectNote);
+  ["ㄱ", "ㄴ", "ㅏ", "1"].forEach(addReviewNote);
 };
 
 const getGrid = () => screen.getByRole("list");
@@ -35,7 +35,7 @@ const getGrid = () => screen.getByRole("list");
 /** 우측 상세 영역에 표시된 글자를 읽는다. */
 const readDetailSymbol = () => screen.getByRole("heading", { level: 2 }).textContent;
 
-describe("IncorrectNotesPage 빈 상태", () => {
+describe("ReviewNotesPage 빈 상태", () => {
   it("오답노트가 비어 있으면 안내 문구를 보여준다", () => {
     renderPage();
 
@@ -47,7 +47,7 @@ describe("IncorrectNotesPage 빈 상태", () => {
   });
 });
 
-describe("IncorrectNotesPage 목록", () => {
+describe("ReviewNotesPage 목록", () => {
   it("담긴 글자를 카드로 보여주고 첫 항목의 상세를 띄운다", () => {
     seedNotes();
     renderPage();
@@ -79,7 +79,7 @@ describe("IncorrectNotesPage 목록", () => {
   });
 });
 
-describe("IncorrectNotesPage 다중 선택", () => {
+describe("ReviewNotesPage 다중 선택", () => {
   it("선택 모드에서 카드를 고르면 액션 바가 나타난다", () => {
     seedNotes();
     renderPage();
@@ -122,7 +122,7 @@ describe("IncorrectNotesPage 다중 선택", () => {
   });
 });
 
-describe("IncorrectNotesPage 상세 삭제", () => {
+describe("ReviewNotesPage 상세 삭제", () => {
   it("상세에서 삭제하면 다음 항목으로 넘어가고 알림을 띄운다", () => {
     seedNotes();
     renderPage();
@@ -136,7 +136,7 @@ describe("IncorrectNotesPage 상세 삭제", () => {
   });
 
   it("마지막 항목까지 지우면 빈 상태 뷰로 돌아간다", () => {
-    addIncorrectNote("ㄱ");
+    addReviewNote("ㄱ");
     renderPage();
 
     fireEvent.click(screen.getByRole("button", { name: "오답노트 삭제하기" }));

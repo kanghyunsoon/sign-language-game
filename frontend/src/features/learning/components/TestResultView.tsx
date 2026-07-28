@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { FingerspellingDetail } from "./FingerspellingDetail";
 import type { TestQuestionResult } from "../data/testSession";
 import { wrongResults } from "../data/testSession";
-import { addIncorrectNote, removeIncorrectNotes } from "../data/incorrectNotes";
+import { addReviewNote, removeReviewNotes } from "../data/reviewNotes";
 
 interface TestResultViewProps {
   readonly results: readonly TestQuestionResult[];
@@ -30,7 +30,7 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
 
   // 틀린 글자는 결과 화면에 들어오는 즉시 오답노트에 담긴다.
   useEffect(() => {
-    wrongResults(results).forEach((result) => addIncorrectNote(result.question.symbol));
+    wrongResults(results).forEach((result) => addReviewNote(result.question.symbol));
   }, [results]);
 
   const wrongCount = wrongResults(results).length;
@@ -67,9 +67,9 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
     });
 
     if (isInNote) {
-      removeIncorrectNotes([symbol]);
+      removeReviewNotes([symbol]);
     } else {
-      addIncorrectNote(symbol);
+      addReviewNote(symbol);
     }
 
     setToast(
@@ -155,7 +155,7 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
               다시 테스트
             </button>
 
-            <Link className="test-result-note-button" to="/incorrect-notes">
+            <Link className="test-result-note-button" to="/review-notes">
               오답노트
             </Link>
 

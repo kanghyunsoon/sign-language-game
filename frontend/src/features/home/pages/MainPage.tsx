@@ -20,7 +20,7 @@ export function MainPage() {
           <Link to="/practice">연습</Link>
           <Link to="/test">테스트</Link>
           <Link to="/dictionary">사전</Link>
-          <Link to="/incorrect-notes">오답노트</Link>
+          <Link to="/review-notes">오답노트</Link>
           <Link to="/game">게임</Link>
         </nav>
 
@@ -116,7 +116,7 @@ export function MainPage() {
                 </span>
               </Link>
 
-              <Link className="menu-card" to="/incorrect-notes">
+              <Link className="menu-card" to="/review-notes">
                 <span className="menu-icon notes">📕</span>
 
                 <span>

@@ -324,7 +324,7 @@ describe("TestPage 결과 화면", () => {
 
     const noteLink = screen.getByRole("link", { name: "오답노트" });
 
-    expect(noteLink.getAttribute("href")).toBe("/incorrect-notes");
+    expect(noteLink.getAttribute("href")).toBe("/review-notes");
   });
 
   it("문항이 많아도 목록과 하단 버튼이 모두 렌더된다", () => {
