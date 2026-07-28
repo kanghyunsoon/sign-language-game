@@ -136,8 +136,14 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   }
 
   private remember(room: BackendGameRoom): BattleRoomSession {
-    this.roomCache.set(room.id, room);
-    return { ...toDetail(room, this.options), currentUser: this.options.currentUser };
+    // Create/join returns a one-time room ticket, while ready/start responses
+    // are allowed to omit it. Do not discard the usable ticket on an update.
+    const previous = this.roomCache.get(room.id);
+    const remembered = room.realtimeTicket || !previous?.realtimeTicket
+      ? room
+      : { ...room, realtimeTicket: previous.realtimeTicket };
+    this.roomCache.set(remembered.id, remembered);
+    return { ...toDetail(remembered, this.options), currentUser: this.options.currentUser };
   }
 
   private ensureLobby(): void {
