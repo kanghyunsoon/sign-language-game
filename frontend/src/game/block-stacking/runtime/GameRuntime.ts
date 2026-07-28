@@ -14,6 +14,7 @@ import {
 } from "./types";
 
 const MAX_FRAME_DELTA_MS = 32;
+const PAPER_GROW_DURATION_MS = 190;
 
 export class GameRuntime {
   private readonly renderer: GameRenderer;
@@ -48,6 +49,7 @@ export class GameRuntime {
   private queuedSymbol: string | null = null;
   private paperBurstVersion = 0;
   private paperBurstSymbol: string | null = null;
+  private pendingPaperDrop: { readonly symbol: string; remainingMs: number } | null = null;
   private lastMessage = "Start the game to spawn letters.";
   private disposed = false;
 
@@ -134,6 +136,7 @@ export class GameRuntime {
     this.queuedSymbol = null;
     this.paperBurstSymbol = null;
     this.paperBurstVersion = 0;
+    this.pendingPaperDrop = null;
     this.lastMessage = "Game reset. Press start when ready.";
     this.publish();
   }
@@ -218,6 +221,7 @@ export class GameRuntime {
 
     const boundedDelta = Math.min(deltaMs, MAX_FRAME_DELTA_MS);
     this.playTimeMs += boundedDelta;
+    this.advancePaperDrop(boundedDelta);
     if (this.config.autoDropEnabled) {
       this.spawnElapsedMs += boundedDelta;
       while (this.spawnElapsedMs >= this.config.spawnIntervalMs) {
@@ -296,17 +300,24 @@ export class GameRuntime {
       return;
     }
     const symbol = selectedSymbol ?? this.pickRandomSymbol();
+    const x = this.boardWidth / 2;
+    const releasedFromPaper = selectedSymbol !== undefined && !this.config.autoDropEnabled;
     const id = `letter-${this.nextLetterId}`;
     this.nextLetterId += 1;
-    const x = this.boardWidth / 2;
     this.physics.createLetter({
       id,
       symbol,
       x,
-      y: -this.config.spawnTopPadding,
+      // The paper glyph sits just inside the board opening; releasing from
+      // that same coordinate makes it feel like the paper glyph itself falls.
+      y: releasedFromPaper ? this.config.letterHeight * .38 : -this.config.spawnTopPadding,
       angularVelocity: 0,
+      // Deliberately gentle: it feels more immediate than a timer spawn but
+      // still leaves the player time to follow the glyph.
+      velocityY: releasedFromPaper ? .7 : undefined,
     });
     this.core.spawnLetter(id, symbol, this.now());
+    if (releasedFromPaper) this.renderer.startSpawnEffect(id);
     this.updateRendererTarget();
     this.lastMessage = `${symbol} spawned.`;
     this.publish();
@@ -327,9 +338,22 @@ export class GameRuntime {
     this.queuedSymbol = null;
     this.paperBurstSymbol = symbol;
     this.paperBurstVersion += 1;
-    this.spawnLetter(symbol);
+    this.pendingPaperDrop = { symbol, remainingMs: PAPER_GROW_DURATION_MS };
+    this.lastMessage = `${symbol} is growing on the otter paper.`;
+    this.publish();
+  }
+
+  private advancePaperDrop(deltaMs: number): void {
+    const pending = this.pendingPaperDrop;
+    if (pending === null) return;
+    pending.remainingMs -= deltaMs;
+    if (pending.remainingMs > 0) return;
+
+    this.pendingPaperDrop = null;
+    this.paperBurstSymbol = null;
+    this.spawnLetter(pending.symbol);
     this.queueNextSymbol();
-    this.lastMessage = `${symbol} dropped from the otter paper.`;
+    this.lastMessage = `${pending.symbol} dropped from the otter paper.`;
     this.publish();
   }
 
@@ -374,6 +398,10 @@ export class GameRuntime {
   }
 
   private updateRendererTarget(): void {
+    if (!this.config.autoDropEnabled) {
+      this.renderer.setTarget(null);
+      return;
+    }
     const allowed = new Set(this.symbols);
     const target = this.core.snapshot().letters
       .filter((letter) => allowed.has(letter.symbol) && (letter.state === "FALLING" || letter.state === "SETTLED"))

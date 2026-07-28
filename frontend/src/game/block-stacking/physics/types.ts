@@ -48,6 +48,8 @@ export interface LetterBodySpec {
   readonly y: number;
   readonly angle?: number;
   readonly angularVelocity?: number;
+  /** A gentle launch impulse for letters released from the otter's paper. */
+  readonly velocityY?: number;
 }
 
 export interface PhysicsLetterState {

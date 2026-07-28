@@ -434,7 +434,7 @@ export function SoloGamePage({
           {snapshot.runState === "RUNNING" && (
             <div className="solo-letter-otter" aria-hidden="true">
               <img src={letterOtter} alt="" draggable={false} />
-              <strong>{paperTargetSymbol ?? "·"}</strong>
+              <strong>{snapshot.paperBurstSymbol === null ? paperTargetSymbol ?? "·" : ""}</strong>
               {snapshot.paperBurstSymbol !== null && (
                 <span key={snapshot.paperBurstVersion} className="solo-paper-burst">
                   {snapshot.paperBurstSymbol}

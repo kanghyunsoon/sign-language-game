@@ -10,6 +10,7 @@ export interface LetterView {
   readonly root: Container;
   readonly id: string;
   setMotionState(velocityY: number, settled: boolean): void;
+  setSpawnProgress(progress: number | null): void;
   setRemovalHighlighted(highlighted: boolean): void;
   setTargetHighlighted(highlighted: boolean): void;
   destroy(): void;
@@ -25,6 +26,7 @@ export interface LetterViewOptions {
 const BASE_COLOR = 0x416d72;
 const HIGHLIGHT_COLOR = 0xf4c95d;
 const TARGET_COLOR = 0xd95b7d;
+const SPAWN_GREEN = 0x77a53d;
 
 export class LetterViewFactory {
   private readonly textures = new Map<string, Texture>();
@@ -33,6 +35,9 @@ export class LetterViewFactory {
     const root = new Container();
     let removalHighlighted = false;
     let targetHighlighted = false;
+    let motionScaleX = 1;
+    let motionScaleY = 1;
+    let spawnProgress: number | null = null;
     let texture = this.textures.get(options.symbol);
     if (!texture) {
       const raster = createGlyphRaster(options.symbol);
@@ -85,24 +90,45 @@ export class LetterViewFactory {
     content.addChild(shadow, targetHalo, targetGlow, targetEdge, stickerEdge, sprite);
     root.addChild(content);
 
+    const applyAppearance = () => {
+      const progress = spawnProgress === null ? null : Math.max(0, Math.min(1, spawnProgress));
+      // The growth happens on the paper before the body is released. Once it
+      // starts falling it stays at its normal game-block size.
+      content.scale.set(motionScaleX, motionScaleY);
+      const tint = removalHighlighted
+        ? HIGHLIGHT_COLOR
+        : progress === null
+          ? (targetHighlighted ? TARGET_COLOR : BASE_COLOR)
+          : blendColor(TARGET_COLOR, SPAWN_GREEN, progress);
+      sprite.tint = tint;
+      targetGlow.tint = tint;
+      targetEdge.tint = tint;
+      targetHalo.visible = targetHighlighted && progress === null;
+      targetGlow.visible = targetHighlighted && progress === null;
+      targetEdge.visible = targetHighlighted && progress === null;
+    };
+
     return {
       root,
       id: options.id,
       setMotionState(velocityY: number, settled: boolean): void {
         const motion = settled ? 0 : Math.min(1, Math.abs(velocityY) / 4.5);
-        content.scale.set(1 - motion * 0.018, 1 + motion * 0.032);
+        motionScaleX = 1 - motion * 0.018;
+        motionScaleY = 1 + motion * 0.032;
+        applyAppearance();
         shadow.alpha = settled ? 0.22 : 0.14 + motion * 0.08;
+      },
+      setSpawnProgress(progress: number | null): void {
+        spawnProgress = progress;
+        applyAppearance();
       },
       setRemovalHighlighted(highlighted: boolean): void {
         removalHighlighted = highlighted;
-        sprite.tint = removalHighlighted ? HIGHLIGHT_COLOR : targetHighlighted ? TARGET_COLOR : BASE_COLOR;
+        applyAppearance();
       },
       setTargetHighlighted(highlighted: boolean): void {
         targetHighlighted = highlighted;
-        sprite.tint = removalHighlighted ? HIGHLIGHT_COLOR : targetHighlighted ? TARGET_COLOR : BASE_COLOR;
-        targetHalo.visible = highlighted;
-        targetGlow.visible = highlighted;
-        targetEdge.visible = highlighted;
+        applyAppearance();
       },
       destroy(): void {
         root.destroy({ children: true, texture: false, textureSource: false });
@@ -114,4 +140,9 @@ export class LetterViewFactory {
     for (const texture of this.textures.values()) texture.destroy(true);
     this.textures.clear();
   }
+}
+
+function blendColor(from: number, to: number, progress: number): number {
+  const mix = (shift: number) => Math.round((((from >> shift) & 0xff) * (1 - progress)) + (((to >> shift) & 0xff) * progress));
+  return (mix(16) << 16) | (mix(8) << 8) | mix(0);
 }

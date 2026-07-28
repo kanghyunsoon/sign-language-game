@@ -52,5 +52,5 @@ function physics(): PhysicsWorld {
 }
 
 function renderer(): GameRenderer {
-  return { resize: vi.fn(), render: vi.fn(), highlightRemoval: vi.fn(), setTarget: vi.fn(), updateEffects: vi.fn(() => []), clear: vi.fn(), destroy: vi.fn() };
+  return { resize: vi.fn(), render: vi.fn(), highlightRemoval: vi.fn(), startSpawnEffect: vi.fn(), setTarget: vi.fn(), updateEffects: vi.fn(() => []), clear: vi.fn(), destroy: vi.fn() };
 }

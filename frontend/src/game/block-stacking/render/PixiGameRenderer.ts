@@ -14,6 +14,7 @@ import {
 
 const POSITION_RENDER_EPSILON = 0.05;
 const ROTATION_RENDER_EPSILON = 0.0005;
+const SPAWN_EFFECT_DURATION_MS = 520;
 
 export class PixiGameRenderer implements GameRenderer {
   private readonly lettersLayer = new Container();
@@ -23,6 +24,7 @@ export class PixiGameRenderer implements GameRenderer {
   private readonly dangerLine = new Graphics();
   private readonly views = new Map<string, LetterView>();
   private readonly removalEffects = new Map<string, { readonly effect: RemovalEffect; readonly burst: RemovalBurst }>();
+  private readonly spawnEffects = new Map<string, number>();
   private readonly viewFactory = new LetterViewFactory();
   private targetId: string | null = null;
   private width: number;
@@ -97,6 +99,8 @@ export class PixiGameRenderer implements GameRenderer {
         view.root.rotation = letter.angle;
       }
       view.setMotionState(letter.velocityY, letter.settled);
+      const spawnElapsedMs = this.spawnEffects.get(letter.id);
+      view.setSpawnProgress(spawnElapsedMs === undefined ? null : Math.min(1, spawnElapsedMs / SPAWN_EFFECT_DURATION_MS));
     }
 
     for (const [id, view] of this.views) {
@@ -105,6 +109,7 @@ export class PixiGameRenderer implements GameRenderer {
         this.views.delete(id);
         this.removalEffects.get(id)?.burst.destroy();
         this.removalEffects.delete(id);
+        this.spawnEffects.delete(id);
       }
     }
     this.app.render();
@@ -126,6 +131,11 @@ export class PixiGameRenderer implements GameRenderer {
     this.removalEffects.set(id, { effect: new RemovalEffect(id, durationMs), burst });
   }
 
+  startSpawnEffect(id: string): void {
+    this.assertActive();
+    this.spawnEffects.set(id, 0);
+  }
+
   setTarget(id: string | null): void {
     this.assertActive();
     if (this.targetId === id) return;
@@ -137,6 +147,10 @@ export class PixiGameRenderer implements GameRenderer {
   updateEffects(deltaMs: number): readonly RemovalEffectFinishedEvent[] {
     this.assertActive();
     const finished: RemovalEffectFinishedEvent[] = [];
+
+    for (const [id, elapsedMs] of this.spawnEffects) {
+      this.spawnEffects.set(id, Math.min(SPAWN_EFFECT_DURATION_MS, elapsedMs + deltaMs));
+    }
 
     for (const [id, activeEffect] of this.removalEffects) {
       const view = this.views.get(id);
@@ -167,6 +181,7 @@ export class PixiGameRenderer implements GameRenderer {
     for (const activeEffect of this.removalEffects.values()) activeEffect.burst.destroy();
     this.views.clear();
     this.removalEffects.clear();
+    this.spawnEffects.clear();
     this.targetId = null;
   }
 
