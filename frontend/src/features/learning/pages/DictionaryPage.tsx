@@ -97,6 +97,7 @@ export function DictionaryPage() {
           <Link className="active" to="/dictionary">
             사전
           </Link>
+          <Link to="/incorrect-notes">오답노트</Link>
           <Link to="/game">게임</Link>
         </nav>
 

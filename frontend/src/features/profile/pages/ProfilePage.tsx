@@ -155,6 +155,7 @@ export function ProfilePage() {
             <Link to="/practice">연습</Link>
             <Link to="/test">테스트</Link>
             <Link to="/dictionary">사전</Link>
+            <Link to="/incorrect-notes">오답노트</Link>
             <Link to="/game">게임</Link>
           </nav>
 
@@ -192,10 +193,10 @@ export function ProfilePage() {
             <img src={graduationIcon} alt="" aria-hidden="true" />
           </button>
 
-          <button className="profile-floating-item profile-item-note" type="button">
+          <Link className="profile-floating-item profile-item-note" to="/incorrect-notes">
             <img src={wrongAnswerNoteIcon} alt="" aria-hidden="true" />
             <span>오답 노트</span>
-          </button>
+          </Link>
 
           <button className="profile-floating-item profile-item-record" type="button">
             <img src={learningRecordIcon} alt="" aria-hidden="true" />

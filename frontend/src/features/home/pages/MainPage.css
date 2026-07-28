@@ -462,6 +462,11 @@ button {
   background: #e6ded4;
 }
 
+.menu-icon.notes {
+  color: #b4523a;
+  background: #fbeee8;
+}
+
 .menu-icon.game {
   color: #5f402b;
   background: #f0dfd3;
