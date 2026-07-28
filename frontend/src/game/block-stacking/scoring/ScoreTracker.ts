@@ -23,6 +23,11 @@ export class ScoreTracker {
     return this.snapshot();
   }
 
+  resetCombo(): ScoreSnapshot {
+    this.combo = 0;
+    return this.snapshot();
+  }
+
   recordNoTarget(): ScoreSnapshot {
     this.score = Math.max(0, this.score - this.config.noTargetPenalty);
     return this.snapshot();

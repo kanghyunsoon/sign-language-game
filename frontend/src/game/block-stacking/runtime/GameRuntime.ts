@@ -44,6 +44,8 @@ export class GameRuntime {
   private removedCount = 0;
   private scoreTracker: ScoreTracker;
   private playTimeMs = 0;
+  private lastRemovalAt: number | null = null;
+  private readonly newlySettledIds = new Set<string>();
   private lastMessage = "Start the game to spawn letters.";
   private disposed = false;
 
@@ -122,6 +124,8 @@ export class GameRuntime {
     this.bestCombo = 0;
     this.removedCount = 0;
     this.playTimeMs = 0;
+    this.lastRemovalAt = null;
+    this.newlySettledIds.clear();
     this.lastMessage = "Game reset. Press start when ready.";
     this.publish();
   }
@@ -207,6 +211,8 @@ export class GameRuntime {
     // 2x, ... . Game time and spawning remain real-time, only gravity speeds up.
     const fallSpeedMultiplier = 1 + Math.floor(this.score / 5_000) * .5;
     for (const event of this.physics.update(boundedDelta * fallSpeedMultiplier)) {
+      if (event.type === "LETTER_SETTLED") this.newlySettledIds.add(event.id);
+      if (event.type === "LETTER_MOVED") this.newlySettledIds.delete(event.id);
       this.applyPhysicsEvent(event.type, event.id);
     }
 
@@ -312,7 +318,13 @@ export class GameRuntime {
   }
 
   private applyCompletedRemoval(event: Extract<GameEvent, { readonly type: "LETTER_REMOVED" }>): void {
+    const now = this.now();
+    const comboWindowMs = Math.max(1_500, 5_000 - this.combo * 250);
+    if (this.lastRemovalAt !== null && now - this.lastRemovalAt > comboWindowMs) {
+      this.applyScoreSnapshot(this.scoreTracker.resetCombo());
+    }
     this.applyScoreSnapshot(this.scoreTracker.recordRemoval());
+    this.lastRemovalAt = now;
     this.updateRendererTarget();
     this.lastMessage = `${event.letter.symbol} removed. Combo ${this.combo}.`;
     this.publish();
@@ -339,9 +351,11 @@ export class GameRuntime {
     // Falling or bouncing letters must never trigger a premature game-over.
     const visibleHalfHeight = this.config.letterHeight * 0.32;
     const danger = states.some((state) => (
-      state.settled
+      this.newlySettledIds.has(state.id)
+      && state.settled
       && state.y - visibleHalfHeight <= dangerLineY
     ));
+    this.newlySettledIds.clear();
     if (!danger) return;
     this.runState = "GAME_OVER";
     this.cancelFrame();

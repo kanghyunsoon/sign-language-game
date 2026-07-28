@@ -32,6 +32,7 @@ import otterWalkFrame1 from "../assets/solo-walking-otter-frame-1.png";
 import otterWalkFrame2 from "../assets/solo-walking-otter-frame-2.png";
 import otterWalkFrame3 from "../assets/solo-walking-otter-frame-3.png";
 import otterWalkFrame4 from "../assets/solo-walking-otter-frame-4.png";
+import resultOtter from "../assets/game-menu-otter.png";
 
 const OTTER_WALK_FRAMES = [
   otterWalkFrame0,
@@ -107,6 +108,7 @@ export function SoloGamePage({
   const [completionError, setCompletionError] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [savedResult, setSavedResult] = useState<SoloGameResult | null>(null);
+  const [soloRank, setSoloRank] = useState<number | null>(null);
   const [otterWalking, setOtterWalking] = useState(false);
   const [cameraStream,setCameraStream]=useState(()=>sharedCameraSession.getStream());
   const rendererConfig = useMemo(() => ({ dangerLineY: 160, dangerLineRatio: 1 / 6, letterWidth: 140, letterHeight: 140 }), []);
@@ -210,7 +212,14 @@ export function SoloGamePage({
     if (coordinator === null) return;
     setCompletionError(null);
     void coordinator.complete(toCompleteSoloSessionRequest(snapshot, recognition.learningStats, Date.now()))
-      .then((result) => setSavedResult(result))
+      .then(async (result) => {
+        setSavedResult(result);
+        const results = await coordinator.getResults();
+        const rank = [...results]
+          .sort((left, right) => right.finalScore - left.finalScore || left.endedAt - right.endedAt)
+          .findIndex((item) => item.soloSessionId === result.soloSessionId);
+        setSoloRank(rank >= 0 ? rank + 1 : null);
+      })
       .catch((error: unknown) => {
         setCompletionError(error instanceof Error ? error.message : "Failed to save the solo result.");
       });
@@ -408,11 +417,17 @@ export function SoloGamePage({
           )}
           {snapshot.runState === "GAME_OVER" && (
             <div className="game-over-overlay" role="dialog" aria-modal="true" aria-label="Game over results">
-              <p className="eyebrow">Game over</p>
-              <strong>{snapshot.score}</strong>
-              <span>Best combo {snapshot.bestCombo} · removed {snapshot.removedCount} · {formatPlayTime(snapshot.playTimeMs)}</span>
-              <ResultStatistics statistics={recognition.learningStats} />
-              <button type="button" onClick={restart}>Restart</button>
+              <section className="solo-result-card">
+                <img src={resultOtter} alt="수어 연습 수달" />
+                <div>
+                  <p className="eyebrow">SOLO RESULT</p>
+                  <h2>수어 연습 완료!</h2>
+                  <strong>{snapshot.score.toLocaleString()}점</strong>
+                  <p>최고 콤보 {snapshot.bestCombo} · 제거 {snapshot.removedCount}개 · {formatPlayTime(snapshot.playTimeMs)}</p>
+                  <b>{soloRank ? `현재 솔로 랭킹 ${soloRank}위` : savedResult ? "기록 저장 완료" : "기록 저장 중..."}</b>
+                </div>
+                <button type="button" onClick={restart}>다시 하기</button>
+              </section>
             </div>
           )}
           </div>
