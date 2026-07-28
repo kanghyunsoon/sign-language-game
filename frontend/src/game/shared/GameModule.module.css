@@ -183,7 +183,7 @@
 .module :global(.solo-controls button:not(:disabled):hover) { translate: 0 -2px; box-shadow: 0 6px 0 #8fab2c; }
 .module :global(.solo-game-header .solo-controls button.secondary) { border: 0; background: #edf5f7; box-shadow: 0 4px 0 #c7dce3; color: #466674; }
 .module :global(.solo-game-header .solo-controls button.secondary.icon) { background: #fff; box-shadow: 0 4px 0 #c8dfe9; color: #3d6477; }
-.module :global(.solo-workspace) { display: grid; min-height: 0; grid-template-columns: minmax(0, 1.22fr) minmax(350px, .78fr); grid-template-rows: 50px minmax(0, 1fr); align-items: stretch; gap: 7px 9px; }
+.module :global(.solo-workspace) { display: grid; min-height: 0; grid-template-columns: minmax(0, 1.6fr) minmax(350px, .4fr); grid-template-rows: 50px minmax(0, 1fr); align-items: stretch; gap: 7px 9px; }
 .module :global(.solo-hud) { position: relative; grid-column: 1 / -1; display: grid; height: 50px; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; padding: 3px 5px; overflow: hidden; border: 2px solid rgba(255,255,255,.9); border-radius: 12px; background: #2a4553; box-shadow: 0 4px 0 rgba(48,89,105,.2); }
 .module :global(.solo-metric) { position: relative; display: grid; min-width: 0; align-content: center; padding: 3px 8px; overflow: hidden; border: 0; border-right: 1px solid rgba(220,239,245,.14); border-radius: 0; background: transparent; box-shadow: none; text-align: center; }
 .module :global(.solo-metric:last-of-type) { border-right: 0; }
@@ -215,7 +215,7 @@
 .module :global(.solo-camera-fallback-guide:has(.sign-guide-empty) .camera-guide-value:first-child strong), .module :global(.camera-guide-panel:has(.sign-guide-empty) .camera-guide-value:first-child strong) { color: #5c7b89; text-shadow: none; }
 .module :global(.solo-camera-fallback-guide .sign-guide-empty), .module :global(.camera-guide-panel .sign-guide-empty) { border: 2px dashed #aac9d5; background: #e7f2f6; opacity: .72; }
 .module :global(.camera-stage) { border-color: #2d526f; border-width: 3px; border-radius: 9px; }
-.module :global(.solo-game-page .solo-sidebar) { display: grid; min-width: 0; min-height: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); gap: 8px; padding: 0 !important; }
+.module :global(.solo-game-page .solo-sidebar) { display: grid; min-width: 0; min-height: 0; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 0; padding: 0 !important; }
 .module :global(.solo-camera-cell), .module :global(.solo-guide-cell) { position: relative; display: grid; min-width: 0; min-height: 0; overflow: hidden; border: 2px solid rgba(255,255,255,.94); border-radius: 15px; background: rgba(255,255,255,.94); box-shadow: 0 6px 0 rgba(63,108,126,.15), 0 14px 28px rgba(49,91,110,.08); }
 .module :global(.solo-camera-cell) { grid-template-rows: 44px minmax(0, 1fr); padding: 7px; }
 .module :global(.solo-guide-cell) { grid-template-rows: 44px minmax(0, 1fr) 8px; gap: 7px; padding: 7px; }

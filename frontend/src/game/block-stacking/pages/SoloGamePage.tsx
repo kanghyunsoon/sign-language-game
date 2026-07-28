@@ -22,7 +22,6 @@ import {
   RecognitionGameController,
   type RecognitionGameState,
 } from "../../recognition";
-import { SignGuideImage } from "../../recognition/components/SignGuideImage";
 import { GAME_SYMBOLS } from "../../recognition/core/symbols";
 import { RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG } from "../../recognition/runtime";
 import { RESPONSIVE_GAMEPLAY_SIGN_DECODER_CONFIG } from "../../recognition/temporal";
@@ -466,20 +465,6 @@ export function SoloGamePage({
                 </article>
                 <article><span>현재 인식</span><strong>{recognition.prediction?.symbol ?? "-"}</strong><small>{recognition.prediction ? `${(recognition.prediction.confidence * 100).toFixed(0)}%` : "인식 대기"}</small></article>
               </div>
-            </div>
-          </section>
-
-          <section className={`solo-guide-cell${otterWalking ? " is-otter-passing" : ""}`} aria-label="현재 목표 지문자 안내">
-            <header className="solo-panel-heading">
-              <span><b>MISSION SIGN</b><small>목표 손모양을 따라 해보세요</small></span>
-              <em>GUIDE</em>
-            </header>
-            <div className="solo-guide-figure">
-              <SignGuideImage symbol={displayedTargetSymbol} responsive />
-              {otterWalking && <div className="solo-hint-break"><strong>수달 통과 중!</strong><small>그림 힌트가 잠시 숨겨졌어요</small></div>}
-            </div>
-            <div className="solo-guide-confidence" aria-label={`인식 신뢰도 ${recognition.prediction ? `${(recognition.prediction.confidence * 100).toFixed(0)}%` : "없음"}`}>
-              <span style={{ width: `${Math.max(0, Math.min(1, recognition.prediction?.confidence ?? 0)) * 100}%` }} />
             </div>
           </section>
 
