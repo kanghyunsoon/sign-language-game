@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .feature_adapter import FEATURE_SIZE, LANDMARK_COUNT, landmarks_to_feature
+from .feature_adapter import LANDMARK_COUNT, landmarks_to_features
 from .messages import Landmark, prediction_message
 from .model_adapter import ModelContract, ModelRunner
 
@@ -16,21 +16,29 @@ class RecognitionConfig:
 
 
 class RecognitionSession:
-    """Connection-local model history; confirmation belongs to the browser decoder."""
+    """Connection-local model history; confirmation belongs to the browser decoder.
+
+    The jamo build runs a dual-head ensemble, so each frame is converted into
+    both the feature_v2 (55) and feature_v3 (78) representation from the same
+    MediaPipe landmarks and buffered in parallel.
+    """
 
     def __init__(self, runner: ModelRunner, config: RecognitionConfig = RecognitionConfig()) -> None:
-        if runner.contract.feature_size != FEATURE_SIZE:
-            raise ValueError(
-                f"Feature adapter produces {FEATURE_SIZE} values, model expects {runner.contract.feature_size}",
-            )
         self._runner = runner
         self._config = config
-        self._sequence: deque[np.ndarray] = deque(maxlen=runner.contract.sequence_length)
+        length = runner.contract.sequence_length
+        self._sequence_v2: deque[np.ndarray] = deque(maxlen=length)
+        self._sequence_v3: deque[np.ndarray] = deque(maxlen=length)
         self._missing_since: int | None = None
 
     @property
     def contract(self) -> ModelContract:
         return self._runner.contract
+
+    def _padded(self, frames: list[np.ndarray], length: int) -> np.ndarray:
+        if len(frames) < length:
+            frames = [frames[0]] * (length - len(frames)) + frames
+        return np.expand_dims(np.asarray(frames, dtype=np.float32), axis=0)
 
     def process_landmark_frame(
         self,
@@ -42,12 +50,20 @@ class RecognitionSession:
         if len(landmarks) != LANDMARK_COUNT:
             raise ValueError(f"Expected {LANDMARK_COUNT} landmarks, got {len(landmarks)}")
         self._missing_since = None
-        self._sequence.append(landmarks_to_feature(landmarks, handedness))
-        frames = list(self._sequence)
-        if len(frames) < self._runner.contract.sequence_length:
-            frames = [frames[0]] * (self._runner.contract.sequence_length - len(frames)) + frames
-        sequence = np.expand_dims(np.asarray(frames, dtype=np.float32), axis=0)
-        prediction = self._runner.predict(sequence)
+        feature_v2, feature_v3 = landmarks_to_features(landmarks, handedness)
+        self._sequence_v2.append(feature_v2)
+        self._sequence_v3.append(feature_v3)
+
+        length = self._runner.contract.sequence_length
+        sequence_v2 = self._padded(list(self._sequence_v2), length)
+        sequence_v3 = self._padded(list(self._sequence_v3), length)
+
+        predict_pair = getattr(self._runner, "predict_pair", None)
+        if predict_pair is not None:
+            prediction = predict_pair(sequence_v2, sequence_v3)
+        else:
+            prediction = self._runner.predict(sequence_v3)
+
         if prediction.shape != (self._runner.contract.output_size,):
             raise ValueError(
                 f"Expected {self._runner.contract.output_size} prediction values, got {prediction.shape}",
@@ -70,9 +86,11 @@ class RecognitionSession:
         if self._missing_since is None:
             self._missing_since = captured_at
         elif captured_at - self._missing_since >= self._config.hand_release_after_ms:
-            self._sequence.clear()
+            self._sequence_v2.clear()
+            self._sequence_v3.clear()
         return []
 
     def reset(self) -> None:
-        self._sequence.clear()
+        self._sequence_v2.clear()
+        self._sequence_v3.clear()
         self._missing_since = None

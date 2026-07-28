@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from app.feature_adapter import FEATURE_SIZE
 from app.model_adapter import ModelContract
 
 
@@ -10,7 +11,7 @@ class MockModelRunner:
         self.contract = ModelContract(
             labels=labels,
             sequence_length=sequence_length,
-            feature_size=55,
+            feature_size=FEATURE_SIZE,
             output_size=len(labels),
             model_version="mock-jamo-v1",
         )

@@ -41,17 +41,19 @@ Run tests with:
 python -m unittest discover -s tests -t . -v
 ```
 
-landmark 변환은 `app/feature_v2.py`가 단독 소유한다. 20개 정규화 2D bone vector(40값)와 15개 angle을 합친 55값이며, 학습 좌표계에 맞춰 왼손 x를 mirror한다. 더 이상 `Sign_Language_Translation`을 import하지 않는다.
+landmark 변환은 `app/feature_adapter.py`가 소유한다. 자모 전용 빌드는 **duel-head 앙상블**이라 같은 MediaPipe 랜드마크에서 두 표현을 모두 만든다.
 
-## 모델·학습 산출물
+- **v2 (`app/feature_v2.py`, 55값)** — 20개 정규화 2D bone vector + 15 angle. 대량 세션 캡처로 학습돼 표본이 많은 자모에서 강하다.
+- **v3 (`app/feature_v3.py`, 78값)** — 20개 정규화 **3D** bone direction(60) + 15 angle + palm-facing normal(3). 상대 깊이와 손바닥 평면을 유지해 2D 실루엣이 비슷한 자모(ㅅ/ㅠ, ㅔ/ㅕ, 손등 방향·상하 반전)를 구분한다.
+
+두 표현 모두 왼손 x를 mirror한다. 프론트가 이미 x·y·z를 전송하므로 **프론트 변경은 없다.** 더 이상 `Sign_Language_Translation`을 import하지 않는다.
+
+## 모델·학습 산출물 (자모 전용 빌드)
 
 - 기준선 보존: `models/baseline/jamo-31-v1/manifest.json`
-- 숫자/영역 모델: `models/jamo-number-41-tree-v1/manifest.json`
-- 배포 조합 계약: `models/jamo-number-hybrid-v1/manifest.json`
-- 숫자 이미지 추출: `scripts/extract_number_features.py`
-- 신경망 비교 실험: `scripts/train_expanded_model.py`
-- 최종 tree 재현: `scripts/train_tree_model.py`
-- 배포 조합 평가: `scripts/evaluate_hybrid_model.py`
+- **운영 자모 모델: `models/jamo-31-ensemble-v1/`** — `jamo31-v2big.tflite`(55) + `jamo31-v3.tflite`(78) 듀얼 헤드, 확률 평균(w=0.5). locked test 정확도 **98.7%**, 최저 클래스 recall **0.83**, 31자모 중 29개 ≥0.90(27개는 1.00). 하드네거티브 margin으로 `ㅜ→ㅏ`(0.71→1.00) 등 혼동쌍 해소. `.keras` 원본과 `manifest.json`(per-class recall 포함) 동봉.
+- TFLite는 LSTM unroll로 변환해 **Flex(Select TF ops) 의존이 없다** — 어떤 TF 버전에서도 로드된다.
+- 숫자 인식은 별도 모델로 분리되었으며, 이 빌드에서 숫자/하이브리드 헤드와 관련 스크립트는 제거되었다.
 
 원본 데이터와 중간 feature는 `.gitignore`의 `work/datasets`, `work/training`, `work/experiments` 아래에만 둔다. Git에는 데이터셋 원본을 올리지 않는다. 정확한 평가 조건과 한계는 `game-ai-dev-server/docs/recognition/model-evaluation.md`가 기준이다.
 
