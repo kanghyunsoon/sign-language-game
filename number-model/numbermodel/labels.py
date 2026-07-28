@@ -22,6 +22,12 @@ NONE_LABEL = "none"
 NUMBER_LABELS = tuple(str(value) for value in range(1, 11))
 LABELS = NUMBER_LABELS + (NONE_LABEL,)
 
+# Positions in LABELS, shared so runtime and training index the same columns.
+# Plain tuples rather than arrays keep this module free of numpy.
+LABEL_INDEX: dict[str, int] = {label: index for index, label in enumerate(LABELS)}
+NUMBER_INDEXES: tuple[int, ...] = tuple(LABEL_INDEX[label] for label in NUMBER_LABELS)
+NONE_INDEX: int = LABEL_INDEX[NONE_LABEL]
+
 # Source folder name -> canonical label. `10` is captured as two hand-shape
 # variants that the class spec treats as one symbol.
 SOURCE_LABEL_MAP: dict[str, str] = (
