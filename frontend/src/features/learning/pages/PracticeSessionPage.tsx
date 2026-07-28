@@ -8,13 +8,21 @@ import {
   type RecognitionConnectionState,
 } from "../../../game/recognition";
 import { getAiWebSocketUrl } from "../data/aiRecognition";
-import type { FingerspellingCategoryId } from "../data/fingerspelling";
+import type {
+  FingerspellingCategoryId,
+  FingerspellingItem,
+} from "../data/fingerspelling";
 import { fingerspellingItems } from "../data/fingerspelling";
 
 type PracticeCategoryId = FingerspellingCategoryId;
 
 interface PracticeSessionPageProps {
   category?: PracticeCategoryId;
+  /**
+   * 연습할 글자를 직접 지정한다. 오답노트에서 고른 글자만 연습할 때 사용한다.
+   * 주어지면 분류 전체 대신 이 목록으로 세션을 구성한다.
+   */
+  items?: readonly FingerspellingItem[];
   onExit?: () => void;
 }
 
@@ -30,10 +38,14 @@ const isPracticeCategoryId = (
 
 export function PracticeSessionPage({
   category,
+  items,
   onExit,
 }: PracticeSessionPageProps = {}) {
   const { categoryId: routeCategoryId } = useParams();
   const categoryId = category ?? routeCategoryId;
+  // 넘겨받은 글자 목록이 있으면 그것을, 없으면 분류 전체를 연습한다.
+  const practiceItems: readonly FingerspellingItem[] =
+    items ?? (isPracticeCategoryId(categoryId) ? fingerspellingItems[categoryId] : []);
   const streamRef = useRef<MediaStream | null>(null);
   const targetSymbolRef = useRef("");
   const correctAnswerRef = useRef(false);
@@ -64,9 +76,7 @@ export function PracticeSessionPage({
     useState("AI 연결을 준비하고 있습니다.");
   const [cameraMessage, setCameraMessage] =
     useState("카메라 시작 버튼을 눌러주세요.");
-  const targetSymbol = isPracticeCategoryId(categoryId)
-    ? fingerspellingItems[categoryId][currentIndex]?.symbol ?? ""
-    : "";
+  const targetSymbol = practiceItems[currentIndex]?.symbol ?? "";
 
   useEffect(() => {
     targetSymbolRef.current = targetSymbol;
@@ -159,7 +169,8 @@ export function PracticeSessionPage({
     };
   }, [recognizer]);
 
-  if (!isPracticeCategoryId(categoryId)) {
+  // 잘못된 분류로 들어왔거나 연습할 글자가 하나도 없으면 진행할 수 없다.
+  if (practiceItems.length === 0) {
     return (
       <div className="practice-session-error">
         <p>올바르지 않은 연습 유형입니다.</p>
@@ -169,7 +180,7 @@ export function PracticeSessionPage({
     );
   }
 
-  const currentPracticeItems = fingerspellingItems[categoryId];
+  const currentPracticeItems = practiceItems;
   const currentPracticeItem = currentPracticeItems[currentIndex];
   const isFirstItem = currentIndex === 0;
   const isLastItem = currentIndex === currentPracticeItems.length - 1;

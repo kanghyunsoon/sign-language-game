@@ -1,8 +1,9 @@
 import "./PracticeHomePage.css";
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import otterImage from "../assets/otter.png";
 import type { FingerspellingCategoryId } from "../data/fingerspelling";
+import { SYMBOLS_PARAM, parseSymbolSelection } from "../data/symbolSelection";
 import { PracticeSessionPage } from "./PracticeSessionPage";
 
 type PracticeCategoryId = FingerspellingCategoryId;
@@ -40,10 +41,19 @@ const practiceCategories: PracticeCategory[] = [
 ];
 
 export function PracticeHomePage() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [selectedCategory, setSelectedCategory] =
     useState<PracticeCategoryId | null>(null);
   const [activeCategory, setActiveCategory] =
     useState<PracticeCategoryId | null>(null);
+
+  // 오답노트에서 넘어온 글자 묶음. 있으면 분류 선택을 건너뛰고 바로 연습한다.
+  const symbolsParam = searchParams.get(SYMBOLS_PARAM);
+  const selectedItems = useMemo(
+    () => parseSymbolSelection(symbolsParam),
+    [symbolsParam],
+  );
 
   const selectedPracticeCategory = practiceCategories.find(
     (category) => category.id === selectedCategory,
@@ -73,6 +83,20 @@ export function PracticeHomePage() {
     setActiveCategory(null);
     setSelectedCategory(null);
   };
+
+  /** 오답노트 연습을 끝내면 파라미터를 지워 평소 연습 선택 화면으로 돌아간다. */
+  const handleSelectionExit = () => {
+    navigate("/practice", { replace: true });
+  };
+
+  if (selectedItems.length > 0) {
+    return (
+      <PracticeSessionPage
+        items={selectedItems}
+        onExit={handleSelectionExit}
+      />
+    );
+  }
 
   if (activeCategory) {
     return (
