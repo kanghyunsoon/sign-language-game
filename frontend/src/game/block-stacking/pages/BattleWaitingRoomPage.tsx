@@ -162,9 +162,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
       if (roomSocketRef.current === socket) roomSocketRef.current = null;
       socket.disconnect();
     };
-  // A ready/poll update does not always include a new ticket. The existing
-  // socket must remain alive instead of being torn down by that UI update.
-  }, [roomId, services.roomRealtimeSocketFactory, startRtcAndEnter, rememberRoom]);
+  }, [roomId, roomSession?.realtimeTicket, services.roomRealtimeSocketFactory, startRtcAndEnter, rememberRoom]);
 
   const startCameraPreview = async () => {
     try {
