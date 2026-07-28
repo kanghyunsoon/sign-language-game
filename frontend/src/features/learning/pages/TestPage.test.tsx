@@ -220,6 +220,73 @@ describe("TestPage 진행 화면", () => {
   });
 });
 
+describe("TestPage 카메라 준비와 제한 시간", () => {
+  const readTimer = () =>
+    screen.getByRole("timer", { name: "남은 시간" }).textContent;
+
+  /** 응답이 오지 않는 카메라. 연결을 기다리는 동안을 흉내낸다. */
+  const usePendingCamera = () => {
+    Object.defineProperty(navigator, "mediaDevices", {
+      value: { getUserMedia: () => new Promise(() => {}) },
+      configurable: true,
+    });
+  };
+
+  /** 권한 거부처럼 연결이 실패하는 카메라. */
+  const useFailingCamera = () => {
+    Object.defineProperty(navigator, "mediaDevices", {
+      value: { getUserMedia: () => Promise.reject(new Error("denied")) },
+      configurable: true,
+    });
+  };
+
+  it("카메라를 기다리는 동안에는 제한 시간이 줄지 않는다", () => {
+    vi.useFakeTimers();
+    usePendingCamera();
+    renderPage();
+    startConsonantOnly("5개");
+
+    expect(readTimer()).toBe("10초");
+
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
+
+    // 시간도 문항도 그대로여야 한다. 기다린 만큼 첫 문항을 손해 보면 안 된다.
+    expect(readTimer()).toBe("10초");
+    expect(screen.getByText("1 / 5")).toBeTruthy();
+  });
+
+  it("카메라 준비가 끝나면 그때부터 제한 시간이 흐른다", async () => {
+    vi.useFakeTimers();
+    useFailingCamera();
+    renderPage();
+    startConsonantOnly("5개");
+
+    // 실패 처리가 끝날 때까지 마이크로태스크를 흘려보낸다.
+    await act(async () => {});
+
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
+
+    expect(screen.getByText("2 / 5")).toBeTruthy();
+  });
+
+  it("카메라를 쓸 수 없는 환경에서는 곧바로 제한 시간이 흐른다", () => {
+    vi.useFakeTimers();
+    // beforeEach가 mediaDevices를 undefined로 둔 상태 그대로 쓴다.
+    renderPage();
+    startConsonantOnly("5개");
+
+    act(() => {
+      vi.advanceTimersByTime(3_000);
+    });
+
+    expect(readTimer()).toBe("7초");
+  });
+});
+
 describe("TestPage 결과 화면", () => {
   /** 5문항을 모두 넘겨 결과 화면까지 진행한다. */
   const finishAllWrong = () => {
