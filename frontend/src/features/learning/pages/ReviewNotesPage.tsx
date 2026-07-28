@@ -85,6 +85,15 @@ export function ReviewNotesPage() {
     setCheckedSymbols([]);
   };
 
+  /** 지금 보이는 카드를 모두 고른다. 이미 전부 골랐다면 모두 해제한다. */
+  const handleSelectAll = () => {
+    const isEveryChecked = checkedInView.length === visibleNotes.length;
+
+    setCheckedSymbols(
+      isEveryChecked ? [] : visibleNotes.map((entry) => entry.symbol),
+    );
+  };
+
   const handleCardClick = (symbol: string) => {
     if (!isMultiSelectMode) {
       setSelectedSymbol(symbol);
@@ -179,17 +188,30 @@ export function ReviewNotesPage() {
                   })}
                 </div>
 
-                <button
-                  className={`review-notes-select-toggle ${
-                    isMultiSelectMode ? "review-notes-select-toggle-active" : ""
-                  }`}
-                  type="button"
-                  disabled={!hasNotes}
-                  aria-pressed={isMultiSelectMode}
-                  onClick={handleMultiSelectToggle}
-                >
-                  {isMultiSelectMode ? "선택 취소" : "선택"}
-                </button>
+                <div className="review-notes-select-actions">
+                  {isMultiSelectMode && (
+                    <button
+                      className="review-notes-select-all"
+                      type="button"
+                      disabled={visibleNotes.length === 0}
+                      onClick={handleSelectAll}
+                    >
+                      전체 선택
+                    </button>
+                  )}
+
+                  <button
+                    className={`review-notes-select-toggle ${
+                      isMultiSelectMode ? "review-notes-select-toggle-active" : ""
+                    }`}
+                    type="button"
+                    disabled={!hasNotes}
+                    aria-pressed={isMultiSelectMode}
+                    onClick={handleMultiSelectToggle}
+                  >
+                    {isMultiSelectMode ? "취소" : "선택"}
+                  </button>
+                </div>
               </div>
 
               {visibleNotes.length === 0 ? (

@@ -196,9 +196,38 @@
   box-shadow: 0 4px 0 #6f8052;
 }
 
+/* [전체 선택]과 [취소]를 오른쪽에 묶어 둔다. margin은 이 묶음이 맡는다. */
+.review-notes-select-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.review-notes-select-all {
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid #dfe6d2;
+  border-radius: 999px;
+  background: #eef2e3;
+  color: #4d5c39;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.review-notes-select-all:hover:not(:disabled) {
+  background: #e5ecd4;
+}
+
+.review-notes-select-all:disabled {
+  color: #b6a89c;
+  cursor: not-allowed;
+}
+
 .review-notes-select-toggle {
   min-height: 40px;
-  margin-left: auto;
   padding: 0 22px;
   border: 1px solid #dbc8b1;
   border-radius: 999px;
