@@ -51,7 +51,7 @@
   background: transparent;
   color: #7d6d61;
   font-family: inherit;
-  font-size: min(0.885417vw, 1.416667vh);
+  font-size: min(1.302083vw, 2.083333vh);
   font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
@@ -85,7 +85,7 @@
   border: min(0.052083vw, 0.083333vh) solid #dbc8b1;
   border-radius: min(52.03125vw, 83.25vh);
   color: #5f402b;
-  font-size: min(0.833333vw, 1.333333vh);
+  font-size: min(1.145833vw, 1.833333vh);
   font-weight: 800;
   text-decoration: none;
   background: #fffaf2;
@@ -112,12 +112,12 @@
 .practice-panel {
   position: relative;
   z-index: 1;
-  width: min(54.166667vw, 86.666667vh);
+  width: min(72.916667vw, 116.666667vh);
   min-height: min(38.020833vw, 60.833333vh);
   display: flex;
   align-items: center;
   flex-direction: column;
-  padding: min(2.708333vw, 4.333333vh) min(5.729167vw, 9.166667vh) min(3.020833vw, 4.833333vh);
+  padding: min(2.708333vw, 4.333333vh) min(3.125vw, 5vh) min(3.020833vw, 4.833333vh);
   border-radius: min(1.770833vw, 2.833333vh);
   background: #ffffff;
   box-shadow: 0 min(1.25vw, 2vh) min(2.604167vw, 4.166667vh) rgba(59, 42, 35, 0.14);
@@ -130,7 +130,7 @@
   padding: min(0.416667vw, 0.666667vh) min(0.9375vw, 1.5vh);
   border-radius: min(52.03125vw, 83.25vh);
   color: #ffffff;
-  font-size: min(0.625vw, 1vh);
+  font-size: min(0.9375vw, 1.5vh);
   font-weight: 800;
   background: #8f8274;
 }
@@ -172,7 +172,10 @@
 
 .practice-category {
   width: 100%;
-  min-height: min(4.270833vw, 6.833333vh);
+  height: min(5.208333vw, 8.333333vh);
+  min-height: min(5.208333vw, 8.333333vh);
+  flex: 0 0 min(5.208333vw, 8.333333vh);
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: min(1.041667vw, 1.666667vh);
@@ -216,7 +219,7 @@
   justify-content: center;
   border-radius: min(0.677083vw, 1.083333vh);
   color: #3f2b20;
-  font-size: min(1.302083vw, 2.083333vh);
+  font-size: min(1.770833vw, 2.833333vh);
   font-weight: 900;
   background: #ffffff;
 }
@@ -230,12 +233,13 @@
 }
 
 .practice-category-content strong {
-  font-size: min(0.9375vw, 1.5vh);
+  font-size: min(1.40625vw, 2.25vh);
 }
 
 .practice-category-content > span {
   color: #93867c;
-  font-size: min(0.677083vw, 1.083333vh);
+  font-size: min(1.041667vw, 1.666667vh);
+  line-height: 1.4;
 }
 
 .practice-category-count {
@@ -243,7 +247,7 @@
   padding: min(0.416667vw, 0.666667vh) min(0.677083vw, 1.083333vh);
   border-radius: min(52.03125vw, 83.25vh);
   color: #ffffff;
-  font-size: min(0.625vw, 1vh);
+  font-size: min(0.9375vw, 1.5vh);
   font-weight: 800;
   background: #8f8274;
 }
@@ -259,12 +263,12 @@
 .practice-start-button,
 .practice-guide-button {
   min-width: 0;
-  height: min(3.020833vw, 4.833333vh);
+  height: min(3.75vw, 6vh);
   flex: 1;
   border: 0;
   border-radius: min(0.833333vw, 1.333333vh);
   color: #51483f;
-  font-size: min(0.885417vw, 1.416667vh);
+  font-size: min(1.302083vw, 2.083333vh);
   font-weight: 800;
   background-color: #ffffff;
   box-shadow: 0 min(0.416667vw, 0.666667vh) min(0.833333vw, 1.333333vh) rgba(78, 64, 50, 0.1);
