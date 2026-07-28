@@ -435,6 +435,14 @@ export function PracticeSessionPage({
                 </p>
               )}
             </div>
+
+            <button
+              className="practice-camera-button"
+              type="button"
+              onClick={handleCameraClick}
+            >
+              {isCameraActive ? "카메라 종료" : "카메라 시작"}
+            </button>
           </article>
         </section>
 
@@ -446,14 +454,6 @@ export function PracticeSessionPage({
             disabled={isFirstItem}
           >
             ← 이전 문제
-          </button>
-
-          <button
-            className="practice-camera-button"
-            type="button"
-            onClick={handleCameraClick}
-          >
-            {isCameraActive ? "카메라 종료" : "카메라 시작"}
           </button>
 
           <button
