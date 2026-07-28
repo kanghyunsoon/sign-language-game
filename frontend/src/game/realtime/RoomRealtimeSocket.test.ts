@@ -56,6 +56,25 @@ describe("RoomRealtimeSocket", () => {
     expect(socket.close).toHaveBeenCalledWith(1000, "WEBRTC_ESTABLISHED");
   });
 
+  it("does not report a stale connection error after the handshake succeeds", async () => {
+    const socket = new FakeSocket();
+    const client = new RoomRealtimeSocket({
+      webSocketBaseUrl: "ws://host/ws/game-rooms", roomId: "7", localUserId: "42",
+      ticketClient: { issue: async () => ({ ticket: "a", expiresInSeconds: 30 }) },
+      createWebSocket: () => socket,
+    });
+    const reportError = vi.fn();
+    client.subscribeError(reportError);
+
+    const connecting = client.connect();
+    await vi.waitFor(() => expect(socket.onopen).not.toBeNull());
+    socket.open();
+    await connecting;
+    socket.onerror?.();
+
+    expect(reportError).not.toHaveBeenCalled();
+  });
+
   it("requires a new ticket for a signaling reconnect", async () => {
     const available = [new FakeSocket(), new FakeSocket()];
     const created: FakeSocket[] = [];

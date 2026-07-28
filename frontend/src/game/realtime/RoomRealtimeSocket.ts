@@ -101,9 +101,14 @@ export class RoomRealtimeSocket {
       socket.onopen = () => { settled = true; resolve(); };
       socket.onmessage = (event) => this.receive(event.data);
       socket.onerror = () => {
+        // Browser WebSocket errors do not carry a useful cause.  Once the
+        // handshake has completed, surfacing one as a connection failure
+        // leaves the lobby showing a stale red error despite being connected.
+        if (settled) return;
         const error = new Error("Room WebSocket connection failed.");
         this.emitError(error);
-        if (!settled) { settled = true; reject(error); }
+        settled = true;
+        reject(error);
       };
       socket.onclose = () => {
         if (this.socket === socket) this.socket = null;

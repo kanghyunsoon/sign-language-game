@@ -151,7 +151,10 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
     const unsubscribeError = socket.subscribeError(() => setRealtimeState("ERROR"));
     setRealtimeState("CONNECTING");
     void socket.connect()
-      .then(() => setRealtimeState("CONNECTED"))
+      .then(() => {
+        setRealtimeState("CONNECTED");
+        setError(null);
+      })
       .catch((cause) => {
         setRealtimeState("ERROR");
         setError(errorMessage(cause, "방 실시간 연결에 실패했습니다."));
