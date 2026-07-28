@@ -158,6 +158,38 @@
     rgba(109, 83, 69, 0.08);
 }
 
+.signup-password-input {
+  position: relative;
+}
+
+.signup-password-input input {
+  padding-right: min(3.125vw, 5vh);
+}
+
+.signup-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: min(0.8333vw, 1.3333vh);
+  width: min(2.0833vw, 3.3333vh);
+  height: min(2.0833vw, 3.3333vh);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: #8a7e73;
+  background: transparent;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.signup-password-toggle:hover,
+.signup-password-toggle:focus-visible {
+  color: #4d4038;
+  background: rgba(109, 83, 69, 0.08);
+  outline: none;
+}
+
 .signup-agreement {
   display: flex;
   align-items: center;
