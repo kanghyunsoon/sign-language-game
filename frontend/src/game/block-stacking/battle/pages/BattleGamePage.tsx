@@ -45,7 +45,7 @@ export function BattleGamePage() {
   const recognizer = useMemo(() => new PythonWebSocketSignRecognizer({ url: config.aiWebSocketUrl }), [config.aiWebSocketUrl]);
   const replica = useMemo(() => new RemoteBoardReplica(DEFAULT_BATTLE_RUNTIME_CONFIG.sync), []);
   const exitCoordinator = useMemo(() => new BattleExitCoordinator({ roomGateway: services.battleRoomGateway, mediaSession: battleMediaSession, cameraSession: sharedCameraSession, clearRoomSession: () => setBattleRoomSession(null), navigate: (destination) => navigate(destination, { replace: true }) }), [battleMediaSession, navigate, services.battleRoomGateway, setBattleRoomSession, sharedCameraSession]);
-  const [snapshot, setSnapshot] = useState(INITIAL); const [participants, setParticipants] = useState<readonly RemoteGameParticipant[]>(() => battleMediaSession.getRemoteParticipants());
+  const [snapshot, setSnapshot] = useState(INITIAL); const [remoteTargetSymbol, setRemoteTargetSymbol] = useState<string | null>(null); const [participants, setParticipants] = useState<readonly RemoteGameParticipant[]>(() => battleMediaSession.getRemoteParticipants());
   const [resultBusy, setResultBusy] = useState(false); const [resultError, setResultError] = useState<string | null>(null);
   const [otterWalking, setOtterWalking] = useState(false); const [otterDirection, setOtterDirection] = useState<OtterDirection>("left-to-right"); const [otterTransfer, setOtterTransfer] = useState<OtterTransfer>(null); const [otterHidesHint, setOtterHidesHint] = useState(false);
   const [cameraState, setCameraState] = useState<"CONNECTED" | "DISCONNECTED">(() => sharedCameraSession.getVideoTrack()?.readyState === "live" ? "CONNECTED" : "DISCONNECTED");
@@ -55,6 +55,7 @@ export function BattleGamePage() {
   const controllerRef = useRef<BattleController | null>(null); const localRuntimeRef = useRef<BattleLocalBoardRuntime | null>(null); const localViewportRef = useRef({ width: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, height: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight }); const remoteLoopRef = useRef<number | null>(null);
   const refreshMedia = useCallback(() => { setParticipants(battleMediaSession.getRemoteParticipants()); setRtcState(battleMediaSession.getConnectionState()); }, [battleMediaSession]);
   useEffect(() => battleMediaSession.subscribe(refreshMedia), [battleMediaSession, refreshMedia]);
+  useEffect(() => { const update = () => setRemoteTargetSymbol((current) => { const next = replica.targetSymbol(); return current === next ? current : next; }); update(); const timer = window.setInterval(update, 120); return () => window.clearInterval(timer); }, [replica]);
   const showOtterTransfer = useCallback((event: OtterTransferEvent) => {
     for (const timer of otterTimersRef.current) window.clearTimeout(timer);
     otterTimersRef.current = [];
@@ -85,15 +86,12 @@ export function BattleGamePage() {
     const controller = new BattleController({ playerId: user.userId, roomId, initialMatchId: battleRoomSession?.activeMatchId ?? undefined, transport, localBoard: runtime, remoteBoard: replica, attackEffect: attack, recognizer, onMatchStarted: (matchId) => runtime.setPublisher(new LocalBoardPublisher(transport, DEFAULT_BATTLE_RUNTIME_CONFIG.sync, matchId, user.userId)), onOtterTransfer: showOtterTransfer });
     localRuntimeRef.current = runtime; controllerRef.current = controller; const unsubscribe = controller.subscribe(setSnapshot);
     void controller.connect({ url: config.gameWebSocketUrl, roomId, playerId: user.userId, accessToken, headers: accessToken ? undefined : createDevAuthHeaders(user), hostPlayerId: battleRoomSession?.hostUserId, playerIds: [...new Set(battleRoomSession?.participants.map((participant) => participant.userId) ?? [user.userId])] });
-    // The remote board only consumes already-authoritative transforms; it does
-    // not run Matter.js. Cap its WebGL redraw rate so local camera/MediaPipe
-    // rendering stays responsive even when the other board is busy.
-    const remote = new RemoteBoardRenderer(remoteRenderer, replica); let lastRemoteRenderAt = -Infinity;
+    // The remote board only consumes authoritative transforms; it never runs
+    // Matter.js locally. Rendering every display frame keeps interpolation
+    // smooth without adding a second physics simulation.
+    const remote = new RemoteBoardRenderer(remoteRenderer, replica);
     const renderRemote = (at: number) => {
-      if (at - lastRemoteRenderAt >= 1000 / 30) {
-        remote.render(at);
-        lastRemoteRenderAt = at;
-      }
+      remote.render(at);
       remoteLoopRef.current = requestAnimationFrame(renderRemote);
     };
     remoteLoopRef.current = requestAnimationFrame(renderRemote);
@@ -142,8 +140,15 @@ export function BattleGamePage() {
           <div className={styles.missionGuide}><SignGuideImage symbol={snapshot.targetSymbol} responsive />{otterHidesHint ? <div className={styles.hintBreak}><strong>수달 통과 중</strong><small>해당 진영의 힌트가 잠시 가려졌어요</small></div> : null}</div>
         </section>
       </section>
-      <section className={styles.remoteVideo} aria-label="상대 영상">
-        <GameVideoTile kind="REMOTE" label={opponent?.displayName ?? "상대 영상"} stream={opponent?.stream ?? null} cameraEnabled={opponent?.cameraEnabled ?? false} connectionState={opponent?.connectionState ?? rtcState} />
+      <section className={styles.remoteUtility} aria-label="상대 영상과 지문자 힌트">
+        <section className={styles.remoteVideo} aria-label="상대 영상">
+          <GameVideoTile kind="REMOTE" label={opponent?.displayName ?? "상대 영상"} stream={opponent?.stream ?? null} cameraEnabled={opponent?.cameraEnabled ?? false} connectionState={opponent?.connectionState ?? rtcState} />
+        </section>
+        <section className={styles.missionPanel} aria-label="상대 현재 지정 글자 안내">
+          <header><div><strong>RIVAL SIGN</strong><span>상대가 제거할 지문자</span></div><em>RIVAL</em></header>
+          <div className={styles.missionValues}><article><span>상대 지정 글자</span><strong>{remoteTargetSymbol ?? "-"}</strong></article><article><span>상태</span><strong>{opponent?.cameraEnabled ? "●" : "-"}</strong><small>{opponent?.cameraEnabled ? "진행 중" : "연결 대기"}</small></article></div>
+          <div className={styles.missionGuide}><SignGuideImage symbol={remoteTargetSymbol} responsive /></div>
+        </section>
       </section>
     </div>
     {otterWalking ? <div className={styles.battleOtterWalk} data-direction={otterDirection} aria-hidden="true"><span className={styles.battleOtterBody}><span className={styles.otterWalkCycle}>{OTTER_WALK_FRAMES.map((src, index) => <img key={src} className={index === 0 ? styles.otterWalkFrame0 : index === 1 ? styles.otterWalkFrame1 : index === 2 ? styles.otterWalkFrame2 : index === 3 ? styles.otterWalkFrame3 : styles.otterWalkFrame4} src={src} alt="" draggable={false} />)}</span>{otterTransfer?.phase === "carry" ? <span className={styles.otterCargo}>{otterTransfer.symbol}</span> : null}</span></div> : null}

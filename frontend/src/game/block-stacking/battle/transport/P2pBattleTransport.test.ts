@@ -17,6 +17,9 @@ describe("P2pBattleTransport 1:1", () => {
     await guest.connect({ ...common, playerId: "guest" });
 
     expect(guestEvents.some((event) => event.type === "MATCH_STARTED")).toBe(true);
+    const firstRound = guestEvents.filter((event): event is Extract<ServerBattleMessage, { type: "SPAWN_LETTER" }> => event.type === "SPAWN_LETTER");
+    expect(firstRound).toHaveLength(2);
+    expect(firstRound[0]?.symbol).not.toBe(firstRound[1]?.symbol);
     const spawn = guestEvents.find((event) => event.type === "SPAWN_LETTER" && event.playerId === "guest");
     expect(spawn?.type).toBe("SPAWN_LETTER");
     if (!spawn || spawn.type !== "SPAWN_LETTER") throw new Error("spawn missing");
