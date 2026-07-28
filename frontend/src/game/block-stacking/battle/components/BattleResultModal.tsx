@@ -45,7 +45,7 @@ export function BattleResultModal({
 
         <div className={resultStyles.playerCards}>
           <ResultCard
-            label={won ? "WINNER" : "RUNNER-UP"}
+            label="WINNER"
             name={won ? "나" : "상대"}
             score={winner?.score ?? 0}
             result={winner}
@@ -55,7 +55,7 @@ export function BattleResultModal({
           />
           <span className={resultStyles.vs}>VS</span>
           <ResultCard
-            label={won ? "RUNNER-UP" : "WINNER"}
+            label="RUNNER-UP"
             name={won ? "상대" : "나"}
             score={runnerUp?.score ?? 0}
             result={runnerUp}
@@ -97,7 +97,7 @@ function ResultCard({
     <article className={[resultStyles.playerCard, highlighted ? resultStyles.highlighted : ""].filter(Boolean).join(" ")}>
       <header><span>{name}</span><em>{label}</em></header>
       <div className={resultStyles.scoreRow}>
-        <img src={image} alt="" draggable={false} />
+        <img src={image} alt={label === "WINNER" ? "웃는 수달" : "우는 수달"} draggable={false} />
         <strong><small>최종 점수</small>{score.toLocaleString()}점</strong>
       </div>
       <dl>

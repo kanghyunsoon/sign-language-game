@@ -80,7 +80,17 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
   private checkDangerLine(states: readonly PhysicsLetterState[]): void {
     if (this.gameOverReported) return;
     const dangerLineY = this.height * this.config.dangerLineRatio;
-    const reached = states.some((state) => state.settled && state.y - BATTLE_LETTER_SIZE / 2 <= dangerLineY);
+    // A newly-created body can briefly report an idle velocity before gravity
+    // has taken effect. It is not a stack yet, so it must never end the match.
+    // Arm the danger line only after a real LETTER_SETTLED event has persisted.
+    const now = this.now();
+    const reached = states.some((state) => {
+      const record = this.letters.get(state.id);
+      return state.settled
+        && record?.settledAt !== undefined
+        && now - record.settledAt >= 750
+        && state.y - BATTLE_LETTER_SIZE / 2 <= dangerLineY;
+    });
     if (!reached) return;
     this.gameOverReported = true;
     this.stop();

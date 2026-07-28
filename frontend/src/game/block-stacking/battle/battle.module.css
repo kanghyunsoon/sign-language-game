@@ -718,9 +718,12 @@
 .battleFixedPage .boardStats strong { font-size:1rem !important; }
 .battleFixedPage .boardStats span:first-child strong { color:var(--coral) !important; font-size:1.25rem !important; }
 
-/* The battle footer is a focused input workspace: camera on the left, mission
-   sign on the right.  Remote video remains connected for WebRTC but does not
-   compete with the player-facing hint. */
+/* Each board owns its utility area: player camera + sign guide on the left,
+   remote video directly beneath the opponent board on the right. */
+.battleFixedPage .videos { grid-column:1; grid-row:2; grid-template-columns:minmax(0,1.2fr) minmax(160px,.8fr); }
+.battleFixedPage .remoteVideo { grid-column:2; grid-row:2; min-width:0; min-height:0; overflow:hidden; border:3px solid #fff; border-radius:18px; background:#101b23; box-shadow:0 6px 0 rgba(139,174,172,.34),0 12px 22px rgba(76,112,126,.14); }
+.battleFixedPage .remoteVideo,.battleFixedPage .remoteVideo section,.battleFixedPage .remoteVideo video { width:100%; height:100%; min-height:0; }
+.battleFixedPage .remoteVideo video { object-fit:contain!important; background:#101b23; }
 .battleFixedPage .cameraPanel,.battleFixedPage .missionPanel { min-width:0; min-height:0; overflow:hidden; border:3px solid #fff; border-radius:18px; background:rgba(255,255,255,.94); box-shadow:0 6px 0 rgba(139,174,172,.34),0 12px 22px rgba(76,112,126,.14); }
 .battleFixedPage .boardPanel { contain:layout paint; }
 .battleFixedPage .cameraPanel { display:grid; grid-template-rows:auto minmax(0,1fr); }

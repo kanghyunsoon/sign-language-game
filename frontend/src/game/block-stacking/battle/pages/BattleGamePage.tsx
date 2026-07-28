@@ -5,6 +5,7 @@ import { DEFAULT_PHYSICS_CONFIG } from "../../physics/types";
 import { MatterPhysicsWorld } from "../../physics/MatterPhysicsWorld";
 import { useGameModuleContext } from "../../../app/GameModuleContext";
 import { GameVideoTile } from "../../../media/components/GameVideoTile";
+import type { RemoteGameParticipant } from "../../../media/core/mediaTypes";
 import { HandCamera } from "../../../recognition/mediapipe/HandCamera";
 import { SignGuideImage } from "../../../recognition/components/SignGuideImage";
 import { PythonWebSocketSignRecognizer } from "../../../recognition/websocket/PythonWebSocketSignRecognizer";
@@ -44,7 +45,7 @@ export function BattleGamePage() {
   const recognizer = useMemo(() => new PythonWebSocketSignRecognizer({ url: config.aiWebSocketUrl }), [config.aiWebSocketUrl]);
   const replica = useMemo(() => new RemoteBoardReplica(DEFAULT_BATTLE_RUNTIME_CONFIG.sync), []);
   const exitCoordinator = useMemo(() => new BattleExitCoordinator({ roomGateway: services.battleRoomGateway, mediaSession: battleMediaSession, cameraSession: sharedCameraSession, clearRoomSession: () => setBattleRoomSession(null), navigate: (destination) => navigate(destination, { replace: true }) }), [battleMediaSession, navigate, services.battleRoomGateway, setBattleRoomSession, sharedCameraSession]);
-  const [snapshot, setSnapshot] = useState(INITIAL); const [, setParticipants] = useState(() => battleMediaSession.getRemoteParticipants());
+  const [snapshot, setSnapshot] = useState(INITIAL); const [participants, setParticipants] = useState<readonly RemoteGameParticipant[]>(() => battleMediaSession.getRemoteParticipants());
   const [resultBusy, setResultBusy] = useState(false); const [resultError, setResultError] = useState<string | null>(null);
   const [otterWalking, setOtterWalking] = useState(false); const [otterDirection, setOtterDirection] = useState<OtterDirection>("left-to-right"); const [otterTransfer, setOtterTransfer] = useState<OtterTransfer>(null); const [otterHidesHint, setOtterHidesHint] = useState(false);
   const [cameraState, setCameraState] = useState<"CONNECTED" | "DISCONNECTED">(() => sharedCameraSession.getVideoTrack()?.readyState === "live" ? "CONNECTED" : "DISCONNECTED");
@@ -110,7 +111,7 @@ export function BattleGamePage() {
       .finally(() => setResultBusy(false));
   }, [resultClient, roomId, snapshot.result]);
 
-  const localStream = sharedCameraSession.getStream();
+  const localStream = sharedCameraSession.getStream(); const opponent = participants[0] ?? null;
   const returnToWaiting = async () => { if (!roomId || resultBusy) return; setResultBusy(true); setResultError(null); try {
     await services.battleRoomGateway.returnToWaiting(roomId);
     if (battleRoomSession) setBattleRoomSession({
@@ -140,6 +141,9 @@ export function BattleGamePage() {
           <div className={styles.missionValues}><article><span>목표 지문자</span><strong>{snapshot.targetSymbol ?? "-"}</strong></article><article><span>현재 인식</span><strong>{snapshot.prediction?.symbol ?? "-"}</strong><small>{snapshot.prediction ? `${Math.round(snapshot.prediction.confidence * 100)}%` : "인식 대기"}</small></article></div>
           <div className={styles.missionGuide}><SignGuideImage symbol={snapshot.targetSymbol} responsive />{otterHidesHint ? <div className={styles.hintBreak}><strong>수달 통과 중</strong><small>해당 진영의 힌트가 잠시 가려졌어요</small></div> : null}</div>
         </section>
+      </section>
+      <section className={styles.remoteVideo} aria-label="상대 영상">
+        <GameVideoTile kind="REMOTE" label={opponent?.displayName ?? "상대 영상"} stream={opponent?.stream ?? null} cameraEnabled={opponent?.cameraEnabled ?? false} connectionState={opponent?.connectionState ?? rtcState} />
       </section>
     </div>
     {otterWalking ? <div className={styles.battleOtterWalk} data-direction={otterDirection} aria-hidden="true"><span className={styles.battleOtterBody}><span className={styles.otterWalkCycle}>{OTTER_WALK_FRAMES.map((src, index) => <img key={src} className={index === 0 ? styles.otterWalkFrame0 : index === 1 ? styles.otterWalkFrame1 : index === 2 ? styles.otterWalkFrame2 : index === 3 ? styles.otterWalkFrame3 : styles.otterWalkFrame4} src={src} alt="" draggable={false} />)}</span>{otterTransfer?.phase === "carry" ? <span className={styles.otterCargo}>{otterTransfer.symbol}</span> : null}</span></div> : null}

@@ -90,11 +90,17 @@ describe("BattleLocalBoardRuntime", () => {
   });
 
   it("reports game over once when a settled block crosses the proportional danger line", () => {
+    let now = 0;
+    const states = new Map<string, ReturnType<typeof letterState>>();
     const world = physics();
-    vi.mocked(world.getLetterStates).mockReturnValue([letterState("danger", "ㄱ", 200, 180)]);
-    const runtime = new BattleLocalBoardRuntime(world, renderer(), DEFAULT_BATTLE_RUNTIME_CONFIG, undefined, () => 0, () => 1, () => undefined);
+    vi.mocked(world.createLetter).mockImplementation((spec) => { const state = letterState(spec.id, spec.symbol, spec.x, 180); states.set(spec.id, state); return state; });
+    vi.mocked(world.getLetterState).mockImplementation((id) => states.get(id));
+    vi.mocked(world.getLetterStates).mockImplementation(() => [...states.values()]);
+    const runtime = new BattleLocalBoardRuntime(world, renderer(), DEFAULT_BATTLE_RUNTIME_CONFIG, undefined, () => now, () => 1, () => undefined);
+    runtime.spawn(spawn("danger", "ㄱ", 1));
+    vi.mocked(world.update).mockReturnValue([{ type: "LETTER_SETTLED", id: "danger" }]);
     const handler = vi.fn(); runtime.setGameOverHandler(handler); runtime.start();
-    runtime.advance(16); runtime.advance(16);
+    runtime.advance(16); now = 751; vi.mocked(world.update).mockReturnValue([]); runtime.advance(16);
     expect(handler).toHaveBeenCalledOnce();
   });
 });
