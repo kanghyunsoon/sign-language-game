@@ -247,7 +247,7 @@ export function TestProgressView({
         <article className="test-camera-panel">
           <span className="test-panel-label">내 동작</span>
 
-          {/* 머리말 바 아래를 영상이 가득 채우고, 뱃지·안내·컨트롤만 위에 얹는다. */}
+          {/* 영상은 LIVE 뱃지만 얹고, 안내·컨트롤은 영상 아래에 따로 둔다. */}
           <div className="test-camera-placeholder">
             {cameraStream ? (
               <HandCamera
@@ -269,7 +269,9 @@ export function TestProgressView({
             )}
 
             {cameraStream && <span className="test-camera-live">● LIVE</span>}
+          </div>
 
+          <div className="test-camera-footer">
             <p className="test-recognition-message" role="status">
               {recognitionMessage}
             </p>

@@ -273,6 +273,26 @@ describe("TestPage 결과 화면", () => {
     expect(detailSymbol()).toBe(targetSymbol);
   });
 
+  it("안내 문구와 컨트롤이 카메라 영역 밖에 배치된다", () => {
+    renderPage();
+    startConsonantOnly("5개");
+
+    const camera = document.querySelector(
+      ".test-camera-placeholder",
+    ) as HTMLElement;
+    const footer = document.querySelector(
+      ".test-camera-footer",
+    ) as HTMLElement;
+
+    expect(footer).toBeTruthy();
+    // 안내·타이머·넘어가기는 영상 안이 아니라 하단 영역에 있어야 한다.
+    expect(camera.querySelector(".test-recognition-message")).toBeNull();
+    expect(camera.querySelector(".test-camera-controls")).toBeNull();
+    expect(within(footer).getByRole("timer", { name: "남은 시간" })).toBeTruthy();
+    expect(within(footer).getByRole("button", { name: "넘어가기" })).toBeTruthy();
+    expect(footer.querySelector(".test-recognition-message")).toBeTruthy();
+  });
+
   it("오답노트 버튼은 개발중 팝업을 연다", () => {
     renderPage();
     startConsonantOnly("5개");
@@ -307,6 +327,57 @@ describe("TestPage 결과 화면", () => {
     expect(within(actions).getByRole("button", { name: "다시 테스트" })).toBeTruthy();
     expect(within(actions).getByRole("button", { name: "오답노트" })).toBeTruthy();
     expect(within(actions).getByRole("link", { name: "메인페이지" })).toBeTruthy();
+  });
+
+  it("오답 문항은 오답노트에 담긴 상태로 시작하고 토글할 수 있다", () => {
+    renderPage();
+    startConsonantOnly("5개");
+    finishAllWrong();
+
+    // 전부 오답이므로 첫 문항은 이미 담겨 있다.
+    expect(
+      screen.getByText("5개 문자를 오답노트에 추가했어요!"),
+    ).toBeTruthy();
+
+    const toggle = () =>
+      screen.getByRole("button", { name: /오답노트 (추가|삭제)하기/ });
+
+    expect(toggle().textContent).toBe("오답노트 삭제하기");
+
+    fireEvent.click(toggle());
+
+    expect(toggle().textContent).toBe("오답노트 추가하기");
+    expect(
+      screen.getByText("4개 문자를 오답노트에 추가했어요!"),
+    ).toBeTruthy();
+
+    fireEvent.click(toggle());
+
+    expect(toggle().textContent).toBe("오답노트 삭제하기");
+    expect(
+      screen.getByText("5개 문자를 오답노트에 추가했어요!"),
+    ).toBeTruthy();
+  });
+
+  it("오답노트 담김 여부는 선택한 문항을 따라간다", () => {
+    renderPage();
+    startConsonantOnly("5개");
+    finishAllWrong();
+
+    const toggle = () =>
+      screen.getByRole("button", { name: /오답노트 (추가|삭제)하기/ });
+
+    // 첫 문항만 오답노트에서 뺀다.
+    fireEvent.click(toggle());
+    expect(toggle().textContent).toBe("오답노트 추가하기");
+
+    // 다른 문항을 고르면 여전히 담긴 상태여야 한다.
+    fireEvent.click(resultItems()[2]);
+    expect(toggle().textContent).toBe("오답노트 삭제하기");
+
+    // 첫 문항으로 돌아오면 뺀 상태가 유지된다.
+    fireEvent.click(resultItems()[0]);
+    expect(toggle().textContent).toBe("오답노트 추가하기");
   });
 
   it("다시 테스트를 누르면 설정 화면으로 돌아간다", () => {

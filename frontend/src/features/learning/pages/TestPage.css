@@ -468,12 +468,12 @@
   letter-spacing: -0.04em;
 }
 
-/* 머리말 바 아래를 카메라가 가득 채운다. */
+/* 머리말 바와 하단 컨트롤 사이를 카메라가 가득 채운다. */
 .test-camera-placeholder {
   position: relative;
   flex: 1;
   min-height: 0;
-  margin: 18px 20px 14px;
+  margin: 18px 20px 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -538,31 +538,25 @@
   word-break: keep-all;
 }
 
-/* AI 인식 상태 안내 — 영상 위에 얹는다. */
-.test-recognition-message {
-  position: absolute;
-  right: 16px;
-  bottom: 84px;
-  left: 16px;
-  z-index: 5;
-  margin: 0;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: rgba(35, 45, 49, 0.78);
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 800;
-  text-align: center;
-  backdrop-filter: blur(4px);
+/* 영상 아래 독립 영역: 안내 문구 + 타이머·넘어가기 */
+.test-camera-footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 20px 16px;
 }
 
-/* 타이머와 넘어가기 버튼도 영상 위에 오버레이한다. */
+.test-recognition-message {
+  min-height: 22px;
+  margin: 0;
+  color: #6b5c50;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
 .test-camera-controls {
-  position: absolute;
-  right: 16px;
-  bottom: 16px;
-  left: 16px;
-  z-index: 6;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -572,8 +566,8 @@
   min-width: 96px;
   padding: 12px 18px;
   border-radius: 16px;
-  background: rgba(27, 37, 41, 0.72);
-  color: #ffffff;
+  background: #f1ece4;
+  color: #5f402b;
   font-size: 20px;
   font-weight: 900;
   text-align: center;
@@ -581,8 +575,8 @@
 }
 
 .test-timer-urgent {
-  background: rgba(180, 82, 58, 0.86);
-  color: #ffffff;
+  background: #f7e0d6;
+  color: #b4523a;
 }
 
 .test-skip-button {
@@ -847,6 +841,47 @@
 /* 카드 안에서 지문자 사진이 줄어들지 않도록 고정한다. */
 .test-result-detail .fingerspelling-detail-image {
   flex-shrink: 0;
+}
+
+/* 오답노트 담기·빼기 토글. 기존 버튼 시스템(입체 그림자 + active 눌림)을 따른다. */
+.test-wrong-note-toggle {
+  width: 100%;
+  min-height: 52px;
+  border: 0;
+  border-radius: 16px;
+  background: #8fa071;
+  box-shadow: 0 4px 0 #6f8052;
+  color: #ffffff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.test-wrong-note-toggle:hover {
+  background: #7f9063;
+}
+
+.test-wrong-note-toggle:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #6f8052;
+}
+
+/* 이미 담긴 글자는 빼기 동작이라 눌린 느낌의 보조 색을 쓴다. */
+.test-wrong-note-toggle-remove {
+  border: 1px solid #dbc8b1;
+  background: #fffaf2;
+  box-shadow: 0 4px 0 #e0d2c0;
+  color: #5f402b;
+}
+
+.test-wrong-note-toggle-remove:hover {
+  background: #f7f0e6;
+}
+
+.test-wrong-note-toggle-remove:active {
+  box-shadow: 0 2px 0 #e0d2c0;
 }
 
 .test-coming-soon-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(72,56,45,.28); backdrop-filter: blur(5px); }
