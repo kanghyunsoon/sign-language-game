@@ -249,6 +249,27 @@ describe("TestPage 결과 화면", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
+  it("문항이 많아도 목록과 하단 버튼이 모두 렌더된다", () => {
+    renderPage();
+    // 자음 전체(14문항)로 목록이 길어지는 상황을 만든다.
+    fireEvent.click(screen.getByRole("button", { name: "전체" }));
+    fireEvent.click(screen.getByRole("button", { name: "테스트 시작" }));
+    for (let index = 0; index < 14; index += 1) {
+      fireEvent.click(screen.getByRole("button", { name: "넘어가기" }));
+    }
+
+    const list = screen.getByRole("list");
+    const actions = document.querySelector(
+      ".test-result-actions",
+    ) as HTMLElement;
+
+    expect(within(list).getAllByRole("button")).toHaveLength(14);
+    // 목록이 길어져도 하단 고정 영역은 잘리지 않고 남아 있어야 한다.
+    expect(within(actions).getByRole("button", { name: "다시 테스트" })).toBeTruthy();
+    expect(within(actions).getByRole("button", { name: "오답노트" })).toBeTruthy();
+    expect(within(actions).getByRole("link", { name: "메인페이지" })).toBeTruthy();
+  });
+
   it("다시 테스트를 누르면 설정 화면으로 돌아간다", () => {
     renderPage();
     startConsonantOnly("5개");
