@@ -183,7 +183,7 @@
 .module :global(.solo-controls button:not(:disabled):hover) { translate: 0 -2px; box-shadow: 0 6px 0 #8fab2c; }
 .module :global(.solo-game-header .solo-controls button.secondary) { border: 0; background: #edf5f7; box-shadow: 0 4px 0 #c7dce3; color: #466674; }
 .module :global(.solo-game-header .solo-controls button.secondary.icon) { background: #fff; box-shadow: 0 4px 0 #c8dfe9; color: #3d6477; }
-.module :global(.solo-workspace) { display: grid; min-height: 0; grid-template-columns: minmax(0, 1.6fr) minmax(350px, .4fr); grid-template-rows: 50px minmax(0, 1fr); align-items: stretch; gap: 7px 9px; }
+.module :global(.solo-workspace) { display: grid; min-height: 0; grid-template-columns: minmax(0, 1.5fr) minmax(350px, .5fr); grid-template-rows: 50px minmax(0, 1fr); align-items: stretch; gap: 7px 9px; }
 .module :global(.solo-hud) { position: relative; grid-column: 1 / -1; display: grid; height: 50px; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; padding: 3px 5px; overflow: hidden; border: 2px solid rgba(255,255,255,.9); border-radius: 12px; background: #2a4553; box-shadow: 0 4px 0 rgba(48,89,105,.2); }
 .module :global(.solo-metric) { position: relative; display: grid; min-width: 0; align-content: center; padding: 3px 8px; overflow: hidden; border: 0; border-right: 1px solid rgba(220,239,245,.14); border-radius: 0; background: transparent; box-shadow: none; text-align: center; }
 .module :global(.solo-metric:last-of-type) { border-right: 0; }
