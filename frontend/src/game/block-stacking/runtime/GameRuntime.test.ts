@@ -118,11 +118,11 @@ describe("GameRuntime", () => {
     runtime.resizeViewport(640, 480);
     runtime.start();
     // Default danger ratio is 160 / 960. With a 480px board the line is 80px;
-    // this block's top is 85px and must therefore remain playable.
+    // a block far below the visible line must remain playable.
     world.states.set("safe", { id: "safe", symbol: "A", x: 100, y: 155, angle: 0, velocityX: 0, velocityY: 0, angularVelocity: 0, settled: true });
     runtime.advance(1);
     expect(runtime.snapshot().runState).toBe("RUNNING");
-    world.states.set("danger", { id: "danger", symbol: "A", x: 200, y: 145, angle: 0, velocityX: 0, velocityY: 0, angularVelocity: 0, settled: true });
+    world.states.set("danger", { id: "danger", symbol: "A", x: 200, y: 110, angle: 0, velocityX: 0, velocityY: 0, angularVelocity: 0, settled: true });
     runtime.advance(1);
     expect(runtime.snapshot().runState).toBe("GAME_OVER");
     runtime.dispose();

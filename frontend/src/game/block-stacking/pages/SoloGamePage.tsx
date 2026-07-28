@@ -24,6 +24,8 @@ import {
 } from "../../recognition";
 import { SignGuideImage } from "../../recognition/components/SignGuideImage";
 import { GAME_SYMBOLS } from "../../recognition/core/symbols";
+import type { RecognitionRateConfig } from "../../recognition/runtime";
+import { DEFAULT_SIGN_DECODER_CONFIG } from "../../recognition/temporal";
 import { useSharedCameraOwnerCleanup } from "../../media/camera/useSharedCameraOwnerCleanup";
 import otterWalkFrame0 from "../assets/solo-walking-otter-frame-0.png";
 import otterWalkFrame1 from "../assets/solo-walking-otter-frame-1.png";
@@ -38,6 +40,24 @@ const OTTER_WALK_FRAMES = [
   otterWalkFrame3,
   otterWalkFrame4,
 ] as const;
+
+// Gameplay prioritises prompt feedback. Frames are still latest-only, so a
+// busy AI connection drops stale work instead of making the hand overlay lag.
+const SOLO_RECOGNITION_RATE_CONFIG: RecognitionRateConfig = {
+  renderFps: 60,
+  handTrackingFps: 30,
+  poseTrackingFps: 8,
+  aiInferenceFps: 20,
+};
+
+const SOLO_DECODER_CONFIG = {
+  ...DEFAULT_SIGN_DECODER_CONFIG,
+  candidateWindowSize: 3,
+  minimumCandidateVotes: 2,
+  minimumStableDurationMs: 70,
+  differentSymbolReleaseVotes: 1,
+  releaseMinimumDurationMs: 65,
+};
 
 const INITIAL_SNAPSHOT: GameRuntimeSnapshot = {
   runState: "IDLE",
@@ -82,7 +102,11 @@ export function SoloGamePage({
     [services.soloGameApi, soloGameApiFactory],
   );
   const resolvedSignRecognizerFactory = useMemo(
-    () => signRecognizerFactory ?? (() => new PythonWebSocketSignRecognizer({ url: config.aiWebSocketUrl })),
+    () => signRecognizerFactory ?? (() => new PythonWebSocketSignRecognizer({
+      url: config.aiWebSocketUrl,
+      aiInferenceFps: SOLO_RECOGNITION_RATE_CONFIG.aiInferenceFps,
+      decoderConfig: SOLO_DECODER_CONFIG,
+    })),
     [config.aiWebSocketUrl, signRecognizerFactory],
   );
   const runtimeRef = useRef<GameRuntime | null>(null);
@@ -398,6 +422,7 @@ export function SoloGamePage({
                 sharedStream={cameraStream}
                 compact
                 autoStart
+                rateConfig={SOLO_RECOGNITION_RATE_CONFIG}
                 performanceMonitor={recognizerRef.current?.getPerformanceMonitor()}
                 temporalDecoder={recognizerRef.current?.getTemporalDecoder()}
                 activePlayerSession={activePlayerSession}
@@ -480,4 +505,7 @@ function formatPlayTime(playTimeMs: number): string {
 function Metric({ label, value }: { readonly label: string; readonly value: string }) {
   return <div className="solo-metric"><span>{label}</span><strong>{value}</strong></div>;
 }
-const SOLO_GAME_SYMBOLS = GAME_SYMBOLS.filter((symbol) => !/^\d+$/.test(symbol));
+// The runtime will still restrict Python AI sessions to symbols advertised in
+// CAPABILITIES.  Keeping the full registry here makes approved digit guides
+// (1-9) available as soon as the retrained model advertises them.
+const SOLO_GAME_SYMBOLS = GAME_SYMBOLS;
