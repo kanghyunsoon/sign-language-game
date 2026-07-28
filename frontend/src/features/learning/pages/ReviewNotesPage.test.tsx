@@ -5,11 +5,15 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { ReviewNotesPage } from "./ReviewNotesPage";
 import { addReviewNote, removeReviewNotes } from "../data/reviewNotes";
+import { fingerspellingEntries } from "../data/fingerspelling";
 
-/** 테스트마다 오답노트를 깨끗한 상태에서 시작한다. */
+/**
+ * 테스트마다 오답노트를 깨끗한 상태에서 시작한다.
+ * 저장소가 값을 캐시하므로 localStorage만 비우면 남아 있어, 전체 글자를 지운다.
+ */
 const resetNotes = () => {
   window.localStorage.clear();
-  removeReviewNotes(["ㄱ", "ㄴ", "ㅏ", "1", "2"]);
+  removeReviewNotes(fingerspellingEntries.map((entry) => entry.symbol));
 };
 
 beforeEach(resetNotes);
@@ -54,6 +58,18 @@ describe("ReviewNotesPage 목록", () => {
 
     expect(within(getGrid()).getAllByRole("button")).toHaveLength(4);
     expect(readDetailSymbol()).toBe("ㄱ");
+  });
+
+  it("담은 순서가 아니라 자음-모음-숫자 사전 순서로 보여준다", () => {
+    // 일부러 거꾸로 담아도 사전 순서로 정렬되어야 한다.
+    ["10", "ㅑ", "ㅏ", "ㄴ", "ㄱ", "1"].forEach(addReviewNote);
+    renderPage();
+
+    const symbols = within(getGrid())
+      .getAllByRole("button")
+      .map((card) => card.querySelector(".review-notes-card-symbol")?.textContent);
+
+    expect(symbols).toEqual(["ㄱ", "ㄴ", "ㅏ", "ㅑ", "1", "10"]);
   });
 
   it("카드를 누르면 상세가 그 글자로 바뀐다", () => {
