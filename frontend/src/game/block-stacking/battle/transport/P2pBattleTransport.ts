@@ -55,7 +55,7 @@ export class P2pBattleTransport implements BattleGameTransport {
   private startAuthority(): void {
     this.publishStart();
     if (this.spawnTimer) return;
-    this.spawnTimer = setInterval(() => this.spawn(), 1_600);
+    this.spawnTimer = setInterval(() => this.spawn(), 3_000);
     this.otterTimer ??= setInterval(() => this.transferOtterLetter(), 60_000);
     const firstOtterTimer = setTimeout(() => { this.otterThrowTimers.delete(firstOtterTimer); this.transferOtterLetter(); }, 18_000);
     this.otterThrowTimers.add(firstOtterTimer);

@@ -58,7 +58,7 @@ describe("BattleWaitingRoomPage backend flow", () => {
     const startGame = vi.fn(async () => undefined);
     renderPage({
       detail: room({ full: true, hostReady: true, guestReady: true, currentUserReady: true }),
-      gateway: gateway({ startGame }),
+      gateway: gateway({ startGame, setReady: vi.fn(async () => session({ full: true, hostReady: true, guestReady: true, currentUserReady: true })) }),
       camera,
       media,
     });
