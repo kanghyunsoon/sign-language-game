@@ -91,11 +91,12 @@ export function parseBackendGameRoom(value: unknown): BackendGameRoom {
     throw new Error("Invalid game room status.");
   }
   const gameType = value.gameType;
-  const realtimeTicket = typeof value.realtimeTicket === "string" && value.realtimeTicket.trim().length > 0
-    ? value.realtimeTicket
-    : undefined;
+  const realtimeTicket = value.realtimeTicket;
   if (gameType !== undefined && (typeof gameType !== "string" || gameType.trim().length === 0)) {
     throw new Error("Invalid game room type.");
+  }
+  if (realtimeTicket !== undefined && (typeof realtimeTicket !== "string" || realtimeTicket.length === 0)) {
+    throw new Error("Invalid realtime ticket.");
   }
   return {
     id: number(value.id, "id"),
