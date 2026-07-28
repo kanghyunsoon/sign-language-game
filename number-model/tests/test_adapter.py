@@ -86,6 +86,116 @@ class NumberLabelContractTests(unittest.TestCase):
         self.assertFalse(np.allclose(left, right))
 
 
+def write_hybrid_bundle(directory: Path, *, wrong_composition: bool = False, missing_head: bool = False) -> Path:
+    """Write a two-component bundle so gate/head loading can be checked."""
+    import joblib
+    from sklearn.ensemble import ExtraTreesClassifier
+    from sklearn.neighbors import KNeighborsClassifier
+
+    from numbermodel.adapter import COMPOSITION
+
+    generator = np.random.default_rng(1)
+    features = generator.normal(size=(len(LABELS) * 8, FEATURE_SIZE)).astype(np.float32)
+    targets = np.tile(np.arange(len(LABELS)), 8)
+    directory.mkdir(parents=True, exist_ok=True)
+
+    components = []
+    pieces = [("gate", "number-gate.joblib", ExtraTreesClassifier(n_estimators=3, random_state=0))]
+    if not missing_head:
+        pieces.append(("head", "number-head.joblib", KNeighborsClassifier(n_neighbors=3)))
+    for role, filename, estimator in pieces:
+        estimator.fit(features, targets)
+        path = directory / filename
+        joblib.dump(estimator, path)
+        components.append(
+            {
+                "role": role,
+                "artifact": filename,
+                "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                "format": "sklearn-test",
+            },
+        )
+    manifest = {
+        "schemaVersion": 1,
+        "modelVersion": MODEL_VERSION,
+        "format": "hybrid-gate-head",
+        "labels": list(LABELS),
+        "featureVersion": "v3",
+        "featureSize": FEATURE_SIZE,
+        "frameInput": True,
+        "components": components,
+        "composition": "something else" if wrong_composition else COMPOSITION,
+        "evaluation": "evaluation.json",
+    }
+    (directory / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    return directory
+
+
+class HybridBundleTests(unittest.TestCase):
+    def test_loads_a_gate_and_head_bundle(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            adapter = NumberModelAdapter(write_hybrid_bundle(Path(directory)))
+
+            self.assertTrue(adapter.is_hybrid)
+            self.assertEqual(adapter.contract.labels, LABELS)
+
+            probabilities = adapter.predict_frame(sample_landmarks())
+            self.assertEqual(probabilities.shape, (11,))
+            self.assertAlmostEqual(float(probabilities.sum()), 1.0, places=5)
+            self.assertTrue((probabilities >= 0).all())
+
+    def test_composition_matches_the_adapter_formula(self) -> None:
+        """The stored formula is checked so a bundle cannot be scored one way and served another."""
+        with tempfile.TemporaryDirectory() as directory:
+            bundle = write_hybrid_bundle(Path(directory), wrong_composition=True)
+            with self.assertRaises(ValueError):
+                NumberModelAdapter(bundle)
+
+    def test_rejects_a_bundle_missing_a_component(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            bundle = write_hybrid_bundle(Path(directory), missing_head=True)
+            with self.assertRaises(ValueError):
+                NumberModelAdapter(bundle)
+
+    def test_single_model_bundle_is_not_flagged_hybrid(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            adapter = NumberModelAdapter(write_bundle(Path(directory)))
+            self.assertFalse(adapter.is_hybrid)
+
+
+class ComposeSoftTests(unittest.TestCase):
+    def test_gate_owns_the_none_probability(self) -> None:
+        from numbermodel.adapter import compose_soft
+        from numbermodel.labels import NONE_INDEX, NUMBER_INDEXES
+
+        gate = np.zeros((1, 11), dtype=np.float32)
+        gate[0, NONE_INDEX] = 0.3
+        gate[0, NUMBER_INDEXES[0]] = 0.7
+        head = np.zeros((1, 11), dtype=np.float32)
+        head[0, NUMBER_INDEXES[8]] = 1.0  # head is certain the digit is `9`
+
+        out = compose_soft(gate, head)
+
+        self.assertAlmostEqual(float(out[0, NONE_INDEX]), 0.3, places=6)
+        self.assertAlmostEqual(float(out[0, NUMBER_INDEXES[8]]), 0.7, places=6)
+        self.assertAlmostEqual(float(out.sum()), 1.0, places=5)
+
+    def test_falls_back_to_the_gate_when_the_head_has_no_digit_mass(self) -> None:
+        from numbermodel.adapter import compose_soft
+        from numbermodel.labels import NONE_INDEX, NUMBER_INDEXES
+
+        gate = np.zeros((1, 11), dtype=np.float32)
+        gate[0, NONE_INDEX] = 0.2
+        gate[0, NUMBER_INDEXES[3]] = 0.8
+        head = np.zeros((1, 11), dtype=np.float32)
+        head[0, NONE_INDEX] = 1.0
+
+        out = compose_soft(gate, head)
+
+        self.assertAlmostEqual(float(out[0, NUMBER_INDEXES[3]]), 0.8, places=6)
+        self.assertAlmostEqual(float(out.sum()), 1.0, places=5)
+
+
 class NumberModelAdapterTests(unittest.TestCase):
     def test_loads_a_valid_bundle_and_returns_eleven_probabilities(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
