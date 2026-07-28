@@ -14,7 +14,7 @@ import {
 } from "./types";
 
 const MAX_FRAME_DELTA_MS = 32;
-const PAPER_GROW_DURATION_MS = 190;
+const PAPER_GROW_DURATION_MS = 420;
 
 export class GameRuntime {
   private readonly renderer: GameRenderer;
@@ -310,7 +310,7 @@ export class GameRuntime {
       x,
       // The paper glyph sits just inside the board opening; releasing from
       // that same coordinate makes it feel like the paper glyph itself falls.
-      y: releasedFromPaper ? this.config.letterHeight * .38 : -this.config.spawnTopPadding,
+      y: releasedFromPaper ? this.config.letterHeight * .68 : -this.config.spawnTopPadding,
       angularVelocity: 0,
       // Deliberately gentle: it feels more immediate than a timer spawn but
       // still leaves the player time to follow the glyph.

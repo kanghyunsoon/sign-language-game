@@ -26,7 +26,9 @@ export interface LetterViewOptions {
 const BASE_COLOR = 0x416d72;
 const HIGHLIGHT_COLOR = 0xf4c95d;
 const TARGET_COLOR = 0xd95b7d;
-const SPAWN_GREEN = 0x77a53d;
+// Warm gold remains highly visible against the sky/grass board without
+// reading as an unrelated "green" letter after the paper release.
+const SPAWN_LAUNCH_COLOR = 0xf2a642;
 
 export class LetterViewFactory {
   private readonly textures = new Map<string, Texture>();
@@ -99,7 +101,7 @@ export class LetterViewFactory {
         ? HIGHLIGHT_COLOR
         : progress === null
           ? (targetHighlighted ? TARGET_COLOR : BASE_COLOR)
-          : blendColor(TARGET_COLOR, SPAWN_GREEN, progress);
+          : blendColor(TARGET_COLOR, SPAWN_LAUNCH_COLOR, progress);
       sprite.tint = tint;
       targetGlow.tint = tint;
       targetEdge.tint = tint;

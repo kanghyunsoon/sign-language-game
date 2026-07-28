@@ -274,16 +274,17 @@
 .module :global(.solo-board-time) { position: absolute; z-index: 5; top: 6px; right: 84px; display: inline-flex; align-items: baseline; gap: 5px; padding: 3px 8px; border-radius: 7px; background: rgba(255,255,255,.78); box-shadow: 0 2px 0 rgba(91,133,105,.18); color: #536d78; }
 .module :global(.solo-board-time span) { color: #718b46; font-size: 8px; font-weight: 1000; letter-spacing: .1em; }
 .module :global(.solo-board-time strong) { color: #3d5960; font-family: "Arial Rounded MT Bold", sans-serif; font-size: 17px; font-weight: 1000; line-height: 1; }
-.module :global(.solo-letter-otter) { position: absolute; z-index: 20; top: -105px; left: 50%; width: 300px; pointer-events: none; transform: translateX(-50%); filter: drop-shadow(0 6px 7px rgba(73, 54, 41, .2)); }
-.module :global(.solo-letter-otter img) { display: block; width: 100%; height: auto; user-select: none; }
-.module :global(.solo-letter-otter strong) { position: absolute; top: 63%; left: 50%; color: #d95b7d; font-family: "Arial Rounded MT Bold", "Malgun Gothic", sans-serif; font-size: 76px; font-weight: 1000; line-height: 1; text-shadow: 2px 2px 0 rgba(255,255,255,.94), 0 3px 8px rgba(104,55,68,.18); transform: translate(-50%, -50%); }
-.module :global(.solo-paper-burst) { position: absolute; z-index: 2; top: 63%; left: 50%; display: block; color: #ff4877; font-family: "Arial Rounded MT Bold", "Malgun Gothic", sans-serif; font-size: 76px; font-weight: 1000; line-height: 1; pointer-events: none; text-shadow: 0 0 12px rgba(255,235,116,.95), 0 0 26px rgba(255,92,145,.85); transform: translate(-50%, -50%); animation: solo-paper-burst .19s cubic-bezier(.2,.9,.3,1) forwards; }
+.module :global(.solo-letter-otter) { position: absolute; z-index: 30; top: -118px; left: 50%; width: 250px; isolation: isolate; pointer-events: none; transform: translateX(-50%); filter: drop-shadow(0 6px 7px rgba(73, 54, 41, .2)); }
+.module :global(.solo-letter-otter img) { position: relative; z-index: 0; display: block; width: 100%; height: auto; user-select: none; }
+/* Both paper glyph layers deliberately sit above the transparent otter image. */
+.module :global(.solo-letter-otter strong) { position: absolute; z-index: 4; top: 63%; left: 50%; color: #d95b7d; font-family: "Arial Rounded MT Bold", "Malgun Gothic", sans-serif; font-size: 64px; font-weight: 1000; line-height: 1; text-shadow: 2px 2px 0 rgba(255,255,255,.94), 0 3px 8px rgba(104,55,68,.18); transform: translate(-50%, -50%); }
+.module :global(.solo-paper-burst) { position: absolute; z-index: 5; top: 63%; left: 50%; display: block; color: #e85d7f; font-family: "Arial Rounded MT Bold", "Malgun Gothic", sans-serif; font-size: 64px; font-weight: 1000; line-height: 1; pointer-events: none; text-shadow: 0 0 12px rgba(255,235,116,.95), 0 0 26px rgba(255,92,145,.85); transform: translate(-50%, -50%); animation: solo-paper-burst .42s cubic-bezier(.2,.9,.3,1) forwards; }
 .module :global(.solo-paper-burst::before), .module :global(.solo-paper-burst::after) { position: absolute; top: 50%; left: 50%; content: "✦"; color: #fff3a3; font-size: .48em; opacity: .95; transform: translate(-50%, -50%); }
 .module :global(.solo-paper-burst::before) { animation: solo-paper-spark-left .62s ease-out forwards; }
 .module :global(.solo-paper-burst::after) { color: #ffb24d; animation: solo-paper-spark-right .62s ease-out forwards; }
-@keyframes solo-paper-burst { 0% { opacity: 1; transform: translate(-50%, -50%) scale(.65) rotate(-6deg); } 64% { opacity: 1; transform: translate(-50%, -50%) scale(1.32) rotate(5deg); } 100% { opacity: 1; transform: translate(-50%, -50%) scale(1.08) rotate(0); } }
-@keyframes solo-paper-spark-left { to { opacity: 0; transform: translate(-430%, -270%) scale(1.4) rotate(-35deg); } }
-@keyframes solo-paper-spark-right { to { opacity: 0; transform: translate(300%, 190%) scale(1.4) rotate(35deg); } }
+@keyframes solo-paper-burst { 0% { color: #e85d7f; opacity: 1; transform: translate(-50%, -50%) scale(.65) rotate(-6deg); } 45% { color: #e85d7f; opacity: 1; transform: translate(-50%, -50%) scale(1.32) rotate(5deg); } 100% { color: #f2a642; opacity: 1; transform: translate(-50%, calc(-50% + 38px)) scale(1.08) rotate(0); } }
+@keyframes solo-paper-spark-left { to { opacity: 0; transform: translate(-360%, -230%) scale(1.25) rotate(-35deg); } }
+@keyframes solo-paper-spark-right { to { opacity: 0; transform: translate(250%, 150%) scale(1.25) rotate(35deg); } }
 .module :global(.solo-game-page .solo-symbol-panel) { grid-column: 1 / -1; }
 
 /* Solo stage: the same sky-and-grass world used by the game selection screen. */

@@ -133,7 +133,9 @@ export class PixiGameRenderer implements GameRenderer {
 
   startSpawnEffect(id: string): void {
     this.assertActive();
-    this.spawnEffects.set(id, 0);
+    // The paper animation has already completed most of the red-to-gold
+    // transition. Continue from that colour rather than flashing back red.
+    this.spawnEffects.set(id, SPAWN_EFFECT_DURATION_MS * .58);
   }
 
   setTarget(id: string | null): void {
