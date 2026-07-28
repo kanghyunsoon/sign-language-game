@@ -459,6 +459,13 @@ export function SoloGamePage({
                 <strong>CAMERA OFFLINE</strong>
                 <span>{cameraError??"공유 카메라를 준비하고 있습니다."}</span>
               </div>}
+              <div className="solo-camera-recognition-values" aria-label="현재 지문자 인식 상태">
+                <article>
+                  <span>{recognition.targetSymbol ? "목표 지문자" : "연습 미리보기"}</span>
+                  <strong>{displayedTargetSymbol}</strong>
+                </article>
+                <article><span>현재 인식</span><strong>{recognition.prediction?.symbol ?? "-"}</strong><small>{recognition.prediction ? `${(recognition.prediction.confidence * 100).toFixed(0)}%` : "인식 대기"}</small></article>
+              </div>
             </div>
           </section>
 
@@ -467,13 +474,6 @@ export function SoloGamePage({
               <span><b>MISSION SIGN</b><small>목표 손모양을 따라 해보세요</small></span>
               <em>GUIDE</em>
             </header>
-            <div className="solo-guide-values">
-              <article>
-                <span>{recognition.targetSymbol ? "목표 지문자" : "연습 미리보기"}</span>
-                <strong>{displayedTargetSymbol}</strong>
-              </article>
-              <article><span>현재 인식</span><strong>{recognition.prediction?.symbol ?? "-"}</strong><small>{recognition.prediction ? `${(recognition.prediction.confidence * 100).toFixed(0)}%` : "인식 대기"}</small></article>
-            </div>
             <div className="solo-guide-figure">
               <SignGuideImage symbol={displayedTargetSymbol} responsive />
               {otterWalking && <div className="solo-hint-break"><strong>수달 통과 중!</strong><small>그림 힌트가 잠시 숨겨졌어요</small></div>}
