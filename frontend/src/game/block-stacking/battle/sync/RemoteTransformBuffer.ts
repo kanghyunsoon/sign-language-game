@@ -14,6 +14,15 @@ export class RemoteTransformBuffer {
     if (buffer.length > this.config.maxBufferedSnapshots) buffer.splice(0, buffer.length - this.config.maxBufferedSnapshots);
     this.buffers.set(transform.id, buffer); return true;
   }
+  /**
+   * A full board snapshot is authoritative.  Retaining transform samples
+   * received before it makes a delayed packet visually reappear below a newer
+   * block, which is the source of the opponent-board overlaps.
+   */
+  replace(sequence: number, receivedAt: number, transform: BattleBodyTransform): void {
+    if (this.removed.has(transform.id)) return;
+    this.buffers.set(transform.id, [{ sequence, receivedAt, value: transform }]);
+  }
   remove(letterId: string): void { this.removed.add(letterId); this.buffers.delete(letterId); }
   restore(letterIds: readonly string[]): void { const active = new Set(letterIds); for (const id of this.buffers.keys()) if (!active.has(id)) this.buffers.delete(id); for (const id of active) this.removed.delete(id); }
   sample(letterId: string, now: number): BattleBodyTransform | null {
