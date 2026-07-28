@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { TestPage } from "./TestPage";
+import { fingerspellingItems } from "../data/fingerspelling";
 
 afterEach(() => {
   cleanup();
@@ -140,6 +141,44 @@ describe("TestPage 진행 화면", () => {
     expect(screen.getByRole("timer", { name: "남은 시간" }).textContent).toBe(
       "10초",
     );
+  });
+
+  it("문제 글자 위에 분류와 글자 이름을 뱃지로 보여준다", () => {
+    renderPage();
+    startConsonantOnly("5개");
+
+    const tags = document.querySelector(".test-question-tags") as HTMLElement;
+    const symbol = document.querySelector(
+      ".test-question-symbol",
+    ) as HTMLElement;
+
+    // 자음만 출제했으므로 분류 뱃지는 항상 "자음"이다.
+    expect(
+      within(tags).getByText("자음", { selector: ".test-question-tag-category" }),
+    ).toBeTruthy();
+
+    // 이름 뱃지는 출제된 글자의 이름과 일치해야 한다.
+    const name = tags.querySelectorAll(".test-question-tag")[1].textContent;
+    const expected = fingerspellingItems.consonant.find(
+      (item) => item.symbol === symbol.textContent,
+    );
+
+    expect(expected).toBeTruthy();
+    expect(name).toBe(expected?.name);
+  });
+
+  it("모음 문항도 분류 뱃지가 모음으로 표시된다", () => {
+    renderPage();
+    // 자음 해제 후 모음만 선택
+    fireEvent.click(screen.getByRole("button", { name: /자음/ }));
+    fireEvent.click(screen.getByRole("button", { name: /모음/ }));
+    fireEvent.click(screen.getByRole("button", { name: "테스트 시작" }));
+
+    const tags = document.querySelector(".test-question-tags") as HTMLElement;
+
+    expect(
+      within(tags).getByText("모음", { selector: ".test-question-tag-category" }),
+    ).toBeTruthy();
   });
 
   it("카메라를 쓸 수 없으면 안내 문구를 보여준다", () => {

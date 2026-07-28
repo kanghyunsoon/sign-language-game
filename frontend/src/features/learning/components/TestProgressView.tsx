@@ -229,6 +229,15 @@ export function TestProgressView({
           <span className="test-panel-label">문제</span>
 
           <div className="test-question-content">
+            {/* ㅣ와 1처럼 헷갈리는 글자를 구분할 수 있도록 분류와 이름을 함께 보여준다. */}
+            <div className="test-question-tags">
+              <span className="test-question-tag test-question-tag-category">
+                {currentQuestion.categoryLabel}
+              </span>
+
+              <span className="test-question-tag">{currentQuestion.name}</span>
+            </div>
+
             <span className="test-question-symbol">
               {currentQuestion.symbol}
             </span>
@@ -238,11 +247,8 @@ export function TestProgressView({
         <article className="test-camera-panel">
           <span className="test-panel-label">내 동작</span>
 
-          <div
-            className={`test-camera-placeholder ${
-              cameraStream ? "camera-active" : ""
-            }`}
-          >
+          {/* 머리말 바 아래를 영상이 가득 채우고, 뱃지·안내·컨트롤만 위에 얹는다. */}
+          <div className="test-camera-placeholder">
             {cameraStream ? (
               <HandCamera
                 sharedStream={cameraStream}
@@ -263,28 +269,30 @@ export function TestProgressView({
             )}
 
             {cameraStream && <span className="test-camera-live">● LIVE</span>}
-          </div>
 
-          <p className="test-recognition-message" role="status">
-            {recognitionMessage}
-          </p>
+            <p className="test-recognition-message" role="status">
+              {recognitionMessage}
+            </p>
 
-          <div className="test-camera-controls">
-            <span
-              className={`test-timer ${isTimeUrgent ? "test-timer-urgent" : ""}`}
-              role="timer"
-              aria-label="남은 시간"
-            >
-              {remainingSeconds}초
-            </span>
+            <div className="test-camera-controls">
+              <span
+                className={`test-timer ${
+                  isTimeUrgent ? "test-timer-urgent" : ""
+                }`}
+                role="timer"
+                aria-label="남은 시간"
+              >
+                {remainingSeconds}초
+              </span>
 
-            <button
-              className="test-skip-button"
-              type="button"
-              onClick={() => advanceRef.current("wrong")}
-            >
-              넘어가기
-            </button>
+              <button
+                className="test-skip-button"
+                type="button"
+                onClick={() => advanceRef.current("wrong")}
+              >
+                넘어가기
+              </button>
+            </div>
           </div>
         </article>
       </section>

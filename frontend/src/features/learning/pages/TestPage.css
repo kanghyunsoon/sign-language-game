@@ -387,110 +387,182 @@
   white-space: nowrap;
 }
 
+/* 카드 크기·여백은 연습 세션 화면과 동일하게 맞춘다.
+   연습 쪽 min(Xvw, Yvh) 값을 1920x1200 캔버스 기준 px로 환산한 값이다. */
 .test-progress-panel {
   width: min(1280px, 100%);
-  flex: 1;
-  min-height: 0;
+  min-height: 640px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 32px;
+  gap: 72px;
+  padding: 24px 68px;
+  border-radius: 34px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 24px 50px rgba(59, 42, 35, 0.13);
 }
 
+/* 좌우 카드 공통 */
 .test-question-panel,
 .test-camera-panel {
+  min-width: 0;
+  min-height: 590px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 26px 26px 22px;
-  border: 1px solid #e7d9c7;
-  border-radius: 30px;
+  overflow: hidden;
+  border-radius: 25px;
   background: #ffffff;
-  box-shadow: 0 18px 38px rgba(82, 54, 35, 0.1);
+  box-shadow: 0 10px 26px rgba(63, 43, 32, 0.1);
 }
 
+/* 카드 상단 머리말 바 */
 .test-panel-label {
-  align-self: flex-start;
-  padding: 7px 16px;
-  border-radius: 999px;
-  background: #f1ece4;
+  min-height: 70px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 28px;
+  border-bottom: 1px solid #eee7de;
   color: #6b5c50;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 800;
 }
 
 .test-question-content {
   flex: 1;
-  display: grid;
-  place-items: center;
-  border-radius: 24px;
-  background: #faf7f1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px 24px 28px;
+}
+
+/* 글자 위 식별 정보(분류 · 이름) */
+.test-question-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.test-question-tag {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #f1ece4;
+  color: #6b5c50;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.test-question-tag-category {
+  background: #e2ead8;
+  color: #5f724a;
 }
 
 /* 문제 화면에는 사진·설명 없이 글자만 크게 보여준다. */
 .test-question-symbol {
   color: #3f2b20;
-  font-size: 260px;
+  font-size: 220px;
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.04em;
 }
 
+/* 머리말 바 아래를 카메라가 가득 채운다. */
 .test-camera-placeholder {
   position: relative;
   flex: 1;
+  min-height: 0;
+  margin: 18px 20px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
-  display: grid;
-  place-items: center;
-  border-radius: 24px;
-  background: #efe9e0;
+  border-radius: 21px;
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(135, 148, 154, 0.26) 0%,
+      rgba(47, 59, 64, 0.93) 55%,
+      #29353a 100%
+    );
 }
 
-.test-camera-video {
+/* HandCamera 내부 래퍼가 자체 여백·배경을 갖고 있어 영상이 작게 중첩된다.
+   연습 화면과 동일하게 걷어내 영상이 영역을 꽉 채우도록 한다. */
+.test-camera-placeholder > .camera-workspace {
   position: absolute;
+  z-index: 1;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  opacity: 0;
-  /* 거울 모드로 보여야 사용자가 동작을 따라 하기 쉽다. */
-  transform: scaleX(-1);
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
 }
 
-.test-camera-placeholder.camera-active .test-camera-video {
-  opacity: 1;
+.test-camera-placeholder .camera-stage {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: inherit;
+  aspect-ratio: auto;
 }
 
 .test-camera-live {
   position: absolute;
-  top: 14px;
-  left: 16px;
-  padding: 5px 12px;
+  top: 17px;
+  left: 17px;
+  z-index: 4;
+  padding: 6px 12px;
   border-radius: 999px;
-  background: rgba(63, 43, 32, 0.62);
+  background: rgba(27, 37, 41, 0.72);
   color: #ffffff;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .test-camera-message {
+  position: relative;
+  z-index: 2;
+  max-width: 260px;
   margin: 0;
-  padding: 0 24px;
-  color: #7d6d61;
+  padding: 16px 20px;
+  color: #d9dfe1;
   font-size: 15px;
+  line-height: 1.6;
   text-align: center;
+  word-break: keep-all;
 }
 
-/* AI 인식 상태 안내 */
+/* AI 인식 상태 안내 — 영상 위에 얹는다. */
 .test-recognition-message {
-  min-height: 22px;
+  position: absolute;
+  right: 16px;
+  bottom: 84px;
+  left: 16px;
+  z-index: 5;
   margin: 0;
-  color: #6b5c50;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(35, 45, 49, 0.78);
+  color: #ffffff;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 800;
   text-align: center;
+  backdrop-filter: blur(4px);
 }
 
+/* 타이머와 넘어가기 버튼도 영상 위에 오버레이한다. */
 .test-camera-controls {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  left: 16px;
+  z-index: 6;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -500,8 +572,8 @@
   min-width: 96px;
   padding: 12px 18px;
   border-radius: 16px;
-  background: #f1ece4;
-  color: #5f402b;
+  background: rgba(27, 37, 41, 0.72);
+  color: #ffffff;
   font-size: 20px;
   font-weight: 900;
   text-align: center;
@@ -509,8 +581,8 @@
 }
 
 .test-timer-urgent {
-  background: #f7e0d6;
-  color: #b4523a;
+  background: rgba(180, 82, 58, 0.86);
+  color: #ffffff;
 }
 
 .test-skip-button {
