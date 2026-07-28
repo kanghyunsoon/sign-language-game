@@ -80,15 +80,26 @@ export class P2pBattleTransport implements BattleGameTransport {
     if (this.playerIds.length !== 2 || [...this.players.values()].some((player) => player.gameOver)) return;
     const sourcePlayerId = this.playerIds[Math.floor(Math.random() * this.playerIds.length)];
     const activeIds = new Set((this.boards.get(sourcePlayerId) ?? []).filter((body) => body.state !== "REMOVED").map((body) => body.id));
+    // The current target is the oldest remaining source glyph. Pair it with
+    // its live board state so the otter removes that exact on-board letter.
     const sourceLetter = [...this.letters.entries()].find(([letterId, letter]) => letter.playerId === sourcePlayerId && activeIds.has(letterId));
     if (!sourceLetter) return;
     const [sourceLetterId, source] = sourceLetter;
+    const sourceBody = (this.boards.get(sourcePlayerId) ?? []).find((body) => body.id === sourceLetterId);
+    if (!sourceBody) return;
     const targetPlayerId = this.playerIds.find((playerId) => playerId !== sourcePlayerId);
     if (!targetPlayerId) return;
     const now = Date.now();
     const direction = sourcePlayerId === this.playerIds[0] ? "left-to-right" : "right-to-left";
     this.letters.delete(sourceLetterId);
-    this.delegate.publishEvent({ type: "OTTER_TRANSFER", sequence: ++this.sequence, matchId: this.matchId, sourcePlayerId, targetPlayerId, sourceLetterId, symbol: source.symbol, direction, pickupAt: now + 1_450, throwAt: now + 5_100 });
+    const pickupAt = now + 2_500;
+    const throwAt = now + 5_100;
+    this.delegate.publishEvent({ type: "OTTER_TRANSFER", sequence: ++this.sequence, matchId: this.matchId, sourcePlayerId, targetPlayerId, sourceLetterId, sourceNormalizedX: Math.max(0, Math.min(1, sourceBody.x)), symbol: source.symbol, direction, pickupAt, throwAt });
+    const pickupTimer = setTimeout(() => {
+      this.otterThrowTimers.delete(pickupTimer);
+      this.delegate.publishEvent({ type: "LETTER_REMOVED_SYNC", sequence: ++this.sequence, matchId: this.matchId, playerId: sourcePlayerId, letterId: sourceLetterId });
+    }, Math.max(0, pickupAt - Date.now()));
+    this.otterThrowTimers.add(pickupTimer);
     const timer = setTimeout(() => {
       this.otterThrowTimers.delete(timer);
       if (this.players.get(targetPlayerId)?.gameOver) return;

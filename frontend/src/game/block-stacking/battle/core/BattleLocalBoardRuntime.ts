@@ -9,7 +9,7 @@ interface LetterRecord { readonly id: string; readonly symbol: string; readonly 
 
 export interface BattleLocalBoard {
   start(): void; stop(): void; spawn(event: SpawnLetterEvent): void; selectRemoval(symbol: string): string | null;
-  acceptRemoval(letterId: string): void; rejectRemoval(letterId?: string): void; getTargetSymbol(): string | null; takeTargetForOtter(): string | null; resize(width: number, height: number): void; setPublisher(publisher: LocalBoardPublisher): void; setGameOverHandler(handler: () => void): void; dispose(): void;
+  acceptRemoval(letterId: string): void; rejectRemoval(letterId?: string): void; getTargetSymbol(): string | null; takeTargetForOtter(): string | null; takeLetterForOtter(letterId: string): string | null; resize(width: number, height: number): void; setPublisher(publisher: LocalBoardPublisher): void; setGameOverHandler(handler: () => void): void; dispose(): void;
 }
 
 export class BattleLocalBoardRuntime implements BattleLocalBoard {
@@ -39,9 +39,15 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
   /** 수달 이벤트가 현재 지정 블록 자체를 집어 갈 때 사용한다. */
   takeTargetForOtter(): string | null {
     const target = this.currentTarget();
-    if (!target) return null;
-    this.physics.removeLetter(target.id);
-    this.letters.delete(target.id);
+    return target ? this.takeLetterForOtter(target.id) : null;
+  }
+  /** Removes the exact physical glyph selected by the authoritative transfer. */
+  takeLetterForOtter(letterId: string): string | null {
+    const target = this.letters.get(letterId);
+    if (!target || !this.physics.getLetterState(letterId)) return null;
+    if (this.priorityTargetId === letterId) this.priorityTargetId = null;
+    this.physics.removeLetter(letterId);
+    this.letters.delete(letterId);
     this.updateTarget();
     this.renderer.render(this.physics.getLetterStates());
     return target.symbol;

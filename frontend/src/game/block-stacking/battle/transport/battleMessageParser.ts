@@ -1,6 +1,6 @@
 import type { BattleBodyTransform, BattleLetterState, ServerBattleMessage } from "./battleTransportTypes";
 
-const TYPES = new Set(["START_MATCH", "MATCH_STARTED", "GAME_START", "SPAWN_LETTER", "REMOVE_LETTER_ACCEPTED", "REMOVE_LETTER_REJECTED", "SCORE_UPDATED", "COMBO_UPDATED", "ATTACK_CREATED", "ATTACK_APPLIED", "MATCH_FINISHED", "PLAYER_DISCONNECTED", "PLAYER_RECONNECTED", "BODY_TRANSFORM_BATCH", "BOARD_SNAPSHOT", "LETTER_SPAWNED_SYNC", "LETTER_STATE_SYNC", "LETTER_REMOVED_SYNC"]);
+const TYPES = new Set(["START_MATCH", "MATCH_STARTED", "GAME_START", "SPAWN_LETTER", "REMOVE_LETTER_ACCEPTED", "REMOVE_LETTER_REJECTED", "SCORE_UPDATED", "COMBO_UPDATED", "ATTACK_CREATED", "ATTACK_APPLIED", "MATCH_FINISHED", "PLAYER_DISCONNECTED", "PLAYER_RECONNECTED", "BODY_TRANSFORM_BATCH", "BOARD_SNAPSHOT", "LETTER_SPAWNED_SYNC", "LETTER_STATE_SYNC", "LETTER_REMOVED_SYNC", "OTTER_TRANSFER"]);
 const STATES = new Set<BattleLetterState>(["FALLING", "SETTLED", "REMOVING", "REMOVED"]);
 
 export class BattleMessageParseError extends Error {}
@@ -39,6 +39,7 @@ function validateRequired(message: Record<string, unknown>, type: string): void 
     MATCH_FINISHED: ["matchId", "reason", "finishedAt"], PLAYER_DISCONNECTED: ["playerId"], PLAYER_RECONNECTED: ["playerId"],
     BODY_TRANSFORM_BATCH: ["matchId", "playerId", "sentAt", "bodies"], BOARD_SNAPSHOT: ["matchId", "playerId", "sentAt", "bodies"],
     LETTER_SPAWNED_SYNC: ["matchId", "playerId", "body"], LETTER_STATE_SYNC: ["matchId", "playerId", "letterId", "state"], LETTER_REMOVED_SYNC: ["matchId", "playerId", "letterId"],
+    OTTER_TRANSFER: ["matchId", "sourcePlayerId", "targetPlayerId", "sourceLetterId", "sourceNormalizedX", "symbol", "direction", "pickupAt", "throwAt"],
   };
   for (const key of common[type] ?? []) if (!(key in message)) throw new BattleMessageParseError(`Missing ${key}.`);
 }

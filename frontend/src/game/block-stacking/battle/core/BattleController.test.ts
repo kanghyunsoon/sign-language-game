@@ -12,7 +12,7 @@ import type { SignRecognizer } from "../../../recognition/core/SignRecognizer";
 class FakeBoard implements BattleLocalBoard {
   starts = 0; stops = 0; spawns: SpawnLetterEvent[] = []; accepted: string[] = []; rejected: (string | undefined)[] = []; selected: string | null = "letter-1"; disposed = false; gameOverHandler: (() => void) | null = null;
   start() { this.starts += 1; } stop() { this.stops += 1; } spawn(event: SpawnLetterEvent) { this.spawns.push(event); } selectRemoval() { return this.selected; }
-  acceptRemoval(id: string) { this.accepted.push(id); } rejectRemoval(id?: string) { this.rejected.push(id); } getTargetSymbol() { return null; } takeTargetForOtter() { return null; } resize() {} setPublisher(_publisher: LocalBoardPublisher) {} setGameOverHandler(handler: () => void) { this.gameOverHandler = handler; } dispose() { this.disposed = true; }
+  acceptRemoval(id: string) { this.accepted.push(id); } rejectRemoval(id?: string) { this.rejected.push(id); } getTargetSymbol() { return null; } takeTargetForOtter() { return null; } takeLetterForOtter() { return null; } resize() {} setPublisher(_publisher: LocalBoardPublisher) {} setGameOverHandler(handler: () => void) { this.gameOverHandler = handler; } dispose() { this.disposed = true; }
 }
 const attack = () => ({ apply: vi.fn(), dispose: vi.fn() });
 const start = { type: "MATCH_STARTED" as const, sequence: 1, matchId: "m", roomId: "r", playerIds: ["me", "other"], startAt: 2000, serverTime: 1000 };
