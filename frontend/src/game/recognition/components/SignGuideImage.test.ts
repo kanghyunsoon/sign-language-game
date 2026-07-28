@@ -8,8 +8,10 @@ import {
 } from "./SignGuideImage";
 
 describe("SignGuideImage symbol contract", () => {
-  it("has one approved guide for every playable game symbol", () => {
-    expect(GAME_SYMBOLS.every((symbol) => hasSignGuide(symbol))).toBe(true);
+  it("has one approved guide for every playable jamo symbol", () => {
+    const jamoSymbols = GAME_SYMBOLS.filter((symbol) => !/^\d+$/.test(symbol));
+    expect(jamoSymbols).toHaveLength(31);
+    expect(jamoSymbols.every((symbol) => hasSignGuide(symbol))).toBe(true);
     expect(SIGN_GUIDE_NUMBER_SYMBOLS).toEqual(["1", "2", "3", "4", "5", "6", "7", "8", "9"]);
   });
 
