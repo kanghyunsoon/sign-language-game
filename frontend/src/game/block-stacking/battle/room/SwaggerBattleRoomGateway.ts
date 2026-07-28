@@ -224,7 +224,6 @@ function toDetail(room: BackendGameRoom, options: BattleRoomGatewayOptions): Bat
     rematch: false,
     activeMatchId: room.status === "IN_PROGRESS" ? String(room.id) : null,
     matchStartAt: null,
-    ...(room.realtimeTicket ? { realtimeTicket: room.realtimeTicket } : {}),
   };
 }
 

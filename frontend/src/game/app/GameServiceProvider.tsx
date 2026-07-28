@@ -116,7 +116,7 @@ function createDefaultServices(user: GameModuleUser, accessToken: string | undef
       ? new SwaggerBattleRoomGateway({ baseUrl: config.roomApiBaseUrl, currentUser: user, credentials: "include", headers, gameType: "SIGN_DUEL" })
       : new DevBattleRoomGateway({ baseUrl: config.roomApiBaseUrl, currentUser: user, credentials: "include", headers }),
     roomRealtimeSocketFactory: {
-      create: (roomId, initialTicket) => {
+      create: (roomId) => {
         const ticketClient = new RealtimeTicketClient({
           apiBaseUrl: config.roomApiBaseUrl,
           userId: user.userId,
@@ -127,7 +127,6 @@ function createDefaultServices(user: GameModuleUser, accessToken: string | undef
           roomId,
           localUserId: user.userId,
           ticketClient,
-          initialTicket,
         });
       },
     },
