@@ -29,7 +29,14 @@ export function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/main" element={<MainPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/practice" element={<PracticeHomePage />} />
         <Route path="/dictionary" element={<DictionaryPage />} />
         <Route path="/test" element={<TestPage />} />

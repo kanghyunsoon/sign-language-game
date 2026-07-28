@@ -25,6 +25,7 @@ export interface AuthContextValue {
   readonly ready: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateDisplayName: (displayName: string) => void;
 }
 
 const USER_CACHE_KEY = "handpractice.auth.user";
@@ -74,6 +75,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
   }, []);
 
+  const updateDisplayName = useCallback((displayName: string) => {
+    setUser((currentUser) => {
+      if (!currentUser) return currentUser;
+      const updatedUser = { ...currentUser, displayName };
+      writeCachedUser(updatedUser);
+      return updatedUser;
+    });
+  }, []);
+
   const login = useCallback(async (email: string, password: string) => {
     const tokens = await loginRequest({ email, password });
     setTokens(tokens);
@@ -117,8 +127,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [logout]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ accessToken, user, ready, login, logout }),
-    [accessToken, user, ready, login, logout],
+    () => ({ accessToken, user, ready, login, logout, updateDisplayName }),
+    [accessToken, user, ready, login, logout, updateDisplayName],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

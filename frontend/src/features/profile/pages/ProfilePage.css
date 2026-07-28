@@ -422,6 +422,75 @@
   height: min(1.5625vw, 2.5vh);
 }
 
+.profile-nickname-editor {
+  position: absolute;
+  top: 12%;
+  left: 31%;
+  right: min(1.0417vw, 1.6667vh);
+  display: grid;
+  gap: min(.4167vw, .6667vh);
+}
+
+.profile-nickname-editor input {
+  width: 100%;
+  min-width: 0;
+  height: min(2.0833vw, 3.3333vh);
+  box-sizing: border-box;
+  padding: 0 min(.5208vw, .8333vh);
+  border: min(.0521vw, .0833vh) solid #bca995;
+  border-radius: min(.3125vw, .5vh);
+  color: #493a32;
+  font-size: min(.7292vw, 1.1667vh);
+  font-weight: 700;
+  background: #fff;
+  outline: none;
+}
+
+.profile-nickname-editor input:focus {
+  border-color: #765b48;
+}
+
+.profile-nickname-editor-actions {
+  display: flex;
+  gap: min(.3125vw, .5vh);
+}
+
+.profile-nickname-editor-actions button {
+  min-height: min(1.5625vw, 2.5vh);
+  padding: 0 min(.5208vw, .8333vh);
+  border: 0;
+  border-radius: min(.3125vw, .5vh);
+  color: #fff;
+  font-size: min(.5208vw, .8333vh);
+  font-weight: 800;
+  background: #765b48;
+  cursor: pointer;
+}
+
+.profile-nickname-editor-actions button:last-child {
+  color: #6d5c50;
+  background: #eee8df;
+}
+
+.profile-nickname-editor-actions button:disabled {
+  cursor: default;
+  opacity: .6;
+}
+
+.profile-user-error {
+  position: absolute;
+  right: min(1.0417vw, 1.6667vh);
+  bottom: 3%;
+  max-width: 62%;
+  margin: 0;
+  overflow: hidden;
+  color: #b44949;
+  font-size: min(.5208vw, .8333vh);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .profile-image-change {
   position: absolute;
   bottom: 15%;
@@ -511,9 +580,8 @@
 
 .profile-quick-actions {
   display: grid;
-  grid-template-columns:
-    repeat(2, min(10.4167vw, 16.6667vh));
-  justify-content: center;
+  width: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: min(.8333vw, 1.3333vh);
   margin-top: min(1.0417vw, 1.6667vh);
 }
@@ -536,10 +604,12 @@
 }
 
 .profile-quick-actions button {
-  width: min(10.4167vw, 16.6667vh);
+  width: 100%;
+  min-width: 0;
   height: min(2.7083vw, 4.3333vh);
   min-height: 0;
   padding: 0;
+  box-sizing: border-box;
 }
 
 .profile-quick-actions button:first-child {
@@ -550,7 +620,9 @@
 }
 
 .profile-page .profile-main-button {
+  display: block;
   width: 100%;
+  box-sizing: border-box;
   min-height: min(2.7083vw, 4.3333vh);
   margin-top: min(.8333vw, 1.3333vh);
   border-color: #765b48;
