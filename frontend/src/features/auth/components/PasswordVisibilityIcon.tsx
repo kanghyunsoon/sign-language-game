@@ -7,8 +7,9 @@ export function PasswordVisibilityIcon({
 }: PasswordVisibilityIconProps) {
   return (
     <svg
-      width="34"
-      height="34"
+      className="password-visibility-icon"
+      width="20"
+      height="20"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
