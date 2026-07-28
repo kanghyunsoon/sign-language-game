@@ -8,6 +8,8 @@ export type GameRunState = "IDLE" | "RUNNING" | "PAUSED" | "GAME_OVER";
 export interface SoloGameConfig {
   readonly boardWidth: number;
   readonly boardHeight: number;
+  /** While false, letters are released only after the player matches the paper target. */
+  readonly autoDropEnabled: boolean;
   readonly spawnIntervalMs: number;
   readonly spawnTopPadding: number;
   readonly spawnHorizontalPadding: number;
@@ -18,6 +20,7 @@ export interface SoloGameConfig {
 export const DEFAULT_SOLO_GAME_CONFIG: SoloGameConfig = {
   boardWidth: 720,
   boardHeight: 960,
+  autoDropEnabled: true,
   spawnIntervalMs: 1850,
   spawnTopPadding: 48,
   spawnHorizontalPadding: 56,
@@ -34,6 +37,11 @@ export interface GameRuntimeSnapshot {
   readonly playTimeMs: number;
   readonly activeLetterCount: number;
   readonly lockedSymbol: string | null;
+  /** The symbol currently waiting on the otter's paper in manual-drop mode. */
+  readonly queuedSymbol: string | null;
+  /** Increments whenever a paper symbol is released, so the UI can replay its burst. */
+  readonly paperBurstVersion: number;
+  readonly paperBurstSymbol: string | null;
   readonly lastMessage: string;
 }
 

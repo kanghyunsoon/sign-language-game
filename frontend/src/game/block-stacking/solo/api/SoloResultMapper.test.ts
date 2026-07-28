@@ -13,6 +13,9 @@ const snapshot: GameRuntimeSnapshot = {
   playTimeMs: 12_345.4,
   activeLetterCount: 5,
   lockedSymbol: null,
+  queuedSymbol: null,
+  paperBurstVersion: 0,
+  paperBurstSymbol: null,
   lastMessage: "done",
 };
 const statistics: readonly SymbolLearningStat[] = [{ symbol: "ㄱ", targetCount: 4, confirmedCount: 3, correctCount: 3, incorrectCount: 0, averageConfidence: 0.91, successRate: 1 }];
