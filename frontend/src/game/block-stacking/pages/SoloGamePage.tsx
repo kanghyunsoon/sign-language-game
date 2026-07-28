@@ -312,7 +312,6 @@ export function SoloGamePage({
   const resizeRuntime = useCallback((viewport: { readonly width: number; readonly height: number }) => {
     runtimeRef.current?.resizeViewport(viewport.width, viewport.height);
   }, []);
-  const displayedTargetSymbol = recognition.targetSymbol ?? recognition.playableSymbols[0] ?? SOLO_GAME_SYMBOLS[0] ?? "ㄱ";
 
   return (
     <div className="solo-game-page">
@@ -346,24 +345,6 @@ export function SoloGamePage({
       )}
 
       <section className="solo-workspace" aria-label="Solo physics game">
-        <section className="solo-hud" aria-label="게임 현황">
-          <Metric label="점수" value={String(snapshot.score)} />
-          <Metric label="콤보" value={String(snapshot.combo)} />
-          <Metric label="최고 콤보" value={String(snapshot.bestCombo)} />
-          <Metric label="제거" value={String(snapshot.removedCount)} />
-          <Metric label="시간" value={formatPlayTime(snapshot.playTimeMs)} />
-          <p className="solo-message" aria-live="polite">{snapshot.lastMessage}</p>
-          <p
-            className={`solo-lock solo-lock-slot${snapshot.lockedSymbol === null ? " is-empty" : ""}`}
-            aria-live="polite"
-            aria-hidden={snapshot.lockedSymbol === null}
-          >
-            {snapshot.lockedSymbol === null
-              ? "입력 잠금 안내 공간"
-              : `같은 글자를 다시 입력하려면 손을 풀어주세요: ${snapshot.lockedSymbol}`}
-          </p>
-        </section>
-
         <div className="solo-stage-column">
           <div className="solo-board-wrap">
           <div className="solo-sky-decor" aria-hidden="true">
@@ -383,6 +364,10 @@ export function SoloGamePage({
             onViewportResize={resizeRuntime}
             onRendererDisposed={disposeRuntime}
           />
+          <div className="solo-board-time" aria-label={`경과 시간 ${formatPlayTime(snapshot.playTimeMs)}`}>
+            <span>TIME</span>
+            <strong>{formatPlayTime(snapshot.playTimeMs)}</strong>
+          </div>
           {(snapshot.runState === "IDLE" || snapshot.runState === "PAUSED") && (
             <div className="solo-start-overlay" aria-label="게임 시작">
               <div>
@@ -458,13 +443,6 @@ export function SoloGamePage({
                 <strong>CAMERA OFFLINE</strong>
                 <span>{cameraError??"공유 카메라를 준비하고 있습니다."}</span>
               </div>}
-              <div className="solo-camera-recognition-values" aria-label="현재 지문자 인식 상태">
-                <article>
-                  <span>{recognition.targetSymbol ? "목표 지문자" : "연습 미리보기"}</span>
-                  <strong>{displayedTargetSymbol}</strong>
-                </article>
-                <article><span>현재 인식</span><strong>{recognition.prediction?.symbol ?? "-"}</strong><small>{recognition.prediction ? `${(recognition.prediction.confidence * 100).toFixed(0)}%` : "인식 대기"}</small></article>
-              </div>
             </div>
           </section>
 
@@ -508,7 +486,4 @@ function formatPlayTime(playTimeMs: number): string {
   return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
 }
 
-function Metric({ label, value }: { readonly label: string; readonly value: string }) {
-  return <div className="solo-metric"><span>{label}</span><strong>{value}</strong></div>;
-}
 const SOLO_GAME_SYMBOLS = GAME_SYMBOLS.filter((symbol) => !/^\d+$/.test(symbol));
