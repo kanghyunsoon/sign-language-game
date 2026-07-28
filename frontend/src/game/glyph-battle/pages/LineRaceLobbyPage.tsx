@@ -1,9 +1,11 @@
+
+
+
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useGameModuleContext } from "../../app/GameModuleContext";
 import type { LineRaceRoomSummary } from "../room";
 import styles from "../components/LineRaceRoom.module.css";
-import { isLineRaceServerBotEnabled } from "../core";
 import { LineRaceTutorial } from "../components/LineRaceTutorial";
 
 export function LineRaceLobbyPage() {
@@ -70,18 +72,18 @@ export function LineRaceLobbyPage() {
       <LineRaceTutorial />
       <div className={styles.toolbar}>
         <div>
-          <input
-            aria-label="방 코드"
-            placeholder="비공개 방 코드"
-            value={code}
-            onChange={(event) => setCode(event.target.value.toUpperCase())}
-          />
-          <button onClick={() => void joinCode()}>코드 참가</button>
+          <div>
+            <input
+              aria-label="방 코드"
+              placeholder="비공개 방 코드"
+              value={code}
+              onChange={(event) => setCode(event.target.value.toUpperCase())}
+            />
+            <button onClick={() => void joinCode()}>코드 참가</button>
+          </div>
+          <button type="button" onClick={startTurnBotPractice}>봇전</button>
         </div>
         <div className={styles.actions}>
-          {isLineRaceServerBotEnabled() ? (
-            <button onClick={startTurnBotPractice}>턴제 봇 연습</button>
-          ) : null}
           <button onClick={() => void load()}>새로고침</button>
         </div>
       </div>
