@@ -78,7 +78,7 @@
   background: transparent;
   color: #7d6d61;
   font-family: inherit;
-  font-size: min(1.302083vw, 2.083333vh);
+  font-size: min(0.885417vw, 1.416667vh);
   font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
@@ -112,7 +112,7 @@
   border: min(0.052083vw, 0.083333vh) solid #dbc8b1;
   border-radius: min(52.03125vw, 83.25vh);
   color: #5f402b;
-  font-size: min(1.145833vw, 1.833333vh);
+  font-size: min(0.833333vw, 1.333333vh);
   font-weight: 800;
   text-decoration: none;
   background: #fffaf2;
@@ -125,7 +125,7 @@
   position: relative;
   flex: 1;
   min-height: 0;
-  padding: min(2.5vw, 4vh) min(0.260417vw, 0.416667vh) min(2.1875vw, 3.5vh);
+  padding: min(2.5vw, 4vh) min(2.916667vw, 4.666667vh) min(2.1875vw, 3.5vh);
   background:
     linear-gradient(
       180deg,
@@ -139,7 +139,7 @@
 /* 상단 진행률 */
 
 .practice-progress-area {
-  width: calc(100% - min(0.260417vw, 0.416667vh));
+  width: min(min(68.75vw, 110vh), calc(100% - min(4.166667vw, 6.666667vh)));
   margin: 0 auto min(1.354167vw, 2.166667vh);
   display: flex;
   align-items: center;
@@ -170,7 +170,7 @@
   padding: min(0.520833vw, 0.833333vh) min(0.833333vw, 1.333333vh);
   border-radius: min(52.03125vw, 83.25vh);
   color: #625950;
-  font-size: min(1.145833vw, 1.833333vh);
+  font-size: min(0.729167vw, 1.166667vh);
   font-weight: 800;
   text-align: center;
   background: #ffffff;
@@ -222,14 +222,14 @@
 .practice-completion-card h2 {
   margin: min(0.520833vw, 0.833333vh) 0 min(0.364583vw, 0.583333vh);
   color: #4c4037;
-  font-size: min(1.5625vw, 2.5vh);
+  font-size: min(1.041667vw, 1.666667vh);
   line-height: 1.45;
 }
 
 .practice-completion-card > p {
   margin: 0;
   color: #91867d;
-  font-size: min(1.145833vw, 1.833333vh);
+  font-size: min(0.78125vw, 1.25vh);
 }
 
 .practice-completion-stats {
@@ -253,12 +253,12 @@
 
 .practice-completion-stats strong {
   color: #43372f;
-  font-size: min(1.302083vw, 2.083333vh);
+  font-size: min(0.885417vw, 1.416667vh);
 }
 
 .practice-completion-stats span {
   color: #aaa097;
-  font-size: min(0.9375vw, 1.5vh);
+  font-size: min(0.572917vw, 0.916667vh);
 }
 
 .practice-completion-actions {
@@ -278,7 +278,7 @@
   border: 0;
   border-radius: min(0.677083vw, 1.083333vh);
   color: #62574e;
-  font-size: min(1.09375vw, 1.75vh);
+  font-size: min(0.729167vw, 1.166667vh);
   font-weight: 800;
   text-decoration: none;
   background: #ffffff;
@@ -301,13 +301,13 @@
 /* 좌우 카드를 감싸는 큰 흰색 패널 */
 
 .practice-session-panel {
-  width: calc(100% - min(0.260417vw, 0.416667vh));
-  min-height: min(40vw, 64vh);
+  width: min(min(66.666667vw, 106.666667vh), calc(100% - min(6.25vw, 10vh)));
+  min-height: min(33.333333vw, 53.333333vh);
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: min(1.5625vw, 2.5vh);
-  padding: min(1.25vw, 2vh) min(0.833333vw, 1.333333vh);
+  gap: min(3.75vw, 6vh);
+  padding: min(1.25vw, 2vh) min(3.541667vw, 5.666667vh);
   border-radius: min(1.770833vw, 2.833333vh);
   background: rgba(255, 255, 255, 0.82);
   box-shadow: 0 min(1.25vw, 2vh) min(2.604167vw, 4.166667vh) rgba(59, 42, 35, 0.13);
@@ -318,7 +318,7 @@
 .practice-answer-panel,
 .practice-camera-panel {
   min-width: 0;
-  min-height: min(37.5vw, 60vh);
+  min-height: min(30.729167vw, 49.166667vh);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -336,7 +336,7 @@
   padding: 0 min(1.458333vw, 2.333333vh);
   border-bottom: min(0.052083vw, 0.083333vh) solid #eee7de;
   color: #3f2b20;
-  font-size: min(1.302083vw, 2.083333vh);
+  font-size: min(0.885417vw, 1.416667vh);
   font-weight: 900;
 }
 
@@ -347,7 +347,7 @@
   display: grid;
   place-items: center;
   border-radius: min(0.572917vw, 0.916667vh);
-  font-size: min(1.145833vw, 1.833333vh);
+  font-size: min(0.78125vw, 1.25vh);
 }
 
 .practice-answer-panel .practice-panel-label::before {
@@ -366,7 +366,7 @@
   padding: min(0.416667vw, 0.666667vh) min(0.677083vw, 1.083333vh);
   border-radius: min(52.03125vw, 83.25vh);
   color: #88908c;
-  font-size: min(0.9375vw, 1.5vh);
+  font-size: min(0.625vw, 1vh);
   font-weight: 800;
   background: #f2f5f4;
   content: "기초 자음";
@@ -385,7 +385,7 @@
 .practice-answer-guide {
   position: relative;
   flex: 1;
-  min-height: min(29.166667vw, 46.666667vh);
+  min-height: min(22.916667vw, 36.666667vh);
   display: flex;
   align-items: center;
   flex-direction: column;
@@ -439,12 +439,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: min(3.125vw, 5vh);
+  margin-top: min(2.5vw, 1.5vh);
 }
 
 .practice-item-navigation strong {
   color: #3f2b20;
-  font-size: min(2.083333vw, 3.333333vh);
+  font-size: min(1.4583vw, 2.3333vh);
   line-height: 1;
   text-align: center;
 }
@@ -452,15 +452,14 @@
 /* 디귿 아래 손동작 설명 */
 
 .practice-item-description {
-   margin-top: min(1.041667vw, 1.041667vw);
   min-height: min(2.5vw, 4vh);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
   color: #8a7e73;
-  font-size: min(1.354167vw, 2.166667vh);
-  line-height: 1.4;
+  font-size: min(0.9375vw, 1.5vh);
+  line-height: 1.65;
   text-align: center;
   word-break: keep-all;
 }
@@ -481,8 +480,8 @@
   border: min(0.052083vw, 0.083333vh) solid #eadf9f;
   border-radius: min(0.833333vw, 1.333333vh);
   color: #6f665b;
-  font-size: min(1.041667vw, 1.666667vh);
-  line-height: 1.4;
+  font-size: min(0.677083vw, 1.083333vh);
+  line-height: 1.65;
   background: #fff9dc;
 }
 
@@ -506,15 +505,14 @@
 /* 오른쪽 카메라 카드 */
 
 .practice-camera-panel {
-  position: relative;
-  padding-bottom: 0;
+  padding-bottom: min(3.958333vw, 6.333333vh);
 }
 
 .practice-camera-placeholder {
   position: relative;
   flex: 1;
-  min-height: min(29.166667vw, 46.666667vh);
-  margin: min(1.145833vw, 1.833333vh) min(1.25vw, 2vh) min(0.729167vw, 1.166667vh);
+  min-height: min(23.177083vw, 37.083333vh);
+  margin: min(0.9375vw, 1.5vh) min(1.041667vw, 1.666667vh) min(0.729167vw, 1.166667vh);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -523,7 +521,7 @@
   color: transparent;
   background:
     radial-gradient(
-      circle at center,
+      ellipse at center,
       rgba(135, 148, 154, 0.26) 0%,
       rgba(47, 59, 64, 0.93) 55%,
       #29353a 100%
@@ -533,8 +531,8 @@
 .practice-camera-placeholder {
   position: relative;
   flex: 1;
-  min-height: min(29.166667vw, 46.666667vh);
-  margin: min(1.145833vw, 1.833333vh) min(1.25vw, 2vh) min(0.729167vw, 1.166667vh);
+  min-height: min(23.177083vw, 37.083333vh);
+  margin: min(0.9375vw, 1.5vh) min(1.041667vw, 1.666667vh) min(0.729167vw, 1.166667vh);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -542,7 +540,7 @@
   border-radius: min(1.09375vw, 1.75vh);
   background:
     radial-gradient(
-      circle at center,
+      ellipse at center,
       rgba(135, 148, 154, 0.26) 0%,
       rgba(47, 59, 64, 0.93) 55%,
       #29353a 100%
@@ -579,7 +577,7 @@
   padding: min(0.3125vw, 0.5vh) min(0.520833vw, 0.833333vh);
   border-radius: min(52.03125vw, 83.25vh);
   color: #ffffff;
-  font-size: min(0.9375vw, 1.5vh);
+  font-size: min(0.572917vw, 0.916667vh);
   font-weight: 900;
   background: rgba(27, 37, 41, 0.72);
 }
@@ -591,7 +589,7 @@
   left: min(1.041667vw, 1.666667vh);
   z-index: 4;
   color: #d9dfe1;
-  font-size: min(1.041667vw, 1.666667vh);
+  font-size: min(0.625vw, 1vh);
   font-weight: 700;
   text-align: center;
   pointer-events: none;
@@ -604,7 +602,7 @@
   margin: 0;
   padding: min(0.833333vw, 1.333333vh) min(1.041667vw, 1.666667vh);
   color: #d9dfe1;
-  font-size: min(1.145833vw, 1.833333vh);
+  font-size: min(0.729167vw, 1.166667vh);
   line-height: 1.6;
   text-align: center;
   word-break: keep-all;
@@ -620,7 +618,7 @@
   padding: min(0.520833vw, 0.833333vh) min(0.729167vw, 1.166667vh);
   border-radius: min(0.625vw, 1vh);
   color: #ffffff;
-  font-size: min(1.041667vw, 1.666667vh);
+  font-size: min(0.677083vw, 1.083333vh);
   font-weight: 800;
   text-align: center;
   background: rgba(35, 45, 49, 0.78);
@@ -666,7 +664,7 @@
 .practice-correct-card p {
   margin: 0 0 min(1.041667vw, 1.666667vh);
   color: #827368;
-  font-size: min(1.145833vw, 1.833333vh);
+  font-size: min(0.78125vw, 1.25vh);
 }
 
 .practice-correct-card button {
@@ -676,7 +674,7 @@
   border-radius: min(0.677083vw, 1.083333vh);
   color: #ffffff;
   font: inherit;
-  font-size: min(1.145833vw, 1.833333vh);
+  font-size: min(0.78125vw, 1.25vh);
   font-weight: 900;
   background: #8fa071;
   box-shadow: 0 min(0.260417vw, 0.416667vh) 0 #6f8052;
@@ -695,14 +693,14 @@
   padding: min(0.677083vw, 1.083333vh) min(0.9375vw, 1.5vh);
   border-radius: min(0.833333vw, 1.333333vh);
   color: #8b8178;
-  font-size: min(1.041667vw, 1.666667vh);
+  font-size: min(0.677083vw, 1.083333vh);
   line-height: 1.55;
   background: #f2eee7;
 }
 
 .practice-feedback::before {
   color: #3f2b20;
-  font-size: min(1.302083vw, 2.083333vh);
+  font-size: min(0.833333vw, 1.333333vh);
   font-weight: 900;
   content: "좋아요! 거의 정확해요";
 }
@@ -711,8 +709,8 @@
 
 .practice-bottom-navigation {
   position: relative;
-  width: calc(100% - min(0.260417vw, 0.416667vh));
-  margin: min(1.041667vw, 1.666667vh) auto 0;
+  width: min(min(66.666667vw, 106.666667vh), calc(100% - min(6.25vw, 10vh)));
+  margin: min(1.770833vw, 2.833333vh) auto 0;
   display: grid;
   grid-template-columns: min(7.552083vw, 12.083333vh) 1fr min(7.552083vw, 12.083333vh);
   align-items: center;
@@ -731,7 +729,7 @@
   border: 0;
   border-radius: min(0.78125vw, 1.25vh);
   color: #ffffff;
-  font-size: min(1.145833vw, 1.833333vh);
+  font-size: min(0.78125vw, 1.25vh);
   font-weight: 800;
   background: #857361;
   box-shadow:
@@ -755,17 +753,16 @@
 
 .practice-camera-button {
   position: absolute;
-  z-index: 8;
-  right: min(2.083333vw, 3.333333vh);
-  bottom: min(1.5625vw, 2.5vh);
-  width: min(9.375vw, 15vh);
-  height: min(3.125vw, 5vh);
+  top: max(-6.770833vw, -10.833333vh);
+  right: min(4.583333vw, 7.333333vh);
+  width: min(7.552083vw, 12.083333vh);
+  height: min(2.395833vw, 3.833333vh);
   border: 0;
   border-radius: min(0.729167vw, 1.166667vh);
   color: #66594e;
-  font-size: min(1.25vw, 2vh);
+  font-size: min(0.78125vw, 1.25vh);
   font-weight: 800;
-  background: #ffffff;
+  background: #fffce8;
   box-shadow: 0 min(0.416667vw, 0.666667vh) min(0.9375vw, 1.5vh) rgba(63, 43, 32, 0.09);
   cursor: pointer;
   transition: transform 0.2s ease;
