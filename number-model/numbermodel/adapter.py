@@ -14,13 +14,56 @@ from .labels import (  # re-exported so either module gives the same contract
     FEATURE_VERSION,
     LABELS,
     MODEL_VERSION,
+    NONE_INDEX,
     NONE_LABEL,
+    NUMBER_INDEXES,
     NUMBER_LABELS,
 )
 
 
 DEFAULT_MODEL_DIRECTORY = NUMBER_MODEL_ROOT / "models" / MODEL_VERSION
 READINESS_PATH = NUMBER_MODEL_ROOT / "contracts" / "readiness-number.json"
+COMPOSITION = "p(none)=gate p(none); p(digit)=(1 - gate p(none)) * head p(digit | number)"
+_NUMBER_COLUMNS = np.asarray(NUMBER_INDEXES)
+
+
+def compose_soft(gate: np.ndarray, head: np.ndarray) -> np.ndarray:
+    """Combine a rejection gate with a digit head into one distribution.
+
+    The gate owns the number/not-number decision and the head splits whatever
+    mass is left across the digits. Measured on held-out data, ExtraTrees rejects
+    non-number hand shapes about six times better than KNN while KNN separates
+    the digits better; this keeps each where it is strong.
+
+    Soft rather than a hard switch because the frontend decoder thresholds on
+    confidence. A hard switch emits 1.0/0.0, which would make the confidence and
+    window-average rules in recognition-policy.json meaningless.
+
+    Exported so training, offline probes, and runtime all score the identical
+    composition rather than three drifting copies of it.
+    """
+    gate = np.asarray(gate, dtype=np.float32)
+    head = np.asarray(head, dtype=np.float32)
+    if gate.shape != head.shape or gate.ndim != 2 or gate.shape[1] != len(LABELS):
+        raise ValueError(f"Expected two [samples, {len(LABELS)}] arrays, got {gate.shape} and {head.shape}")
+
+    output = np.zeros_like(gate)
+    none_probability = gate[:, NONE_INDEX]
+    output[:, NONE_INDEX] = none_probability
+
+    head_digits = head[:, _NUMBER_COLUMNS]
+    head_total = head_digits.sum(axis=1, keepdims=True)
+    gate_digits = gate[:, _NUMBER_COLUMNS]
+    gate_total = gate_digits.sum(axis=1, keepdims=True)
+    # A head fully certain the frame is `none` leaves no digit shape to use, so
+    # fall back to the gate's own shape rather than inventing a uniform one.
+    conditional = np.where(
+        head_total > 1e-6,
+        np.divide(head_digits, np.where(head_total > 1e-6, head_total, 1.0)),
+        np.divide(gate_digits, np.where(gate_total > 1e-6, gate_total, 1.0)),
+    )
+    output[:, _NUMBER_COLUMNS] = (1.0 - none_probability)[:, None] * conditional
+    return output.astype(np.float32)
 
 
 def load_number_readiness() -> dict[str, object]:
@@ -100,18 +143,23 @@ class NumberModelAdapter:
         if not bool(manifest.get("frameInput")):
             raise ValueError("Number model must declare frameInput; sequence bundles are a different contract")
 
-        artifact_path = model_directory / str(manifest["artifact"])
-        expected_hash = str(manifest["sha256"]).lower()
-        if _sha256(artifact_path) != expected_hash:
-            raise ValueError("Number model artifact hash does not match its manifest")
-
-        self._model = joblib.load(artifact_path)
-        # Column order of predict_proba follows classes_, not the label tuple.
-        # Verify rather than assume, so a retrained bundle cannot silently
-        # shuffle probabilities onto the wrong symbols.
-        classes = getattr(self._model, "classes_", None)
-        if classes is not None and not np.array_equal(np.asarray(classes), np.arange(len(LABELS))):
-            raise ValueError("Number model classes_ must be 0..N-1 in manifest label order")
+        # Two bundle shapes: a single estimator, or a gate plus a digit head that
+        # are combined by compose_soft. Both expose the same 11-label output.
+        components = manifest.get("components")
+        if components:
+            roles = {str(item["role"]): item for item in components}
+            if set(roles) != {"gate", "head"}:
+                raise ValueError("A hybrid bundle needs exactly a gate and a head component")
+            if str(manifest.get("composition")) != COMPOSITION:
+                raise ValueError("Hybrid manifest composition does not match this adapter")
+            self._gate = self._load_component(joblib, model_directory, roles["gate"])
+            self._head = self._load_component(joblib, model_directory, roles["head"])
+            self._model = None
+        else:
+            self._model = self._load_component(
+                joblib, model_directory, {"artifact": manifest["artifact"], "sha256": manifest["sha256"]},
+            )
+            self._gate = self._head = None
 
         self._contract = NumberModelContract(
             labels=labels,
@@ -120,16 +168,40 @@ class NumberModelAdapter:
             model_version=str(manifest["modelVersion"]),
         )
 
+    @staticmethod
+    def _load_component(joblib, directory: Path, entry: dict[str, object]) -> object:
+        artifact_path = directory / str(entry["artifact"])
+        if _sha256(artifact_path) != str(entry["sha256"]).lower():
+            raise ValueError(f"{artifact_path.name} hash does not match its manifest")
+        model = joblib.load(artifact_path)
+        # Column order of predict_proba follows classes_, not the label tuple.
+        # Verify rather than assume, so a retrained bundle cannot silently
+        # shuffle probabilities onto the wrong symbols.
+        classes = getattr(model, "classes_", None)
+        if classes is not None and not np.array_equal(np.asarray(classes), np.arange(len(LABELS))):
+            raise ValueError(f"{artifact_path.name} classes_ must be 0..N-1 in manifest label order")
+        return model
+
     @property
     def contract(self) -> NumberModelContract:
         return self._contract
+
+    @property
+    def is_hybrid(self) -> bool:
+        return self._model is None
 
     def predict_features(self, features: np.ndarray) -> np.ndarray:
         """Classify a batch of `[samples, 78]` features."""
         values = np.asarray(features, dtype=np.float32)
         if values.ndim != 2 or values.shape[1] != self._contract.feature_size:
             raise ValueError(f"Expected [samples, {self._contract.feature_size}] input, got {values.shape}")
-        output = np.asarray(self._model.predict_proba(values), dtype=np.float32)
+        if self.is_hybrid:
+            output = compose_soft(
+                np.asarray(self._gate.predict_proba(values), dtype=np.float32),
+                np.asarray(self._head.predict_proba(values), dtype=np.float32),
+            )
+        else:
+            output = np.asarray(self._model.predict_proba(values), dtype=np.float32)
         if output.shape != (len(values), self._contract.output_size):
             raise ValueError(f"Expected [{len(values)}, {self._contract.output_size}] output, got {output.shape}")
         return output
