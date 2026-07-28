@@ -317,19 +317,14 @@ describe("TestPage 결과 화면", () => {
     expect(footer.querySelector(".test-recognition-message")).toBeTruthy();
   });
 
-  it("오답노트 버튼은 개발중 팝업을 연다", () => {
+  it("오답노트 버튼은 오답노트 페이지로 연결된다", () => {
     renderPage();
     startConsonantOnly("5개");
     finishAllWrong();
 
-    fireEvent.click(screen.getByRole("button", { name: "오답노트" }));
+    const noteLink = screen.getByRole("link", { name: "오답노트" });
 
-    expect(screen.getByRole("dialog")).toBeTruthy();
-    expect(screen.getByText("수달이 개발중..")).toBeTruthy();
-
-    fireEvent.click(screen.getByRole("button", { name: "기다릴게!" }));
-
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(noteLink.getAttribute("href")).toBe("/review-notes");
   });
 
   it("문항이 많아도 목록과 하단 버튼이 모두 렌더된다", () => {
@@ -349,7 +344,7 @@ describe("TestPage 결과 화면", () => {
     expect(within(list).getAllByRole("button")).toHaveLength(14);
     // 목록이 길어져도 하단 고정 영역은 잘리지 않고 남아 있어야 한다.
     expect(within(actions).getByRole("button", { name: "다시 테스트" })).toBeTruthy();
-    expect(within(actions).getByRole("button", { name: "오답노트" })).toBeTruthy();
+    expect(within(actions).getByRole("link", { name: "오답노트" })).toBeTruthy();
     expect(within(actions).getByRole("link", { name: "메인페이지" })).toBeTruthy();
   });
 

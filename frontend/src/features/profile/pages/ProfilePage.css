@@ -229,6 +229,9 @@
   border-radius: 50%;
   background: transparent;
   box-shadow: none;
+  /* 오답 노트 항목은 링크(a)라서 밑줄·기본 색을 지운다. */
+  color: inherit;
+  text-decoration: none;
   cursor: pointer;
 }
 

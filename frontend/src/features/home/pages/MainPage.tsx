@@ -20,6 +20,7 @@ export function MainPage() {
           <Link to="/practice">연습</Link>
           <Link to="/test">테스트</Link>
           <Link to="/dictionary">사전</Link>
+          <Link to="/review-notes">오답노트</Link>
           <Link to="/game">게임</Link>
         </nav>
 
@@ -112,6 +113,15 @@ export function MainPage() {
                 <span>
                   <h3>사전</h3>
                   <p>자음, 모음, 숫자와 자주 쓰는 표현을 찾아봐요.</p>
+                </span>
+              </Link>
+
+              <Link className="menu-card" to="/review-notes">
+                <span className="menu-icon notes">📕</span>
+
+                <span>
+                  <h3>오답노트</h3>
+                  <p>틀린 지문자를 모아 다시 연습하고 테스트해요.</p>
                 </span>
               </Link>
 
