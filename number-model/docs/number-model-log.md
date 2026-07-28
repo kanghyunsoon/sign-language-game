@@ -150,19 +150,33 @@ python number-model/scripts/train_number_model.py \
 
 GPU는 필요 없다. 78차원 classical 모델이므로 CPU로 충분하며, GPU 서버를 쓸 경우에도 팀 규칙대로 물리 2번(`CUDA_VISIBLE_DEVICES=2`)만 사용한다.
 
-## 7. 배포 통합 시 필요한 변경 (아직 하지 않음)
+## 7. 서버 배선
 
-`NumberModelAdapter`는 현재 **자립형**이다. 랜드마크를 직접 받아 스스로 `feature_v3`를 만들고 11개 확률을 돌려준다. 오프라인 학습·평가에는 이것으로 충분하다.
+`number-model/server/`가 자모 서버와 **동일한 WebSocket 계약**을 구현한다. 프런트는 포트만 바꾸면 두 서버 중 어느 쪽에도 붙는다.
 
-실시간 서버에 붙이려면 기존 파일 한 곳을 고쳐야 한다.
-
-```python
-# app/recognition_session.py:22 — feature 크기가 v2(55)로 고정되어 있다
-if runner.contract.feature_size != FEATURE_SIZE:
-    raise ValueError(...)
+```
+ws://localhost:8766     지숫자 10종 + none
+ws://localhost:8765     자모 서버 (변경 없음)
 ```
 
-`feature_adapter`가 `feature_v2`를 고정 재수출하므로 78차원 모델은 세션에 붙지 않는다. runner가 자기 feature 버전을 노출하도록 바꾸고 기존 프로필은 계속 v2를 반환하게 하면 동작은 불변이다. **이 변경은 별도 작업 단위로 분리한다** — 이번 브랜치는 기존 파일을 수정하지 않는다.
+기존 파일을 고치지 않고 별도 서버로 해결했다. 처음 계획은 `app/recognition_session.py`의 feature 크기 고정(v2 55차원)을 풀어 78차원 모델을 세션에 붙이는 것이었으나, 그러면 배포 중인 자모 경로를 건드리게 된다. 계약이 같은 별도 프로세스를 띄우면 자모 서버를 한 줄도 수정하지 않고, 인증 전 모델이 운영 경로에 섞일 위험도 없다.
+
+계약 차이는 두 가지뿐이고 둘 다 프레임 단위라는 점에서 나온다.
+
+| | 자모 서버 | 지숫자 서버 |
+| --- | --- | --- |
+| `sequenceLength` | 10 | **1** |
+| 추가 필드 | — | `frameInput`, `featureVersion` |
+| 특징 | `feature_v2` 55차원 | `feature_v3` 78차원 |
+| `RESET_SEQUENCE` | 프레임 창 비움 | 미검출 타이머만 (창이 없음) |
+
+확정은 서버가 하지 않는다. `isStable`은 항상 `false`이고 `SIGN_CONFIRMED`를 보내지 않으며, `confirmationAuthority`는 `FRONTEND_TEMPORAL_DECODER`다. 프런트가 `recognition-policy.json`의 창 길이·평균 신뢰도·유지시간으로 판단한다.
+
+`server/messages.py`는 `app/messages.py`의 사본이다. 독립성을 위해 사본이지만 조용히 어긋나면 프런트가 깨지므로, 원본 SHA-256을 기록하고 `tests/test_server_contract.py`가 두 구현을 같은 payload로 대조한다 — 정상 요청 4종의 파싱 결과, 잘못된 요청 9종의 오류 코드, 응답 빌더 4종의 출력, `CAPABILITIES` 키 부분집합.
+
+안전 gate는 `contracts/readiness-number.json`이다. **현재 전 class가 부적격**이므로 `competitiveSymbols`는 빈 배열이고, 인증 전 모델이 경쟁 모드에 노출되지 않는다. 측정이 끝나면 이 파일만 교체한다.
+
+상세 API는 `server/README.md`를 따른다.
 
 ## 8. 회차 기록
 
