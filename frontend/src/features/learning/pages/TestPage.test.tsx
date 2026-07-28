@@ -26,6 +26,14 @@ const renderPage = () =>
     </MemoryRouter>,
   );
 
+/** 오답노트에서 넘어온 것처럼 symbols 파라미터를 실어 렌더한다. */
+const renderPageWithSymbols = (symbols: string) =>
+  render(
+    <MemoryRouter initialEntries={[`/test?symbols=${encodeURIComponent(symbols)}`]}>
+      <TestPage />
+    </MemoryRouter>,
+  );
+
 /** 설정 화면에서 분류/문항 수를 고르고 테스트를 시작한다. */
 const startTest = (categoryLabel: string, count: string) => {
   const setupCategory = screen.getByRole("button", { name: new RegExp(categoryLabel) });
@@ -439,5 +447,59 @@ describe("TestPage 결과 화면", () => {
     fireEvent.click(screen.getByRole("button", { name: "다시 테스트" }));
 
     expect(screen.getByRole("button", { name: "테스트 시작" })).toBeTruthy();
+  });
+});
+
+describe("TestPage 오답노트 연동", () => {
+  it("symbols 파라미터로 들어오면 설정 화면을 건너뛰고 바로 출제한다", () => {
+    renderPageWithSymbols("ㄱ,ㄴ,ㄷ");
+
+    expect(screen.queryByRole("button", { name: "테스트 시작" })).toBeNull();
+    expect(screen.getByText("1 / 3")).toBeTruthy();
+  });
+
+  it("넘겨받은 글자만 출제한다", () => {
+    renderPageWithSymbols("ㄱ,ㄴ");
+
+    expect(screen.getByText("1 / 2")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "넘어가기" }));
+
+    expect(screen.getByText("2 / 2")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "넘어가기" }));
+
+    // 두 문항을 모두 틀렸으니 결과 화면에 2개가 담긴다.
+    expect(screen.getByText("2개 문자를 오답노트에 추가했어요!")).toBeTruthy();
+  });
+
+  it("중복된 글자는 한 번만 출제한다", () => {
+    renderPageWithSymbols("ㄱ,ㄴ,ㄱ,ㄴ");
+
+    expect(screen.getByText("1 / 2")).toBeTruthy();
+  });
+
+  it("알 수 없는 글자만 넘어오면 설정 화면을 그대로 보여준다", () => {
+    renderPageWithSymbols("쀍,zz");
+
+    expect(screen.getByRole("button", { name: "테스트 시작" })).toBeTruthy();
+  });
+
+  it("파라미터가 없으면 기존처럼 설정 화면에서 시작한다", () => {
+    renderPage();
+
+    expect(screen.getByRole("button", { name: "테스트 시작" })).toBeTruthy();
+  });
+
+  it("다시 테스트는 설정 화면 대신 같은 글자를 재출제한다", () => {
+    renderPageWithSymbols("ㄱ,ㄴ");
+
+    fireEvent.click(screen.getByRole("button", { name: "넘어가기" }));
+    fireEvent.click(screen.getByRole("button", { name: "넘어가기" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "다시 테스트" }));
+
+    expect(screen.queryByRole("button", { name: "테스트 시작" })).toBeNull();
+    expect(screen.getByText("1 / 2")).toBeTruthy();
   });
 });

@@ -1,6 +1,6 @@
 import "./TestPage.css";
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { TestProgressView } from "../components/TestProgressView";
 import { TestResultView } from "../components/TestResultView";
 import { TestSetupView } from "../components/TestSetupView";
@@ -9,16 +9,41 @@ import type {
   TestQuestionResult,
   TestSettings,
 } from "../data/testSession";
-import { buildTestQuestions } from "../data/testSession";
+import {
+  buildTestQuestions,
+  buildTestQuestionsFromSymbols,
+} from "../data/testSession";
+import { SYMBOLS_PARAM, parseSymbolSelection } from "../data/symbolSelection";
 
 /** 테스트 진행 단계. 사전/연습과 같이 한 라우트 안에서 상태로 전환한다. */
 type TestPhase = "setup" | "progress" | "result";
 
 export function TestPage() {
+  const [searchParams] = useSearchParams();
   const [testScale, setTestScale] = useState(1);
   const [phase, setPhase] = useState<TestPhase>("setup");
   const [questions, setQuestions] = useState<TestQuestion[]>([]);
   const [results, setResults] = useState<TestQuestionResult[]>([]);
+
+  // 오답노트에서 넘어온 글자 묶음. 없으면 평소처럼 설정 화면부터 시작한다.
+  const symbolsParam = searchParams.get(SYMBOLS_PARAM);
+  const selectedQuestions = useMemo(
+    () => parseSymbolSelection(symbolsParam),
+    [symbolsParam],
+  );
+  const hasSelection = selectedQuestions.length > 0;
+
+  // 오답노트로 진입하면 설정 화면을 건너뛰고 그 글자들로 바로 출제한다.
+  useEffect(() => {
+    if (!hasSelection) return;
+
+    const builtQuestions = buildTestQuestionsFromSymbols(selectedQuestions);
+    if (builtQuestions.length === 0) return;
+
+    setQuestions(builtQuestions);
+    setResults([]);
+    setPhase("progress");
+  }, [hasSelection, selectedQuestions]);
 
   useEffect(() => {
     const updateTestScale = () => {
@@ -50,8 +75,20 @@ export function TestPage() {
   };
 
   const handleRetry = () => {
-    setQuestions([]);
     setResults([]);
+
+    // 오답노트로 들어왔다면 설정 화면 대신 같은 글자들을 다시 출제한다.
+    if (hasSelection) {
+      const builtQuestions = buildTestQuestionsFromSymbols(selectedQuestions);
+
+      if (builtQuestions.length > 0) {
+        setQuestions(builtQuestions);
+        setPhase("progress");
+        return;
+      }
+    }
+
+    setQuestions([]);
     setPhase("setup");
   };
 
