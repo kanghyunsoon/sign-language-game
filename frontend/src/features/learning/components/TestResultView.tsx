@@ -15,15 +15,38 @@ interface TestResultViewProps {
 export function TestResultView({ results, onRetry }: TestResultViewProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isWrongNoteComingSoon, setIsWrongNoteComingSoon] = useState(false);
+  // 틀린 글자를 오답노트에 담아 둔 상태로 시작하고, 상세에서 개별로 넣고 뺄 수 있다.
+  // 서버 저장 계약이 없어 이번 결과 화면 안에서만 유지된다.
+  const [wrongNoteSymbols, setWrongNoteSymbols] = useState(
+    () => new Set(wrongResults(results).map((result) => result.question.symbol)),
+  );
 
   const wrongCount = wrongResults(results).length;
   const correctCount = results.length - wrongCount;
   // 결과가 비어 있을 수는 없지만, 방어적으로 첫 항목을 고른다.
   const selectedResult = results[selectedIndex] ?? results[0];
 
+  const handleWrongNoteToggle = (symbol: string) => {
+    setWrongNoteSymbols((previous) => {
+      const next = new Set(previous);
+
+      if (next.has(symbol)) {
+        next.delete(symbol);
+      } else {
+        next.add(symbol);
+      }
+
+      return next;
+    });
+  };
+
   if (!selectedResult) {
     return null;
   }
+
+  const isSelectedInWrongNote = wrongNoteSymbols.has(
+    selectedResult.question.symbol,
+  );
 
   return (
     <main className="test-main test-result">
@@ -31,8 +54,9 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
         <section className="test-result-list-panel">
           <span className="test-badge">TEST RESULT</span>
 
+          {/* 상세에서 넣고 뺀 결과가 바로 반영되도록 현재 담긴 개수를 보여준다. */}
           <h1 className="test-result-title">
-            {wrongCount}개 문자를 오답노트에 추가했어요!
+            {wrongNoteSymbols.size}개 문자를 오답노트에 추가했어요!
           </h1>
 
           <p className="test-result-summary">
@@ -109,6 +133,20 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
         <FingerspellingDetail
           className="test-result-detail"
           entry={selectedResult.question}
+          footer={
+            <button
+              className={`test-wrong-note-toggle ${
+                isSelectedInWrongNote ? "test-wrong-note-toggle-remove" : ""
+              }`}
+              type="button"
+              aria-pressed={isSelectedInWrongNote}
+              onClick={() =>
+                handleWrongNoteToggle(selectedResult.question.symbol)
+              }
+            >
+              {isSelectedInWrongNote ? "오답노트 삭제하기" : "오답노트 추가하기"}
+            </button>
+          }
         />
       </div>
 

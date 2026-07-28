@@ -1,4 +1,5 @@
 import "./FingerspellingDetail.css";
+import type { ReactNode } from "react";
 import type { FingerspellingEntry } from "../data/fingerspelling";
 
 interface FingerspellingDetailProps {
@@ -6,6 +7,8 @@ interface FingerspellingDetailProps {
   readonly entry: FingerspellingEntry;
   /** 페이지별 크기·여백 보정을 위한 추가 클래스. */
   readonly className?: string;
+  /** 수형 설명 아래에 덧붙일 영역. 사전은 쓰지 않고 테스트 결과만 사용한다. */
+  readonly footer?: ReactNode;
 }
 
 /**
@@ -15,6 +18,7 @@ interface FingerspellingDetailProps {
 export function FingerspellingDetail({
   entry,
   className,
+  footer,
 }: FingerspellingDetailProps) {
   return (
     <section
@@ -44,6 +48,10 @@ export function FingerspellingDetail({
           <p key={sentence}>{sentence}</p>
         ))}
       </div>
+
+      {footer ? (
+        <div className="fingerspelling-detail-footer">{footer}</div>
+      ) : null}
     </section>
   );
 }
