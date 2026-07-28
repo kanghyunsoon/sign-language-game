@@ -80,3 +80,11 @@
   line-height: 1.7;
   word-break: keep-all;
 }
+
+/* 페이지가 덧붙이는 하단 영역(예: 테스트 결과의 오답노트 버튼) */
+.fingerspelling-detail-footer {
+  width: min(560px, 100%);
+  flex-shrink: 0;
+  margin-top: auto;
+  padding-top: 16px;
+}

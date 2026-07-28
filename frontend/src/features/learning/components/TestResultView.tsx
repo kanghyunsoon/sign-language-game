@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sparkles, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import otterCharacter from "../../../game/block-stacking/assets/game-menu-otter.png";
@@ -11,19 +11,72 @@ interface TestResultViewProps {
   readonly onRetry: () => void;
 }
 
+/** 오답노트를 바꾼 뒤 잠깐 보여주는 알림. */
+interface WrongNoteToast {
+  readonly message: string;
+  readonly tone: "add" | "remove";
+}
+
+/** 알림이 화면에 머무는 시간. */
+const TOAST_DURATION_MS = 2200;
+
 /** 테스트가 끝난 뒤 문항별 정오답과 지문자 상세를 보여주는 결과 화면. */
 export function TestResultView({ results, onRetry }: TestResultViewProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isWrongNoteComingSoon, setIsWrongNoteComingSoon] = useState(false);
+  // 틀린 글자를 오답노트에 담아 둔 상태로 시작하고, 상세에서 개별로 넣고 뺄 수 있다.
+  // 서버 저장 계약이 없어 이번 결과 화면 안에서만 유지된다.
+  const [wrongNoteSymbols, setWrongNoteSymbols] = useState(
+    () => new Set(wrongResults(results).map((result) => result.question.symbol)),
+  );
 
   const wrongCount = wrongResults(results).length;
   const correctCount = results.length - wrongCount;
   // 결과가 비어 있을 수는 없지만, 방어적으로 첫 항목을 고른다.
   const selectedResult = results[selectedIndex] ?? results[0];
 
+  const [toast, setToast] = useState<WrongNoteToast | null>(null);
+
+  // 알림은 잠깐 떴다가 스스로 사라진다.
+  useEffect(() => {
+    if (!toast) {
+      return;
+    }
+
+    const timerId = window.setTimeout(() => setToast(null), TOAST_DURATION_MS);
+
+    return () => window.clearTimeout(timerId);
+  }, [toast]);
+
+  const handleWrongNoteToggle = (symbol: string) => {
+    const isInNote = wrongNoteSymbols.has(symbol);
+
+    setWrongNoteSymbols((previous) => {
+      const next = new Set(previous);
+
+      if (isInNote) {
+        next.delete(symbol);
+      } else {
+        next.add(symbol);
+      }
+
+      return next;
+    });
+
+    setToast(
+      isInNote
+        ? { message: "오답노트에서 삭제되었어요.", tone: "remove" }
+        : { message: "오답노트에 추가되었어요.", tone: "add" },
+    );
+  };
+
   if (!selectedResult) {
     return null;
   }
+
+  const isSelectedInWrongNote = wrongNoteSymbols.has(
+    selectedResult.question.symbol,
+  );
 
   return (
     <main className="test-main test-result">
@@ -31,8 +84,9 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
         <section className="test-result-list-panel">
           <span className="test-badge">TEST RESULT</span>
 
+          {/* 상세에서 넣고 뺀 결과가 바로 반영되도록 현재 담긴 개수를 보여준다. */}
           <h1 className="test-result-title">
-            {wrongCount}개 문자를 오답노트에 추가했어요!
+            {wrongNoteSymbols.size}개 문자를 오답노트에 추가했어요!
           </h1>
 
           <p className="test-result-summary">
@@ -109,8 +163,34 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
         <FingerspellingDetail
           className="test-result-detail"
           entry={selectedResult.question}
+          footer={
+            <button
+              className={`test-wrong-note-toggle ${
+                isSelectedInWrongNote ? "test-wrong-note-toggle-remove" : ""
+              }`}
+              type="button"
+              aria-pressed={isSelectedInWrongNote}
+              onClick={() =>
+                handleWrongNoteToggle(selectedResult.question.symbol)
+              }
+            >
+              {isSelectedInWrongNote ? "오답노트 삭제하기" : "오답노트 추가하기"}
+            </button>
+          }
         />
       </div>
+
+      {toast ? (
+        <div className="test-toast" data-tone={toast.tone} role="status">
+          <span className="test-toast-face" aria-hidden="true">
+            {toast.tone === "add" ? "( ˶ˆ ᵕ ˆ˶ )" : "( ˘ ᵕ ˘ )"}
+          </span>
+
+          <span className="test-toast-message">{toast.message}</span>
+
+          <Sparkles className="test-toast-sparkle" aria-hidden="true" size={18} />
+        </div>
+      ) : null}
 
       {isWrongNoteComingSoon ? (
         <div className="test-coming-soon-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setIsWrongNoteComingSoon(false); }}>

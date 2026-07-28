@@ -1,9 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  HandCamera,
+  PythonWebSocketSignRecognizer,
+  type RecognitionConnectionState,
+} from "../../../game/recognition";
+import { getAiWebSocketUrl } from "../data/aiRecognition";
 import type {
   TestAnswerState,
   TestQuestion,
   TestQuestionResult,
-  TestSignJudge,
 } from "../data/testSession";
 import { TEST_TIME_LIMIT_SECONDS } from "../data/testSession";
 
@@ -14,27 +19,38 @@ const TICK_INTERVAL_MS = 100;
 interface TestProgressViewProps {
   readonly questions: readonly TestQuestion[];
   readonly onFinish: (results: TestQuestionResult[]) => void;
-  /**
-   * 지문자 인식 판정기. 주입하면 정답 동작 인식 시 자동으로 다음 문항으로 넘어간다.
-   * 현재는 구현체가 없어 미주입 상태로 동작한다.
-   */
-  readonly judge?: TestSignJudge;
 }
 
 /** 문제를 풀고 있는 테스트 진행 화면. */
 export function TestProgressView({
   questions,
   onFinish,
-  judge,
 }: TestProgressViewProps) {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const targetSymbolRef = useRef("");
+  const answeredRef = useRef(false);
+  const advanceRef = useRef<(state: TestAnswerState) => void>(() => {});
+  const recognizer = useMemo(
+    () => new PythonWebSocketSignRecognizer({ url: getAiWebSocketUrl() }),
+    [],
+  );
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [results, setResults] = useState<TestQuestionResult[]>([]);
   const [remainingMs, setRemainingMs] = useState(TIME_LIMIT_MS);
-  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [cameraMessage, setCameraMessage] = useState(
     "카메라를 연결하고 있습니다.",
+  );
+  const [connectionState, setConnectionState] =
+    useState<RecognitionConnectionState>("DISCONNECTED");
+  const [prediction, setPrediction] = useState<{
+    symbol: string;
+    confidence: number;
+    isStable?: boolean;
+  } | null>(null);
+  const [recognitionMessage, setRecognitionMessage] = useState(
+    "AI 연결을 준비하고 있습니다.",
   );
 
   const currentQuestion = questions[currentIndex];
@@ -42,24 +58,10 @@ export function TestProgressView({
   const remainingSeconds = Math.ceil(remainingMs / 1000);
   const isTimeUrgent = remainingMs <= 3000;
 
-  const stopCamera = () => {
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
-
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-
-    setIsCameraActive(false);
-  };
-
   /**
    * 한 문항을 채점하고 다음으로 넘어간다.
-   * 타이머와 판정기가 동시에 호출할 수 있어 answeredRef로 중복 처리를 막는다.
+   * 타이머와 AI 인식이 동시에 호출할 수 있어 answeredRef로 중복 처리를 막는다.
    */
-  const answeredRef = useRef(false);
-  const advanceRef = useRef<(state: TestAnswerState) => void>(() => {});
-
   advanceRef.current = (state: TestAnswerState) => {
     if (answeredRef.current || !currentQuestion) {
       return;
@@ -69,7 +71,6 @@ export function TestProgressView({
     const nextResults = [...results, { question: currentQuestion, state }];
 
     if (currentIndex === totalCount - 1) {
-      stopCamera();
       onFinish(nextResults);
       return;
     }
@@ -104,13 +105,7 @@ export function TestProgressView({
         }
 
         streamRef.current = stream;
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-        }
-
-        setIsCameraActive(true);
+        setCameraStream(stream);
         setCameraMessage("");
       } catch {
         if (!isCancelled) {
@@ -128,12 +123,75 @@ export function TestProgressView({
     };
   }, []);
 
-  // 문항이 바뀔 때마다 제한 시간을 다시 센다. 시간이 다 되면 오답 처리한다.
+  // AI 인식 서버에 연결하고, 목표 글자가 확정되면 바로 다음 문항으로 넘어간다.
+  useEffect(() => {
+    const unsubscribe = recognizer.subscribe((event) => {
+      if (event.type === "CONNECTION_STATE") {
+        setConnectionState(event.state);
+
+        if (event.state === "CONNECTED") {
+          setRecognitionMessage("손동작을 보여주세요.");
+        } else if (event.state === "CONNECTING") {
+          setRecognitionMessage("AI 인식 서버에 연결하고 있습니다.");
+        } else if (event.state === "ERROR") {
+          setRecognitionMessage("AI 인식 서버에 연결하지 못했습니다.");
+        }
+
+        return;
+      }
+
+      if (event.type === "PREDICTION") {
+        setPrediction({
+          symbol: event.symbol,
+          confidence: event.confidence,
+          isStable: event.isStable,
+        });
+
+        return;
+      }
+
+      if (event.type === "SIGN_CONFIRMED") {
+        if (event.symbol === targetSymbolRef.current) {
+          setRecognitionMessage("정답입니다!");
+          advanceRef.current("correct");
+        } else {
+          setRecognitionMessage(
+            `${event.symbol}(으)로 인식했어요. 손을 내린 뒤 다시 시도해주세요.`,
+          );
+        }
+
+        return;
+      }
+
+      if (event.type === "HAND_RELEASED") {
+        setPrediction(null);
+
+        return;
+      }
+
+      if (event.type === "ERROR") {
+        setRecognitionMessage("AI 인식 중 오류가 발생했습니다.");
+      }
+    });
+
+    void recognizer.connect().catch(() => {
+      setRecognitionMessage("AI 인식 서버에 연결하지 못했습니다.");
+    });
+
+    return () => {
+      unsubscribe();
+      recognizer.disconnect();
+    };
+  }, [recognizer]);
+
+  // 문항이 바뀔 때마다 목표 글자와 제한 시간을 초기화한다. 시간이 다 되면 오답 처리한다.
   useEffect(() => {
     answeredRef.current = false;
-    const deadlineAt = Date.now() + TIME_LIMIT_MS;
+    targetSymbolRef.current = currentQuestion?.symbol ?? "";
+    setPrediction(null);
     setRemainingMs(TIME_LIMIT_MS);
 
+    const deadlineAt = Date.now() + TIME_LIMIT_MS;
     const timerId = window.setInterval(() => {
       const left = Math.max(0, deadlineAt - Date.now());
       setRemainingMs(left);
@@ -145,18 +203,7 @@ export function TestProgressView({
     }, TICK_INTERVAL_MS);
 
     return () => window.clearInterval(timerId);
-  }, [currentIndex]);
-
-  // 판정기가 주입되면 문항마다 인식을 시작하고, 정답을 맞히면 바로 넘어간다.
-  useEffect(() => {
-    if (!judge || !currentQuestion) {
-      return;
-    }
-
-    judge.start(currentQuestion, () => advanceRef.current("correct"));
-
-    return () => judge.stop();
-  }, [judge, currentQuestion]);
+  }, [currentIndex, currentQuestion]);
 
   if (!currentQuestion) {
     return null;
@@ -179,9 +226,20 @@ export function TestProgressView({
 
       <section className="test-progress-panel">
         <article className="test-question-panel">
-          <span className="test-panel-label">문제</span>
+          <p className="test-panel-label">
+            <span>문제</span>
+          </p>
 
           <div className="test-question-content">
+            {/* ㅣ와 1처럼 헷갈리는 글자를 구분할 수 있도록 분류와 이름을 함께 보여준다. */}
+            <div className="test-question-tags">
+              <span className="test-question-tag test-question-tag-category">
+                {currentQuestion.categoryLabel}
+              </span>
+
+              <span className="test-question-tag">{currentQuestion.name}</span>
+            </div>
+
             <span className="test-question-symbol">
               {currentQuestion.symbol}
             </span>
@@ -189,58 +247,58 @@ export function TestProgressView({
         </article>
 
         <article className="test-camera-panel">
-          <span className="test-panel-label">내 동작</span>
+          <p className="test-panel-label">
+            <span>내 동작</span>
+          </p>
 
-          <div
-            className={`test-camera-placeholder ${
-              isCameraActive ? "camera-active" : ""
-            }`}
-          >
-            <video
-              className="test-camera-video"
-              ref={videoRef}
-              autoPlay
-              muted
-              playsInline
-            />
-
-            {isCameraActive ? (
-              <span className="test-camera-live">● LIVE</span>
+          {/* 영상은 LIVE 뱃지만 얹고, 안내·컨트롤은 영상 아래에 따로 둔다. */}
+          <div className="test-camera-placeholder">
+            {cameraStream ? (
+              <HandCamera
+                sharedStream={cameraStream}
+                autoStart
+                compact
+                targetSymbol={currentQuestion.symbol}
+                prediction={prediction}
+                connectionState={connectionState}
+                performanceMonitor={recognizer.getPerformanceMonitor()}
+                temporalDecoder={recognizer.getTemporalDecoder()}
+                onLandmarkFrame={(frame) => recognizer.sendLandmarkFrame(frame)}
+                onHandNotDetected={(capturedAt) =>
+                  recognizer.notifyHandNotDetected(capturedAt)
+                }
+              />
             ) : (
               <p className="test-camera-message">{cameraMessage}</p>
             )}
+
+            {cameraStream && <span className="test-camera-live">● LIVE</span>}
           </div>
 
-          <div className="test-camera-controls">
-            <span
-              className={`test-timer ${isTimeUrgent ? "test-timer-urgent" : ""}`}
-              role="timer"
-              aria-label="남은 시간"
-            >
-              {remainingSeconds}초
-            </span>
+          <div className="test-camera-footer">
+            <p className="test-recognition-message" role="status">
+              {recognitionMessage}
+            </p>
 
-            {/*
-              임시 채점 수단. 지문자 인식 판정기(judge)가 주입되면 자동 채점이
-              동작하므로 이 버튼은 사라진다. AI 인식 연동 시 함께 제거한다.
-            */}
-            {!judge && (
-              <button
-                className="test-mark-correct-button"
-                type="button"
-                onClick={() => advanceRef.current("correct")}
+            <div className="test-camera-controls">
+              <span
+                className={`test-timer ${
+                  isTimeUrgent ? "test-timer-urgent" : ""
+                }`}
+                role="timer"
+                aria-label="남은 시간"
               >
-                정답 처리 (임시)
-              </button>
-            )}
+                {remainingSeconds}초
+              </span>
 
-            <button
-              className="test-skip-button"
-              type="button"
-              onClick={() => advanceRef.current("wrong")}
-            >
-              넘어가기
-            </button>
+              <button
+                className="test-skip-button"
+                type="button"
+                onClick={() => advanceRef.current("wrong")}
+              >
+                넘어가기
+              </button>
+            </div>
           </div>
         </article>
       </section>

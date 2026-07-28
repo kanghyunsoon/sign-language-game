@@ -7,6 +7,7 @@ import {
   PythonWebSocketSignRecognizer,
   type RecognitionConnectionState,
 } from "../../../game/recognition";
+import { getAiWebSocketUrl } from "../data/aiRecognition";
 import type { FingerspellingCategoryId } from "../data/fingerspelling";
 import { fingerspellingItems } from "../data/fingerspelling";
 
@@ -25,18 +26,6 @@ const isPracticeCategoryId = (
     categoryId === "vowel" ||
     categoryId === "number"
   );
-};
-
-const getAiWebSocketUrl = () => {
-  const configuredUrl = import.meta.env.VITE_AI_WEBSOCKET_URL?.trim();
-
-  if (configuredUrl) {
-    return configuredUrl;
-  }
-
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-
-  return `${protocol}//${window.location.host}/ai/ws`;
 };
 
 export function PracticeSessionPage({
