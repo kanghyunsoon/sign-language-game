@@ -1,0 +1,483 @@
+/* 사전 페이지(DictionaryPage.css)의 캔버스·패널 토큰을 그대로 따른다. */
+.notes-page {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  color: #3f2b20;
+  background: #faf7f1;
+}
+
+.notes-canvas {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1920px;
+  height: 1200px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: #3f2b20;
+  /* /incorrect-notes로 바로 진입하면 MainPage.css의 body 규칙이 없으므로 여기서 지정한다. */
+  font-family:
+    "Pretendard",
+    "Noto Sans KR",
+    "Apple SD Gothic Neo",
+    Arial,
+    sans-serif;
+  background: #faf7f1;
+  transform-origin: center center;
+}
+
+/* 메인페이지와 동일한 네비게이션바 */
+.notes-header {
+  position: relative;
+  z-index: 5;
+  height: 86px;
+  flex: 0 0 86px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #e7d9c7;
+  background: rgba(255, 250, 242, 0.94);
+  box-shadow: 0 4px 18px rgba(85, 57, 37, 0.05);
+}
+
+.notes-nav {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 58px;
+}
+
+.notes-nav a {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  color: #7d6d61;
+  font-size: 17px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.notes-nav a.active {
+  color: #3f2b20;
+}
+
+.notes-nav a.active::after {
+  position: absolute;
+  right: 0;
+  bottom: 17px;
+  left: 0;
+  height: 4px;
+  border-radius: 999px;
+  background: #9b6b43;
+  content: "";
+}
+
+.notes-mypage-button {
+  position: absolute;
+  top: 20px;
+  right: 58px;
+  width: 155px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #dbc8b1;
+  border-radius: 999px;
+  color: #5f402b;
+  font-size: 16px;
+  font-weight: 800;
+  text-decoration: none;
+  background: #fffaf2;
+}
+
+.notes-main {
+  flex: 1;
+  min-height: 0;
+  padding: 34px 62px 40px;
+  overflow-y: auto;
+  background: #faf7f1;
+}
+
+/* 타이틀 영역은 사전 페이지와 100% 동일한 규격 */
+.notes-heading {
+  width: min(1440px, 100%);
+  margin: 0 auto 22px;
+}
+
+.notes-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #eef2e3;
+  color: #5f724a;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.notes-heading h1 {
+  margin: 12px 0 6px;
+  color: #3f2b20;
+  font-size: 30px;
+  letter-spacing: -0.03em;
+}
+
+.notes-heading p {
+  margin: 0;
+  color: #827368;
+  font-size: 15px;
+}
+
+.notes-layout {
+  width: min(1440px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 640px);
+  gap: 26px;
+  align-items: start;
+}
+
+/* 메인페이지 .panel과 동일한 패널 토큰 */
+.notes-list-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 26px;
+  border: 1px solid #e7d9c7;
+  border-radius: 30px;
+  background: rgba(255, 250, 242, 0.94);
+  box-shadow: 0 18px 38px rgba(82, 54, 35, 0.1);
+}
+
+.notes-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.notes-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.notes-filter {
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid #e7d9c7;
+  border-radius: 999px;
+  background: #fffdf8;
+  color: #7d6d61;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.notes-filter:hover {
+  background: #f3f6ea;
+}
+
+/* 선택 표시는 사전 칩과 같은 그린 + 입체 그림자 */
+.notes-filter-active,
+.notes-filter-active:hover {
+  border-color: #8fa071;
+  background: #8fa071;
+  color: #ffffff;
+  box-shadow: 0 4px 0 #6f8052;
+}
+
+.notes-select-toggle {
+  min-height: 40px;
+  margin-left: auto;
+  padding: 0 22px;
+  border: 1px solid #dbc8b1;
+  border-radius: 999px;
+  background: #fffaf2;
+  color: #5f402b;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.notes-select-toggle:hover:not(:disabled) {
+  background: #f7f1e7;
+}
+
+.notes-select-toggle:disabled {
+  color: #b6a89c;
+  cursor: not-allowed;
+}
+
+.notes-select-toggle-active,
+.notes-select-toggle-active:hover:not(:disabled) {
+  border-color: #9b6b43;
+  background: #9b6b43;
+  color: #ffffff;
+  box-shadow: 0 4px 0 #7c5433;
+}
+
+/* 바둑판 카드 그리드. 폭이 좁아지면 열 수가 자동으로 줄어든다. */
+.notes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notes-card {
+  position: relative;
+  width: 100%;
+  min-height: 138px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 30px 10px 14px;
+  border: 1px solid #e7d9c7;
+  border-radius: 20px;
+  background: #fffaf3;
+  color: #3f2b20;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.notes-card:hover {
+  background: #f3f6ea;
+  transform: translateY(-2px);
+}
+
+.notes-card-tag {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #f1ece4;
+  color: #8a7c70;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.notes-card-symbol {
+  font-size: 46px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.notes-card-name {
+  color: #a99a8e;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.notes-card-active,
+.notes-card-active:hover {
+  border-color: #8fa071;
+  background: #8fa071;
+  color: #ffffff;
+  box-shadow: 0 4px 0 #6f8052;
+}
+
+.notes-card-active .notes-card-tag {
+  background: rgba(255, 255, 255, 0.24);
+  color: #ffffff;
+}
+
+.notes-card-active .notes-card-name {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.notes-empty {
+  margin: 60px 0;
+  color: #a99a8e;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* 다중 선택 액션 바 */
+.notes-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 18px;
+  border-top: 1px solid #e7d9c7;
+}
+
+.notes-action-count {
+  margin-right: auto;
+  color: #8a7c70;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.notes-action {
+  min-height: 46px;
+  padding: 0 24px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.notes-action:active {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+.notes-action-practice {
+  background: #f6ecd3;
+  border-color: #e6d3a8;
+  color: #8a6512;
+  box-shadow: 0 4px 0 #e0c992;
+}
+
+.notes-action-test {
+  background: #8fa071;
+  border-color: #8fa071;
+  color: #ffffff;
+  box-shadow: 0 4px 0 #6f8052;
+}
+
+/* 삭제는 테스트 결과 화면과 같은 옅은 로즈 계열 */
+.notes-action-delete {
+  background: #fbeee8;
+  border-color: #e8b8a4;
+  color: #b4523a;
+  box-shadow: 0 4px 0 #e8c4b6;
+}
+
+/* 상세 패널 — 공용 FingerspellingDetail의 여백만 페이지에 맞춰 보정한다. */
+.notes-detail {
+  min-height: 780px;
+}
+
+.notes-detail-delete {
+  min-height: 52px;
+  padding: 0 34px;
+  border: 1px solid #e8b8a4;
+  border-radius: 999px;
+  background: #fbeee8;
+  color: #b4523a;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #e8c4b6;
+}
+
+.notes-detail-delete:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #e8c4b6;
+}
+
+.notes-detail-empty {
+  min-height: 780px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 34px 40px 40px;
+  border: 1px solid #e7d9c7;
+  border-radius: 30px;
+  background: rgba(255, 250, 242, 0.94);
+  box-shadow: 0 18px 38px rgba(82, 54, 35, 0.1);
+  text-align: center;
+}
+
+.notes-detail-empty-face {
+  color: #b6a89c;
+  font-size: 42px;
+  letter-spacing: -0.04em;
+}
+
+.notes-detail-empty p {
+  margin: 0;
+  color: #5f402b;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.notes-detail-empty span:last-child {
+  color: #a99a8e;
+  font-size: 15px;
+}
+
+/* 삭제 알림 — 테스트 결과 화면의 .test-toast와 같은 결 */
+.notes-toast {
+  position: fixed;
+  bottom: 46px;
+  left: 50%;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  border: 3px solid #e8b8a4;
+  border-radius: 999px;
+  background: #fffdf5;
+  box-shadow:
+    0 6px 0 #d8a48e,
+    0 16px 32px rgba(82, 54, 35, 0.22);
+  color: #b4523a;
+  font-size: 16px;
+  font-weight: 800;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  animation: notesToastPop 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+.notes-toast-face {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.notes-toast-sparkle {
+  color: #e0917a;
+}
+
+@keyframes notesToastPop {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(14px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+/* 캔버스 스케일이 크게 줄어드는 좁은 화면에서는 상세를 아래로 내린다. */
+@media (max-width: 1100px) {
+  .notes-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .notes-detail,
+  .notes-detail-empty {
+    min-height: 0;
+  }
+}
