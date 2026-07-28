@@ -1,9 +1,15 @@
 import { useState } from "react";
-import type { TestCategoryId, TestSettings } from "../data/testSession";
+import type {
+  TestCategoryId,
+  TestCountPresetId,
+  TestSettings,
+} from "../data/testSession";
 import {
-  TEST_QUESTION_COUNT_OPTIONS,
+  TEST_COUNT_PRESETS,
   TEST_TIME_LIMIT_SECONDS,
+  isTestCategoryAvailable,
   maxQuestionCount,
+  requestedCountForPreset,
   resolveQuestionCount,
   testCategories,
 } from "../data/testSession";
@@ -18,15 +24,22 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
   const [selectedCategories, setSelectedCategories] = useState<
     TestCategoryId[]
   >(["consonant"]);
-  const [questionCount, setQuestionCount] = useState(
-    TEST_QUESTION_COUNT_OPTIONS[0],
-  );
+  const [presetId, setPresetId] = useState<TestCountPresetId>("5");
+  const [customCount, setCustomCount] = useState(5);
 
   const availableCount = maxQuestionCount(selectedCategories);
-  const resolvedCount = resolveQuestionCount(selectedCategories, questionCount);
+  const requestedCount = requestedCountForPreset(
+    presetId,
+    selectedCategories,
+    customCount,
+  );
+  const resolvedCount = resolveQuestionCount(
+    selectedCategories,
+    requestedCount,
+  );
   const isStartDisabled = resolvedCount === 0;
   // 보유 글자보다 많이 고르면 가능한 개수로 줄여 출제한다.
-  const isCountReduced = resolvedCount > 0 && resolvedCount < questionCount;
+  const isCountReduced = resolvedCount > 0 && resolvedCount < requestedCount;
 
   const handleCategoryToggle = (categoryId: TestCategoryId) => {
     setSelectedCategories((previous) =>
@@ -41,7 +54,23 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
       return;
     }
 
-    onStart({ categories: selectedCategories, questionCount });
+    onStart({ categories: selectedCategories, questionCount: requestedCount });
+  };
+
+  const countNotice = () => {
+    if (selectedCategories.length === 0) {
+      return "분류를 한 개 이상 선택해 주세요.";
+    }
+
+    if (isStartDisabled) {
+      return "문항 수를 1개 이상 입력해 주세요.";
+    }
+
+    if (isCountReduced) {
+      return `선택한 분류에는 ${availableCount}자가 있어 ${resolvedCount}문항으로 출제됩니다.`;
+    }
+
+    return `${resolvedCount}문항이 무작위 순서로 출제됩니다.`;
   };
 
   return (
@@ -64,7 +93,9 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
 
           <div className="test-category-list">
             {testCategories.map((category) => {
-              const isSelected = selectedCategories.includes(category.id);
+              const isAvailable = isTestCategoryAvailable(category.id);
+              const isSelected =
+                isAvailable && selectedCategories.includes(category.id);
 
               return (
                 <button
@@ -73,7 +104,13 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
                   }`}
                   type="button"
                   key={category.id}
+                  disabled={!isAvailable}
                   aria-pressed={isSelected}
+                  title={
+                    isAvailable
+                      ? undefined
+                      : "AI 인식 모델이 아직 숫자를 지원하지 않습니다."
+                  }
                   onClick={() => handleCategoryToggle(category.id)}
                 >
                   <span className="test-category-symbol">
@@ -83,7 +120,9 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
                   <span className="test-category-label">{category.label}</span>
 
                   <span className="test-category-count">
-                    {fingerspellingItems[category.id].length}자
+                    {isAvailable
+                      ? `${fingerspellingItems[category.id].length}자`
+                      : "준비중"}
                   </span>
                 </button>
               );
@@ -100,8 +139,8 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
           </h2>
 
           <div className="test-count-list">
-            {TEST_QUESTION_COUNT_OPTIONS.map((count) => {
-              const isSelected = count === questionCount;
+            {TEST_COUNT_PRESETS.map((preset) => {
+              const isSelected = preset.id === presetId;
 
               return (
                 <button
@@ -109,22 +148,38 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
                     isSelected ? "test-count-selected" : ""
                   }`}
                   type="button"
-                  key={count}
+                  key={preset.id}
                   aria-pressed={isSelected}
-                  onClick={() => setQuestionCount(count)}
+                  onClick={() => setPresetId(preset.id)}
                 >
-                  {count}개
+                  {preset.label}
                 </button>
               );
             })}
           </div>
 
+          {presetId === "custom" && (
+            <div className="test-count-custom">
+              <label htmlFor="test-custom-count">문항 수 직접 입력</label>
+
+              <input
+                className="test-count-custom-input"
+                id="test-custom-count"
+                type="number"
+                min={1}
+                max={Math.max(1, availableCount)}
+                value={customCount}
+                onChange={(event) =>
+                  setCustomCount(Number(event.target.value) || 0)
+                }
+              />
+
+              <span className="test-count-custom-unit">개</span>
+            </div>
+          )}
+
           <p className="test-setup-notice" role="status">
-            {isStartDisabled
-              ? "분류를 한 개 이상 선택해 주세요."
-              : isCountReduced
-                ? `선택한 분류에는 ${availableCount}자가 있어 ${resolvedCount}문항으로 출제됩니다.`
-                : `${resolvedCount}문항이 무작위 순서로 출제됩니다.`}
+            {countNotice()}
           </p>
         </section>
 

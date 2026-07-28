@@ -25,8 +25,23 @@ export interface TestSettings {
   readonly questionCount: number;
 }
 
+/** 문항 수 선택 방식. */
+export type TestCountPresetId = "5" | "10" | "all" | "custom";
+
+export interface TestCountPreset {
+  readonly id: TestCountPresetId;
+  readonly label: string;
+  /** 고정 문항 수. 전체·직접 입력은 선택 상태에 따라 정해지므로 null이다. */
+  readonly count: number | null;
+}
+
 /** 문항 수 선택지. */
-export const TEST_QUESTION_COUNT_OPTIONS: readonly number[] = [5, 10, 15];
+export const TEST_COUNT_PRESETS: readonly TestCountPreset[] = [
+  { id: "5", label: "5개", count: 5 },
+  { id: "10", label: "10개", count: 10 },
+  { id: "all", label: "전체", count: null },
+  { id: "custom", label: "직접 입력", count: null },
+];
 
 /** 문항당 제한 시간(초). */
 export const TEST_TIME_LIMIT_SECONDS = 10;
@@ -35,17 +50,37 @@ export const TEST_TIME_LIMIT_SECONDS = 10;
 export const testCategories = fingerspellingCategories;
 
 /**
- * 지문자 인식 판정 포트.
- *
- * 현재 프론트엔드에는 지문자 분류기가 없어 구현체를 제공하지 않는다.
- * 추후 AI 인식을 붙일 때 이 인터페이스의 구현체를 TestProgressView에 주입하면,
- * 화면 로직을 바꾸지 않고 자동 채점을 활성화할 수 있다.
+ * AI 인식 모델이 아직 지원하지 않아 테스트를 막아 둔 분류.
+ * 현재 모델(jamo-31-v1)은 자음 14자와 모음 17자만 학습되어 있고 숫자는 없다.
+ * 모델에 숫자가 추가되면 이 목록만 비우면 된다.
  */
-export interface TestSignJudge {
-  /** 문항 시작. 정답 동작을 인식하면 onCorrect를 호출한다. */
-  start(question: TestQuestion, onCorrect: () => void): void;
-  /** 문항 종료. 진행 중인 인식을 정리한다. */
-  stop(): void;
+export const UNSUPPORTED_TEST_CATEGORIES: readonly TestCategoryId[] = [
+  "number",
+];
+
+/** 지금 테스트할 수 있는 분류인지 확인한다. */
+export function isTestCategoryAvailable(categoryId: TestCategoryId): boolean {
+  return !UNSUPPORTED_TEST_CATEGORIES.includes(categoryId);
+}
+
+/**
+ * 프리셋과 직접 입력값으로 실제 요청 문항 수를 계산한다.
+ * 전체는 선택한 분류의 보유 글자 수를 그대로 쓴다.
+ */
+export function requestedCountForPreset(
+  presetId: TestCountPresetId,
+  categories: readonly TestCategoryId[],
+  customCount: number,
+): number {
+  if (presetId === "all") {
+    return maxQuestionCount(categories);
+  }
+
+  if (presetId === "custom") {
+    return customCount;
+  }
+
+  return Number(presetId);
 }
 
 /**

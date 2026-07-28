@@ -218,6 +218,18 @@
   background: #8fa071;
 }
 
+/* AI 인식이 아직 지원하지 않는 분류 */
+.test-category:disabled {
+  background: #f1ece4;
+  color: #a99a8e;
+  cursor: not-allowed;
+}
+
+.test-category:disabled:hover {
+  background: #f1ece4;
+  transform: none;
+}
+
 .test-category-symbol {
   font-size: 30px;
   font-weight: 900;
@@ -263,6 +275,44 @@
   background: #8fa071;
   color: #ffffff;
   box-shadow: 0 4px 0 #6f8052;
+}
+
+.test-count-custom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.test-count-custom label {
+  color: #6b5c50;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.test-count-custom-input {
+  width: 110px;
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid #e4d4c2;
+  border-radius: 14px;
+  background: #fffdf8;
+  color: #3f2b20;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.test-count-custom-input:focus-visible {
+  outline: 2px solid #8fa071;
+  outline-offset: 2px;
+}
+
+.test-count-custom-unit {
+  color: #8a7c70;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .test-setup-notice {
@@ -428,6 +478,16 @@
   text-align: center;
 }
 
+/* AI 인식 상태 안내 */
+.test-recognition-message {
+  min-height: 22px;
+  margin: 0;
+  color: #6b5c50;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
 .test-camera-controls {
   display: flex;
   align-items: center;
@@ -451,20 +511,6 @@
   color: #b4523a;
 }
 
-.test-mark-correct-button {
-  margin-left: auto;
-  min-height: 48px;
-  padding: 0 18px;
-  border: 1px dashed #8fa071;
-  border-radius: 14px;
-  background: #f3f6ea;
-  color: #5f724a;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
 .test-skip-button {
   margin-left: auto;
   min-height: 48px;
@@ -478,11 +524,6 @@
   font-size: 16px;
   font-weight: 800;
   cursor: pointer;
-}
-
-/* 임시 정답 버튼이 있으면 넘어가기는 그 옆에 붙는다. */
-.test-mark-correct-button + .test-skip-button {
-  margin-left: 0;
 }
 
 .test-skip-button:active {

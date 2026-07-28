@@ -63,17 +63,62 @@ describe("TestPage 설정 화면", () => {
     ).toHaveProperty("disabled", true);
   });
 
-  it("보유 글자보다 많은 문항을 고르면 축소 안내를 보여준다", () => {
+  it("숫자 분류는 AI 미지원이라 선택할 수 없다", () => {
     renderPage();
 
-    // 자음(14) 해제 후 숫자(10)만 선택
-    fireEvent.click(screen.getByRole("button", { name: /자음/ }));
-    fireEvent.click(screen.getByRole("button", { name: /숫자/ }));
-    fireEvent.click(screen.getByRole("button", { name: "15개" }));
+    const numberCategory = screen.getByRole("button", { name: /숫자/ });
+
+    expect(numberCategory).toHaveProperty("disabled", true);
+    expect(screen.getByText("준비중")).toBeTruthy();
+  });
+
+  it("전체를 고르면 보유 글자 수만큼 출제한다", () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "전체" }));
 
     expect(
-      screen.getByText("선택한 분류에는 10자가 있어 10문항으로 출제됩니다."),
+      screen.getByText("14문항이 무작위 순서로 출제됩니다."),
     ).toBeTruthy();
+  });
+
+  it("직접 입력으로 문항 수를 지정할 수 있다", () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "직접 입력" }));
+    fireEvent.change(screen.getByLabelText("문항 수 직접 입력"), {
+      target: { value: "3" },
+    });
+
+    expect(screen.getByText("3문항이 무작위 순서로 출제됩니다.")).toBeTruthy();
+  });
+
+  it("보유 글자보다 많이 직접 입력하면 축소 안내를 보여준다", () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "직접 입력" }));
+    fireEvent.change(screen.getByLabelText("문항 수 직접 입력"), {
+      target: { value: "20" },
+    });
+
+    expect(
+      screen.getByText("선택한 분류에는 14자가 있어 14문항으로 출제됩니다."),
+    ).toBeTruthy();
+  });
+
+  it("직접 입력을 0으로 두면 시작할 수 없다", () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "직접 입력" }));
+    fireEvent.change(screen.getByLabelText("문항 수 직접 입력"), {
+      target: { value: "0" },
+    });
+
+    expect(screen.getByText("문항 수를 1개 이상 입력해 주세요.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "테스트 시작" })).toHaveProperty(
+      "disabled",
+      true,
+    );
   });
 
   it("분류를 중복 선택할 수 있다", () => {
@@ -157,23 +202,6 @@ describe("TestPage 결과 화면", () => {
     ).toBeTruthy();
     expect(
       screen.getByText("총 5문항 중 정답 0개 · 오답 5개"),
-    ).toBeTruthy();
-  });
-
-  it("정답 처리한 문항은 정답으로 집계된다", () => {
-    renderPage();
-    startConsonantOnly("5개");
-
-    fireEvent.click(screen.getByRole("button", { name: "정답 처리 (임시)" }));
-    for (let index = 0; index < 4; index += 1) {
-      fireEvent.click(screen.getByRole("button", { name: "넘어가기" }));
-    }
-
-    expect(
-      screen.getByText("4개 문자를 오답노트에 추가했어요!"),
-    ).toBeTruthy();
-    expect(
-      screen.getByText("총 5문항 중 정답 1개 · 오답 4개"),
     ).toBeTruthy();
   });
 

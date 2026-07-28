@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  TEST_QUESTION_COUNT_OPTIONS,
+  TEST_COUNT_PRESETS,
   TEST_TIME_LIMIT_SECONDS,
+  UNSUPPORTED_TEST_CATEGORIES,
   buildTestQuestions,
+  isTestCategoryAvailable,
   maxQuestionCount,
+  requestedCountForPreset,
   resolveQuestionCount,
   shuffle,
   testQuestionPool,
@@ -139,9 +142,42 @@ describe("wrongResults", () => {
   });
 });
 
+describe("requestedCountForPreset", () => {
+  it("고정 프리셋은 숫자를 그대로 쓴다", () => {
+    expect(requestedCountForPreset("5", ["consonant"], 7)).toBe(5);
+    expect(requestedCountForPreset("10", ["consonant"], 7)).toBe(10);
+  });
+
+  it("전체는 선택한 분류의 보유 글자 수를 쓴다", () => {
+    expect(requestedCountForPreset("all", ["consonant"], 7)).toBe(14);
+    expect(requestedCountForPreset("all", ["consonant", "vowel"], 7)).toBe(31);
+    expect(requestedCountForPreset("all", [], 7)).toBe(0);
+  });
+
+  it("직접 입력은 입력값을 쓴다", () => {
+    expect(requestedCountForPreset("custom", ["consonant"], 7)).toBe(7);
+    expect(requestedCountForPreset("custom", ["consonant"], 0)).toBe(0);
+  });
+});
+
+describe("테스트 가능 분류", () => {
+  it("AI가 지원하지 않는 숫자는 아직 테스트할 수 없다", () => {
+    // 현재 모델(jamo-31-v1)은 자음·모음만 학습되어 있다.
+    expect(UNSUPPORTED_TEST_CATEGORIES).toEqual(["number"]);
+    expect(isTestCategoryAvailable("number")).toBe(false);
+    expect(isTestCategoryAvailable("consonant")).toBe(true);
+    expect(isTestCategoryAvailable("vowel")).toBe(true);
+  });
+});
+
 describe("테스트 설정 상수", () => {
   it("문항 수 선택지와 제한 시간을 고정한다", () => {
-    expect(TEST_QUESTION_COUNT_OPTIONS).toEqual([5, 10, 15]);
+    expect(TEST_COUNT_PRESETS.map((preset) => preset.label)).toEqual([
+      "5개",
+      "10개",
+      "전체",
+      "직접 입력",
+    ]);
     expect(TEST_TIME_LIMIT_SECONDS).toBe(10);
   });
 });
