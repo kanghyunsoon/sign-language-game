@@ -383,6 +383,34 @@ describe("TestPage 결과 화면", () => {
     ).toBeTruthy();
   });
 
+  it("오답노트를 바꾸면 알림이 떴다가 사라진다", () => {
+    vi.useFakeTimers();
+    renderPage();
+    startConsonantOnly("5개");
+    finishAllWrong();
+
+    const toggle = () =>
+      screen.getByRole("button", { name: /오답노트 (추가|삭제)하기/ });
+
+    fireEvent.click(toggle());
+    expect(screen.getByText("오답노트에서 삭제되었어요.")).toBeTruthy();
+    expect(
+      document.querySelector(".test-toast")?.getAttribute("data-tone"),
+    ).toBe("remove");
+
+    fireEvent.click(toggle());
+    expect(screen.getByText("오답노트에 추가되었어요.")).toBeTruthy();
+    expect(
+      document.querySelector(".test-toast")?.getAttribute("data-tone"),
+    ).toBe("add");
+
+    act(() => {
+      vi.advanceTimersByTime(2200);
+    });
+
+    expect(screen.queryByText("오답노트에 추가되었어요.")).toBeNull();
+  });
+
   it("오답노트 담김 여부는 선택한 문항을 따라간다", () => {
     renderPage();
     startConsonantOnly("5개");

@@ -887,20 +887,78 @@
   box-shadow: 0 2px 0 #6f8052;
 }
 
-/* 삭제는 파괴적 동작이라 톤다운한 로즈 계열로 구분한다.
-   베이지 팔레트와 맞물리도록 원색 대신 붉은 흙색 계열을 쓴다. */
+/* 삭제는 파괴적 동작이라 로즈 계열로 구분하되, 결과 목록의 오답 태그와
+   같은 옅은 톤을 써서 팔레트와 어울리게 한다. */
 .test-wrong-note-toggle-remove {
-  background: #b4523a;
-  box-shadow: 0 4px 0 #8e3f2c;
-  color: #ffffff;
+  background: #f7e0d6;
+  box-shadow: 0 4px 0 #e8c4b6;
+  color: #b4523a;
 }
 
 .test-wrong-note-toggle-remove:hover {
-  background: #a24932;
+  background: #f2d5c8;
 }
 
 .test-wrong-note-toggle-remove:active {
-  box-shadow: 0 2px 0 #8e3f2c;
+  box-shadow: 0 2px 0 #e8c4b6;
+}
+
+/* 오답노트 변경 알림 — 기존 개발중 팝업과 같은 두툼한 테두리·입체 그림자 결 */
+.test-toast {
+  position: fixed;
+  bottom: 46px;
+  left: 50%;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  border: 3px solid #8fa071;
+  border-radius: 999px;
+  background: #fffdf5;
+  box-shadow:
+    0 6px 0 #6f8052,
+    0 16px 32px rgba(82, 54, 35, 0.22);
+  color: #5f402b;
+  font-size: 16px;
+  font-weight: 800;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  animation: testToastPop 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+/* 삭제 알림은 버튼과 같은 옅은 로즈 계열로 맞춘다. */
+.test-toast[data-tone="remove"] {
+  border-color: #e8b8a4;
+  box-shadow:
+    0 6px 0 #d8a48e,
+    0 16px 32px rgba(82, 54, 35, 0.22);
+  color: #b4523a;
+}
+
+.test-toast-face {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.test-toast-sparkle {
+  color: #e8b938;
+}
+
+.test-toast[data-tone="remove"] .test-toast-sparkle {
+  color: #e0917a;
+}
+
+@keyframes testToastPop {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(14px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
 }
 
 .test-coming-soon-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(72,56,45,.28); backdrop-filter: blur(5px); }
