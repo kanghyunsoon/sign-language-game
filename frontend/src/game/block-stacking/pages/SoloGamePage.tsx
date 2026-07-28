@@ -434,12 +434,12 @@ export function SoloGamePage({
           {snapshot.runState === "RUNNING" && (
             <div className="solo-letter-otter" aria-hidden="true">
               <img src={letterOtter} alt="" draggable={false} />
-              <strong>{snapshot.paperBurstSymbol === null ? paperTargetSymbol ?? "·" : ""}</strong>
-              {snapshot.paperBurstSymbol !== null && (
-                <span key={snapshot.paperBurstVersion} className="solo-paper-burst">
-                  {snapshot.paperBurstSymbol}
-                </span>
-              )}
+              <strong
+                key={snapshot.paperBurstVersion}
+                className={snapshot.paperBurstSymbol === null ? undefined : "is-releasing"}
+              >
+                {snapshot.paperBurstSymbol ?? paperTargetSymbol ?? "·"}
+              </strong>
             </div>
           )}
         </div>

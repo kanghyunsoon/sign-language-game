@@ -308,9 +308,9 @@ export class GameRuntime {
       id,
       symbol,
       x,
-      // The paper glyph sits just inside the board opening; releasing from
-      // that same coordinate makes it feel like the paper glyph itself falls.
-      y: releasedFromPaper ? this.config.letterHeight * .68 : -this.config.spawnTopPadding,
+      // Release below the paper. Starting inside its bounds makes the canvas
+      // glyph look as though it is hidden behind the otter illustration.
+      y: releasedFromPaper ? this.config.letterHeight * 1.95 : -this.config.spawnTopPadding,
       angularVelocity: 0,
       // Deliberately gentle: it feels more immediate than a timer spawn but
       // still leaves the player time to follow the glyph.
