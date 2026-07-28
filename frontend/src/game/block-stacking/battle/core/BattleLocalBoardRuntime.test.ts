@@ -61,6 +61,34 @@ describe("BattleLocalBoardRuntime", () => {
     expect(new Set(xs).size).toBe(3);
   });
 
+  it("picks up exactly the letter selected for the otter and promotes the next target", () => {
+    const states = new Map<string, ReturnType<typeof letterState>>();
+    const world = physics();
+    vi.mocked(world.createLetter).mockImplementation((spec) => { const state = letterState(spec.id, spec.symbol, spec.x, spec.y); states.set(spec.id, state); return state; });
+    vi.mocked(world.getLetterState).mockImplementation((id) => states.get(id));
+    vi.mocked(world.getLetterStates).mockImplementation(() => [...states.values()]);
+    vi.mocked(world.removeLetter).mockImplementation((id) => states.delete(id));
+    const runtime = new BattleLocalBoardRuntime(world, renderer(), DEFAULT_BATTLE_RUNTIME_CONFIG, undefined, () => 0, () => 1, () => undefined);
+    runtime.spawn(spawn("first", "ㄱ", 1)); runtime.spawn(spawn("second", "ㄴ", 2));
+
+    expect(runtime.takeLetterForOtter("second")).toBe("ㄴ");
+    expect(world.removeLetter).toHaveBeenCalledWith("second");
+    expect(runtime.getTargetSymbol()).toBe("ㄱ");
+    expect(runtime.takeLetterForOtter("missing")).toBeNull();
+  });
+
+  it("keeps an otter-thrown priority letter at its thrown horizontal position", () => {
+    const world = physics();
+    const states = new Map<string, ReturnType<typeof letterState>>();
+    vi.mocked(world.createLetter).mockImplementation((spec) => { const state = letterState(spec.id, spec.symbol, spec.x, spec.y); states.set(spec.id, state); return state; });
+    vi.mocked(world.getLetterState).mockImplementation((id) => states.get(id));
+    const runtime = new BattleLocalBoardRuntime(world, renderer(), DEFAULT_BATTLE_RUNTIME_CONFIG, undefined, () => 0, () => 1, () => undefined);
+    runtime.spawn({ ...spawn("thrown", "ㄷ", 1), normalizedX: .72, targetPriority: true });
+
+    expect(vi.mocked(world.createLetter).mock.calls[0]?.[0].x).toBeCloseTo(DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth * .72);
+    expect(runtime.getTargetSymbol()).toBe("ㄷ");
+  });
+
   it("reports game over once when a settled block crosses the proportional danger line", () => {
     const world = physics();
     vi.mocked(world.getLetterStates).mockReturnValue([letterState("danger", "ㄱ", 200, 180)]);

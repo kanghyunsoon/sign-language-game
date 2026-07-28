@@ -27,7 +27,19 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
   ) { this.width = config.boardWidth; this.height = config.boardHeight; this.publisher = publisher; }
   start(): void { if (this.running || this.disposed) return; this.running = true; this.previousAt = null; this.schedule(); }
   stop(): void { this.running = false; if (this.frame !== null) { this.cancelFrame(this.frame); this.frame = null; } }
-  spawn(event: SpawnLetterEvent): void { if (this.letters.has(event.letterId)) return; const x = chooseDistributedSpawnX(this.physics.getLetterStates(), this.width, this.height, BATTLE_LETTER_SIZE, event.normalizedX); this.physics.createLetter({ id: event.letterId, symbol: event.symbol, x, y: Math.max(-70, -Math.min(this.width, this.height) * .12), angle: event.initialAngle }); this.letters.set(event.letterId, { id: event.letterId, symbol: event.symbol, spawnedAt: event.spawnAt, pending: false }); if (event.targetPriority) this.priorityTargetId = event.letterId; this.updateTarget(); }
+  spawn(event: SpawnLetterEvent): void {
+    if (this.letters.has(event.letterId)) return;
+    const halfLetter = BATTLE_LETTER_SIZE / 2;
+    // An otter throw is a visible, intentional drop. Keep its physical spawn
+    // directly beneath the throw instead of redistributing it to another lane.
+    const x = event.targetPriority
+      ? Math.max(halfLetter, Math.min(this.width - halfLetter, event.normalizedX * this.width))
+      : chooseDistributedSpawnX(this.physics.getLetterStates(), this.width, this.height, BATTLE_LETTER_SIZE, event.normalizedX);
+    this.physics.createLetter({ id: event.letterId, symbol: event.symbol, x, y: Math.max(-70, -Math.min(this.width, this.height) * .12), angle: event.initialAngle });
+    this.letters.set(event.letterId, { id: event.letterId, symbol: event.symbol, spawnedAt: event.spawnAt, pending: false });
+    if (event.targetPriority) this.priorityTargetId = event.letterId;
+    this.updateTarget();
+  }
   selectRemoval(symbol: string): string | null {
     const target = this.currentTarget();
     if (!target || target.symbol !== symbol) return null;
