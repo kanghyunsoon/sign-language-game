@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { Sparkles, X } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
-import otterCharacter from "../../../game/block-stacking/assets/game-menu-otter.png";
 import { FingerspellingDetail } from "./FingerspellingDetail";
 import type { TestQuestionResult } from "../data/testSession";
 import { wrongResults } from "../data/testSession";
+import { addIncorrectNote, removeIncorrectNotes } from "../data/incorrectNotes";
 
 interface TestResultViewProps {
   readonly results: readonly TestQuestionResult[];
@@ -23,12 +23,15 @@ const TOAST_DURATION_MS = 2200;
 /** 테스트가 끝난 뒤 문항별 정오답과 지문자 상세를 보여주는 결과 화면. */
 export function TestResultView({ results, onRetry }: TestResultViewProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [isWrongNoteComingSoon, setIsWrongNoteComingSoon] = useState(false);
   // 틀린 글자를 오답노트에 담아 둔 상태로 시작하고, 상세에서 개별로 넣고 뺄 수 있다.
-  // 서버 저장 계약이 없어 이번 결과 화면 안에서만 유지된다.
   const [wrongNoteSymbols, setWrongNoteSymbols] = useState(
     () => new Set(wrongResults(results).map((result) => result.question.symbol)),
   );
+
+  // 틀린 글자는 결과 화면에 들어오는 즉시 오답노트에 담긴다.
+  useEffect(() => {
+    wrongResults(results).forEach((result) => addIncorrectNote(result.question.symbol));
+  }, [results]);
 
   const wrongCount = wrongResults(results).length;
   const correctCount = results.length - wrongCount;
@@ -62,6 +65,12 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
 
       return next;
     });
+
+    if (isInNote) {
+      removeIncorrectNotes([symbol]);
+    } else {
+      addIncorrectNote(symbol);
+    }
 
     setToast(
       isInNote
@@ -146,13 +155,9 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
               다시 테스트
             </button>
 
-            <button
-              className="test-result-note-button"
-              type="button"
-              onClick={() => setIsWrongNoteComingSoon(true)}
-            >
+            <Link className="test-result-note-button" to="/incorrect-notes">
               오답노트
-            </button>
+            </Link>
 
             <Link className="test-result-main-button" to="/main">
               메인페이지
@@ -192,18 +197,6 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
         </div>
       ) : null}
 
-      {isWrongNoteComingSoon ? (
-        <div className="test-coming-soon-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setIsWrongNoteComingSoon(false); }}>
-          <section className="test-coming-soon-dialog" role="dialog" aria-modal="true" aria-labelledby="test-coming-soon-title">
-            <button type="button" className="test-coming-soon-close" aria-label="팝업 닫기" onClick={() => setIsWrongNoteComingSoon(false)}><X aria-hidden="true" size={20} /></button>
-            <Sparkles className="test-coming-soon-sparkle" aria-hidden="true" size={30} />
-            <img src={otterCharacter} alt="" />
-            <h2 id="test-coming-soon-title">수달이 개발중..</h2>
-            <p>조금만 기다려 주세요!<br />오답노트 기능을 만들고 있어요.</p>
-            <button type="button" className="test-coming-soon-confirm" onClick={() => setIsWrongNoteComingSoon(false)}>기다릴게!</button>
-          </section>
-        </div>
-      ) : null}
     </main>
   );
 }
