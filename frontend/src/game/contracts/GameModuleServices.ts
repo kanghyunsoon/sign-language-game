@@ -17,7 +17,7 @@ export interface GameModuleServices {
   readonly soloGameApi: SoloGameApi;
   readonly battleRoomGateway: BattleRoomGateway;
   readonly turnBattleRoomGateway?: BattleRoomGateway;
-  readonly roomRealtimeSocketFactory?: { create(roomId: string): RoomRealtimeSocket };
+  readonly roomRealtimeSocketFactory?: { create(roomId: string, initialTicket?: string): RoomRealtimeSocket };
   readonly battleGameTransportFactory: BattleGameTransportFactory;
   readonly lineRaceRoomGateway?: LineRaceRoomGateway;
   readonly lineRaceBotGateway?: DevLineRaceBotGateway;

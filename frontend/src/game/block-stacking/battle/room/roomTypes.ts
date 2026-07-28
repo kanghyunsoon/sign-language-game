@@ -40,6 +40,8 @@ export interface BattleRoomDetail extends BattleRoomSummary {
   readonly rematch: boolean;
   readonly activeMatchId: string | null;
   readonly matchStartAt: number | null;
+  /** Provided by create/join and consumed for the first room WebSocket handshake. */
+  readonly realtimeTicket?: string;
 }
 
 export interface BattleRoomSession extends BattleRoomDetail {

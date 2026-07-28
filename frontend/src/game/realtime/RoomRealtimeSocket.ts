@@ -28,6 +28,8 @@ export interface RoomRealtimeSocketOptions {
   readonly roomId: string;
   readonly localUserId: string;
   readonly ticketClient: Pick<RealtimeTicketClient, "issue">;
+  /** Ticket returned by create/join; consumed by the first handshake. */
+  readonly initialTicket?: string;
   readonly createWebSocket?: (url: string) => RoomWebSocketLike;
 }
 
@@ -45,11 +47,13 @@ export class RoomRealtimeSocket {
   private readonly errorListeners = new Set<(error: Error) => void>();
   private readonly baseUrl: string;
   private readonly createWebSocket: (url: string) => RoomWebSocketLike;
+  private initialTicket: string | null;
 
   constructor(private readonly options: RoomRealtimeSocketOptions) {
     this.baseUrl = options.webSocketBaseUrl.replace(/\/$/, "");
     this.createWebSocket = options.createWebSocket
       ?? ((url) => new WebSocket(url) as unknown as RoomWebSocketLike);
+    this.initialTicket = options.initialTicket?.trim() || null;
   }
 
   async connect(): Promise<void> {
@@ -91,7 +95,8 @@ export class RoomRealtimeSocket {
   }
 
   private async openWithFreshTicket(): Promise<void> {
-    const { ticket } = await this.options.ticketClient.issue();
+    const ticket = this.initialTicket ?? (await this.options.ticketClient.issue()).ticket;
+    this.initialTicket = null;
     const socket = this.createWebSocket(
       `${this.baseUrl}/${encodeURIComponent(this.options.roomId)}?ticket=${encodeURIComponent(ticket)}`,
     );

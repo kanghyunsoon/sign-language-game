@@ -12,6 +12,8 @@ export interface BackendGameRoom {
   readonly status: BackendGameRoomStatus;
   readonly participantCount: number;
   readonly capacity: number;
+  /** One-time room WebSocket ticket returned when the user creates or joins. */
+  readonly realtimeTicket?: string;
   /** Optional until the backend's announced Swagger update is deployed. */
   readonly gameType?: BackendGameType;
 }
@@ -89,8 +91,12 @@ export function parseBackendGameRoom(value: unknown): BackendGameRoom {
     throw new Error("Invalid game room status.");
   }
   const gameType = value.gameType;
+  const realtimeTicket = value.realtimeTicket;
   if (gameType !== undefined && (typeof gameType !== "string" || gameType.trim().length === 0)) {
     throw new Error("Invalid game room type.");
+  }
+  if (realtimeTicket !== undefined && (typeof realtimeTicket !== "string" || realtimeTicket.length === 0)) {
+    throw new Error("Invalid realtime ticket.");
   }
   return {
     id: number(value.id, "id"),
@@ -105,6 +111,7 @@ export function parseBackendGameRoom(value: unknown): BackendGameRoom {
     participantCount: number(value.participantCount, "participantCount"),
     capacity: number(value.capacity, "capacity"),
     ...(gameType ? { gameType } : {}),
+    ...(realtimeTicket ? { realtimeTicket } : {}),
   };
 }
 

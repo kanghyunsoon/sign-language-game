@@ -128,7 +128,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   }, [gateway, roomId, rememberRoom]);
   useEffect(() => {
     if (!roomId || !services.roomRealtimeSocketFactory) return;
-    const socket = services.roomRealtimeSocketFactory.create(roomId);
+    const socket = services.roomRealtimeSocketFactory.create(roomId, roomSession?.realtimeTicket);
     roomSocketRef.current = socket;
     const unsubscribe = socket.subscribe((message) => {
       if (message.type === "GAME_STARTED") void startRtcAndEnter();
@@ -162,7 +162,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
       if (roomSocketRef.current === socket) roomSocketRef.current = null;
       socket.disconnect();
     };
-  }, [roomId, services.roomRealtimeSocketFactory, startRtcAndEnter, rememberRoom]);
+  }, [roomId, roomSession?.realtimeTicket, services.roomRealtimeSocketFactory, startRtcAndEnter, rememberRoom]);
 
   const startCameraPreview = async () => {
     try {
