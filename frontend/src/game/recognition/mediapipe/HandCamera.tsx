@@ -2,7 +2,7 @@ import { AlertTriangle, Camera, Hand, Square } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { drawHandOverlay } from "./drawHandOverlay";
-import { predictLandmarksForDisplay, stabilizeLandmarksForDisplay, type DisplayLandmarkSample } from "./predictLandmarksForDisplay";
+import { predictLandmarksForDisplay, type DisplayLandmarkSample } from "./predictLandmarksForDisplay";
 import { useRecognitionVisionAdapterFactory } from "../vision";
 import type { RecognitionVisionAdapter, RecognitionVisionAdapterFactory, TrackedHand } from "../vision";
 import type { HandLandmarkFrame } from "../types/landmark";
@@ -78,7 +78,6 @@ export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE
   const renderHandsRef = useRef<readonly TrackedHand[]>([]);
   const previousDisplaySampleRef = useRef<DisplayLandmarkSample | undefined>(undefined);
   const currentDisplaySampleRef = useRef<DisplayLandmarkSample | undefined>(undefined);
-  const lastDisplayedLandmarksRef = useRef<readonly import("../types/landmark").HandLandmark[] | undefined>(undefined);
   const lastVisualHandSeenAtRef = useRef(0);
   const lightLandmarksRef = useRef<readonly import("../types/landmark").HandLandmark[] | undefined>(undefined);
   const lastHandCountRef = useRef(0);
@@ -122,7 +121,7 @@ export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE
     visionAdapterRef.current?.close();
     visionAdapterRef.current = null;
     activeHandTrackerRef.current?.dispose();activeHandTrackerRef.current=null;lastActiveHandSessionIdRef.current=undefined;
-    handBufferRef.current.clear();processingHandRef.current=false;renderHandsRef.current=[];previousDisplaySampleRef.current=undefined;currentDisplaySampleRef.current=undefined;lastDisplayedLandmarksRef.current=undefined;lastVisualHandSeenAtRef.current=0;lightLandmarksRef.current=undefined;
+    handBufferRef.current.clear();processingHandRef.current=false;renderHandsRef.current=[];previousDisplaySampleRef.current=undefined;currentDisplaySampleRef.current=undefined;lastVisualHandSeenAtRef.current=0;lightLandmarksRef.current=undefined;
     poseBufferRef.current.clear();processingPoseRef.current=false;
 
     const video = videoRef.current;
@@ -154,7 +153,7 @@ export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE
       if(stageRef.current)stageRef.current.style.aspectRatio=`${video.videoWidth} / ${video.videoHeight}`;
     }
     const currentSample=currentDisplaySampleRef.current;
-    const hands=renderHandsRef.current.map((hand,index)=>{if(index!==0||!currentSample)return hand;const predicted=predictLandmarksForDisplay(previousDisplaySampleRef.current,currentSample,Date.now());const stabilized=stabilizeLandmarksForDisplay(lastDisplayedLandmarksRef.current,predicted);lastDisplayedLandmarksRef.current=stabilized;return{...hand,landmarks:stabilized};}),template=feedbackHandlersRef.current.referenceTemplate;
+    const hands=renderHandsRef.current.map((hand,index)=>{if(index!==0||!currentSample)return hand;return{...hand,landmarks:predictLandmarksForDisplay(previousDisplaySampleRef.current,currentSample,Date.now())};}),template=feedbackHandlersRef.current.referenceTemplate;
     const overlayStates=hands.map((hand)=>{
       const result=template?compareTemplateToCurrentLandmarks(hand.landmarks,hand.handedness,template):null;
       return result&&result.availability==="AVAILABLE"&&template
@@ -172,7 +171,7 @@ export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE
     if(activePlayerSession){const candidates:HandCandidate[]=hands.map((hand,index)=>({detectionId:`hand-${frame.frameId}-${index}`,landmarks:hand.landmarks,handedness:hand.handedness,handednessScore:hand.handednessScore??0,wrist:hand.landmarks[0]!,detectedAt:frame.capturedAt}));if(recognitionSession){const ownership=recognitionSession.resolveHandCandidates(candidates,frame.capturedAt);if(showDebug)setActiveHandSnapshot(ownership.ownership);const previewId=ownership.selected?.detectionId??ownership.ownership?.scores[0]?.handDetectionId,previewIndex=candidates.findIndex((candidate)=>candidate.detectionId===previewId);preview=previewIndex>=0?hands[previewIndex]:undefined;if(ownership.inputAllowed&&ownership.selected){const selectedIndex=candidates.findIndex((candidate)=>candidate.detectionId===ownership.selected!.detectionId);primary=hands[selectedIndex];activeSessionId=ownership.sessionId;activeHandId=ownership.activeHandId;}}else if(activeHandTrackerRef.current){const ownership=activeHandTrackerRef.current.update(candidates,activePlayerSession.getSnapshot(),frame.capturedAt);if(showDebug)setActiveHandSnapshot(ownership);const previewId=ownership.selected?.detectionId??ownership.scores[0]?.handDetectionId,previewIndex=candidates.findIndex((candidate)=>candidate.detectionId===previewId);preview=previewIndex>=0?hands[previewIndex]:undefined;if(ownership.inputAllowed&&ownership.selected&&ownership.session){const selectedIndex=candidates.findIndex((candidate)=>candidate.detectionId===ownership.selected!.detectionId);primary=hands[selectedIndex];activeSessionId=ownership.session.sessionId;activeHandId=ownership.session.activeHandId;}}}
     else primary=hands[0];
     const visualHand=primary??preview??hands[0],visualNow=Date.now();
-    if(visualHand){const displaySample={landmarks:visualHand.landmarks,capturedAt:frame.capturedAt};previousDisplaySampleRef.current=currentDisplaySampleRef.current;currentDisplaySampleRef.current=displaySample;renderHandsRef.current=[visualHand];lastVisualHandSeenAtRef.current=visualNow;}else if(visualNow-lastVisualHandSeenAtRef.current>VISUAL_HAND_LOST_GRACE_MS){renderHandsRef.current=[];previousDisplaySampleRef.current=undefined;currentDisplaySampleRef.current=undefined;lastDisplayedLandmarksRef.current=undefined;}
+    if(visualHand){const displaySample={landmarks:visualHand.landmarks,capturedAt:frame.capturedAt};previousDisplaySampleRef.current=currentDisplaySampleRef.current;currentDisplaySampleRef.current=displaySample;renderHandsRef.current=[visualHand];lastVisualHandSeenAtRef.current=visualNow;}else if(visualNow-lastVisualHandSeenAtRef.current>VISUAL_HAND_LOST_GRACE_MS){renderHandsRef.current=[];previousDisplaySampleRef.current=undefined;currentDisplaySampleRef.current=undefined;}
     if(primary){if(activeSessionId&&lastActiveHandSessionIdRef.current!==activeSessionId){lightLandmarksRef.current=undefined;lastActiveHandSessionIdRef.current=activeSessionId;}const light=smoothHandLandmarks(lightLandmarksRef.current,primary.landmarks,.96);lightLandmarksRef.current=light;const output={frameId:frame.frameId,capturedAt:frame.capturedAt,handedness:primary.handedness,landmarks:light,rawLandmarks:primary.landmarks,activeHandId,activeHandSessionId:activeSessionId};if(recognitionSession)recognitionSession.submitLandmarkFrame(output);else handlersRef.current.onLandmarkFrame?.(output);const template=feedbackHandlersRef.current.referenceTemplate;if(template&&performance.now()-lastFeedbackReportAtRef.current>=FEEDBACK_REPORT_INTERVAL_MS){lastFeedbackReportAtRef.current=performance.now();feedbackHandlersRef.current.onPoseFeedback?.(compareTemplateToCurrentLandmarks(primary.landmarks,primary.handedness,template));}}else{lightLandmarksRef.current=undefined;if(recognitionSession)recognitionSession.notifyHandNotDetected(frame.capturedAt);else handlersRef.current.onHandNotDetected?.(frame.capturedAt);}if(hands.length!==lastHandCountRef.current){lastHandCountRef.current=hands.length;setHandCount(hands.length);}}}finally{processingHandRef.current=false;if(handBufferRef.current.hasPending())void processPendingHands();}},[activePlayerSession,drawLatest,recognitionSession,showDebug]);
 
   const queueHandFrame=useCallback((frame:RecognitionVideoFrame)=>{handBufferRef.current.push(frame);const dropped=handBufferRef.current.takeReplacementCount();if(dropped)monitorRef.current.drop("hand",dropped);void processPendingHands();},[processPendingHands]);

@@ -22,8 +22,8 @@ export const LOW_POWER_RECOGNITION_RATE_CONFIG: RecognitionRateConfig = Object.f
 /** Active game screens favour response time; stale work is dropped. */
 export const RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG: RecognitionRateConfig = Object.freeze({
   renderFps: 60,
-  handTrackingFps: 30,
-  poseTrackingFps: 6,
+  handTrackingFps: 60,
+  poseTrackingFps: 4,
   aiInferenceFps: 24,
 });
 

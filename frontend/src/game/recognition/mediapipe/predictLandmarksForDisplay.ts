@@ -5,12 +5,12 @@ export interface DisplayLandmarkSample {
   readonly capturedAt: number;
 }
 
-const MAX_LEAD_MS = 72;
-const MAX_SAMPLE_LEAD_MULTIPLIER = 2;
-const MAX_GLOBAL_XY_OFFSET = 0.035;
-const MAX_GLOBAL_Z_OFFSET = 0.045;
-const MAX_ARTICULATION_XY_OFFSET = 0.012;
-const MAX_ARTICULATION_Z_OFFSET = 0.018;
+const MAX_LEAD_MS = 120;
+const MAX_SAMPLE_LEAD_MULTIPLIER = 3;
+const MAX_GLOBAL_XY_OFFSET = 0.055;
+const MAX_GLOBAL_Z_OFFSET = 0.065;
+const MAX_ARTICULATION_XY_OFFSET = 0.018;
+const MAX_ARTICULATION_Z_OFFSET = 0.024;
 const MOTION_DEAD_ZONE = 0.0015;
 const PALM_ANCHOR_INDICES = [0, 5, 9, 13, 17] as const;
 
