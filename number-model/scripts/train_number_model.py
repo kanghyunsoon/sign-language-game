@@ -40,18 +40,36 @@ from sklearn.preprocessing import StandardScaler
 NUMBER_MODEL_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(NUMBER_MODEL_ROOT))
 
+from numbermodel.adapter import COMPOSITION, compose_soft  # noqa: E402
 from numbermodel.features import FEATURE_SIZE  # noqa: E402
-from numbermodel.labels import LABELS, MODEL_VERSION, NONE_LABEL, NUMBER_LABELS  # noqa: E402
+from numbermodel.labels import (  # noqa: E402
+    LABEL_INDEX,
+    LABELS,
+    MODEL_VERSION,
+    NONE_LABEL,
+    NUMBER_LABELS,
+)
+from numbermodel.labels import NONE_INDEX as _NONE_INDEX  # noqa: E402
+from numbermodel.labels import NUMBER_INDEXES as _NUMBER_INDEXES  # noqa: E402
 
 
 SEED = 42
 CLASS_FLOOR = 0.93
+# The frontend decoder only confirms above this, so it is the bar that decides
+# whether a player actually scores. Kept in step with recognition-policy.json.
+CANDIDATE_CONFIDENCE = 0.80
 TEN_LABEL = "10"
 TEN_VARIANT_LABELS = ("10-1", "10-2")
 DEFAULT_OUTPUT_DIR = NUMBER_MODEL_ROOT / "models" / MODEL_VERSION
-LABEL_INDEX = {label: index for index, label in enumerate(LABELS)}
-NUMBER_INDEXES = np.asarray([LABEL_INDEX[label] for label in NUMBER_LABELS])
-NONE_INDEX = LABEL_INDEX[NONE_LABEL]
+NUMBER_INDEXES = np.asarray(_NUMBER_INDEXES)
+NONE_INDEX = _NONE_INDEX
+
+# The gate rejects non-numbers, the head separates digits. Measured on held-out
+# data ExtraTrees rejects about six times better while KNN separates digits
+# better, so each is used where it is strong rather than tuned harder.
+GATE_CANDIDATE = "extra-trees"
+HEAD_CANDIDATE = "knn"
+HYBRID_NAME = "hybrid-gate-head"
 
 
 def parse_args() -> argparse.Namespace:
@@ -59,6 +77,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--features", type=Path, nargs="+", required=True, help="One or more extractor NPZ files")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--trees", type=int, default=500)
+    parser.add_argument(
+        "--max-features", type=float, default=0.7,
+        help="ExtraTrees max_features. 0.3 measured slightly fewer false confirmations than 0.7.",
+    )
+    parser.add_argument(
+        "--none-sample", type=int, default=0,
+        help="Keep at most N negative training rows (0 = all). Negatives crowd out the digits: at "
+             "0.76x the digit count the mean worst-class recall was 0.646, at 0.15x it was 0.917.",
+    )
     parser.add_argument("--knn-neighbors", type=int, default=7)
     parser.add_argument("--seed", type=int, default=SEED)
     parser.add_argument("--valid-participants", default="", help="Comma separated; default is an automatic split")
@@ -75,6 +102,26 @@ def parse_args() -> argparse.Namespace:
         choices=("extra-trees", "knn", "mlp"),
         default="",
         help="Force one classifier instead of selecting, so a round changes one thing at a time",
+    )
+    parser.add_argument(
+        "--hybrid",
+        action="store_true",
+        help="Fit an ExtraTrees rejection gate plus a KNN digit head and compose them, instead of "
+             "picking one classifier. Writes a two-component bundle.",
+    )
+    parser.add_argument(
+        "--none-holdout-fraction",
+        type=float,
+        default=0.0,
+        help="Hold out this share of negative source folders (whole jamo at a time) for valid and test. "
+             "Rejection has to generalise to hand shapes never trained on, so holding out entire "
+             "folders measures the thing that matters instead of reshuffling within known shapes.",
+    )
+    parser.add_argument(
+        "--drop-source-folders",
+        default="",
+        help="Comma separated source folder names to exclude, e.g. negatives whose hand shape "
+             "collides with a digit. Folder names come from the second path component in `sources`.",
     )
     return parser.parse_args()
 
@@ -114,6 +161,89 @@ def load_features(paths: list[Path]) -> dict[str, np.ndarray]:
     }
 
 
+def hold_out_none_folders(
+    indexes: dict[str, np.ndarray], data: dict[str, np.ndarray], args: argparse.Namespace,
+    notes: dict[str, object],
+) -> None:
+    """Move whole negative source folders out of training, into valid and test.
+
+    Negatives come from public sources with no signer id, so the participant rule
+    keeps them in training and rejection ends up unmeasured on held-out data.
+    Splitting them by *hand shape* rather than by signer is also the more honest
+    test: what matters at runtime is refusing a shape the model has never been
+    trained on, not refusing another sample of a shape it already knows.
+
+    Folder selection is deterministic from the seed so a round is reproducible.
+    Mutates `indexes` in place.
+    """
+    if args.none_holdout_fraction <= 0:
+        return
+    labels = data["labels"]
+    none_rows = labels == NONE_LABEL
+    if not none_rows.any():
+        return
+    folders = np.asarray([str(v).split("/")[1] if "/" in str(v) else "" for v in data["sources"]])
+    available = sorted({name for name in folders[none_rows] if name})
+    if len(available) < 4:
+        raise ValueError(f"Need at least 4 negative folders to hold any out; found {available}")
+
+    count = max(2, int(round(len(available) * args.none_holdout_fraction)))
+    chosen = sorted(np.random.default_rng(args.seed).permutation(np.asarray(available))[:count].tolist())
+    # Alternate so neither split gets a run of similar shapes from the sorted order.
+    to_valid, to_test = chosen[0::2], chosen[1::2]
+
+    for name, group in (("valid", to_valid), ("test", to_test)):
+        moved = np.flatnonzero(none_rows & np.isin(folders, group))
+        if moved.size == 0:
+            continue
+        indexes[name] = np.sort(np.concatenate([indexes[name], moved]))
+        indexes["train"] = np.sort(indexes["train"][~np.isin(indexes["train"], moved)])
+    notes |= {
+        "noneHoldoutPolicy": "whole source folders held out; measures rejection of unseen hand shapes",
+        "noneHoldoutValidFolders": to_valid,
+        "noneHoldoutTestFolders": to_test,
+    }
+    print(f"held out negative folders -> valid {to_valid}, test {to_test}", flush=True)
+
+
+def top_up_valid(
+    indexes: dict[str, np.ndarray], labels: np.ndarray, seed: int, notes: dict[str, object],
+) -> None:
+    """Make sure validation covers every label that training has.
+
+    Sources rarely agree on split columns. The number source ships train/test
+    only while the negative source ships train/valid/test, so merging them left
+    validation holding nothing but `none` and every digit metric reading zero.
+    Candidate selection would then be decided by a split that cannot see the
+    digits at all.
+
+    Missing labels are topped up from train, per label, so selection always sees
+    the whole contract. Mutates `indexes` in place.
+    """
+    train_labels = set(labels[indexes["train"]].tolist())
+    missing = sorted(train_labels - set(labels[indexes["valid"]].tolist()))
+    if not missing:
+        return
+    rng = np.random.default_rng(seed)
+    moved: list[np.ndarray] = []
+    keep = indexes["train"]
+    for label in missing:
+        candidates = keep[labels[keep] == label]
+        if candidates.size == 0:
+            continue
+        count = max(1, int(round(candidates.size * 0.15)))
+        chosen = rng.permutation(candidates)[:count]
+        moved.append(chosen)
+        keep = keep[~np.isin(keep, chosen)]
+    if not moved:
+        return
+    indexes["valid"] = np.sort(np.concatenate([indexes["valid"], *moved]))
+    indexes["train"] = np.sort(keep)
+    notes["validToppedUpLabels"] = missing
+    notes["validToppedUpRows"] = int(sum(len(block) for block in moved))
+    print(f"validation topped up with {notes['validToppedUpRows']} rows for {missing}", flush=True)
+
+
 def build_splits(data: dict[str, np.ndarray], args: argparse.Namespace) -> tuple[dict[str, np.ndarray], dict[str, object]]:
     groups = data["groups"]
     has_participant = groups != ""
@@ -133,6 +263,7 @@ def build_splits(data: dict[str, np.ndarray], args: argparse.Namespace) -> tuple
             indexes["valid"], indexes["train"] = shuffled[:cut], shuffled[cut:]
             notes["validCarvedFromTrain"] = True
         notes["policy"] = "provider splits; NOT signer-independent, baseline only"
+        top_up_valid(indexes, data["labels"], args.seed, notes)
         return indexes, notes
 
     participants = sorted({value for value in groups[has_participant]})
@@ -167,6 +298,10 @@ def build_splits(data: dict[str, np.ndarray], args: argparse.Namespace) -> tuple
         "testParticipants": selected_test,
         "publicTrainingRows": int((~has_participant).sum()),
     }
+    hold_out_none_folders(indexes, data, args, notes)
+    # A public-only label such as `none` would otherwise never reach validation,
+    # because rows without a signer id are training-only.
+    top_up_valid(indexes, data["labels"], args.seed, notes)
     return indexes, notes
 
 
@@ -182,7 +317,7 @@ def build_candidates(args: argparse.Namespace) -> dict[str, object]:
     return {
         "extra-trees": ExtraTreesClassifier(
             n_estimators=args.trees,
-            max_features=0.7,
+            max_features=args.max_features,
             min_samples_leaf=1,
             class_weight="balanced",
             n_jobs=-1,
@@ -277,6 +412,46 @@ def contract_probabilities(
     return folded
 
 
+def confirmation_metrics(truth: np.ndarray, probabilities: np.ndarray) -> dict[str, object]:
+    """Rates at the confidence the frontend actually confirms on.
+
+    argmax recall overstates what a player experiences. `recognition-policy.json`
+    only confirms a symbol whose confidence clears `candidate`, so a frame whose
+    correct digit wins at 0.44 is not a correct answer at runtime — it is no
+    answer at all. Rejection is the mirror image: a negative only becomes a wrong
+    confirmation if some digit clears the same bar.
+    """
+    predicted = probabilities.argmax(axis=1)
+    confident = probabilities.max(axis=1) >= CANDIDATE_CONFIDENCE
+    numbers = np.isin(truth, NUMBER_INDEXES)
+    negatives = truth == NONE_INDEX
+    digit_columns = np.asarray(NUMBER_INDEXES)
+
+    per_class = {}
+    for column in NUMBER_INDEXES:
+        rows = truth == column
+        if not rows.any():
+            continue
+        per_class[LABELS[column]] = round(
+            float(((predicted[rows] == column) & confident[rows]).mean()), 6,
+        )
+    accepted_negative = (
+        float((probabilities[negatives][:, digit_columns].max(axis=1) >= CANDIDATE_CONFIDENCE).mean())
+        if negatives.any() else None
+    )
+    return {
+        "candidateConfidence": CANDIDATE_CONFIDENCE,
+        "numberConfirmationRate": round(float(((predicted == truth) & confident)[numbers].mean()), 6)
+        if numbers.any() else None,
+        "numberMinConfirmationRate": round(min(per_class.values()), 6) if per_class else None,
+        "perClassConfirmationRate": per_class,
+        # A negative that clears the bar on some digit is a false confirmation.
+        "negativeFalseConfirmationRate": round(accepted_negative, 6) if accepted_negative is not None else None,
+        "meanConfidenceOnNumbers": round(float(probabilities[numbers].max(axis=1).mean()), 6)
+        if numbers.any() else None,
+    }
+
+
 def score(truth: np.ndarray, probabilities: np.ndarray) -> dict[str, object]:
     predicted = probabilities.argmax(axis=1)
     indexes = np.arange(len(LABELS))
@@ -320,6 +495,7 @@ def score(truth: np.ndarray, probabilities: np.ndarray) -> dict[str, object]:
             for index, label in enumerate(LABELS)
         ],
         "confusionMatrix": matrix.tolist(),
+        "confirmation": confirmation_metrics(truth, probabilities),
     }
 
 
@@ -339,6 +515,28 @@ def main() -> None:
             "drop --write-bundle.",
         )
     data = load_features(list(args.features))
+    dropped = [name for name in args.drop_source_folders.split(",") if name]
+    drop_report: dict[str, object] = {"droppedSourceFolders": dropped}
+    if dropped:
+        folders = np.asarray([str(value).split("/")[1] if "/" in str(value) else "" for value in data["sources"]])
+        keep = ~np.isin(folders, dropped)
+        missing_folders = sorted(set(dropped) - set(folders.tolist()))
+        if missing_folders:
+            raise ValueError(f"--drop-source-folders names no rows: {missing_folders}")
+        drop_report["droppedRows"] = int((~keep).sum())
+        data = {key: value[keep] for key, value in data.items()}
+        print(f"dropped {drop_report['droppedRows']} rows from folders {dropped}", flush=True)
+    if args.none_sample > 0:
+        # Negatives crowd out the digits when they dominate training, so the count
+        # is capped rather than left at whatever the source happened to provide.
+        none_rows = np.flatnonzero(data["labels"] == NONE_LABEL)
+        if none_rows.size > args.none_sample:
+            drop = np.random.default_rng(args.seed).permutation(none_rows)[args.none_sample:]
+            keep_mask = np.ones(len(data["labels"]), dtype=bool)
+            keep_mask[drop] = False
+            data = {key: value[keep_mask] for key, value in data.items()}
+            drop_report["noneSampledTo"] = args.none_sample
+            print(f"negatives capped at {args.none_sample} rows", flush=True)
     internal_labels = build_internal_labels(args.ten_variants)
     # Truth stays in the 11-label contract even when the model is fitted finer,
     # so every round is scored in the same space.
@@ -379,15 +577,31 @@ def main() -> None:
     # Class floor first, macro-F1 only as a tie-break. A forced candidate skips
     # selection so that a round comparing something else does not also swap the
     # classifier underneath the comparison.
-    if args.candidate:
+    if args.hybrid:
+        selected = HYBRID_NAME
+        print(f"composing {GATE_CANDIDATE} gate with {HEAD_CANDIDATE} head", flush=True)
+    elif args.candidate:
         selected = args.candidate
         print(f"candidate forced to {selected}; selection skipped", flush=True)
     else:
         selected = max(results, key=lambda name: (results[name]["numberMinRecall"], results[name]["macroF1"]))
-    model = fitted[selected]
+    model = None if args.hybrid else fitted[selected]
+
+    def predict(rows: np.ndarray) -> np.ndarray:
+        if not args.hybrid:
+            return contract_probabilities(model, rows, internal_labels)
+        # compose_soft comes from the adapter, so the measured composition and the
+        # deployed one cannot drift apart.
+        return compose_soft(
+            contract_probabilities(fitted[GATE_CANDIDATE], rows, internal_labels),
+            contract_probabilities(fitted[HEAD_CANDIDATE], rows, internal_labels),
+        )
+
+    if args.hybrid:
+        results[HYBRID_NAME] = score(targets[indexes["valid"]], predict(features[indexes["valid"]]))
 
     started = time.perf_counter()
-    test_probabilities = contract_probabilities(model, features[indexes["test"]], internal_labels)
+    test_probabilities = predict(features[indexes["test"]])
     latency_ms = (time.perf_counter() - started) * 1000 / max(1, len(indexes["test"]))
     test_report = score(targets[indexes["test"]], test_probabilities)
 
@@ -411,6 +625,7 @@ def main() -> None:
         "selectedCandidate": selected,
         "candidateValidation": results,
         "split": split_notes
+        | drop_report
         | {name: int(len(value)) for name, value in indexes.items()}
         | {"sources": sorted(set(data["origins"].tolist()))},
         "meanBatchInferenceMsPerSample": round(latency_ms, 4),
@@ -425,25 +640,53 @@ def main() -> None:
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     if args.write_bundle:
-        model_path = args.output_dir / "number-10.joblib"
-        joblib.dump(model, model_path, compress=3)
-        manifest = {
+        shared = {
             "schemaVersion": 1,
             "modelVersion": MODEL_VERSION,
-            "format": f"sklearn-{selected}",
-            "artifact": model_path.name,
-            "sha256": sha256(model_path),
             "labels": list(LABELS),
             "featureVersion": "v3",
             "featureSize": FEATURE_SIZE,
             "frameInput": True,
+        }
+        if args.hybrid:
+            components = []
+            for role, name, filename in (
+                ("gate", GATE_CANDIDATE, "number-gate.joblib"),
+                ("head", HEAD_CANDIDATE, "number-head.joblib"),
+            ):
+                path = args.output_dir / filename
+                joblib.dump(fitted[name], path, compress=3)
+                components.append(
+                    {"role": role, "artifact": filename, "sha256": sha256(path), "format": f"sklearn-{name}"},
+                )
+            manifest = shared | {
+                "format": "hybrid-gate-head",
+                "components": components,
+                "composition": COMPOSITION,
+            }
+            # A stale single-artifact file would be silently ignored by the adapter
+            # but would still look like the model to a human reading the folder.
+            stale = args.output_dir / "number-10.joblib"
+            if stale.exists():
+                stale.unlink()
+                print(f"removed stale {stale.name} from an earlier single-model bundle", flush=True)
+        else:
+            model_path = args.output_dir / "number-10.joblib"
+            joblib.dump(model, model_path, compress=3)
+            manifest = shared | {"format": f"sklearn-{selected}", "artifact": model_path.name, "sha256": sha256(model_path)}
+            for stale_name in ("number-gate.joblib", "number-head.joblib"):
+                stale = args.output_dir / stale_name
+                if stale.exists():
+                    stale.unlink()
+                    print(f"removed stale {stale_name} from an earlier hybrid bundle", flush=True)
+        manifest |= {
             "datasets": sorted(set(data["origins"].tolist())),
             "evaluation": report_path.name,
         }
         (args.output_dir / "manifest.json").write_text(
             json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8",
         )
-        print(f"bundle written: {model_path}")
+        print(f"bundle written: {args.output_dir} ({manifest['format']})")
     else:
         print("report only; pass --write-bundle to publish a loadable model bundle")
 
