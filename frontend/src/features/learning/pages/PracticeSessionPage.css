@@ -439,12 +439,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: min(0.208333vw, 0.333333vh);
+  margin-top: min(2.5vw, 1.5vh);
 }
 
 .practice-item-navigation strong {
   color: #3f2b20;
-  font-size: min(1.197917vw, 1.916667vh);
+  font-size: min(1.4583vw, 2.3333vh);
   line-height: 1;
   text-align: center;
 }
@@ -458,7 +458,7 @@
   justify-content: center;
   flex-direction: column;
   color: #8a7e73;
-  font-size: min(0.677083vw, 1.083333vh);
+  font-size: min(0.9375vw, 1.5vh);
   line-height: 1.65;
   text-align: center;
   word-break: keep-all;
