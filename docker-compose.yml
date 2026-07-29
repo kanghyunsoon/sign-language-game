@@ -15,3 +15,16 @@ services:
 
     volumes:
       - ${AI_MODEL_DIR:-/opt/sudal/ai/models}:/app/models:ro
+  number-ai:
+    image: sudal-number-ai:latest
+    container_name: sudal-number-ai
+    restart: unless-stopped
+    init: true
+
+    environment:
+      HANDPRACTICE_NUMBER_HOST: 0.0.0.0
+      HANDPRACTICE_NUMBER_PORT: 8766
+      HANDPRACTICE_NUMBER_PATH: /number
+
+    ports:
+      - "127.0.0.1:8766:8766"
