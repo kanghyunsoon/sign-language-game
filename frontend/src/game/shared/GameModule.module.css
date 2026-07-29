@@ -71,8 +71,9 @@
 .module :global(.status-dot) { width: 7px; height: 7px; border-radius: 50%; background: #9ba49f; }
 .module :global(.status-running .status-dot) { background: #16a36a; box-shadow: 0 0 0 3px #d8f5e9; }
 .module :global(.camera-stage) { position: relative; width: 100%; aspect-ratio: 4 / 3; overflow: hidden; border: 2px solid #173a5e; border-radius: 6px; background: #17201d; }
-.module :global(.camera-media), .module :global(.camera-overlay) { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.module :global(.camera-overlay) { pointer-events: none; }
+.module :global(.camera-media), .module :global(.camera-overlay) { position: absolute; inset: 0; width: 100%; height: 100%; }
+.module :global(.camera-media) { object-fit: cover; }
+.module :global(.camera-overlay) { object-fit: fill !important; pointer-events: none; }
 .module :global(.mirrored) { transform: scaleX(-1); }
 .module :global(.recognition-performance) { margin-top: 8px; padding: 8px 10px; border: 1px solid #bfd0dc; border-radius: 10px; font-size: 11px; }
 .module :global(.recognition-performance span),.module :global(.recognition-performance small) { display: inline-block; margin: 4px 10px 0 0; }

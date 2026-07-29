@@ -155,7 +155,6 @@ export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE
     if(resized){
       canvas.width=size.width;
       canvas.height=size.height;
-      if(stageRef.current)stageRef.current.style.aspectRatio=`${video.videoWidth} / ${video.videoHeight}`;
     }
     const currentSample=currentDisplaySampleRef.current;
     const hands=renderHandsRef.current.map((hand,index)=>{if(index!==0||!currentSample)return hand;return{...hand,landmarks:predictLandmarksForDisplay(previousDisplaySampleRef.current,currentSample,Date.now())};}),template=feedbackHandlersRef.current.referenceTemplate;
@@ -167,7 +166,11 @@ export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE
     });
     const context=canvas.getContext("2d");
     if(context){
-      drawHandOverlay(context,hands,overlayStates);
+      drawHandOverlay(context,hands,overlayStates,{
+        sourceWidth:video.videoWidth,
+        sourceHeight:video.videoHeight,
+        objectFit:videoObjectFit(video),
+      });
     }
   },[]);
 
@@ -372,11 +375,16 @@ function cameraErrorTitle(kind: CameraErrorKind): string {
 
 function overlayCanvasSize(video: HTMLVideoElement, stage: HTMLDivElement | null): { width: number; height: number } {
   const stageWidth = stage?.clientWidth ?? 0;
-  if (stageWidth <= 0) return { width: video.videoWidth, height: video.videoHeight };
+  const stageHeight = stage?.clientHeight ?? 0;
+  if (stageWidth <= 0 || stageHeight <= 0) return { width: video.videoWidth, height: video.videoHeight };
   const pixelRatio = Math.min(globalThis.devicePixelRatio || 1, 1.5);
-  const width = Math.max(1, Math.min(video.videoWidth, Math.round(stageWidth * pixelRatio)));
   return {
-    width,
-    height: Math.max(1, Math.round(width * video.videoHeight / video.videoWidth)),
+    width: Math.max(1, Math.round(stageWidth * pixelRatio)),
+    height: Math.max(1, Math.round(stageHeight * pixelRatio)),
   };
+}
+
+function videoObjectFit(video: HTMLVideoElement): "cover" | "contain" | "fill" {
+  const objectFit = globalThis.getComputedStyle?.(video).objectFit;
+  return objectFit === "contain" || objectFit === "fill" ? objectFit : "cover";
 }
