@@ -1,6 +1,7 @@
 import { Flame, Leaf, Pencil, Settings, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { SiteFooter } from "../../../shared/components/SiteFooter";
 
 import { useAuth } from "../../auth/AuthContext";
 import {
@@ -316,6 +317,8 @@ export function ProfilePage() {
             회원탈퇴
           </button>
         </aside>
+
+        <SiteFooter />
       </div>
 
       {isDeleteAccountModalOpen && (

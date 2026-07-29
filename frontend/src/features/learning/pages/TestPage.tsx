@@ -1,6 +1,7 @@
 import "./TestPage.css";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { SiteFooter } from "../../../shared/components/SiteFooter";
 import { TestProgressView } from "../components/TestProgressView";
 import { TestResultView } from "../components/TestResultView";
 import { TestSetupView } from "../components/TestSetupView";
@@ -124,6 +125,8 @@ export function TestPage() {
         {phase === "result" && (
           <TestResultView results={results} onRetry={handleRetry} />
         )}
+
+        <SiteFooter sizing="fixed" />
       </div>
     </div>
   );
