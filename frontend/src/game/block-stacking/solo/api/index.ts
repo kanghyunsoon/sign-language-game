@@ -5,7 +5,9 @@ export { LocalSoloGameApi } from "./LocalSoloGameApi";
 export type { LocalSoloGameApiOptions } from "./LocalSoloGameApi";
 export type { MockSoloGameApiOptions } from "./MockSoloGameApi";
 export { SoloSessionCoordinator } from "./SoloSessionCoordinator";
-export { toCompleteSoloSessionRequest, toSoloSymbolStatistics } from "./SoloResultMapper";
+export { toCompleteSoloSessionRequest, toElapsedScoreSeconds, toSoloSymbolStatistics } from "./SoloResultMapper";
+export { TetrisWeightApi, softenTetrisWeight } from "./TetrisWeightApi";
+export type { TetrisWeight, TetrisWeightApiOptions, TetrisWeightFetch } from "./TetrisWeightApi";
 export type {
   CompleteSoloSessionRequest,
   SoloGameApi,

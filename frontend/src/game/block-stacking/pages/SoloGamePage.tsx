@@ -4,14 +4,17 @@ import { useNavigate } from "react-router-dom";
 
 import { useGameModuleContext } from "../../app/GameModuleContext";
 import { GameCanvas } from "../components/GameCanvas";
+import { GlyphCollisionAudit } from "../components/GlyphCollisionAudit";
 import { DEFAULT_GAME_CONFIG } from "../core/types";
-import { primeGlyphCollisionCache } from "../glyphs/glyphRaster";
+import { getGlyphCollisionRects, primeGlyphCollisionCache } from "../glyphs/glyphRaster";
 import { MatterPhysicsWorld } from "../physics/MatterPhysicsWorld";
 import { DEFAULT_PHYSICS_CONFIG } from "../physics/types";
 import { GameRuntime, type GameRuntimeSnapshot } from "../runtime";
 import {
   SoloSessionCoordinator,
+  TetrisWeightApi,
   toCompleteSoloSessionRequest,
+  toElapsedScoreSeconds,
   type SoloGameApi,
   type SoloGameResult,
 } from "../solo/api";
@@ -87,7 +90,12 @@ export function SoloGamePage({
   signRecognizerFactory,
 }: SoloGamePageProps = {}) {
   const navigate = useNavigate();
-  const { config, services, sharedCameraSession } = useGameModuleContext();
+  const { accessToken, config, services, sharedCameraSession } = useGameModuleContext();
+  const tetrisWeightApi = useMemo(() => new TetrisWeightApi({
+    baseUrl: config.soloApiBaseUrl,
+    credentials: "include",
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+  }), [accessToken, config.soloApiBaseUrl]);
   const resolvedSoloGameApiFactory = useMemo(
     () => soloGameApiFactory ?? (() => services.soloGameApi),
     [services.soloGameApi, soloGameApiFactory],
@@ -128,9 +136,10 @@ export function SoloGamePage({
     });
   }
   const recognitionController = controllerRef.current;
-  const paperTargetSymbol = snapshot.queuedSymbol
-    ?? runtimeRef.current?.getPreferredTargetSymbol(SOLO_GAME_SYMBOLS)
-    ?? recognition.targetSymbol;
+  // The paper owns only the queued/manual target. Once that exact glyph is
+  // released into physics the paper must stay empty; falling back to the
+  // board's preferred target rendered a second copy behind the falling one.
+  const paperTargetSymbol = snapshot.queuedSymbol;
 
   if (sessionCoordinatorRef.current === null) {
     sessionCoordinatorRef.current = new SoloSessionCoordinator(resolvedSoloGameApiFactory());
@@ -219,13 +228,11 @@ export function SoloGamePage({
     if (coordinator === null) return;
     setCompletionError(null);
     void coordinator.complete(toCompleteSoloSessionRequest(snapshot, recognition.learningStats, Date.now()))
-      .then(async (result) => {
+      .then((result) => {
         setSavedResult(result);
-        const results = await coordinator.getResults();
-        const rank = [...results]
-          .sort((left, right) => right.finalScore - left.finalScore || left.endedAt - right.endedAt)
-          .findIndex((item) => item.soloSessionId === result.soloSessionId);
-        setSoloRank(rank >= 0 ? rank + 1 : null);
+        void coordinator.getRank()
+          .then(setSoloRank)
+          .catch(() => setSoloRank(null));
       })
       .catch((error: unknown) => {
         setCompletionError(error instanceof Error ? error.message : "Failed to save the solo result.");
@@ -284,19 +291,29 @@ export function SoloGamePage({
     runtime.setSpawnSymbols(sessionSymbols);
     setCompletionError(null);
     setSavedResult(null);
+    setSessionStarting(true);
+    const symbolWeightsPromise = accessToken
+      ? tetrisWeightApi.getSymbolWeights()
+      : Promise.resolve({});
     if (coordinator.getActiveSession() === null) {
-      setSessionStarting(true);
       try {
-        await coordinator.start({ difficulty: "BEGINNER", symbolRange: sessionSymbols, playMode: "AI" });
+        const [, symbolWeights] = await Promise.all([
+          coordinator.start({ difficulty: "BEGINNER", symbolRange: sessionSymbols, playMode: "AI" }),
+          symbolWeightsPromise,
+        ]);
+        runtime.setSymbolWeights(symbolWeights);
       } catch (error) {
         setCompletionError(error instanceof Error ? error.message : "Failed to start the solo session.");
         return;
       } finally {
         setSessionStarting(false);
       }
+    } else {
+      runtime.setSymbolWeights(await symbolWeightsPromise);
+      setSessionStarting(false);
     }
     runtime.start();
-  }, [recognition.playableSymbols, recognitionController, sessionStarting]);
+  }, [accessToken, recognition.playableSymbols, recognitionController, sessionStarting, tetrisWeightApi]);
   const pause = useCallback(() => runtimeRef.current?.pause(), []);
   const leaveGame = useCallback(() => {
     runtimeRef.current?.pause();
@@ -331,6 +348,20 @@ export function SoloGamePage({
 
   return (
     <div className="solo-game-page">
+      {import.meta.env.DEV && new URLSearchParams(window.location.search).has("collisionAudit") && (
+        <GlyphCollisionAudit symbols={SOLO_GAME_SYMBOLS} />
+      )}
+      {import.meta.env.DEV && (
+        <output
+          hidden
+          data-testid="glyph-collider-audit"
+          data-audit={JSON.stringify(SOLO_GAME_SYMBOLS.map((symbol) => ({
+            symbol,
+            parts: getGlyphCollisionRects(symbol).length,
+            rectangles: getGlyphCollisionRects(symbol),
+          })))}
+        />
+      )}
       <header className="app-header solo-game-header">
         <div className="solo-title-group">
           <button type="button" className="solo-back-button" onClick={leaveGame} aria-label="게임 모드 선택으로 돌아가기">
@@ -361,7 +392,7 @@ export function SoloGamePage({
       )}
 
       <section className="solo-workspace" aria-label="Solo physics game">
-        <div className="solo-stage-column">
+        <div className={`solo-stage-column${snapshot.runState === "GAME_OVER" ? " is-game-over" : ""}`}>
           <div className="solo-board-wrap">
           <div className="solo-sky-decor" aria-hidden="true">
             <i className="cloud cloud-one" />
@@ -422,8 +453,8 @@ export function SoloGamePage({
                 <div>
                   <p className="eyebrow">SOLO RESULT</p>
                   <h2>수어 연습 완료!</h2>
-                  <strong>{snapshot.score.toLocaleString()}점</strong>
-                  <p>최고 콤보 {snapshot.bestCombo} · 제거 {snapshot.removedCount}개 · {formatPlayTime(snapshot.playTimeMs)}</p>
+                  <strong>{toElapsedScoreSeconds(snapshot.playTimeMs).toLocaleString()}초</strong>
+                  <p>도달 기록 {formatPlayTime(snapshot.playTimeMs)} · 최고 콤보 {snapshot.bestCombo} · 제거 {snapshot.removedCount}개</p>
                   <b>{soloRank ? `현재 솔로 랭킹 ${soloRank}위` : savedResult ? "기록 저장 완료" : "기록 저장 중..."}</b>
                 </div>
                 <button type="button" onClick={restart}>다시 하기</button>
@@ -438,7 +469,7 @@ export function SoloGamePage({
                 key={snapshot.paperBurstVersion}
                 className={snapshot.paperBurstSymbol === null ? undefined : "is-releasing"}
               >
-                {snapshot.paperBurstSymbol ?? paperTargetSymbol ?? "·"}
+                {snapshot.paperBurstSymbol ?? paperTargetSymbol ?? ""}
               </strong>
             </div>
           )}

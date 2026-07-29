@@ -56,6 +56,10 @@ export class SoloSessionCoordinator {
     return this.api.getResults();
   }
 
+  getRank(): Promise<number | null> {
+    return this.api.getRank();
+  }
+
   private async submitPending(): Promise<SoloGameResult> {
     const pending = this.pendingCompletion;
     if (!pending) throw new Error("No solo completion is pending.");

@@ -29,7 +29,7 @@ export const DEFAULT_PHYSICS_CONFIG: PhysicsConfig = {
   wallThickness: 48,
   letterWidth: 140,
   letterHeight: 140,
-  letterColliderPadding: 2,
+  letterColliderPadding: 1,
   friction: 0.34,
   frictionAir: 0.014,
   restitution: 0.02,

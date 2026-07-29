@@ -21,9 +21,9 @@ const snapshot: GameRuntimeSnapshot = {
 const statistics: readonly SymbolLearningStat[] = [{ symbol: "ㄱ", targetCount: 4, confirmedCount: 3, correctCount: 3, incorrectCount: 0, averageConfidence: 0.91, successRate: 1 }];
 
 describe("SoloResultMapper", () => {
-  it("maps runtime result fields using milliseconds", () => {
+  it("uses elapsed whole seconds as the final score", () => {
     expect(toCompleteSoloSessionRequest(snapshot, statistics, 20_000)).toEqual({
-      finalScore: 250,
+      finalScore: 13,
       maxCombo: 4,
       removedSymbolCount: 3,
       playDurationMs: 12_345,

@@ -5,7 +5,6 @@ import { SiteFooter } from "../../../shared/components/SiteFooter";
 import otterClapImage from "../assets/otter_clap.png";
 import {
   HandCamera,
-  PythonWebSocketSignRecognizer,
   type RecognitionConnectionState,
 } from "../../../game/recognition";
 import { getAiWebSocketUrl } from "../data/aiRecognition";
@@ -17,6 +16,7 @@ import {
   findFingerspellingEntry,
   fingerspellingItems,
 } from "../data/fingerspelling";
+import { PracticeWebSocketSignRecognizer } from "../recognition/PracticeWebSocketSignRecognizer";
 
 type PracticeCategoryId = FingerspellingCategoryId;
 
@@ -57,7 +57,7 @@ export function PracticeSessionPage({
   const correctItemIndexesRef = useRef(new Set<number>());
   const recognizer = useMemo(
     () =>
-      new PythonWebSocketSignRecognizer({
+      new PracticeWebSocketSignRecognizer({
         url: getAiWebSocketUrl(categoryId === "number"),
       }),
     [categoryId],

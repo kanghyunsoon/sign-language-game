@@ -35,6 +35,8 @@ export interface GameRenderer {
   highlightRemoval(id: string, durationMs?: number): void;
   /** Plays the visual transition for a letter released from the otter paper. */
   startSpawnEffect(id: string): void;
+  /** Temporarily hides the Pixi copy while its foreground hand-off copy is shown. */
+  setLetterVisible?(id: string, visible: boolean): void;
   setTarget(id: string | null): void;
   updateEffects(deltaMs: number): readonly RemovalEffectFinishedEvent[];
   clear(): void;

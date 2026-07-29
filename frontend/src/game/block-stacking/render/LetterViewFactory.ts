@@ -11,6 +11,7 @@ export interface LetterView {
   readonly id: string;
   setMotionState(velocityY: number, settled: boolean): void;
   setSpawnProgress(progress: number | null): void;
+  setVisible(visible: boolean): void;
   setRemovalHighlighted(highlighted: boolean): void;
   setTargetHighlighted(highlighted: boolean): void;
   destroy(): void;
@@ -101,7 +102,9 @@ export class LetterViewFactory {
         ? HIGHLIGHT_COLOR
         : progress === null
           ? (targetHighlighted ? TARGET_COLOR : BASE_COLOR)
-          : blendColor(TARGET_COLOR, SPAWN_LAUNCH_COLOR, progress);
+          // The paper glyph finishes gold. Keep that colour at the handoff
+          // instead of flashing back to pink on the first physics frame.
+          : SPAWN_LAUNCH_COLOR;
       sprite.tint = tint;
       targetGlow.tint = tint;
       targetEdge.tint = tint;
@@ -124,6 +127,9 @@ export class LetterViewFactory {
         spawnProgress = progress;
         applyAppearance();
       },
+      setVisible(visible: boolean): void {
+        root.visible = visible;
+      },
       setRemovalHighlighted(highlighted: boolean): void {
         removalHighlighted = highlighted;
         applyAppearance();
@@ -142,9 +148,4 @@ export class LetterViewFactory {
     for (const texture of this.textures.values()) texture.destroy(true);
     this.textures.clear();
   }
-}
-
-function blendColor(from: number, to: number, progress: number): number {
-  const mix = (shift: number) => Math.round((((from >> shift) & 0xff) * (1 - progress)) + (((to >> shift) & 0xff) * progress));
-  return (mix(16) << 16) | (mix(8) << 8) | mix(0);
 }

@@ -42,6 +42,7 @@ export interface GameRuntimeSnapshot {
   /** Increments whenever a paper symbol is released, so the UI can replay its burst. */
   readonly paperBurstVersion: number;
   readonly paperBurstSymbol: string | null;
+  /** Temporary foreground copy while a paper-released Matter body leaves the paper. */
   readonly lastMessage: string;
 }
 

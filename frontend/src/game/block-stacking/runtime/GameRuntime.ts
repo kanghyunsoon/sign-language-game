@@ -14,7 +14,13 @@ import {
 } from "./types";
 
 const MAX_FRAME_DELTA_MS = 32;
-const PAPER_GROW_DURATION_MS = 420;
+// Matter is not created while the paper glyph is visible. The block comes
+// alive only after that one glyph has fully reached its final size.
+const PAPER_GROW_DURATION_MS = 760;
+// Keep a fresh paper target in its normal state for a few painted frames.
+// A confirmation may already be in flight when the first round starts; if it
+// releases in that same render, the first glyph appears to burst instantly.
+const PAPER_TARGET_ARM_DURATION_MS = 80;
 
 export class GameRuntime {
   private readonly renderer: GameRenderer;
@@ -46,10 +52,14 @@ export class GameRuntime {
   private playTimeMs = 0;
   private lastRemovalAt: number | null = null;
   private readonly newlySettledIds = new Set<string>();
+  private symbolWeights: Readonly<Record<string, number>> = {};
+  private lastPickedSymbol: string | null = null;
   private queuedSymbol: string | null = null;
+  private queuedSymbolArmRemainingMs = 0;
   private paperBurstVersion = 0;
   private paperBurstSymbol: string | null = null;
   private pendingPaperDrop: { readonly symbol: string; remainingMs: number } | null = null;
+  private paperReleaseLetterId: string | null = null;
   private lastMessage = "Start the game to spawn letters.";
   private disposed = false;
 
@@ -133,10 +143,13 @@ export class GameRuntime {
     this.playTimeMs = 0;
     this.lastRemovalAt = null;
     this.newlySettledIds.clear();
+    this.lastPickedSymbol = null;
     this.queuedSymbol = null;
+    this.queuedSymbolArmRemainingMs = 0;
     this.paperBurstSymbol = null;
     this.paperBurstVersion = 0;
     this.pendingPaperDrop = null;
+    this.paperReleaseLetterId = null;
     this.lastMessage = "Game reset. Press start when ready.";
     this.publish();
   }
@@ -145,7 +158,13 @@ export class GameRuntime {
     this.assertActive();
     if (this.runState !== "RUNNING" || !this.symbols.includes(symbol)) return;
 
-    if (!this.config.autoDropEnabled && this.queuedSymbol === symbol) {
+    if (!this.config.autoDropEnabled) {
+      if (this.queuedSymbol !== symbol) return;
+      if (this.queuedSymbolArmRemainingMs > 0) {
+        this.lastMessage = `${symbol} ignored until the fresh paper target is ready.`;
+        this.publish();
+        return;
+      }
       this.releaseQueuedSymbol();
       return;
     }
@@ -186,8 +205,10 @@ export class GameRuntime {
   getPreferredTargetSymbol(allowedSymbols: readonly string[]): string | null {
     const allowed = new Set(allowedSymbols);
     if (allowed.size === 0) return null;
-    if (!this.config.autoDropEnabled && this.queuedSymbol !== null && allowed.has(this.queuedSymbol)) {
-      return this.queuedSymbol;
+    if (!this.config.autoDropEnabled) {
+      return this.queuedSymbol !== null && allowed.has(this.queuedSymbol)
+        ? this.queuedSymbol
+        : null;
     }
 
     const oldest = this.core.snapshot().letters
@@ -210,7 +231,15 @@ export class GameRuntime {
   setSpawnSymbols(symbols: readonly string[]): void {
     this.assertActive();
     this.symbols = [...symbols];
+    if (this.lastPickedSymbol !== null && !this.symbols.includes(this.lastPickedSymbol)) {
+      this.lastPickedSymbol = null;
+    }
     this.updateRendererTarget();
+  }
+
+  setSymbolWeights(weights: Readonly<Record<string, number>>): void {
+    this.assertActive();
+    this.symbolWeights = { ...weights };
   }
 
   /** Public for deterministic tests; browser play advances through requestAnimationFrame. */
@@ -221,6 +250,7 @@ export class GameRuntime {
 
     const boundedDelta = Math.min(deltaMs, MAX_FRAME_DELTA_MS);
     this.playTimeMs += boundedDelta;
+    this.advancePaperTargetArming(boundedDelta);
     this.advancePaperDrop(boundedDelta);
     if (this.config.autoDropEnabled) {
       this.spawnElapsedMs += boundedDelta;
@@ -233,7 +263,7 @@ export class GameRuntime {
 
     // Manual mode disables timer spawning only. A letter released from the
     // paper must still use the same physics path as every other falling block.
-    const fallSpeedMultiplier = 1 + Math.floor(this.score / 5_000) * .5;
+    const fallSpeedMultiplier = 3 + Math.floor(this.score / 5_000) * .5;
     for (const event of this.physics.update(boundedDelta * fallSpeedMultiplier)) {
       if (event.type === "LETTER_SETTLED") this.newlySettledIds.add(event.id);
       if (event.type === "LETTER_MOVED") this.newlySettledIds.delete(event.id);
@@ -248,6 +278,7 @@ export class GameRuntime {
     }
 
     const states = this.physics.getLetterStates();
+    this.updatePaperRelease(states);
     this.renderer.render(states);
     this.checkDangerLine(states);
   }
@@ -293,11 +324,11 @@ export class GameRuntime {
     this.frameHandle = null;
   }
 
-  private spawnLetter(selectedSymbol?: string): void {
+  private spawnLetter(selectedSymbol?: string): string | null {
     if (this.symbols.length === 0) {
       this.lastMessage = "No playable symbols are configured.";
       this.publish();
-      return;
+      return null;
     }
     const symbol = selectedSymbol ?? this.pickRandomSymbol();
     const x = this.boardWidth / 2;
@@ -308,27 +339,60 @@ export class GameRuntime {
       id,
       symbol,
       x,
-      // Release below the paper. Starting inside its bounds makes the canvas
-      // glyph look as though it is hidden behind the otter illustration.
-      y: releasedFromPaper ? this.config.letterHeight * 1.95 : -this.config.spawnTopPadding,
+      // Physics starts exactly where the fully-grown paper glyph is centred.
+      // It must not exist before this hand-off, otherwise it is visible behind
+      // the paper while the foreground glyph is still animating.
+      // The paper glyph's measured centre is 35% of one letter-height below
+      // the board's top edge. Spawn the Matter body at that exact centre so
+      // enabling physics never jumps the glyph below/behind the paper.
+      y: releasedFromPaper ? this.config.letterHeight * 0.35 : -this.config.spawnTopPadding,
       angularVelocity: 0,
-      // Deliberately gentle: it feels more immediate than a timer spawn but
-      // still leaves the player time to follow the glyph.
-      velocityY: releasedFromPaper ? .7 : undefined,
+      // Start the ordinary Matter fall here; never add a visual jump.
+      velocityY: releasedFromPaper ? 0 : undefined,
     });
     this.core.spawnLetter(id, symbol, this.now());
     if (releasedFromPaper) this.renderer.startSpawnEffect(id);
     this.updateRendererTarget();
     this.lastMessage = `${symbol} spawned.`;
     this.publish();
+    return id;
   }
 
   private pickRandomSymbol(): string {
-    return this.symbols[Math.floor(this.random() * this.symbols.length)] ?? this.symbols[0];
+    const candidates = this.symbols.length > 1
+      ? this.symbols.filter((symbol) => symbol !== this.lastPickedSymbol)
+      : this.symbols;
+    const weightedCandidates = candidates.map((symbol) => {
+      const configuredWeight = this.symbolWeights[symbol];
+      return {
+        symbol,
+        weight: Number.isFinite(configuredWeight) && configuredWeight > 0 ? configuredWeight : 1,
+      };
+    });
+    const totalWeight = weightedCandidates.reduce((sum, candidate) => sum + candidate.weight, 0);
+    let cursor = this.random() * totalWeight;
+    let selected = weightedCandidates.at(-1)?.symbol ?? this.symbols[0];
+
+    for (const candidate of weightedCandidates) {
+      cursor -= candidate.weight;
+      if (cursor < 0) {
+        selected = candidate.symbol;
+        break;
+      }
+    }
+    this.lastPickedSymbol = selected;
+    return selected;
   }
 
   private queueNextSymbol(): void {
-    if (this.symbols.length > 0) this.queuedSymbol = this.pickRandomSymbol();
+    if (this.symbols.length === 0) return;
+    this.queuedSymbol = this.pickRandomSymbol();
+    this.queuedSymbolArmRemainingMs = PAPER_TARGET_ARM_DURATION_MS;
+  }
+
+  private advancePaperTargetArming(deltaMs: number): void {
+    if (this.queuedSymbol === null || this.queuedSymbolArmRemainingMs <= 0) return;
+    this.queuedSymbolArmRemainingMs = Math.max(0, this.queuedSymbolArmRemainingMs - deltaMs);
   }
 
   private releaseQueuedSymbol(): void {
@@ -336,6 +400,7 @@ export class GameRuntime {
     if (symbol === null) return;
 
     this.queuedSymbol = null;
+    this.queuedSymbolArmRemainingMs = 0;
     this.paperBurstSymbol = symbol;
     this.paperBurstVersion += 1;
     this.pendingPaperDrop = { symbol, remainingMs: PAPER_GROW_DURATION_MS };
@@ -349,11 +414,26 @@ export class GameRuntime {
     pending.remainingMs -= deltaMs;
     if (pending.remainingMs > 0) return;
 
+    // The physical body is born exactly at the paper glyph's final centre.
+    // Its visible glyph is already in the board's front-only letter layer,
+    // so there is no second copy behind the paper and no hand-off jump.
+    this.paperReleaseLetterId = this.spawnLetter(pending.symbol);
     this.pendingPaperDrop = null;
     this.paperBurstSymbol = null;
-    this.spawnLetter(pending.symbol);
-    this.queueNextSymbol();
     this.lastMessage = `${pending.symbol} dropped from the otter paper.`;
+    this.publish();
+  }
+
+  private updatePaperRelease(states: readonly PhysicsLetterState[]): void {
+    if (this.paperReleaseLetterId === null) return;
+    const released = states.find((letter) => letter.id === this.paperReleaseLetterId);
+    // Keep the paper empty until the same physical glyph has cleared it.
+    // This prevents the next target from appearing underneath the falling
+    // glyph and looking like a second, rear-layer copy.
+    if (released && released.y < this.config.letterHeight * 1.15) return;
+    this.paperReleaseLetterId = null;
+    this.queueNextSymbol();
+    this.lastMessage = "Next paper letter is ready.";
     this.publish();
   }
 
