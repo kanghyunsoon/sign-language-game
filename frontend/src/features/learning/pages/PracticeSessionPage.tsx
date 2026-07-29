@@ -54,9 +54,9 @@ export function PracticeSessionPage({
   const recognizer = useMemo(
     () =>
       new PythonWebSocketSignRecognizer({
-        url: getAiWebSocketUrl(),
+        url: getAiWebSocketUrl(categoryId === "number"),
       }),
-    [],
+    [categoryId],
   );
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -448,13 +448,6 @@ export function PracticeSessionPage({
               )}
             </div>
 
-            <button
-              className="practice-camera-button"
-              type="button"
-              onClick={handleCameraClick}
-            >
-              {isCameraActive ? "카메라 종료" : "카메라 시작"}
-            </button>
           </article>
         </section>
 
@@ -466,6 +459,14 @@ export function PracticeSessionPage({
             disabled={isFirstItem}
           >
             ← 이전 문제
+          </button>
+
+          <button
+            className="practice-camera-button"
+            type="button"
+            onClick={handleCameraClick}
+          >
+            {isCameraActive ? "카메라 종료" : "카메라 시작"}
           </button>
 
           <button
