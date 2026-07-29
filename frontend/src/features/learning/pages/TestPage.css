@@ -146,6 +146,9 @@
 .test-setup-panel {
   /* 연습 페이지 .practice-panel과 같은 폭(설계 기준 1040px) */
   width: min(1040px, 100%);
+  /* 카드만 넓히고 안쪽 요소는 넓히지 않는다. 폭이 100%인 요소들이 카드에 맞춰
+     늘어나지 않도록, 카드가 760px이던 때의 콘텐츠 폭을 그대로 유지한다. */
+  --test-setup-content-width: 648px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -188,6 +191,7 @@
 
 /* 아래쪽은 [분류 선택]과 확실히 떨어뜨린다. */
 .test-setup-description {
+  width: min(var(--test-setup-content-width), 100%);
   margin: 24px 0 46px;
   color: #827368;
   font-size: 21px;
@@ -199,7 +203,7 @@
 }
 
 .test-setup-section {
-  width: 100%;
+  width: min(var(--test-setup-content-width), 100%);
   display: grid;
   gap: 12px;
   text-align: left;
@@ -398,7 +402,7 @@
 }
 
 .test-start-button {
-  width: 100%;
+  width: min(var(--test-setup-content-width), 100%);
   min-height: 62px;
   /* 패널 gap을 없앴으므로 위 간격을 직접 준다. */
   margin-top: 34px;
