@@ -176,10 +176,18 @@
   transform: translateY(5%);
 }
 
-/* 위쪽 24px은 연습 페이지 .practice-title과 같은 값(제목을 뺀 자리를 대신한다).
-   아래쪽은 [분류 선택]과 확실히 떨어뜨린다. */
+/* 위쪽 24px은 연습 페이지 .practice-title과 같은 값이다. */
+.test-setup-title {
+  margin: 24px 0 0;
+  color: #3f2b20;
+  font-size: 42px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+/* 아래쪽은 [분류 선택]과 확실히 떨어뜨린다. */
 .test-setup-description {
-  margin: 24px 0 46px;
+  margin: 14px 0 46px;
   color: #827368;
   font-size: 21px;
 }

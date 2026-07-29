@@ -100,6 +100,8 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
           />
         </div>
 
+        <h1 className="test-setup-title">테스트하기</h1>
+
         <p className="test-setup-description">
           연습한 지문자를 문제로 풀어보세요. 문항당 제한 시간은{" "}
           {TEST_TIME_LIMIT_SECONDS}초입니다.
@@ -181,6 +183,7 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
                 </button>
               );
             })}
+
           </div>
 
           {presetId === "custom" && (
