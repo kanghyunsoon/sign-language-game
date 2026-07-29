@@ -174,7 +174,7 @@ export function PracticeHomePage() {
 
                     {category.count !== undefined && (
                       <span className="practice-category-count">
-                        총 {category.count}문제
+                        {category.count}자
                       </span>
                     )}
                   </button>

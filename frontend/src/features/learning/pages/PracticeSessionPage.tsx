@@ -12,7 +12,10 @@ import type {
   FingerspellingCategoryId,
   FingerspellingItem,
 } from "../data/fingerspelling";
-import { fingerspellingItems } from "../data/fingerspelling";
+import {
+  findFingerspellingEntry,
+  fingerspellingItems,
+} from "../data/fingerspelling";
 
 type PracticeCategoryId = FingerspellingCategoryId;
 
@@ -182,6 +185,10 @@ export function PracticeSessionPage({
 
   const currentPracticeItems = practiceItems;
   const currentPracticeItem = currentPracticeItems[currentIndex];
+  // 오답노트에서 분류가 섞인 글자를 받을 수도 있어 글자마다 사전에서 분류를 찾는다.
+  const currentCategoryLabel =
+    findFingerspellingEntry(currentPracticeItem?.symbol ?? "")?.categoryLabel ??
+    "";
   const isFirstItem = currentIndex === 0;
   const isLastItem = currentIndex === currentPracticeItems.length - 1;
   const correctProgress = Math.round(
@@ -374,7 +381,12 @@ export function PracticeSessionPage({
           }`}
         >
           <article className="practice-answer-panel">
-            <span className="practice-panel-label">정답 동작</span>
+            <span className="practice-panel-label">
+              정답 동작
+              <span className="practice-panel-tag">
+                기초 {currentCategoryLabel}
+              </span>
+            </span>
             <div className="practice-answer-content">
               <div className="practice-answer-guide">
                 <span className="practice-current-symbol">
