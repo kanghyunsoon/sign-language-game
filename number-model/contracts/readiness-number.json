@@ -2,12 +2,17 @@
   "schemaVersion": 1,
   "modelVersion": "number-10-v1",
   "confirmationAuthority": "FRONTEND_TEMPORAL_DECODER",
-  "status": "not-evaluated",
+  "status": "below-criteria",
   "evaluation": {
-    "sampleCount": 0,
-    "sampling": "no model has been trained yet",
-    "trainingIndependent": false,
-    "warning": "This gate is a safe-by-default placeholder. No number-only model has been trained or measured, so every symbol is ineligible. Replace this file only with values produced by a participant-held-out locked test recorded in number-model-log.md."
+    "attemptId": "T-163",
+    "sampleCount": 158,
+    "sampling": "locked test: participants p14 and p15, held out of training and of validation",
+    "trainingIndependent": true,
+    "numberAccuracy": 0.956,
+    "confirmationRate": 0.81,
+    "minimumClassConfirmationRate": 0.562,
+    "falseConfirmationRateOnUnseenShapes": 0.043,
+    "warning": "Measured, but below criteria: confirmationRate 0.810 < 0.850 and the weakest class (9) confirms at 0.562. Every symbol therefore stays ineligible and thresholds stay at 1.0. Do not lower a threshold from this run: the p14/p15 set was also used to draw the threshold curve in T-163, so it is no longer a clean locked test. Seal at least two new participants first, and record the result in number-model-log.md before replacing this file."
   },
   "criteria": {
     "minimumConfirmationRate": 0.85,
