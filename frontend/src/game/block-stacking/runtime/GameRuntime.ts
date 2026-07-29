@@ -27,7 +27,6 @@ const PAPER_TARGET_ARM_DURATION_MS = 80;
 const DANGER_STABLE_DURATION_MS = 320;
 const DANGER_LINEAR_SPEED_THRESHOLD = 0.05;
 const DANGER_ANGULAR_SPEED_THRESHOLD = 0.005;
-
 export class GameRuntime {
   private readonly renderer: GameRenderer;
   private readonly physicsFactory: () => PhysicsWorld;
@@ -257,7 +256,10 @@ export class GameRuntime {
     if (!Number.isFinite(deltaMs) || deltaMs <= 0) throw new RangeError("deltaMs must be a positive finite number.");
 
     const boundedDelta = Math.min(deltaMs, MAX_FRAME_DELTA_MS);
-    this.playTimeMs += boundedDelta;
+    // The play clock follows real elapsed time. Physics stays capped so a
+    // delayed frame cannot destabilise Matter, but the clock must never lose
+    // time when camera/AI work makes one animation frame arrive late.
+    this.playTimeMs += deltaMs;
     this.advancePaperTargetArming(boundedDelta);
     this.advancePaperDrop(boundedDelta);
     if (this.config.autoDropEnabled) {

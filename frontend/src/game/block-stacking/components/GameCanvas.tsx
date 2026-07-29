@@ -86,7 +86,7 @@ export const GameCanvas = memo(function GameCanvas({
     };
   // Callers often construct Partial<RendererConfig> inline. Recreate the
   // expensive Pixi application only when an actual config value changes.
-  }, [rendererConfig?.width, rendererConfig?.height, rendererConfig?.dangerLineY, rendererConfig?.dangerLineRatio, rendererConfig?.letterWidth, rendererConfig?.letterHeight, rendererConfig?.removalHighlightDurationMs]);
+  }, [rendererConfig?.width, rendererConfig?.height, rendererConfig?.dangerLineY, rendererConfig?.dangerLineRatio, rendererConfig?.letterWidth, rendererConfig?.letterHeight, rendererConfig?.removalHighlightDurationMs, rendererConfig?.showScenery]);
 
   return <div ref={mountRef} className={className} />;
 });

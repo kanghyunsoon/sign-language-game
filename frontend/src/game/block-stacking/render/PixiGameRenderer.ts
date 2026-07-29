@@ -96,8 +96,9 @@ export class PixiGameRenderer implements GameRenderer {
     });
 
     mount.replaceChildren(app.canvas);
-    // Render the complete solo-style scenery inside the game canvas.
-    app.renderer.background.alpha = 1;
+    // Solo mode supplies its animated scenery from the DOM layer below Pixi.
+    // Other modes keep the renderer-owned static scenery by default.
+    app.renderer.background.alpha = resolvedConfig.showScenery ? 1 : 0;
     const renderer = new PixiGameRenderer(app, resolvedConfig, mount);
     app.stop();
     return renderer;
@@ -345,6 +346,7 @@ export class PixiGameRenderer implements GameRenderer {
     const { width, height } = this;
     const horizon = height * .69;
     this.boardScenery.clear();
+    if (!this.config.showScenery) return;
     this.boardScenery.rect(0, 0, width, horizon).fill({ color: 0xdff1ff, alpha: 1 });
     this.boardScenery.rect(0, horizon, width, height * .18).fill({ color: 0xc9e59d, alpha: 1 });
     this.boardScenery.rect(0, height * .87, width, height * .13).fill({ color: 0xa9cd7c, alpha: 1 });

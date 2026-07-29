@@ -8,6 +8,7 @@ export interface RendererConfig {
   readonly letterWidth: number;
   readonly letterHeight: number;
   readonly removalHighlightDurationMs: number;
+  readonly showScenery: boolean;
 }
 
 export const DEFAULT_RENDERER_CONFIG: RendererConfig = {
@@ -18,6 +19,7 @@ export const DEFAULT_RENDERER_CONFIG: RendererConfig = {
   letterWidth: 140,
   letterHeight: 140,
   removalHighlightDurationMs: 180,
+  showScenery: true,
 };
 
 export interface RemovalEffectFinishedEvent {

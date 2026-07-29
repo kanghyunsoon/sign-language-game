@@ -330,14 +330,14 @@
 .module :global(.solo-hint-paper-guide) {
   position: absolute;
   z-index: 3;
-  top: 6.5%;
+  top: 7%;
   left: 50%;
   display: grid;
-  width: 82px;
-  height: 82px;
+  width: 66px;
+  height: 66px;
   place-items: center;
   overflow: hidden;
-  border-radius: 9px;
+  border-radius: 7px;
   transform: translateX(-50%);
   filter: drop-shadow(0 2px 2px rgba(80,58,47,.14));
 }
@@ -504,15 +504,28 @@
 .module :global(.solo-metric:nth-child(2)), .module :global(.solo-metric:nth-child(4)) { background: rgba(240,248,221,.94); }
 .module :global(.solo-metric span) { color: #718b46; font-size: 9px; letter-spacing: .05em; }
 .module :global(.solo-metric strong) { color: #3d5960; text-shadow: 2px 2px 0 #d8edf3; }
-.module :global(.solo-board-wrap) { background: rgba(255,255,255,.92); }
+.module :global(.solo-board-wrap) { align-self: stretch; background: rgba(255,255,255,.92); }
 .module :global(.solo-board-wrap::before) { color: #718b46; content: "☁  SKY LETTER STAGE"; }
 .module :global(.solo-board-wrap::after) { background: #f0f6dc; color: #718b46; box-shadow: 0 2px 0 #cadb9a; content: "STAGE 01"; }
 .module :global(.solo-board) { position: relative; z-index: auto; border-color: #91b56a; background: transparent; box-shadow: inset 0 0 0 2px rgba(255,255,255,.4); }
 .module :global(.solo-board::before) { background: none; content: none; }
 .module :global(.solo-board::after) { top: 16.66%; height: 5px; background: repeating-linear-gradient(90deg, rgba(240,186,85,.76) 0 15px, transparent 15px 25px); box-shadow: none; }
-.module :global(.solo-sky-decor) { position: absolute; z-index: 0; top: 31px; right: 8px; bottom: 8px; left: 8px; overflow: hidden; border: 4px solid #91b56a; border-radius: 9px; background: linear-gradient(to bottom, #dff1ff 0 69%, #c9e59d 69% 87%, #a9cd7c 87% 100%); pointer-events: none; }
-.module :global(.solo-sky-decor::before) { position: absolute; top: 7%; right: 8%; width: 68px; height: 68px; border-radius: 50%; background: rgba(255,229,108,.55); box-shadow: 0 0 0 13px rgba(255,244,180,.18); content: ""; }
-.module :global(.stage-hills) { position: absolute; right: -8%; bottom: 12%; left: -8%; height: 24%; border-radius: 50% 55% 0 0 / 80% 90% 0 0; background: #b8d98c; box-shadow: 0 18px 0 #9fc676; }
+.module :global(.solo-sky-decor) { position: absolute; z-index: 0; top: 31px; right: 8px; bottom: 8px; left: 8px; overflow: hidden; border: 4px solid #91b56a; border-radius: 9px; background: linear-gradient(to bottom, #dff1ff 0 69%, #c9e59d 69% 87%, #a9cd7c 87% 100%); pointer-events: none; container-type: inline-size; }
+.module :global(.solo-sky-decor::after) { position: absolute; z-index: 1; inset: 0; background: linear-gradient(to bottom, rgba(28,50,91,.82) 0 69%, rgba(56,75,87,.55) 69% 87%, rgba(45,72,67,.48) 87%); opacity: 0; content: ""; animation: solo-day-night-overlay 64s ease-in-out infinite; }
+.module :global(.solo-night-sky) { position: absolute; z-index: 2; inset: 0 0 31%; background-image: radial-gradient(circle at 8% 19%, rgba(255,255,224,.95) 0 1.4px, transparent 1.8px), radial-gradient(circle at 21% 38%, rgba(219,239,255,.9) 0 1px, transparent 1.5px), radial-gradient(circle at 36% 13%, rgba(255,255,224,.85) 0 1.2px, transparent 1.7px), radial-gradient(circle at 48% 30%, rgba(219,239,255,.86) 0 1.3px, transparent 1.8px), radial-gradient(circle at 64% 17%, rgba(255,255,224,.9) 0 1px, transparent 1.5px), radial-gradient(circle at 79% 34%, rgba(219,239,255,.88) 0 1.4px, transparent 1.9px), radial-gradient(circle at 91% 11%, rgba(255,255,224,.92) 0 1.1px, transparent 1.6px); background-size: 270px 190px; opacity: 0; animation: solo-night-stars 64s ease-in-out infinite; }
+.module :global(.solo-celestial) { position: absolute; z-index: 3; top: 8%; left: -92px; display: block; width: 68px; height: 68px; border-radius: 50%; will-change: transform, opacity; }
+.module :global(.solo-sun) { background: rgba(255,225,92,.86); box-shadow: 0 0 0 13px rgba(255,244,180,.18), 0 0 34px rgba(255,213,78,.42); animation: solo-sun-journey 64s linear infinite; }
+.module :global(.solo-moon) { background: #fffce1; opacity: 0; filter: drop-shadow(0 0 6px rgba(255,255,238,1)) drop-shadow(0 0 16px rgba(255,247,181,1)) drop-shadow(0 0 30px rgba(218,238,255,.9)); -webkit-mask-image: radial-gradient(circle at 69% 35%, transparent 0 30px, #000 31px); mask-image: radial-gradient(circle at 69% 35%, transparent 0 30px, #000 31px); animation: solo-moon-journey 64s linear infinite; }
+.module :global(.solo-moon::after) { content: none; }
+.module :global(.solo-shooting-star) { position: absolute; z-index: 3; top: 16%; left: 73%; width: 82px; height: 2px; border-radius: 999px; background: linear-gradient(90deg, transparent, rgba(255,255,239,.88)); opacity: 0; transform: rotate(-24deg); transform-origin: right center; animation: solo-shooting-star 12s ease-out infinite 4s; }
+.module :global(.stage-hills) { position: absolute; z-index: 3; right: -8%; bottom: 12%; left: -8%; height: 24%; border-radius: 50% 55% 0 0 / 80% 90% 0 0; background: #b8d98c; box-shadow: 0 18px 0 #9fc676; animation: solo-hill-breeze 7s ease-in-out infinite alternate, solo-hill-night 64s ease-in-out infinite; transform-origin: 50% 100%; }
+.module :global(.solo-fireflies) { position: absolute; z-index: 4; right: 4%; bottom: 8%; left: 4%; height: 22%; opacity: 0; animation: solo-firefly-cycle 64s ease-in-out infinite; }
+.module :global(.solo-fireflies i) { position: absolute; display: block; width: 5px; height: 5px; border-radius: 50%; background: #fff19a; box-shadow: 0 0 8px 3px rgba(255,225,89,.66); animation: solo-firefly-float 4.2s ease-in-out infinite alternate; }
+.module :global(.solo-fireflies i:nth-child(1)) { left: 9%; bottom: 28%; animation-delay: -.8s; }
+.module :global(.solo-fireflies i:nth-child(2)) { left: 31%; bottom: 61%; animation-delay: -2.4s; animation-duration: 5.1s; }
+.module :global(.solo-fireflies i:nth-child(3)) { left: 55%; bottom: 19%; animation-delay: -1.6s; animation-duration: 3.7s; }
+.module :global(.solo-fireflies i:nth-child(4)) { left: 74%; bottom: 57%; animation-delay: -3.1s; animation-duration: 4.7s; }
+.module :global(.solo-fireflies i:nth-child(5)) { left: 91%; bottom: 34%; animation-delay: -.2s; animation-duration: 5.4s; }
 .module :global(.stage-glyphs) { position: absolute; right: 5%; bottom: 2.5%; left: 5%; display: flex; align-items: flex-end; justify-content: space-around; color: #557957; opacity: .18; }
 .module :global(.stage-glyphs b) { font-family: "Arial Rounded MT Bold", "Malgun Gothic", sans-serif; font-size: clamp(34px, 3.2vw, 54px); font-weight: 1000; transform: rotate(-8deg); }
 .module :global(.stage-glyphs b:nth-child(2)) { color: #d95b7d; font-size: clamp(42px, 3.8vw, 62px); transform: rotate(7deg) translateY(-8px); }
@@ -545,16 +558,29 @@
 .module :global(.solo-hint-break strong) { font-size: clamp(16px, 1.5vw, 24px); font-weight: 1000; }
 .module :global(.solo-hint-break small) { color: #7f9461; font-weight: 800; }
 @keyframes solo-hint-pulse { from { transform: scale(.98); } to { transform: scale(1.015); } }
-.module :global(.cloud) { position: absolute; width: 82px; height: 28px; border-radius: 999px; background: rgba(255,255,255,.76); filter: drop-shadow(0 5px 0 rgba(126,173,196,.08)); animation: solo-cloud-drift 16s linear infinite; }
+.module :global(.cloud) { position: absolute; z-index: 2; left: -120px; width: 82px; height: 28px; border-radius: 999px; background: rgba(255,255,255,.76); filter: drop-shadow(0 5px 0 rgba(126,173,196,.08)); animation: solo-cloud-cross 36s linear infinite; will-change: transform; }
 .module :global(.cloud::before), .module :global(.cloud::after) { position: absolute; bottom: 0; border-radius: 50%; background: inherit; content: ""; }
 .module :global(.cloud::before) { left: 13px; width: 37px; height: 37px; }
 .module :global(.cloud::after) { right: 10px; width: 48px; height: 48px; }
-.module :global(.cloud-one) { top: 14%; left: 10%; }
-.module :global(.cloud-two) { top: 32%; left: 58%; scale: .72; animation-duration: 21s; animation-delay: -9s; }
-.module :global(.cloud-three) { top: 49%; left: 26%; scale: .54; opacity: .74; animation-duration: 25s; animation-delay: -14s; }
-.module :global(.cloud-four) { top: 8%; left: 78%; scale: .45; opacity: .68; animation-duration: 29s; animation-delay: -5s; }
-@keyframes solo-cloud-drift { 0% { translate: -36px 0; } 50% { translate: 36px -4px; } 100% { translate: -36px 0; } }
-@media (prefers-reduced-motion: reduce) { .module :global(.cloud), .module :global(.solo-otter-body), .module :global(.solo-otter-body > span) { animation: none; } .module :global(.solo-otter-walk) { display: none; } }
+.module :global(.cloud-one) { top: 14%; animation-duration: 32s; animation-delay: -5s; }
+.module :global(.cloud-two) { top: 32%; scale: .72; animation-duration: 38s; animation-delay: -22s; }
+.module :global(.cloud-three) { top: 49%; scale: .54; opacity: .74; animation-duration: 44s; animation-delay: -33s; }
+.module :global(.cloud-four) { top: 8%; scale: .45; opacity: .68; animation-duration: 50s; animation-delay: -14s; }
+@keyframes solo-day-night-overlay { 0%, 27%, 100% { opacity: 0; } 40% { opacity: .28; } 53%, 74% { opacity: .72; } 88% { opacity: .2; } }
+@keyframes solo-night-stars { 0%, 41%, 92%, 100% { opacity: 0; } 54%, 77% { opacity: .92; } }
+@keyframes solo-sun-journey { 0%, 100% { opacity: 1; transform: translate3d(0,64px,0) scale(.82); } 25% { opacity: 1; transform: translate3d(calc(50cqw + 46px),-20px,0) scale(1); } 46% { opacity: .25; transform: translate3d(calc(100cqw + 150px),72px,0) scale(.82); } 47%, 91% { opacity: 0; transform: translate3d(calc(100cqw + 150px),72px,0) scale(.82); } 92% { opacity: 0; transform: translate3d(0,64px,0) scale(.82); } }
+@keyframes solo-moon-journey { 0%, 47% { opacity: 0; transform: translate3d(0,75px,0) scale(.8); } 53% { opacity: 1; } 69% { opacity: 1; transform: translate3d(calc(50cqw + 46px),-16px,0) scale(1); } 91% { opacity: .2; transform: translate3d(calc(100cqw + 150px),72px,0) scale(.82); } 92%, 100% { opacity: 0; transform: translate3d(calc(100cqw + 150px),72px,0) scale(.82); } }
+@keyframes solo-shooting-star { 0%, 75% { opacity: 0; transform: translate3d(0,0,0) rotate(-24deg); } 77% { opacity: 1; } 82% { opacity: 0; transform: translate3d(-120px,62px,0) rotate(-24deg); } 100% { opacity: 0; transform: translate3d(-120px,62px,0) rotate(-24deg); } }
+@keyframes solo-hill-breeze { from { transform: translateX(-.35%) scaleX(1.006); } to { transform: translateX(.35%) scaleX(.994); } }
+@keyframes solo-hill-night { 0%, 34%, 100% { filter: none; } 55%, 79% { filter: brightness(.73) saturate(.78); } }
+@keyframes solo-firefly-cycle { 0%, 46%, 89%, 100% { opacity: 0; } 57%, 78% { opacity: 1; } }
+@keyframes solo-firefly-float { from { transform: translate3d(-4px,5px,0) scale(.65); opacity: .38; } to { transform: translate3d(10px,-12px,0) scale(1.12); opacity: 1; } }
+@keyframes solo-cloud-cross { from { transform: translate3d(-20px,0,0); } 50% { transform: translate3d(calc(50cqw + 30px),-7px,0); } to { transform: translate3d(calc(100cqw + 180px),1px,0); } }
+@media (prefers-reduced-motion: reduce) {
+  .module :global(.solo-sky-decor::after), .module :global(.solo-night-sky), .module :global(.solo-celestial), .module :global(.solo-shooting-star), .module :global(.stage-hills), .module :global(.solo-fireflies), .module :global(.solo-fireflies i), .module :global(.cloud), .module :global(.solo-otter-body), .module :global(.solo-otter-body > span) { animation: none; }
+  .module :global(.solo-sun) { opacity: 1; transform: translate3d(calc(80cqw + 92px),0,0); }
+  .module :global(.solo-moon), .module :global(.solo-night-sky), .module :global(.solo-fireflies), .module :global(.solo-shooting-star), .module :global(.solo-otter-walk) { display: none; }
+}
 
 /* Game selection: sky-and-grass stage with the existing otter mascot. */
 .module:has(> .categoryPage) { display: grid; min-height: 100dvh; place-items: center; overflow: hidden; background: #e0f1ff; }

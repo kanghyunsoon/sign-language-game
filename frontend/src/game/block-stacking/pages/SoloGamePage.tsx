@@ -159,8 +159,21 @@ export function SoloGamePage({
     dangerLineRatio: 1 / 6,
     letterWidth: SOLO_LETTER_SIZE,
     letterHeight: SOLO_LETTER_SIZE,
+    showScenery: false,
   }), []);
   useSharedCameraOwnerCleanup(sharedCameraSession);
+
+  // Runtime snapshots are normally published for gameplay events. Poll the
+  // runtime clock separately while playing so the visible timer advances even
+  // when no letter or recognition event is produced.
+  useEffect(() => {
+    if (snapshot.runState !== "RUNNING") return undefined;
+    const timer = window.setInterval(() => {
+      const runtime = runtimeRef.current;
+      if (runtime !== null) setSnapshot(runtime.snapshot());
+    }, 100);
+    return () => window.clearInterval(timer);
+  }, [snapshot.runState]);
 
   if (controllerRef.current === null) {
     controllerRef.current = new RecognitionGameController({
@@ -544,11 +557,18 @@ export function SoloGamePage({
         <div className={`solo-stage-column${snapshot.runState === "GAME_OVER" ? " is-game-over" : ""}`}>
           <div className="solo-board-wrap">
           <div className="solo-sky-decor" aria-hidden="true">
+            <div className="solo-night-sky" />
+            <i className="solo-celestial solo-sun" />
+            <i className="solo-celestial solo-moon" />
+            <i className="solo-shooting-star" />
             <i className="cloud cloud-one" />
             <i className="cloud cloud-two" />
             <i className="cloud cloud-three" />
             <i className="cloud cloud-four" />
             <div className="stage-hills" />
+            <div className="solo-fireflies">
+              <i /><i /><i /><i /><i />
+            </div>
             <div className="stage-glyphs">
               <b>ㄱ</b><b>ㅜ</b><b>ㅎ</b><b>ㄷ</b><b>ㅅ</b>
             </div>
@@ -578,7 +598,7 @@ export function SoloGamePage({
                     <img className="solo-hint-frame hint-carry-frame hint-carry-frame-0" src={hintCarryFrame0} alt="" draggable={false} />
                     <img className="solo-hint-frame hint-carry-frame hint-carry-frame-1" src={hintCarryFrame1} alt="" draggable={false} />
                     <div className="solo-hint-paper-guide">
-                      <SignGuideImage symbol={hintOtter.symbol} size={82} />
+                      <SignGuideImage symbol={hintOtter.symbol} size={58} />
                     </div>
                   </>
                 )}
@@ -588,12 +608,12 @@ export function SoloGamePage({
                     <img className="solo-hint-frame hint-throw-frame hint-throw-celebrate-0" src={hintCelebrateFrame0} alt="" draggable={false} />
                     <img className="solo-hint-frame hint-throw-frame hint-throw-celebrate-1" src={hintCelebrateFrame1} alt="" draggable={false} />
                     <div className="solo-hint-paper-guide hint-throw-guide">
-                      <SignGuideImage symbol={hintOtter.symbol} size={82} />
+                      <SignGuideImage symbol={hintOtter.symbol} size={58} />
                     </div>
                     <div className="solo-hint-thrown-paper">
                       <img src={hintPaperThrow} alt="" draggable={false} />
                       <span>
-                        <SignGuideImage symbol={hintOtter.symbol} size={38} />
+                        <SignGuideImage symbol={hintOtter.symbol} size={32} />
                       </span>
                     </div>
                   </>

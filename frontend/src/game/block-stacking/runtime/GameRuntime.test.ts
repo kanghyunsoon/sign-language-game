@@ -233,6 +233,14 @@ describe("GameRuntime", () => {
     runtime.dispose();
   });
 
+  it("keeps the full elapsed time when a render frame arrives late", () => {
+    const { runtime } = createRuntime();
+    runtime.start();
+    runtime.advance(1_000);
+    expect(runtime.snapshot().playTimeMs).toBe(1_000);
+    runtime.dispose();
+  });
+
   it("resizes the physics floor with the rendered viewport", () => {
     const { runtime, world } = createRuntime();
     runtime.resizeViewport(640, 800);
