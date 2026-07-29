@@ -208,9 +208,9 @@
 }
 
 .practice-category-symbol {
-  width: min(2.708333vw, 4.333333vh);
-  height: min(2.708333vw, 4.333333vh);
-  flex: 0 0 min(2.708333vw, 4.333333vh);
+  width: min(3.59375vw, 5.75vh);
+  height: min(3.59375vw, 5.75vh);
+  flex: 0 0 min(3.59375vw, 5.75vh);
   display: flex;
   align-items: center;
   justify-content: center;

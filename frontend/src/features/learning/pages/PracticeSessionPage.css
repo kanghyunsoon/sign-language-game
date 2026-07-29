@@ -40,8 +40,8 @@
   top: 50%;
   left: min(1.666667vw, 2.666667vh);
   z-index: 1;
-  width: min(2.291667vw, 3.666667vh);
-  height: min(2.291667vw, 3.666667vh);
+  width: min(3.072917vw, 4.916667vh);
+  height: min(3.072917vw, 4.916667vh);
   display: grid;
   place-items: center;
   border: 0;
@@ -342,8 +342,8 @@
 
 .practice-answer-panel .practice-panel-label::before,
 .practice-camera-panel .practice-panel-label::before {
-  width: min(1.770833vw, 2.833333vh);
-  height: min(1.770833vw, 2.833333vh);
+  width: min(2.34375vw, 3.75vh);
+  height: min(2.34375vw, 3.75vh);
   display: grid;
   place-items: center;
   border-radius: min(0.572917vw, 0.916667vh);
@@ -399,8 +399,8 @@
   top: min(1.458333vw, 2.333333vh);
   left: min(1.458333vw, 2.333333vh);
   z-index: 2;
-  width: min(3.229167vw, 5.166667vh);
-  height: min(3.229167vw, 5.166667vh);
+  width: min(4.322917vw, 6.916667vh);
+  height: min(4.322917vw, 6.916667vh);
   display: grid;
   place-items: center;
   border-radius: min(0.885417vw, 1.416667vh);
@@ -486,9 +486,9 @@
 }
 
 .practice-caution-icon {
-  width: min(1.09375vw, 1.75vh);
-  height: min(1.09375vw, 1.75vh);
-  flex: 0 0 min(1.09375vw, 1.75vh);
+  width: min(1.458333vw, 2.333333vh);
+  height: min(1.458333vw, 2.333333vh);
+  flex: 0 0 min(1.458333vw, 2.333333vh);
   display: grid;
   place-items: center;
   border-radius: 50%;

@@ -478,9 +478,9 @@ button {
 }
 
 .menu-icon {
-  width: min(3.020833vw, 4.833333vh);
-  height: min(3.020833vw, 4.833333vh);
-  flex: 0 0 min(3.020833vw, 4.833333vh);
+  width: min(4.010417vw, 6.416667vh);
+  height: min(4.010417vw, 6.416667vh);
+  flex: 0 0 min(4.010417vw, 6.416667vh);
   display: grid;
   place-items: center;
   border-radius: min(0.9375vw, 1.5vh);
