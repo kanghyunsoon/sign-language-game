@@ -8,8 +8,10 @@ import backend.ssafy.suhwa.game.service.GameRoomService;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
+import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.task.TaskRejectedException;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
@@ -23,6 +25,7 @@ import tools.jackson.databind.ObjectMapper;
  * 연결 성공 시 세션을 등록하고, 비정상 종료(afterConnectionClosed)면 유예 타이머를
  * 예약해 만료 시 {@link GameRoomService#leave}를 호출한다(research.md #12).
  */
+@Slf4j
 @Component
 public class GameRoomWebSocketHandler extends TextWebSocketHandler {
 
@@ -109,7 +112,17 @@ public class GameRoomWebSocketHandler extends TextWebSocketHandler {
         }
 
         Instant deadline = Instant.now().plusSeconds(leaveGraceSeconds);
-        ScheduledFuture<?> task = taskScheduler.schedule(() -> gameRoomService.leave(roomId, userId), deadline);
+        ScheduledFuture<?> task;
+        try {
+            task = taskScheduler.schedule(() -> gameRoomService.leave(roomId, userId), deadline);
+        } catch (TaskRejectedException e) {
+            // 애플리케이션 종료 중에는 스케줄러가 이미 멈춰 있다. 서블릿 컨테이너가 종료하면서
+            // 열려 있던 세션을 닫기 때문에 이 경로가 반드시 호출되는데, 프로세스가 내려가는 중이라
+            // 유예 타이머를 걸 의미가 없고 알림을 받을 상대 연결도 곧 끊긴다. 예약 거부를 그대로
+            // 전파하면 정상적인 종료 절차가 매번 스택 트레이스로 기록된다.
+            log.debug("유예 타이머 예약이 거부되어 이탈 처리를 건너뜀 roomId={}, userId={}", roomId, userId);
+            return;
+        }
         participant.schedulePending(deadline, task);
 
         notifier.notifyPeerDisconnected(roomId, userId);
