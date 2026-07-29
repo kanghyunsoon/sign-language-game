@@ -316,6 +316,14 @@
  * 지정색을 그대로 보여주려고 비활성 상태의 opacity는 되돌린다.
  */
 .practice-start-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 min(0.833333vw, 1.333333vh);
+  box-sizing: border-box;
+  line-height: 1;
+  white-space: nowrap;
+  word-break: keep-all;
   background-color: #d5cfbc;
 }
 
