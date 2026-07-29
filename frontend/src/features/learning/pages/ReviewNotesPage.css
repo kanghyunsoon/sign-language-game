@@ -449,9 +449,9 @@
 }
 
 .review-notes-detail .fingerspelling-detail-image {
-  width: 290px;
-  height: 290px;
-  flex: 0 0 290px;
+  width: 270px;
+  height: 270px;
+  flex: 0 0 270px;
 }
 
 /*
@@ -459,9 +459,16 @@
  * 3개인 글자를 번갈아 보면 상자 높이가 들쭉날쭉했다. 높이를 고정하고 내용을
  * 가운데 두면 글자를 바꿔도 상자가 흔들리지 않는다.
  */
+/*
+ * flex-shrink: 0이 핵심이다. 카드가 flex column이라 내용이 카드 높이를 넘기면
+ * flex가 자식을 압축하는데, 2줄 박스는 압축을 그대로 흡수하고 3줄 박스는
+ * 글자가 차지하는 최소 높이에 걸려 덜 줄어든다. 그래서 줄 수에 따라 높이가
+ * 달라졌다(측정값 146px vs 154px). 압축을 막아 지정 높이를 그대로 지킨다.
+ */
 .review-notes-detail .fingerspelling-detail-description {
   width: 480px;
   height: 160px;
+  flex-shrink: 0;
   margin: 16px 0;
   display: flex;
   flex-direction: column;

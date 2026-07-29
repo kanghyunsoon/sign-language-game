@@ -127,7 +127,15 @@ export function TestProgressView({
 
     return () => {
       isCancelled = true;
-      streamRef.current?.getTracks().forEach((track) => track.stop());
+
+      // 정리 중 예외가 나면 React가 언마운트를 끝내지 못해, 화면을 옮겨도
+      // 이전 화면이 그대로 남는다. 카메라 정리는 실패해도 삼킨다.
+      try {
+        streamRef.current?.getTracks().forEach((track) => track.stop());
+      } catch {
+        // 이미 닫힌 트랙이면 무시한다.
+      }
+
       streamRef.current = null;
     };
   }, []);
@@ -188,8 +196,13 @@ export function TestProgressView({
     });
 
     return () => {
-      unsubscribe();
-      recognizer.disconnect();
+      // 소켓 정리가 던지면 언마운트가 중단되어 화면 이동이 먹지 않는다.
+      try {
+        unsubscribe();
+        recognizer.disconnect();
+      } catch {
+        // 이미 끊긴 소켓이면 무시한다.
+      }
     };
   }, [recognizer]);
 
