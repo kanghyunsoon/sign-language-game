@@ -284,7 +284,10 @@ export function DictionaryPage() {
             )}
           </aside>
 
-          <FingerspellingDetail entry={selectedEntry} />
+          <FingerspellingDetail
+            className="dictionary-detail"
+            entry={selectedEntry}
+          />
         </div>
       </main>
       </div>
