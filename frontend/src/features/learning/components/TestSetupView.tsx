@@ -14,6 +14,7 @@ import {
   testCategories,
 } from "../data/testSession";
 import { fingerspellingItems } from "../data/fingerspelling";
+import otterImage from "../assets/otter.png";
 
 interface TestSetupViewProps {
   readonly onStart: (settings: TestSettings) => void;
@@ -77,6 +78,14 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
     <main className="test-main test-setup">
       <div className="test-setup-panel">
         <span className="test-badge">TEST MODE</span>
+
+        <div className="test-setup-character-circle">
+          <img
+            className="test-setup-character"
+            src={otterImage}
+            alt="수달 캐릭터"
+          />
+        </div>
 
         <h1 className="test-setup-title">테스트</h1>
 

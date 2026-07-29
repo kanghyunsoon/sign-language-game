@@ -109,42 +109,76 @@
   background: #faf7f1;
 }
 
+/* 연습 페이지 모드 라벨과 같은 채운 알약. 포인트색은 테스트의 녹색을 유지한다. */
 .test-badge {
-  display: inline-block;
-  padding: 6px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 18px;
   border-radius: 999px;
-  background: #e2ead8;
-  color: #5f724a;
-  font-size: 12px;
+  background: #8fa071;
+  color: #ffffff;
+  font-size: 18px;
   font-weight: 800;
   letter-spacing: 0.06em;
 }
 
 /* ---------------- 설정 화면 ---------------- */
 
+/* 연습 페이지와 동일한 투톤 배경 */
 .test-setup {
   display: grid;
   place-items: center;
+  background:
+    linear-gradient(
+      180deg,
+      #faf7f1 0%,
+      #faf7f1 54%,
+      #f5f1e9 54%,
+      #f5f1e9 100%
+    );
 }
 
+/* 연습 페이지와 동일한 하얀 카드. 테두리 없이 그림자만 쓴다. */
 .test-setup-panel {
   width: min(760px, 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 18px;
-  padding: 48px 56px 52px;
-  border: 1px solid #e7d9c7;
+  padding: 52px 56px 58px;
   border-radius: 34px;
-  background: rgba(255, 250, 242, 0.94);
-  box-shadow: 0 18px 38px rgba(82, 54, 35, 0.1);
+  background: #ffffff;
+  box-shadow: 0 24px 50px rgba(59, 42, 35, 0.14);
   text-align: center;
 }
 
+/* 연습 페이지와 동일한 수달 원형 프레임 */
+.test-setup-character-circle {
+  width: 180px;
+  height: 180px;
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 11px solid #b9afa3;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.test-setup-character {
+  width: 180px;
+  height: 180px;
+  object-fit: contain;
+  transform: translateY(5%);
+}
+
 .test-setup-title {
-  margin: 6px 0 0;
+  margin: 24px 0 0;
   color: #3f2b20;
-  font-size: 38px;
+  font-size: 42px;
+  line-height: 1;
   letter-spacing: -0.03em;
 }
 
@@ -596,6 +630,26 @@
 .test-timer-urgent {
   background: #f7e0d6;
   color: #b4523a;
+}
+
+/* 임시 채점 버튼. 점선 테두리로 정식 버튼과 구분한다. */
+.test-mark-correct-button {
+  margin-left: auto;
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1px dashed #8fa071;
+  border-radius: 14px;
+  background: #f3f6ea;
+  color: #5f724a;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* 임시 버튼이 앞에 있으면 오른쪽 정렬은 그쪽이 맡는다. */
+.test-mark-correct-button + .test-skip-button {
+  margin-left: 0;
 }
 
 .test-skip-button {

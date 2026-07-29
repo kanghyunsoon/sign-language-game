@@ -1,7 +1,11 @@
 import { useCallback, useSyncExternalStore } from "react";
 
 import type { FingerspellingEntry } from "./fingerspelling";
-import { findFingerspellingEntry } from "./fingerspelling";
+import {
+  findFingerspellingEntry,
+  fingerspellingCategories,
+  fingerspellingItems,
+} from "./fingerspelling";
 
 /**
  * 오답노트 저장소.
@@ -86,15 +90,47 @@ export function removeReviewNotes(symbolsToRemove: readonly string[]) {
 }
 
 /**
+ * 사전 순서에서 각 글자가 몇 번째인지 미리 계산해 둔다.
+ * 자음(ㄱ-ㄴ-ㄷ...) → 모음(ㅏ-ㅑ-ㅓ...) → 숫자(1-2-3...) 순서가 된다.
+ */
+const dictionaryOrderBySymbol = new Map(
+  fingerspellingCategories.flatMap((category) =>
+    fingerspellingItems[category.id].map(
+      (item, index) => [item.symbol, { category: category.id, index }] as const,
+    ),
+  ),
+);
+
+const categoryOrder = fingerspellingCategories.map((category) => category.id);
+
+/** 사전과 같은 순서로 비교한다. 목록이 담은 순서에 흔들리지 않게 한다. */
+function compareByDictionaryOrder(
+  left: FingerspellingEntry,
+  right: FingerspellingEntry,
+): number {
+  const leftPlace = dictionaryOrderBySymbol.get(left.symbol);
+  const rightPlace = dictionaryOrderBySymbol.get(right.symbol);
+
+  if (!leftPlace || !rightPlace) return 0;
+
+  const categoryGap =
+    categoryOrder.indexOf(leftPlace.category) -
+    categoryOrder.indexOf(rightPlace.category);
+
+  return categoryGap !== 0 ? categoryGap : leftPlace.index - rightPlace.index;
+}
+
+/**
  * 오답노트에 담긴 지문자 항목 목록.
- * 저장 순서를 유지해 사용자가 담은 순서대로 보이게 한다.
+ * 담은 순서가 아니라 사전 순서(자음 → 모음 → 숫자)로 정렬해 찾기 쉽게 한다.
  */
 export function useReviewNotes(): readonly FingerspellingEntry[] {
   const symbols = useSyncExternalStore(subscribe, getSymbolSnapshot, () => EMPTY_SYMBOLS);
 
   return symbols
     .map((symbol) => findFingerspellingEntry(symbol))
-    .filter((entry): entry is FingerspellingEntry => entry !== undefined);
+    .filter((entry): entry is FingerspellingEntry => entry !== undefined)
+    .sort(compareByDictionaryOrder);
 }
 
 /** 서버 렌더링 스냅샷. 매번 같은 참조여야 하므로 모듈 상수로 둔다. */

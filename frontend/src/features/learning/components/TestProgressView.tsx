@@ -42,6 +42,11 @@ export function TestProgressView({
   const [cameraMessage, setCameraMessage] = useState(
     "카메라를 연결하고 있습니다.",
   );
+  /**
+   * 카메라 준비가 끝났는지. 연결에 성공했거나, 쓸 수 없다고 판명된 경우 모두 포함한다.
+   * 연결을 기다리는 동안 제한 시간이 흐르면 첫 문항을 손해 보므로 타이머를 붙잡아 둔다.
+   */
+  const [isCameraSettled, setIsCameraSettled] = useState(false);
   const [connectionState, setConnectionState] =
     useState<RecognitionConnectionState>("DISCONNECTED");
   const [prediction, setPrediction] = useState<{
@@ -86,6 +91,8 @@ export function TestProgressView({
     const startCamera = async () => {
       if (!navigator.mediaDevices?.getUserMedia) {
         setCameraMessage("현재 환경에서는 카메라를 사용할 수 없습니다.");
+        // 카메라를 기다려도 켜지지 않으므로 그대로 시작한다.
+        setIsCameraSettled(true);
         return;
       }
 
@@ -107,9 +114,11 @@ export function TestProgressView({
         streamRef.current = stream;
         setCameraStream(stream);
         setCameraMessage("");
+        setIsCameraSettled(true);
       } catch {
         if (!isCancelled) {
           setCameraMessage("카메라를 사용할 수 없어 화면 없이 진행합니다.");
+          setIsCameraSettled(true);
         }
       }
     };
@@ -191,6 +200,11 @@ export function TestProgressView({
     setPrediction(null);
     setRemainingMs(TIME_LIMIT_MS);
 
+    // 카메라가 준비되기 전에는 시간을 세지 않는다.
+    if (!isCameraSettled) {
+      return;
+    }
+
     const deadlineAt = Date.now() + TIME_LIMIT_MS;
     const timerId = window.setInterval(() => {
       const left = Math.max(0, deadlineAt - Date.now());
@@ -203,7 +217,7 @@ export function TestProgressView({
     }, TICK_INTERVAL_MS);
 
     return () => window.clearInterval(timerId);
-  }, [currentIndex, currentQuestion]);
+  }, [currentIndex, currentQuestion, isCameraSettled]);
 
   if (!currentQuestion) {
     return null;
@@ -290,6 +304,18 @@ export function TestProgressView({
               >
                 {remainingSeconds}초
               </span>
+
+              {/*
+                임시 채점 수단. AI 인식 서버 없이도 진행 흐름을 확인할 수 있게
+                남겨 둔다. 인식이 안정화되면 다시 제거한다.
+              */}
+              <button
+                className="test-mark-correct-button"
+                type="button"
+                onClick={() => advanceRef.current("correct")}
+              >
+                정답 처리 (임시)
+              </button>
 
               <button
                 className="test-skip-button"

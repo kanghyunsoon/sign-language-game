@@ -7,6 +7,7 @@ import { FingerspellingDetail } from "../components/FingerspellingDetail";
 import type { FingerspellingCategoryId } from "../data/fingerspelling";
 import { fingerspellingCategories } from "../data/fingerspelling";
 import { useReviewNotes, useRemoveReviewNotes } from "../data/reviewNotes";
+import { SYMBOLS_PARAM, formatSymbolSelection } from "../data/symbolSelection";
 
 /** 카테고리 필터 값. "all"은 전체 보기. */
 type NoteFilterId = "all" | FingerspellingCategoryId;
@@ -21,9 +22,6 @@ const noteFilters: readonly { id: NoteFilterId; label: string }[] = [
 
 /** 알림이 화면에 머무는 시간(ms). 테스트 결과 화면과 동일하게 맞춘다. */
 const TOAST_DURATION_MS = 2000;
-
-/** 선택한 글자를 연습·테스트 화면으로 넘길 때 쓰는 query parameter 이름. */
-const SYMBOLS_PARAM = "symbols";
 
 export function ReviewNotesPage() {
   const navigate = useNavigate();
@@ -85,6 +83,15 @@ export function ReviewNotesPage() {
     setCheckedSymbols([]);
   };
 
+  /** 지금 보이는 카드를 모두 고른다. 이미 전부 골랐다면 모두 해제한다. */
+  const handleSelectAll = () => {
+    const isEveryChecked = checkedInView.length === visibleNotes.length;
+
+    setCheckedSymbols(
+      isEveryChecked ? [] : visibleNotes.map((entry) => entry.symbol),
+    );
+  };
+
   const handleCardClick = (symbol: string) => {
     if (!isMultiSelectMode) {
       setSelectedSymbol(symbol);
@@ -100,8 +107,10 @@ export function ReviewNotesPage() {
 
   /** 선택한 글자를 query parameter로 실어 연습·테스트 화면으로 보낸다. */
   const handleNavigateWithSelection = (path: "/practice" | "/test") => {
-    const params = new URLSearchParams({ [SYMBOLS_PARAM]: checkedInView.join(",") });
-    navigate(`${path}?${params.toString()}`, { state: { symbols: checkedInView } });
+    const params = new URLSearchParams({
+      [SYMBOLS_PARAM]: formatSymbolSelection(checkedInView),
+    });
+    navigate(`${path}?${params.toString()}`);
   };
 
   const handleDeleteChecked = () => {
@@ -179,17 +188,30 @@ export function ReviewNotesPage() {
                   })}
                 </div>
 
-                <button
-                  className={`review-notes-select-toggle ${
-                    isMultiSelectMode ? "review-notes-select-toggle-active" : ""
-                  }`}
-                  type="button"
-                  disabled={!hasNotes}
-                  aria-pressed={isMultiSelectMode}
-                  onClick={handleMultiSelectToggle}
-                >
-                  {isMultiSelectMode ? "선택 취소" : "선택"}
-                </button>
+                <div className="review-notes-select-actions">
+                  {isMultiSelectMode && (
+                    <button
+                      className="review-notes-select-all"
+                      type="button"
+                      disabled={visibleNotes.length === 0}
+                      onClick={handleSelectAll}
+                    >
+                      전체 선택
+                    </button>
+                  )}
+
+                  <button
+                    className={`review-notes-select-toggle ${
+                      isMultiSelectMode ? "review-notes-select-toggle-active" : ""
+                    }`}
+                    type="button"
+                    disabled={!hasNotes}
+                    aria-pressed={isMultiSelectMode}
+                    onClick={handleMultiSelectToggle}
+                  >
+                    {isMultiSelectMode ? "취소" : "선택"}
+                  </button>
+                </div>
               </div>
 
               {visibleNotes.length === 0 ? (

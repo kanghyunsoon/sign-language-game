@@ -5,6 +5,7 @@ import {
   TEST_TIME_LIMIT_SECONDS,
   UNSUPPORTED_TEST_CATEGORIES,
   buildTestQuestions,
+  buildTestQuestionsFromSymbols,
   isTestCategoryAvailable,
   maxQuestionCount,
   requestedCountForPreset,
@@ -167,6 +168,66 @@ describe("테스트 가능 분류", () => {
     expect(isTestCategoryAvailable("number")).toBe(false);
     expect(isTestCategoryAvailable("consonant")).toBe(true);
     expect(isTestCategoryAvailable("vowel")).toBe(true);
+  });
+});
+
+describe("buildTestQuestionsFromSymbols", () => {
+  /** 오답노트에서 넘어온 글자 묶음을 흉내낸다. */
+  const entriesFor = (symbols: readonly string[]) =>
+    symbols.map((symbol) => {
+      const entry = testQuestionPool(["consonant", "vowel", "number"]).find(
+        (question) => question.symbol === symbol,
+      );
+
+      if (!entry) throw new Error(`알 수 없는 글자: ${symbol}`);
+      return entry;
+    });
+
+  it("넘겨받은 글자를 모두 출제한다", () => {
+    const questions = buildTestQuestionsFromSymbols(
+      entriesFor(["ㄱ", "ㄴ", "ㅏ"]),
+      zeroRandom,
+    );
+
+    expect(questions).toHaveLength(3);
+    expect(questions.map((question) => question.symbol).sort()).toEqual(
+      ["ㄱ", "ㄴ", "ㅏ"].sort(),
+    );
+  });
+
+  it("문항 수를 줄이지 않아 오답 전체를 복습할 수 있다", () => {
+    const symbols = ["ㄱ", "ㄴ", "ㄷ", "ㄹ", "ㅁ", "ㅂ", "ㅅ"];
+
+    expect(
+      buildTestQuestionsFromSymbols(entriesFor(symbols), zeroRandom),
+    ).toHaveLength(symbols.length);
+  });
+
+  it("URL을 직접 고쳐 숫자가 들어와도 지원 분류만 남긴다", () => {
+    const questions = buildTestQuestionsFromSymbols(
+      entriesFor(["ㄱ", "1", "ㅏ", "10"]),
+      zeroRandom,
+    );
+
+    expect(questions.map((question) => question.symbol).sort()).toEqual(
+      ["ㄱ", "ㅏ"].sort(),
+    );
+  });
+
+  it("남는 글자가 없으면 빈 배열이다", () => {
+    expect(buildTestQuestionsFromSymbols([], zeroRandom)).toEqual([]);
+    expect(
+      buildTestQuestionsFromSymbols(entriesFor(["1", "2"]), zeroRandom),
+    ).toEqual([]);
+  });
+
+  it("원본 배열을 바꾸지 않는다", () => {
+    const entries = entriesFor(["ㄱ", "ㄴ", "ㄷ"]);
+    const before = entries.map((entry) => entry.symbol);
+
+    buildTestQuestionsFromSymbols(entries, zeroRandom);
+
+    expect(entries.map((entry) => entry.symbol)).toEqual(before);
   });
 });
 

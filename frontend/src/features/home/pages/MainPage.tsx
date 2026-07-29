@@ -14,6 +14,7 @@ export function MainPage() {
 
   return (
     <div className="page">
+      <div className="canvas">
       <header className="header">
         <nav className="nav" aria-label="주요 메뉴">
           <a className="active" href="/main">메인페이지</a>
@@ -41,6 +42,11 @@ export function MainPage() {
                 차분하게 배우고,<br />
                 꾸준하게 쌓아가는 수어 학습
               </h1>
+
+              <Link className="hero-notes-button" to="/review-notes">
+                <span className="hero-notes-icon" aria-hidden="true">📕</span>
+                오답노트
+              </Link>
             </div>
 
             <div className="hero-otter">
@@ -83,9 +89,6 @@ export function MainPage() {
                 <p>필요한 기능을 선택해 바로 시작하세요.</p>
               </div>
 
-              <button className="all-link" type="button">
-                전체 보기 →
-              </button>
             </div>
 
             <div className="menu-grid">
@@ -93,7 +96,7 @@ export function MainPage() {
                 <span className="menu-icon practice">✋</span>
 
                 <span>
-                  <h3>연습·학습</h3>
+                  <h3>연습</h3>
                   <p>가이드 동작을 보며 수어 표현을 천천히 익혀요.</p>
                 </span>
               </Link>
@@ -116,15 +119,6 @@ export function MainPage() {
                 </span>
               </Link>
 
-              <Link className="menu-card" to="/review-notes">
-                <span className="menu-icon notes">📕</span>
-
-                <span>
-                  <h3>오답노트</h3>
-                  <p>틀린 지문자를 모아 다시 연습하고 테스트해요.</p>
-                </span>
-              </Link>
-
               <button className="menu-card" type="button">
                 <span className="menu-icon game">🎮</span>
 
@@ -143,7 +137,7 @@ export function MainPage() {
         <a href="#">개인정보처리방침</a>
         <a href="#">문의하기</a>
       </footer>
-
+      </div>
     </div>
   );
 }

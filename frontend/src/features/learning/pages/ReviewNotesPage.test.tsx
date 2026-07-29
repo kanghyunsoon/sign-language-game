@@ -5,11 +5,15 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { ReviewNotesPage } from "./ReviewNotesPage";
 import { addReviewNote, removeReviewNotes } from "../data/reviewNotes";
+import { fingerspellingEntries } from "../data/fingerspelling";
 
-/** 테스트마다 오답노트를 깨끗한 상태에서 시작한다. */
+/**
+ * 테스트마다 오답노트를 깨끗한 상태에서 시작한다.
+ * 저장소가 값을 캐시하므로 localStorage만 비우면 남아 있어, 전체 글자를 지운다.
+ */
 const resetNotes = () => {
   window.localStorage.clear();
-  removeReviewNotes(["ㄱ", "ㄴ", "ㅏ", "1", "2"]);
+  removeReviewNotes(fingerspellingEntries.map((entry) => entry.symbol));
 };
 
 beforeEach(resetNotes);
@@ -56,6 +60,18 @@ describe("ReviewNotesPage 목록", () => {
     expect(readDetailSymbol()).toBe("ㄱ");
   });
 
+  it("담은 순서가 아니라 자음-모음-숫자 사전 순서로 보여준다", () => {
+    // 일부러 거꾸로 담아도 사전 순서로 정렬되어야 한다.
+    ["10", "ㅑ", "ㅏ", "ㄴ", "ㄱ", "1"].forEach(addReviewNote);
+    renderPage();
+
+    const symbols = within(getGrid())
+      .getAllByRole("button")
+      .map((card) => card.querySelector(".review-notes-card-symbol")?.textContent);
+
+    expect(symbols).toEqual(["ㄱ", "ㄴ", "ㅏ", "ㅑ", "1", "10"]);
+  });
+
   it("카드를 누르면 상세가 그 글자로 바뀐다", () => {
     seedNotes();
     renderPage();
@@ -95,13 +111,56 @@ describe("ReviewNotesPage 다중 선택", () => {
     expect(screen.getByRole("button", { name: "테스트하기" })).toBeTruthy();
   });
 
-  it("선택 취소를 누르면 액션 바가 사라진다", () => {
+  it("취소를 누르면 액션 바가 사라진다", () => {
     seedNotes();
     renderPage();
 
     fireEvent.click(screen.getByRole("button", { name: "선택" }));
     fireEvent.click(screen.getByRole("button", { name: "ㄱ 기역" }));
-    fireEvent.click(screen.getByRole("button", { name: "선택 취소" }));
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+
+    expect(screen.queryByRole("button", { name: "삭제하기" })).toBeNull();
+  });
+
+  it("전체 선택은 선택 모드에서만 보인다", () => {
+    seedNotes();
+    renderPage();
+
+    expect(screen.queryByRole("button", { name: "전체 선택" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "선택" }));
+
+    expect(screen.getByRole("button", { name: "전체 선택" })).toBeTruthy();
+  });
+
+  it("전체 선택은 보이는 카드를 모두 고른다", () => {
+    seedNotes();
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "선택" }));
+    fireEvent.click(screen.getByRole("button", { name: "전체 선택" }));
+
+    expect(screen.getByText("4개 선택됨")).toBeTruthy();
+  });
+
+  it("전체 선택은 필터에 걸린 카드만 고른다", () => {
+    seedNotes();
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "자음" }));
+    fireEvent.click(screen.getByRole("button", { name: "선택" }));
+    fireEvent.click(screen.getByRole("button", { name: "전체 선택" }));
+
+    expect(screen.getByText("2개 선택됨")).toBeTruthy();
+  });
+
+  it("이미 전부 고른 상태에서 전체 선택을 누르면 모두 해제된다", () => {
+    seedNotes();
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "선택" }));
+    fireEvent.click(screen.getByRole("button", { name: "전체 선택" }));
+    fireEvent.click(screen.getByRole("button", { name: "전체 선택" }));
 
     expect(screen.queryByRole("button", { name: "삭제하기" })).toBeNull();
   });

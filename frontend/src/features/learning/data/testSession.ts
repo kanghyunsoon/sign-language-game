@@ -161,6 +161,23 @@ export function buildTestQuestions(
   return shuffle(testQuestionPool(settings.categories), random).slice(0, count);
 }
 
+/**
+ * 지정한 글자들로만 문항을 만든다. 오답노트에서 고른 글자를 그대로 출제할 때 쓴다.
+ *
+ * 분류·문항 수를 고르는 buildTestQuestions와 달리 대상이 이미 정해져 있어,
+ * 출제 가능한 분류만 남기고 순서만 섞는다. 남는 글자가 없으면 빈 배열이다.
+ * (숫자는 AI 모델 미지원으로 오답노트에 담기지 않지만, URL을 직접 고친 경우를 막는다.)
+ */
+export function buildTestQuestionsFromSymbols(
+  entries: readonly TestQuestion[],
+  random: () => number = Math.random,
+): TestQuestion[] {
+  return shuffle(
+    entries.filter((entry) => isTestCategoryAvailable(entry.categoryId)),
+    random,
+  );
+}
+
 /** 오답 문항만 추린다. 결과 화면의 오답노트 안내에 사용한다. */
 export function wrongResults(
   results: readonly TestQuestionResult[],
