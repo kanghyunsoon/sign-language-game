@@ -165,8 +165,8 @@
 
 .practice-category-list {
   width: 100%;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: min(1.041667vw, 1.666667vh);
 }
 
@@ -251,11 +251,11 @@
 .practice-action-area {
   width: 100%;
   margin-top: min(1.458333vw, 2.333333vh);
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: min(0.833333vw, 1.333333vh);
 }
 
-.practice-previous-button,
 .practice-start-button,
 .practice-guide-button {
   min-width: 0;
@@ -275,10 +275,87 @@
     transform 0.2s ease;
 }
 
-.practice-previous-button:hover,
 .practice-start-button:hover,
 .practice-guide-button:hover {
   color: #ffffff;
   background: #5f402b;
   transform: translateY(max(-0.104167vw, -0.166667vh));
+}
+
+.practice-start-button:disabled,
+.practice-category:disabled {
+  color: #aaa39b;
+  background: #eeeae3;
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+.practice-start-button:disabled:hover,
+.practice-category:disabled:hover {
+  color: #aaa39b;
+  border-color: transparent;
+  background: #eeeae3;
+  box-shadow: none;
+  transform: none;
+}
+
+.practice-guide-overlay {
+  position: absolute;
+  z-index: 10;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: min(2.083333vw, 3.333333vh);
+  background: rgba(63, 43, 32, 0.42);
+}
+
+.practice-guide-modal {
+  width: min(34.375vw, 55vh);
+  box-sizing: border-box;
+  padding: min(2.083333vw, 3.333333vh);
+  border-radius: min(1.25vw, 2vh);
+  background: #ffffff;
+  box-shadow: 0 min(1.25vw, 2vh) min(2.604167vw, 4.166667vh)
+    rgba(59, 42, 35, 0.24);
+}
+
+.practice-guide-modal h2 {
+  margin: 0;
+  color: #3f2b20;
+  font-size: min(1.770833vw, 2.833333vh);
+}
+
+.practice-guide-intro {
+  margin: min(0.833333vw, 1.333333vh) 0
+    min(1.25vw, 2vh);
+  color: #7d6d61;
+  font-size: min(1.145833vw, 1.833333vh);
+}
+
+.practice-guide-steps {
+  margin: 0;
+  padding-left: min(1.5625vw, 2.5vh);
+  color: #51483f;
+  font-size: min(1.145833vw, 1.833333vh);
+  line-height: 2;
+}
+
+.practice-guide-close-button {
+  width: 100%;
+  height: min(3.75vw, 6vh);
+  margin-top: min(1.458333vw, 2.333333vh);
+  border: 0;
+  border-radius: min(0.833333vw, 1.333333vh);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: min(1.302083vw, 2.083333vh);
+  font-weight: 800;
+  background: #5f402b;
+  cursor: pointer;
+}
+
+.practice-guide-close-button:hover {
+  background: #3f2b20;
 }

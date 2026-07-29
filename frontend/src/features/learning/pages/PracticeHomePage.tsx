@@ -7,13 +7,15 @@ import { SYMBOLS_PARAM, parseSymbolSelection } from "../data/symbolSelection";
 import { PracticeSessionPage } from "./PracticeSessionPage";
 
 type PracticeCategoryId = FingerspellingCategoryId;
+type PracticeHomeCategoryId = PracticeCategoryId | "word";
 
 interface PracticeCategory {
-  id: PracticeCategoryId;
+  id: PracticeHomeCategoryId;
   symbol: string;
   title: string;
   description: string;
-  count: number;
+  count?: number;
+  disabled?: boolean;
 }
 
 const practiceCategories: PracticeCategory[] = [
@@ -38,6 +40,13 @@ const practiceCategories: PracticeCategory[] = [
     description: "1부터 10까지 기본 숫자 10개를 연습합니다.",
     count: 10,
   },
+  {
+    id: "word",
+    symbol: "별",
+    title: "단어 연습",
+    description: "준비 중입니다.",
+    disabled: true,
+  },
 ];
 
 export function PracticeHomePage() {
@@ -47,6 +56,7 @@ export function PracticeHomePage() {
     useState<PracticeCategoryId | null>(null);
   const [activeCategory, setActiveCategory] =
     useState<PracticeCategoryId | null>(null);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   // 오답노트에서 넘어온 글자 묶음. 있으면 분류 선택을 건너뛰고 바로 연습한다.
   const symbolsParam = searchParams.get(SYMBOLS_PARAM);
@@ -63,12 +73,8 @@ export function PracticeHomePage() {
     setSelectedCategory(categoryId);
   };
 
-  const handlePreviousClick = () => {
-    setSelectedCategory(null);
-  };
-
   const handlePracticeStart = () => {
-    if (!selectedPracticeCategory) {
+    if (!selectedPracticeCategory || selectedPracticeCategory.id === "word") {
       return;
     }
 
@@ -76,7 +82,7 @@ export function PracticeHomePage() {
   };
 
   const handlePracticeGuideOpen = () => {
-    alert("연습 방법을 확인합니다.");
+    setIsGuideOpen(true);
   };
 
   const handlePracticeExit = () => {
@@ -140,13 +146,7 @@ export function PracticeHomePage() {
           <h1 className="practice-title">연습 모드</h1>
 
           <div className="practice-category-list">
-            {practiceCategories
-              .filter(
-                (category) =>
-                  selectedCategory === null ||
-                  category.id === selectedCategory,
-              )
-              .map((category) => {
+            {practiceCategories.map((category) => {
                 const isSelected = selectedCategory === category.id;
 
                 return (
@@ -156,7 +156,12 @@ export function PracticeHomePage() {
                     }`}
                     type="button"
                     key={category.id}
-                    onClick={() => handleCategoryClick(category.id)}
+                    disabled={category.disabled}
+                    onClick={() => {
+                      if (category.id !== "word") {
+                        handleCategoryClick(category.id);
+                      }
+                    }}
                   >
                     <span className="practice-category-symbol">
                       {category.symbol}
@@ -167,43 +172,67 @@ export function PracticeHomePage() {
                       <span>{category.description}</span>
                     </span>
 
-                    <span className="practice-category-count">
-                      총 {category.count}문제
-                    </span>
+                    {category.count !== undefined && (
+                      <span className="practice-category-count">
+                        총 {category.count}문제
+                      </span>
+                    )}
                   </button>
                 );
               })}
           </div>
 
-          {selectedPracticeCategory && (
-            <div className="practice-action-area">
-              <button
-                className="practice-previous-button"
-                type="button"
-                onClick={handlePreviousClick}
-              >
-                이전
-              </button>
+          <div className="practice-action-area">
+            <button
+              className="practice-guide-button"
+              type="button"
+              onClick={handlePracticeGuideOpen}
+            >
+              연습 방법 보기
+            </button>
 
-              <button
-                className="practice-start-button"
-                type="button"
-                onClick={handlePracticeStart}
-              >
-                ▶ 연습 시작하기
-              </button>
-
-              <button
-                className="practice-guide-button"
-                type="button"
-                onClick={handlePracticeGuideOpen}
-              >
-                연습 방법 보기
-              </button>
-            </div>
-          )}
+            <button
+              className="practice-start-button"
+              type="button"
+              disabled={!selectedPracticeCategory}
+              onClick={handlePracticeStart}
+            >
+              ▶ 연습 시작하기
+            </button>
+          </div>
         </section>
       </main>
+
+      {isGuideOpen && (
+        <div
+          className="practice-guide-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="practice-guide-title"
+        >
+          <section className="practice-guide-modal">
+            <h2 id="practice-guide-title">연습 방법 보기</h2>
+            <p className="practice-guide-intro">
+              수달과 함께 천천히 따라 해볼까요?
+            </p>
+
+            <ol className="practice-guide-steps">
+              <li>정답 동작을 확인해요.</li>
+              <li>카메라에 손 전체가 보이도록 준비해요.</li>
+              <li>카메라 시작 버튼을 누르고 동작을 따라 해요.</li>
+              <li>연습이 끝나면 다음 문제로 이동해요.</li>
+            </ol>
+
+            <button
+              className="practice-guide-close-button"
+              type="button"
+              onClick={() => setIsGuideOpen(false)}
+            >
+              연습하러 가기
+            </button>
+          </section>
+        </div>
+      )}
       </div>
     </div>
   );
