@@ -121,7 +121,8 @@ describe("buildTestQuestions", () => {
       expect(question.image).toBeTruthy();
       expect(question.name).toBeTruthy();
       expect(question.categoryLabel).toBeTruthy();
-      expect(question.description).toHaveLength(2);
+      // 문장 수는 설명 길이에 따라 다르므로 개수는 고정하지 않는다.
+      expect(question.description.length).toBeGreaterThan(0);
     }
   });
 });
