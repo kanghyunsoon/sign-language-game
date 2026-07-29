@@ -93,9 +93,12 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
         <section className="test-result-list-panel">
           <span className="test-badge">TEST RESULT</span>
 
-          {/* 상세에서 넣고 뺀 결과가 바로 반영되도록 현재 담긴 개수를 보여준다. */}
+          {/* 상세에서 넣고 뺀 결과가 바로 반영되도록 현재 담긴 개수를 보여준다.
+              담긴 글자가 없으면 개수 대신 다 맞췄다고 알려 준다. */}
           <h1 className="test-result-title">
-            {wrongNoteSymbols.size}개 문자를 오답노트에 추가했어요!
+            {wrongNoteSymbols.size === 0
+              ? "모든 문제를 맞췄어요!"
+              : `${wrongNoteSymbols.size}개 문자를 오답노트에 추가했어요!`}
           </h1>
 
           <p className="test-result-summary">

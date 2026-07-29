@@ -322,6 +322,22 @@ describe("TestPage 결과 화면", () => {
     }
   };
 
+  /** 임시 채점 버튼으로 5문항을 모두 맞춘다. */
+  const finishAllCorrect = () => {
+    for (let index = 0; index < 5; index += 1) {
+      fireEvent.click(screen.getByRole("button", { name: "정답 처리 (임시)" }));
+    }
+  };
+
+  it("모든 문제를 맞추면 개수 대신 축하 문구를 보여준다", () => {
+    renderPage();
+    startConsonantOnly("5개");
+    finishAllCorrect();
+
+    expect(screen.getByText("모든 문제를 맞췄어요!")).toBeTruthy();
+    expect(screen.getByText("총 5문항 중 정답 5개 · 오답 0개")).toBeTruthy();
+  });
+
   const resultItems = () =>
     within(screen.getByRole("list")).getAllByRole("button");
 
@@ -598,5 +614,37 @@ describe("TestPage 오답노트 연동", () => {
 
     expect(screen.queryByRole("button", { name: "테스트 시작" })).toBeNull();
     expect(screen.getByText("1 / 2")).toBeTruthy();
+  });
+});
+
+describe("TestPage 진행 화면 뒤로가기", () => {
+  it("설정 화면에서 들어온 경우 설정 화면으로 돌아간다", () => {
+    renderPage();
+    startConsonantOnly("5개");
+
+    expect(screen.getByText("1 / 5")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "뒤로 가기" }));
+
+    expect(screen.getByRole("button", { name: "테스트 시작" })).toBeTruthy();
+  });
+
+  it("설정·결과 화면에는 뒤로가기 버튼이 없다", () => {
+    renderPage();
+
+    expect(screen.queryByRole("button", { name: "뒤로 가기" })).toBeNull();
+
+    startConsonantOnly("5개");
+    for (let index = 0; index < 5; index += 1) {
+      fireEvent.click(screen.getByRole("button", { name: "넘어가기" }));
+    }
+
+    expect(screen.queryByRole("button", { name: "뒤로 가기" })).toBeNull();
+  });
+
+  it("오답노트에서 들어온 경우에도 뒤로가기 버튼이 있다", () => {
+    renderPageWithSymbols("ㄱ,ㄴ");
+
+    expect(screen.getByRole("button", { name: "뒤로 가기" })).toBeTruthy();
   });
 });
