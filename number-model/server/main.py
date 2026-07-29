@@ -5,8 +5,14 @@ can point at either one. Same request types, same field names, same error codes,
 same logging shape. It listens on a different port because the two are meant to
 run side by side while the number model is still being evaluated.
 
-    ws://localhost:8766      number-only, 10 digits + none
-    ws://localhost:8765      the jamo server, unchanged
+    ws://localhost:8766/number   number-only, 10 digits + none
+    ws://localhost:8765          the jamo server, unchanged
+
+The path is required and any other path is refused with 404. The jamo server
+accepts every path, so a client pointed at the wrong port there still connects
+and then behaves oddly for reasons that show up much later. Naming the model in
+the path makes that mistake fail at connect time with a message that says which
+server was reached.
 
 Like the jamo server it receives only MediaPipe landmarks. No camera, image, or
 video data reaches this process.
@@ -14,6 +20,7 @@ video data reaches this process.
 Run:
     cd number-model && python -m server.main
     HANDPRACTICE_NUMBER_MODEL_DIR=<dir>           # to point at another bundle
+    HANDPRACTICE_NUMBER_PATH=/number              # to serve a different path
 """
 
 from __future__ import annotations
@@ -23,7 +30,9 @@ from functools import partial
 import json
 import os
 
-from websockets.asyncio.server import ServerConnection, serve
+from http import HTTPStatus
+
+from websockets.asyncio.server import Request, Response, ServerConnection, serve
 
 from .messages import (
     GetCapabilitiesRequest,
@@ -42,9 +51,32 @@ from numbermodel.features import LANDMARK_COUNT
 
 HOST = os.getenv("HANDPRACTICE_NUMBER_HOST", "localhost")
 PORT = int(os.getenv("HANDPRACTICE_NUMBER_PORT", "8766"))
+PATH = os.getenv("HANDPRACTICE_NUMBER_PATH", "/number")
 # One frame in, one distribution out. Reported so a client reading
 # `sequenceLength` sees a truthful value rather than the jamo server's 10.
 SEQUENCE_LENGTH = 1
+
+
+def normalise_path(raw_path: str) -> str:
+    """Strip the query string and any trailing slash, so `/number/?x=1` matches."""
+    path = raw_path.split("?", 1)[0].split("#", 1)[0]
+    return path.rstrip("/") or "/"
+
+
+def check_path(connection: ServerConnection, request: Request) -> Response | None:
+    """Refuse anything but the model's path, and say what was reached.
+
+    Returning a response here rejects during the HTTP handshake, so a wrong path
+    fails at `new WebSocket(...)` rather than after a connection that never
+    answers as expected.
+    """
+    if normalise_path(request.path) == normalise_path(PATH):
+        return None
+    body = (
+        f"Not found: {request.path}\n"
+        f"This is the sign-number model server. Connect to ws://{HOST}:{PORT}{PATH}\n"
+    )
+    return connection.respond(HTTPStatus.NOT_FOUND, body)
 
 
 def process_request(session: RecognitionSession, raw_message: str) -> list[dict[str, object]]:
@@ -115,8 +147,8 @@ async def websocket_handler(connection: ServerConnection, adapter: NumberModelAd
 
 async def run_server(adapter: NumberModelAdapter) -> None:
     handler = partial(websocket_handler, adapter=adapter)
-    async with serve(handler, HOST, PORT):
-        print(f"Number AI WebSocket server listening on ws://{HOST}:{PORT}")
+    async with serve(handler, HOST, PORT, process_request=check_path):
+        print(f"Number AI WebSocket server listening on ws://{HOST}:{PORT}{PATH}")
         print(f"  model {adapter.contract.model_version}, {adapter.contract.output_size} classes, feature {adapter.contract.feature_version}")
         await asyncio.get_running_loop().create_future()
 
