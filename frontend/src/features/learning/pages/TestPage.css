@@ -144,7 +144,8 @@
 /* 간격은 gap 없이 요소별 margin으로 잡는다. 연습 페이지도 같은 방식이라
    [TEST MODE]-수달-제목 간격을 그쪽과 똑같이 맞출 수 있다. */
 .test-setup-panel {
-  width: min(760px, 100%);
+  /* 연습 페이지 .practice-panel과 같은 폭(설계 기준 1040px) */
+  width: min(1040px, 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -187,7 +188,7 @@
 
 /* 아래쪽은 [분류 선택]과 확실히 떨어뜨린다. */
 .test-setup-description {
-  margin: 14px 0 46px;
+  margin: 24px 0 46px;
   color: #827368;
   font-size: 21px;
 }
