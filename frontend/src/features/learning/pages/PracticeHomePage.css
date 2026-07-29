@@ -167,12 +167,13 @@
   width: 100%;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: min(1.041667vw, 1.666667vh);
+  column-gap: min(1.041667vw, 1.666667vh);
+  row-gap: min(1.041667vw, 1.666667vh);
 }
 
 .practice-category {
   width: 100%;
-  min-height: min(4.270833vw, 6.833333vh);
+  min-height: min(5.208333vw, 8.333333vh);
   display: flex;
   align-items: center;
   gap: min(1.041667vw, 1.666667vh);
@@ -253,6 +254,7 @@
   margin-top: min(1.458333vw, 2.333333vh);
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  justify-content: space-between;
   gap: min(0.833333vw, 1.333333vh);
 }
 
@@ -277,9 +279,17 @@
 
 .practice-start-button:hover,
 .practice-guide-button:hover {
+  transform: translateY(max(-0.104167vw, -0.166667vh));
+}
+
+.practice-guide-button:hover {
   color: #ffffff;
   background: #5f402b;
-  transform: translateY(max(-0.104167vw, -0.166667vh));
+}
+
+.practice-start-button:hover {
+  color: #ffffff;
+  background: #5f402b;
 }
 
 .practice-start-button:disabled,
