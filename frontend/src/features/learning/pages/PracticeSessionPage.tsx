@@ -4,7 +4,6 @@ import { Link, useParams } from "react-router-dom";
 import otterClapImage from "../assets/otter_clap.png";
 import {
   HandCamera,
-  PythonWebSocketSignRecognizer,
   type RecognitionConnectionState,
 } from "../../../game/recognition";
 import { getAiWebSocketUrl } from "../data/aiRecognition";
@@ -13,6 +12,7 @@ import type {
   FingerspellingItem,
 } from "../data/fingerspelling";
 import { fingerspellingItems } from "../data/fingerspelling";
+import { PracticeWebSocketSignRecognizer } from "../recognition/PracticeWebSocketSignRecognizer";
 
 type PracticeCategoryId = FingerspellingCategoryId;
 
@@ -53,7 +53,7 @@ export function PracticeSessionPage({
   const correctItemIndexesRef = useRef(new Set<number>());
   const recognizer = useMemo(
     () =>
-      new PythonWebSocketSignRecognizer({
+      new PracticeWebSocketSignRecognizer({
         url: getAiWebSocketUrl(categoryId === "number"),
       }),
     [categoryId],
