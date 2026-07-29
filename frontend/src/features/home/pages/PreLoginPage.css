@@ -118,7 +118,7 @@
   left: 4.1209%;
   margin: 0;
   color: #5e514b;
-  font-size: min(1.5625vw, 2.5vh);
+  font-size: min(2.083333vw, 3.333333vh);
   font-weight: 700;
   line-height: 1.1667;
   letter-spacing: min(-0.0208vw, -0.0333vh);
@@ -136,7 +136,7 @@
   border: 0;
   border-radius: min(0.7292vw, 1.1667vh);
   color: #ffffff;
-  font-size: min(0.9896vw, 1.5833vh);
+  font-size: min(1.302083vw, 2.083333vh);
   font-weight: 900;
   background: #6d5345;
   box-shadow:

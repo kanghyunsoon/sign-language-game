@@ -104,7 +104,7 @@ button {
   background: transparent;
   color: #7d6d61;
   font-family: inherit;
-  font-size: min(0.885417vw, 1.416667vh);
+  font-size: min(1.25vw, 2vh);
   font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
@@ -137,7 +137,7 @@ button {
   border: min(0.052083vw, 0.083333vh) solid #dbc8b1;
   border-radius: min(52.03125vw, 83.25vh);
   color: var(--brown-dark);
-  font-size: min(0.833333vw, 1.333333vh);
+  font-size: min(1.09375vw, 1.75vh);
   text-decoration: none;
   font-weight: 800;
   background: #fffaf2;
@@ -226,7 +226,7 @@ button {
   padding: min(0.46875vw, 0.75vh) min(0.78125vw, 1.25vh);
   border-radius: min(52.03125vw, 83.25vh);
   color: #9b6b43;
-  font-size: min(0.729167vw, 1.166667vh);
+  font-size: min(0.989583vw, 1.583333vh);
   font-weight: 800;
   background: #f4eadc;
 }
@@ -259,7 +259,7 @@ button {
   padding: 0 min(1.458333vw, 2.333333vh);
   border-radius: min(52.03125vw, 83.25vh);
   color: #ffffff;
-  font-size: min(0.9375vw, 1.5vh);
+  font-size: min(1.25vw, 2vh);
   font-weight: 800;
   text-decoration: none;
   background: var(--brown-dark);
@@ -277,7 +277,7 @@ button {
 }
 
 .hero-notes-icon {
-  font-size: min(1.041667vw, 1.666667vh);
+  font-size: min(1.40625vw, 2.25vh);
   line-height: 1;
 }
 
@@ -358,12 +358,12 @@ button {
 .board strong {
   display: block;
   margin-bottom: min(0.9375vw, 1.5vh);
-  font-size: min(0.885417vw, 1.416667vh);
+  font-size: min(1.197917vw, 1.916667vh);
 }
 
 .board span {
   color: #7d6d61;
-  font-size: min(0.729167vw, 1.166667vh);
+  font-size: min(0.989583vw, 1.583333vh);
 }
 
 .plant {
@@ -441,14 +441,14 @@ button {
 
 .panel-heading h2 {
   margin: 0 0 min(0.46875vw, 0.75vh);
-  font-size: min(1.5625vw, 2.5vh);
+  font-size: min(2.083333vw, 3.333333vh);
   letter-spacing: max(-0.0625vw, -0.1vh);
 }
 
 .panel-heading p {
   margin: 0;
   color: var(--muted);
-  font-size: min(0.78125vw, 1.25vh);
+  font-size: min(1.041667vw, 1.666667vh);
 }
 
 .menu-grid {
@@ -478,13 +478,13 @@ button {
 }
 
 .menu-icon {
-  width: min(3.020833vw, 4.833333vh);
-  height: min(3.020833vw, 4.833333vh);
-  flex: 0 0 min(3.020833vw, 4.833333vh);
+  width: min(4.010417vw, 6.416667vh);
+  height: min(4.010417vw, 6.416667vh);
+  flex: 0 0 min(4.010417vw, 6.416667vh);
   display: grid;
   place-items: center;
   border-radius: min(0.9375vw, 1.5vh);
-  font-size: min(1.40625vw, 2.25vh);
+  font-size: min(1.875vw, 3vh);
   font-weight: 800;
 }
 
@@ -510,13 +510,13 @@ button {
 
 .menu-card h3 {
   margin: 0 0 min(0.625vw, 1vh);
-  font-size: min(1.09375vw, 1.75vh);
+  font-size: min(1.458333vw, 2.333333vh);
 }
 
 .menu-card p {
   margin: 0;
   color: var(--muted);
-  font-size: min(0.729167vw, 1.166667vh);
+  font-size: min(0.989583vw, 1.583333vh);
   line-height: 1.6;
   word-break: keep-all;
 }
@@ -529,7 +529,7 @@ button {
 }
 
 .progress-label-row strong {
-  font-size: min(0.885417vw, 1.416667vh);
+  font-size: min(1.197917vw, 1.916667vh);
 }
 
 .progress-label-row span {
@@ -570,13 +570,13 @@ button {
 .stat-card strong {
   display: block;
   margin-bottom: min(0.572917vw, 0.916667vh);
-  font-size: min(1.458333vw, 2.333333vh);
+  font-size: min(1.927083vw, 3.083333vh);
 }
 
 .stat-card span {
   display: block;
   color: var(--muted);
-  font-size: min(0.677083vw, 1.083333vh);
+  font-size: min(0.885417vw, 1.416667vh);
   line-height: 1.5;
 }
 
@@ -594,13 +594,13 @@ button {
 
 .review-box h3 {
   margin: 0 0 min(0.416667vw, 0.666667vh);
-  font-size: min(0.9375vw, 1.5vh);
+  font-size: min(1.25vw, 2vh);
 }
 
 .review-box p {
   margin: 0;
   color: var(--muted);
-  font-size: min(0.729167vw, 1.166667vh);
+  font-size: min(0.989583vw, 1.583333vh);
 }
 
 .review-button {
@@ -622,7 +622,7 @@ button {
   padding: 0 min(3.229167vw, 5.166667vh);
   border-top: min(0.052083vw, 0.083333vh) solid var(--line);
   color: #8a796b;
-  font-size: min(0.677083vw, 1.083333vh);
+  font-size: min(0.885417vw, 1.416667vh);
   background: rgba(255, 250, 242, 0.88);
 }
 

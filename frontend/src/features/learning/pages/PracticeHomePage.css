@@ -51,7 +51,7 @@
   background: transparent;
   color: #7d6d61;
   font-family: inherit;
-  font-size: min(0.885417vw, 1.416667vh);
+  font-size: min(1.25vw, 2vh);
   font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
@@ -85,7 +85,7 @@
   border: min(0.052083vw, 0.083333vh) solid #dbc8b1;
   border-radius: min(52.03125vw, 83.25vh);
   color: #5f402b;
-  font-size: min(0.833333vw, 1.333333vh);
+  font-size: min(1.09375vw, 1.75vh);
   font-weight: 800;
   text-decoration: none;
   background: #fffaf2;
@@ -130,7 +130,7 @@
   padding: min(0.416667vw, 0.666667vh) min(0.9375vw, 1.5vh);
   border-radius: min(52.03125vw, 83.25vh);
   color: #ffffff;
-  font-size: min(0.625vw, 1vh);
+  font-size: min(0.833333vw, 1.333333vh);
   font-weight: 800;
   background: #8f8274;
 }
@@ -208,15 +208,15 @@
 }
 
 .practice-category-symbol {
-  width: min(2.708333vw, 4.333333vh);
-  height: min(2.708333vw, 4.333333vh);
-  flex: 0 0 min(2.708333vw, 4.333333vh);
+  width: min(3.59375vw, 5.75vh);
+  height: min(3.59375vw, 5.75vh);
+  flex: 0 0 min(3.59375vw, 5.75vh);
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: min(0.677083vw, 1.083333vh);
   color: #3f2b20;
-  font-size: min(1.302083vw, 2.083333vh);
+  font-size: min(1.71875vw, 2.75vh);
   font-weight: 900;
   background: #ffffff;
 }
@@ -230,12 +230,12 @@
 }
 
 .practice-category-content strong {
-  font-size: min(0.9375vw, 1.5vh);
+  font-size: min(1.25vw, 2vh);
 }
 
 .practice-category-content > span {
   color: #93867c;
-  font-size: min(0.677083vw, 1.083333vh);
+  font-size: min(0.885417vw, 1.416667vh);
 }
 
 .practice-category-count {
@@ -243,7 +243,7 @@
   padding: min(0.416667vw, 0.666667vh) min(0.677083vw, 1.083333vh);
   border-radius: min(52.03125vw, 83.25vh);
   color: #ffffff;
-  font-size: min(0.625vw, 1vh);
+  font-size: min(0.833333vw, 1.333333vh);
   font-weight: 800;
   background: #8f8274;
 }
@@ -265,7 +265,7 @@
   border: 0;
   border-radius: min(0.833333vw, 1.333333vh);
   color: #51483f;
-  font-size: min(0.885417vw, 1.416667vh);
+  font-size: min(1.197917vw, 1.916667vh);
   font-weight: 800;
   background-color: #ffffff;
   box-shadow: 0 min(0.416667vw, 0.666667vh) min(0.833333vw, 1.333333vh) rgba(78, 64, 50, 0.1);

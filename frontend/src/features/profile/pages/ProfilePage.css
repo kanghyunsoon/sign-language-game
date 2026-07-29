@@ -21,7 +21,7 @@
   width: min(100vw, 162.6667vh);
   aspect-ratio: 122 / 75;
   overflow: hidden;
-  font-size: min(.8333vw, 1.3333vh);
+  font-size: min(1.09375vw, 1.75vh);
   background: #fbf8f0;
 }
 
@@ -83,7 +83,7 @@
   padding: 0;
   color: #7d6d61;
   font-family: inherit;
-  font-size: min(0.885417vw, 1.416667vh);
+  font-size: min(1.25vw, 2vh);
   font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
@@ -100,7 +100,7 @@
   border: min(0.104167vw, 0.166667vh) solid #9b6b43;
   border-radius: min(52.03125vw, 83.25vh);
   color: #3f2b20;
-  font-size: min(0.833333vw, 1.333333vh);
+  font-size: min(1.09375vw, 1.75vh);
   font-weight: 800;
   text-decoration: none;
   background: #fffaf2;
@@ -125,7 +125,7 @@
   border: 1px solid rgba(104,79,62,.08);
   border-radius: 999px;
   color: #705f52;
-  font-size: min(.625vw, 1vh);
+  font-size: min(0.833333vw, 1.333333vh);
   background: rgba(255,255,255,.78);
   box-shadow: 0 4px 12px rgba(81,62,49,.06);
 }
@@ -184,7 +184,7 @@
 
 .profile-achievement h1 {
   margin: 0;
-  font-size: min(1.5625vw, 2.5vh);
+  font-size: min(2.083333vw, 3.333333vh);
   font-weight: 900;
   letter-spacing: -.06em;
   white-space: nowrap;
@@ -252,7 +252,7 @@
   left: 50%;
   padding: min(.2604vw, .4167vh) min(.6771vw, 1.0833vh);
   border-radius: min(.3125vw, .5vh);
-  font-size: min(.9896vw, 1.5833vh);
+  font-size: min(1.302083vw, 2.083333vh);
   font-weight: 800;
   white-space: nowrap;
   background: #fffdf8;
@@ -307,12 +307,12 @@
 .profile-level-card > div:first-child span,
 .profile-total-xp span {
   color: #8b7b6e;
-  font-size: min(.625vw, 1vh);
+  font-size: min(0.833333vw, 1.333333vh);
   font-weight: 800;
 }
 
 .profile-level-card > div:first-child strong {
-  font-size: min(1.3021vw, 2.0833vh);
+  font-size: min(1.71875vw, 2.75vh);
 }
 
 .profile-level-progress {
@@ -340,7 +340,7 @@
 
 .profile-level-progress small {
   color: #8a7d70;
-  font-size: min(.5208vw, .8333vh);
+  font-size: min(0.677083vw, 1.083333vh);
 }
 
 .profile-level-goal {
@@ -353,18 +353,18 @@
 }
 
 .profile-reward-icon {
-  font-size: min(1.25vw, 2vh);
+  font-size: min(1.666667vw, 2.666667vh);
 }
 
 .profile-level-goal span {
   display: grid;
   color: #8a7a6e;
-  font-size: min(.5208vw, .8333vh);
+  font-size: min(0.677083vw, 1.083333vh);
 }
 
 .profile-level-goal strong {
   color: #5b493d;
-  font-size: min(.625vw, 1vh);
+  font-size: min(0.833333vw, 1.333333vh);
 }
 
 .profile-sidebar {
@@ -406,7 +406,7 @@
 }
 
 .profile-name strong {
-  font-size: min(1.5625vw, 2.5vh);
+  font-size: min(2.083333vw, 3.333333vh);
   white-space: nowrap;
 }
 
@@ -443,7 +443,7 @@
   border: min(.0521vw, .0833vh) solid #bca995;
   border-radius: min(.3125vw, .5vh);
   color: #493a32;
-  font-size: min(.7292vw, 1.1667vh);
+  font-size: min(0.989583vw, 1.583333vh);
   font-weight: 700;
   background: #fff;
   outline: none;
@@ -464,7 +464,7 @@
   border: 0;
   border-radius: min(.3125vw, .5vh);
   color: #fff;
-  font-size: min(.5208vw, .8333vh);
+  font-size: min(0.677083vw, 1.083333vh);
   font-weight: 800;
   background: #765b48;
   cursor: pointer;
@@ -488,7 +488,7 @@
   margin: 0;
   overflow: hidden;
   color: #b44949;
-  font-size: min(.5208vw, .8333vh);
+  font-size: min(0.677083vw, 1.083333vh);
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -503,7 +503,7 @@
   border: 0;
   border-radius: min(.3125vw, .5vh);
   color: #6d5c50;
-  font-size: min(.5208vw, .8333vh);
+  font-size: min(0.677083vw, 1.083333vh);
   font-weight: 800;
   background: #eee8df;
   cursor: pointer;
@@ -530,12 +530,12 @@
 }
 
 .profile-stat-row > span {
-  font-size: min(.625vw, 1vh);
+  font-size: min(0.833333vw, 1.333333vh);
   font-weight: 900;
 }
 
 .profile-stat-row > strong {
-  font-size: min(.7292vw, 1.1667vh);
+  font-size: min(0.989583vw, 1.583333vh);
 }
 
 .profile-stat-track {
@@ -558,7 +558,7 @@
   top: 50%;
   right: min(.4167vw, .6667vh);
   color: rgba(255,255,255,.92);
-  font-size: min(.4688vw, .75vh);
+  font-size: min(0.625vw, 1vh);
   transform: translateY(-50%);
 }
 
@@ -578,7 +578,7 @@
 }
 
 .profile-total-xp strong {
-  font-size: min(.8333vw, 1.3333vh);
+  font-size: min(1.09375vw, 1.75vh);
 }
 
 .profile-quick-actions {
@@ -595,7 +595,7 @@
   border: min(.0521vw, .0833vh) solid rgba(102,78,61,.12);
   border-radius: min(.625vw, 1vh);
   color: #5a493d;
-  font-size: min(1.0417vw, 1.6667vh);
+  font-size: min(1.40625vw, 2.25vh);
   font-weight: 900;
   white-space: nowrap;
   background: rgba(255,255,255,.88);
@@ -630,7 +630,7 @@
   margin-top: min(.8333vw, 1.3333vh);
   border-color: #765b48;
   color: #fff;
-  font-size: min(1.0417vw, 1.6667vh);
+  font-size: min(1.40625vw, 2.25vh);
   background: #765b48;
 }
 
