@@ -1,0 +1,7 @@
+# Runtime for the number-only WebSocket server and the trainer.
+# Deliberately smaller than game-ai-dev-server/requirements.txt: this model is
+# sklearn only, so tensorflow is not needed.
+numpy>=1.26,<2.2
+scikit-learn==1.9.0
+joblib==1.5.2
+websockets==15.0.1
