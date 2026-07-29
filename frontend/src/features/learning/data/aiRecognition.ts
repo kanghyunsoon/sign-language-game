@@ -9,7 +9,14 @@ export function getAiWebSocketUrl(useNumberEndpoint = false): string {
   const baseUrl =
     configuredUrl || `${protocol}//${window.location.host}/ai/ws`;
 
-  return useNumberEndpoint
-    ? `${baseUrl.replace(/\/+$/, "")}/number`
-    : baseUrl;
+  if (!useNumberEndpoint) {
+    return baseUrl;
+  }
+
+  const numberUrl = new URL(baseUrl);
+  numberUrl.pathname = "/number";
+  numberUrl.search = "";
+  numberUrl.hash = "";
+
+  return numberUrl.toString();
 }

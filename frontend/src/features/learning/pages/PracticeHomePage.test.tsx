@@ -7,7 +7,10 @@ import { MemoryRouter } from "react-router-dom";
 // 연습 세션은 카메라와 AI 소켓을 붙잡는다. 수신 로직만 보려고 둘 다 대역으로 바꾼다.
 vi.mock("../../../game/recognition", () => ({
   HandCamera: () => null,
-  PythonWebSocketSignRecognizer: class {
+}));
+
+vi.mock("../recognition/PracticeWebSocketSignRecognizer", () => ({
+  PracticeWebSocketSignRecognizer: class {
     getConnectionState() {
       return "DISCONNECTED";
     }
