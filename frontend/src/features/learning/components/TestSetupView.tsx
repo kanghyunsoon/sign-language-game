@@ -184,25 +184,27 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
               );
             })}
 
+            {/* 입력칸은 [직접 입력] 버튼 바로 오른쪽에 붙는다. 라벨 글자는 보이지
+                않게 하고 aria-label로만 남겨 이름을 잃지 않게 한다. */}
+            {presetId === "custom" && (
+              <span className="test-count-custom">
+                <input
+                  className="test-count-custom-input"
+                  id="test-custom-count"
+                  type="number"
+                  min={1}
+                  max={Math.max(1, availableCount)}
+                  value={customCount}
+                  aria-label="문항 수 직접 입력"
+                  onChange={(event) =>
+                    handleCustomCountChange(event.target.value)
+                  }
+                />
+
+                <span className="test-count-custom-unit">개</span>
+              </span>
+            )}
           </div>
-
-          {presetId === "custom" && (
-            <div className="test-count-custom">
-              <label htmlFor="test-custom-count">문항 수 직접 입력</label>
-
-              <input
-                className="test-count-custom-input"
-                id="test-custom-count"
-                type="number"
-                min={1}
-                max={Math.max(1, availableCount)}
-                value={customCount}
-                onChange={(event) => handleCustomCountChange(event.target.value)}
-              />
-
-              <span className="test-count-custom-unit">개</span>
-            </div>
-          )}
 
           <p className="test-setup-notice" role="status">
             {countNotice()}

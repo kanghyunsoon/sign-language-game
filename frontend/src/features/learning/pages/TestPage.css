@@ -357,22 +357,17 @@
   background: #8fa071;
 }
 
+/* [직접 입력] 버튼과 같은 줄에 놓이므로 인라인으로 둔다. */
 .test-count-custom {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 10px;
-  margin-top: 2px;
-}
-
-.test-count-custom label {
-  color: #6b5c50;
-  font-size: 19px;
-  font-weight: 700;
 }
 
 .test-count-custom-input {
   width: 110px;
-  height: 46px;
+  /* 문항 수 버튼과 높이를 맞춘다. */
+  height: 48px;
   padding: 0 14px;
   border: 1px solid #e4d4c2;
   border-radius: 14px;
