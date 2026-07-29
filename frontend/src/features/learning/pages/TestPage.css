@@ -343,6 +343,12 @@
   box-shadow: 0 4px 0 #6f8052;
 }
 
+/* 이미 고른 항목은 마우스를 올려도 색이 바뀌지 않는다.
+   .test-count:hover가 클래스 하나 더 구체적이라 여기서 다시 못 박아야 한다. */
+.test-count-selected:hover {
+  background: #8fa071;
+}
+
 .test-count-custom {
   display: flex;
   align-items: center;
