@@ -1,8 +1,8 @@
 {
-  "modelVersion": "jamo-31-ensemble-v1",
-  "architecture": "dual-head ensemble (feature_v2 55 + feature_v3 78), prob average w=0.5",
-  "accuracy": 0.9868,
-  "minRecall": 0.8308,
+  "modelVersion": "jamo-31-ensemble-v2",
+  "architecture": "dual-head ensemble (feature_v2 55 + feature_v3 78), prob average w=0.5, rotation-augmented",
+  "accuracy": 0.9842,
+  "minRecall": 0.7049,
   "perClassRecall": {
     "ㄱ": 1.0,
     "ㄴ": 1.0,
@@ -15,16 +15,16 @@
     "ㅈ": 1.0,
     "ㅊ": 1.0,
     "ㅋ": 1.0,
-    "ㅌ": 1.0,
+    "ㅌ": 0.9483,
     "ㅍ": 1.0,
     "ㅎ": 1.0,
     "ㅏ": 1.0,
     "ㅑ": 1.0,
-    "ㅓ": 0.9344,
-    "ㅕ": 0.9677,
-    "ㅗ": 0.8667,
+    "ㅓ": 0.7049,
+    "ㅕ": 1.0,
+    "ㅗ": 0.9,
     "ㅛ": 1.0,
-    "ㅜ": 0.8308,
+    "ㅜ": 0.9538,
     "ㅠ": 1.0,
     "ㅡ": 1.0,
     "ㅣ": 1.0,
@@ -36,31 +36,14 @@
     "ㅚ": 1.0,
     "ㅟ": 1.0
   },
-  "hardNegativePairs": [
-    [
-      "ㅓ",
-      "ㅡ"
-    ],
-    [
-      "ㅗ",
-      "ㅏ"
-    ],
-    [
-      "ㅗ",
-      "ㅔ"
-    ],
-    [
-      "ㅗ",
-      "ㅖ"
-    ],
-    [
-      "ㅗ",
-      "ㅣ"
-    ],
-    [
-      "ㅜ",
-      "ㅏ"
-    ]
-  ],
-  "sequenceLength": 10
+  "sequenceLength": 10,
+  "rotationRobustness": {
+    "+-10deg": "acc 0.984, eu-recall 1.000",
+    "+-20deg": "acc 0.983-0.984, eu-recall 1.000"
+  },
+  "sha256": {
+    "jamo31-v2big": "968089fe79ff68f291eb1b73d96c5cee343bdb2e65a1f065c684b9fd6314fbd0",
+    "jamo31-v3": "d682ed89ed2fcb484ad11f2cbc527e91bf41b99801fd3222cd75da177bd01775"
+  },
+  "notes": "trained with wrist-rotation augmentation (+-22deg in-plane, +-15deg out-of-plane on v3) to fix real-use failure of the horizontal jamo ㅡ"
 }
