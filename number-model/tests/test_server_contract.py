@@ -209,5 +209,57 @@ class ServerRequestTests(unittest.TestCase):
         self.assertEqual(server_main.SEQUENCE_LENGTH, 1)
 
 
+class PathRoutingTests(unittest.TestCase):
+    """Only the model's own path may connect.
+
+    The jamo server answers on every path, so pointing a client at the wrong
+    port still opens a socket there and the mismatch surfaces much later. This
+    server names the model in the path so the mistake fails at connect time.
+    """
+
+    def test_default_path_names_the_model(self) -> None:
+        self.assertEqual(server_main.PATH, "/number")
+
+    def test_query_string_and_trailing_slash_do_not_change_the_path(self) -> None:
+        for raw in ("/number", "/number/", "/number?token=abc", "/number/?a=1&b=2", "/number#x"):
+            with self.subTest(raw=raw):
+                self.assertEqual(server_main.normalise_path(raw), "/number")
+
+    def test_matching_path_is_accepted(self) -> None:
+        for raw in ("/number", "/number/", "/number?room=7"):
+            with self.subTest(raw=raw):
+                self.assertIsNone(server_main.check_path(_Connection(), _Request(raw)))
+
+    def test_other_paths_are_refused_with_404(self) -> None:
+        for raw in ("/", "/ws", "/jamo", "/number-model", "/numbers"):
+            with self.subTest(raw=raw):
+                response = server_main.check_path(_Connection(), _Request(raw))
+                self.assertIsNotNone(response, f"{raw} should not have been accepted")
+                self.assertEqual(response.status, 404)
+                # The body has to say which server was reached; a bare 404 sends
+                # the reader looking at their own code first.
+                self.assertIn("sign-number", response.body)
+                self.assertIn(server_main.PATH, response.body)
+
+
+class _Request:
+    def __init__(self, path: str) -> None:
+        self.path = path
+
+
+class _Response:
+    def __init__(self, status: int, body: str) -> None:
+        self.status = status
+        self.body = body
+
+
+class _Connection:
+    """Stands in for ServerConnection, which cannot be built without a socket."""
+
+    @staticmethod
+    def respond(status, body):  # noqa: ANN001 - mirrors the library's signature
+        return _Response(int(status), body)
+
+
 if __name__ == "__main__":
     unittest.main()
