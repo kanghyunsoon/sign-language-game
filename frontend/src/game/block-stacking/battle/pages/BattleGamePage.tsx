@@ -102,8 +102,8 @@ export function BattleGamePage() {
     <div className={styles.duelLayout}>
       <section className={styles.duelStage} aria-label="공유 목표 1대1 게임판">
         <div className={styles.duelBoards}>
-          <BattleBoardPanel title={`${localPlayerLabel} · 내 게임판`} subtitle="MY STACK" toolbar={<div className={styles.boardStats}><span>점수 <strong>{snapshot.score}</strong></span><span>콤보 <strong>{snapshot.combo}</strong></span></div>} rendererConfig={{ dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO }} onRendererReady={(renderer, viewport) => { localViewportRef.current = viewport; setLocalRenderer(renderer); localRuntimeRef.current?.resize(viewport.width, viewport.height); }} onViewportResize={(viewport) => { localViewportRef.current = viewport; localRuntimeRef.current?.resize(viewport.width, viewport.height); }} />
-          <BattleBoardPanel title={`${remotePlayerLabel} · ${opponent?.displayName ?? "상대"} 게임판`} subtitle="RIVAL STACK" rendererConfig={{ dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO }} onRendererReady={(renderer, viewport) => { setRemoteRenderer(renderer); replica.resize(viewport.width, viewport.height); }} onViewportResize={(viewport) => replica.resize(viewport.width, viewport.height)} />
+          <BattleBoardPanel title={`${localPlayerLabel} · 내 게임판`} subtitle="MY STACK" toolbar={<div className={styles.boardStats}><span>콤보 <strong>{snapshot.combo}</strong></span></div>} rendererConfig={{ dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO }} onRendererReady={(renderer, viewport) => { localViewportRef.current = viewport; setLocalRenderer(renderer); localRuntimeRef.current?.resize(viewport.width, viewport.height); }} onViewportResize={(viewport) => { localViewportRef.current = viewport; localRuntimeRef.current?.resize(viewport.width, viewport.height); }} />
+          <BattleBoardPanel className={styles.remoteBoardPanel} title={`${remotePlayerLabel} · ${opponent?.displayName ?? "상대"} 게임판`} subtitle="RIVAL STACK" rendererConfig={{ dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO }} onRendererReady={(renderer, viewport) => { setRemoteRenderer(renderer); replica.resize(viewport.width, viewport.height); }} onViewportResize={(viewport) => replica.resize(viewport.width, viewport.height)} />
         </div>
         {showSharedTarget ? <div className={styles.sharedTargetOtter} aria-label={`공유 목표 ${snapshot.targetSymbol ?? "대기 중"}`}>
           <img src={letterOtter} alt="" draggable={false} />
@@ -112,14 +112,14 @@ export function BattleGamePage() {
         </div> : null}
       </section>
       <aside className={styles.duelCameraRail} aria-label="플레이어 카메라">
-        <section className={styles.duelCameraCard} aria-label={`${localPlayerLabel} 내 카메라`}>
-          <header><div><strong>{localPlayerLabel} · 나</strong><span>손을 화면 중앙에 보여주세요</span></div><em>AI · {snapshot.aiConnectionState}</em></header>
+        <section className={styles.duelCameraCard} aria-label={`${user.displayName} 카메라`}>
+          <header><div><strong>{user.displayName} CAM</strong></div><em className={cameraState === "CONNECTED" ? styles.recordingIndicator : undefined}>{cameraState === "CONNECTED" ? "REC" : "WAIT"}</em></header>
           <div className={styles.duelCameraViewport}>{localStream ? <HandCamera compact sharedStream={localStream} autoStart rateConfig={RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG} performanceMonitor={recognizer.getPerformanceMonitor()} temporalDecoder={recognizer.getTemporalDecoder()} activePlayerSession={activePlayerSession} onLandmarkFrame={(frame) => recognizer.sendLandmarkFrame(frame)} onHandNotDetected={(capturedAt) => recognizer.notifyHandNotDetected(capturedAt)} prediction={snapshot.prediction} connectionState={recognizer.getConnectionState()} /> : <GameVideoTile kind="LOCAL" label="내 영상" stream={null} cameraEnabled={false} connectionState="DISCONNECTED" />}
             <div className={styles.recognitionBadge}><span>현재 인식</span><strong>{snapshot.prediction?.symbol ?? "-"}</strong><small>{snapshot.prediction ? `${Math.round(snapshot.prediction.confidence * 100)}%` : "대기"}</small></div>
           </div>
         </section>
-        <section className={styles.duelCameraCard} aria-label={`${remotePlayerLabel} 상대 카메라`}>
-          <header><div><strong>{remotePlayerLabel} · {opponent?.displayName ?? "상대"}</strong><span>상대 플레이 화면</span></div><em>{opponent?.cameraEnabled ? "LIVE" : "WAIT"}</em></header>
+        <section className={styles.duelCameraCard} aria-label={`${opponent?.displayName ?? "상대"} 카메라`}>
+          <header><div><strong>{opponent?.displayName ?? "상대"} CAM</strong></div><em className={opponent?.cameraEnabled ? styles.recordingIndicator : undefined}>{opponent?.cameraEnabled ? "REC" : "WAIT"}</em></header>
           <div className={styles.duelCameraViewport}><GameVideoTile kind="REMOTE" label={opponent?.displayName ?? "상대 영상"} stream={opponent?.stream ?? null} cameraEnabled={opponent?.cameraEnabled ?? false} connectionState={opponent?.connectionState ?? rtcState} /></div>
         </section>
       </aside>

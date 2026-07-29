@@ -66,3 +66,17 @@ This keeps target selection authoritative while preventing optimistic double-spa
 
 - Validate the full two-browser WebRTC session against production signaling: ready state, shared target delivery, first-claim ownership, winner-only spawn, next-target synchronization, and result submission.
 - The center target becomes visible only after the DataChannel reaches the match start state; the static route alone intentionally does not manufacture a target.
+
+---
+
+## 2026-07-30: Shared-target duel header and camera presentation
+
+- Removed the score value from the local board header so the shared paper target remains the only central gameplay focus.
+- Right-aligned the rival board header inside its own panel to avoid the center otter/paper artwork.
+- Camera cards now use `{displayName} CAM`; player-number labels and instructional subtitles were removed.
+- Connected camera cards display a pulsing `REC` status. Disconnected cameras retain the neutral `WAIT` status.
+- This is a presentation-only frontend change; target ownership, WebRTC DataChannel messages, room signaling, and backend contracts are unchanged.
+
+### Verification
+
+- TypeScript/Vite production build: passed.

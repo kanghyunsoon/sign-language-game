@@ -774,6 +774,15 @@
 .battleFixedPage .duelBoards > .boardPanel {
   height: 100%;
 }
+.battleFixedPage .remoteBoardPanel > header {
+  justify-content: flex-end;
+  padding-right: clamp(16px, 2.1vw, 36px);
+}
+.battleFixedPage .remoteBoardPanel > header > div {
+  display: grid;
+  justify-items: end;
+  text-align: right;
+}
 .battleFixedPage .sharedTargetOtter {
   position: absolute;
   z-index: 20;
@@ -873,6 +882,24 @@
   font-size: .56rem;
   font-style: normal;
   font-weight: 1000;
+}
+.battleFixedPage .duelCameraCard > header .recordingIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #fff0f2;
+  color: #c85471;
+}
+.battleFixedPage .duelCameraCard > header .recordingIndicator::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+  animation: battle-recording-pulse 1s ease-in-out infinite;
+}
+@keyframes battle-recording-pulse {
+  50% { opacity: .25; transform: scale(.72); }
 }
 .battleFixedPage .duelCameraViewport {
   position: relative;
