@@ -312,12 +312,11 @@
   font-weight: 700;
 }
 
+/* 열 수를 고정하지 않고 들어가는 만큼 채운다. 사이드바 폭(380px)에서는 6개로
+   지금과 같고, 창이 좁아져 목록이 위로 올라가면 가로를 꽉 채운다. */
 .dictionary-chip-grid {
   display: grid;
-  grid-template-columns: repeat(
-    6,
-    44px
-  );
+  grid-template-columns: repeat(auto-fill, 44px);
   gap: 8px;
   justify-content: start;
   justify-items: start;
@@ -439,3 +438,55 @@
   background: #f3f6ea;
 }
 
+.fingerspelling-detail.dictionary-detail {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr;
+  grid-template-rows: 1fr auto auto auto auto 1fr;
+  align-items: center;
+  justify-items: center;
+  column-gap: 40px;
+  row-gap: 10px;
+  text-align: left;
+}
+
+.dictionary-detail .fingerspelling-detail-badge {
+  grid-area: 2 / 2 / 3 / 3;
+}
+
+.dictionary-detail .fingerspelling-detail-symbol {
+  grid-area: 3 / 2 / 4 / 3;
+}
+
+.dictionary-detail .fingerspelling-detail-name {
+  grid-area: 4 / 2 / 5 / 3;
+}
+
+.dictionary-detail .fingerspelling-detail-description {
+  grid-area: 5 / 2 / 6 / 3;
+  width: 480px;
+  height: 160px;
+  margin: 30px 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  
+}
+
+/* 손그림은 오른쪽 열에서 세로 가운데. */
+.dictionary-detail .fingerspelling-detail-image {
+  grid-area: 1 / 4 / -1 / 5;
+  align-self: center;
+}
+
+/* 창이 좁아지면 오답노트 페이지처럼 목록이 위, 상세가 아래로 쌓인다.
+   .dictionary-main이 내부 스크롤을 가지므로 길어져도 잘리지 않는다. */
+@media (max-width: 1100px) {
+  .dictionary-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fingerspelling-detail.dictionary-detail {
+    min-height: 0;
+  }
+}

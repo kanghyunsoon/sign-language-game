@@ -30,7 +30,10 @@ describe("DictionaryPage 기본 상태", () => {
     expect(
       screen.getByAltText("기역 지문자 동작").getAttribute("src"),
     ).toBeTruthy();
-    expect(screen.getByText("수형 설명")).toBeTruthy();
+    // 제목 없이 설명 문장만 노출한다.
+    expect(
+      document.querySelectorAll(".fingerspelling-detail-description p").length,
+    ).toBeGreaterThan(0);
   });
 
   it("자음 분류만 펼친 채 시작하고 선택된 칩을 표시한다", () => {

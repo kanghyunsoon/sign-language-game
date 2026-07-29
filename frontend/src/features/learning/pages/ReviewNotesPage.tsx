@@ -2,6 +2,7 @@ import "./ReviewNotesPage.css";
 import { useEffect, useMemo, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { SiteFooter } from "../../../shared/components/SiteFooter";
 
 import { FingerspellingDetail } from "../components/FingerspellingDetail";
 import type { FingerspellingCategoryId } from "../data/fingerspelling";
@@ -307,6 +308,8 @@ export function ReviewNotesPage() {
             )}
           </div>
         </main>
+
+        <SiteFooter sizing="fixed" />
       </div>
 
       {toastMessage && (

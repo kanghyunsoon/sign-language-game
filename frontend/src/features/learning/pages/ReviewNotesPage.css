@@ -95,10 +95,14 @@
   background: #fffaf2;
 }
 
+/* 아래 padding은 테스트 결과 화면과 같은 48px. 두 화면의 카드 하단 지점이
+   같은 높이에서 끝나도록 맞춘 값이다. */
 .review-notes-main {
   flex: 1;
   min-height: 0;
-  padding: 34px 62px 40px;
+  display: flex;
+  flex-direction: column;
+  padding: 34px 62px 48px;
   overflow-y: auto;
   background: #faf7f1;
 }
@@ -137,13 +141,21 @@
   width: min(1440px, 100%);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(420px, 640px);
+  /* 목록과 상세를 같은 너비로 나눈다. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 26px;
-  align-items: start;
+  /* 남은 높이를 채우고 두 카드를 같은 높이로 늘린다. 화면 스크롤이 생기지
+     않도록 넘치는 내용은 카드 안에서 처리한다. */
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
 }
 
 /* 메인페이지 .panel과 동일한 패널 토큰 */
+/* 높이는 레이아웃 stretch가 정한다(오른쪽 카드와 동일). 오답 글자가 많아도
+   페이지가 늘어나지 않고 카드 그리드 안에서만 스크롤한다. */
 .review-notes-list-panel {
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -257,13 +269,31 @@
 }
 
 /* 바둑판 카드 그리드. 폭이 좁아지면 열 수가 자동으로 줄어든다. */
+/* 스크롤 대상은 카드 그리드뿐이다. 위쪽 필터·[선택]과 아래쪽 액션 바는
+   패널의 flex 형제라 스크롤 범위에 들어가지 않는다. */
 .review-notes-grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+  align-content: start;
   gap: 14px;
   margin: 0;
-  padding: 0;
+  /* 스크롤바와 카드가 붙지 않도록 */
+  padding: 0 4px 0 0;
   list-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: #979797 transparent;
+}
+
+.review-notes-grid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.review-notes-grid::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #979797;
 }
 
 .review-notes-card {
@@ -397,9 +427,53 @@
   box-shadow: 0 4px 0 #e8c4b6;
 }
 
-/* 상세 패널 — 공용 FingerspellingDetail의 여백만 페이지에 맞춰 보정한다. */
+/*
+ * 상세 패널 — 높이는 레이아웃 stretch가 정한다(왼쪽 목록 카드와 동일).
+ * 카드 안에 다 들어가도록 손그림과 설명 여백을 조금 줄였고, 그래도 넘치는
+ * 경우에는 카드 밖으로 흘리지 않고 안에서 스크롤한다.
+ */
 .review-notes-detail {
-  min-height: 780px;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #979797 transparent;
+}
+
+.review-notes-detail::-webkit-scrollbar {
+  width: 8px;
+}
+
+.review-notes-detail::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #979797;
+}
+
+.review-notes-detail .fingerspelling-detail-image {
+  width: 270px;
+  height: 270px;
+  flex: 0 0 270px;
+}
+
+/*
+ * 설명 상자를 사전 페이지와 같은 크기로 고정한다. 문장 수가 2개인 글자와
+ * 3개인 글자를 번갈아 보면 상자 높이가 들쭉날쭉했다. 높이를 고정하고 내용을
+ * 가운데 두면 글자를 바꿔도 상자가 흔들리지 않는다.
+ */
+/*
+ * flex-shrink: 0이 핵심이다. 카드가 flex column이라 내용이 카드 높이를 넘기면
+ * flex가 자식을 압축하는데, 2줄 박스는 압축을 그대로 흡수하고 3줄 박스는
+ * 글자가 차지하는 최소 높이에 걸려 덜 줄어든다. 그래서 줄 수에 따라 높이가
+ * 달라졌다(측정값 146px vs 154px). 압축을 막아 지정 높이를 그대로 지킨다.
+ */
+.review-notes-detail .fingerspelling-detail-description {
+  width: 480px;
+  height: 160px;
+  flex-shrink: 0;
+  margin: 16px 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .review-notes-detail-delete {
@@ -422,7 +496,7 @@
 }
 
 .review-notes-detail-empty {
-  min-height: 780px;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;

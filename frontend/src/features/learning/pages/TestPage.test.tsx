@@ -102,17 +102,44 @@ describe("TestPage 설정 화면", () => {
     expect(screen.getByText("3문항이 무작위 순서로 출제됩니다.")).toBeTruthy();
   });
 
-  it("보유 글자보다 많이 직접 입력하면 축소 안내를 보여준다", () => {
+  it("보유 글자보다 많이 직접 입력하면 최대 문항 수로 바뀐다", () => {
     renderPage();
 
     fireEvent.click(screen.getByRole("button", { name: "직접 입력" }));
-    fireEvent.change(screen.getByLabelText("문항 수 직접 입력"), {
-      target: { value: "20" },
-    });
+    const input = screen.getByLabelText("문항 수 직접 입력");
+    fireEvent.change(input, { target: { value: "20" } });
 
-    expect(
-      screen.getByText("선택한 분류에는 14자가 있어 14문항으로 출제됩니다."),
-    ).toBeTruthy();
+    // 자음 14자가 최대이므로 입력칸 자체가 14로 바뀐다.
+    expect(input).toHaveProperty("value", "14");
+    expect(screen.getByText("14문항이 무작위 순서로 출제됩니다.")).toBeTruthy();
+  });
+
+  it("최대치 이하로 직접 입력하면 입력값을 그대로 쓴다", () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "직접 입력" }));
+    const input = screen.getByLabelText("문항 수 직접 입력");
+    fireEvent.change(input, { target: { value: "7" } });
+
+    expect(input).toHaveProperty("value", "7");
+    expect(screen.getByText("7문항이 무작위 순서로 출제됩니다.")).toBeTruthy();
+  });
+
+  it("분류를 넓히면 그만큼 더 큰 문항 수를 입력할 수 있다", () => {
+    renderPage();
+
+    // 자음(14)만 고른 상태에서는 20이 14로 잘린다.
+    fireEvent.click(screen.getByRole("button", { name: "직접 입력" }));
+    const input = screen.getByLabelText("문항 수 직접 입력");
+    fireEvent.change(input, { target: { value: "20" } });
+
+    expect(input).toHaveProperty("value", "14");
+
+    // 모음(17)까지 더하면 최대 31자가 되어 20을 그대로 넣을 수 있다.
+    fireEvent.click(screen.getByRole("button", { name: /모음/ }));
+    fireEvent.change(input, { target: { value: "20" } });
+
+    expect(input).toHaveProperty("value", "20");
   });
 
   it("직접 입력을 0으로 두면 시작할 수 없다", () => {
@@ -295,6 +322,22 @@ describe("TestPage 결과 화면", () => {
     }
   };
 
+  /** 임시 채점 버튼으로 5문항을 모두 맞춘다. */
+  const finishAllCorrect = () => {
+    for (let index = 0; index < 5; index += 1) {
+      fireEvent.click(screen.getByRole("button", { name: "정답 처리 (임시)" }));
+    }
+  };
+
+  it("모든 문제를 맞추면 개수 대신 축하 문구를 보여준다", () => {
+    renderPage();
+    startConsonantOnly("5개");
+    finishAllCorrect();
+
+    expect(screen.getByText("모든 문제를 맞췄어요!")).toBeTruthy();
+    expect(screen.getByText("총 5문항 중 정답 5개 · 오답 0개")).toBeTruthy();
+  });
+
   const resultItems = () =>
     within(screen.getByRole("list")).getAllByRole("button");
 
@@ -330,7 +373,10 @@ describe("TestPage 결과 화면", () => {
     // 기본 선택은 첫 문항이고, 상세 패널이 같은 글자를 보여준다.
     expect(listItems[0].getAttribute("aria-pressed")).toBe("true");
     expect(detailSymbol()).toBe(itemSymbol(listItems[0]));
-    expect(screen.getByText("수형 설명")).toBeTruthy();
+    // 제목 없이 설명 문장만 노출한다.
+    expect(
+      document.querySelectorAll(".fingerspelling-detail-description p").length,
+    ).toBeGreaterThan(0);
 
     // 손그림 이미지 경로가 문항에서 상세 패널까지 전달되어야 한다.
     const image = document.querySelector(
@@ -568,5 +614,37 @@ describe("TestPage 오답노트 연동", () => {
 
     expect(screen.queryByRole("button", { name: "테스트 시작" })).toBeNull();
     expect(screen.getByText("1 / 2")).toBeTruthy();
+  });
+});
+
+describe("TestPage 진행 화면 뒤로가기", () => {
+  it("설정 화면에서 들어온 경우 설정 화면으로 돌아간다", () => {
+    renderPage();
+    startConsonantOnly("5개");
+
+    expect(screen.getByText("1 / 5")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "뒤로 가기" }));
+
+    expect(screen.getByRole("button", { name: "테스트 시작" })).toBeTruthy();
+  });
+
+  it("설정·결과 화면에는 뒤로가기 버튼이 없다", () => {
+    renderPage();
+
+    expect(screen.queryByRole("button", { name: "뒤로 가기" })).toBeNull();
+
+    startConsonantOnly("5개");
+    for (let index = 0; index < 5; index += 1) {
+      fireEvent.click(screen.getByRole("button", { name: "넘어가기" }));
+    }
+
+    expect(screen.queryByRole("button", { name: "뒤로 가기" })).toBeNull();
+  });
+
+  it("오답노트에서 들어온 경우에도 뒤로가기 버튼이 있다", () => {
+    renderPageWithSymbols("ㄱ,ㄴ");
+
+    expect(screen.getByRole("button", { name: "뒤로 가기" })).toBeTruthy();
   });
 });

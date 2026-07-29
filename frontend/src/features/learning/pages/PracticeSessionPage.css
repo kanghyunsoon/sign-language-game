@@ -139,7 +139,7 @@
 /* 상단 진행률 */
 
 .practice-progress-area {
-  width: min(min(68.75vw, 110vh), calc(100% - min(4.166667vw, 6.666667vh)));
+  width: min(min(75vw, 120vh), 100%);
   margin: 0 auto min(1.354167vw, 2.166667vh);
   display: flex;
   align-items: center;
@@ -301,8 +301,8 @@
 /* 좌우 카드를 감싸는 큰 흰색 패널 */
 
 .practice-session-panel {
-  width: min(min(66.666667vw, 106.666667vh), calc(100% - min(6.25vw, 10vh)));
-  min-height: min(33.333333vw, 53.333333vh);
+  width: min(min(75vw, 120vh), 100%);
+  min-height: min(35.416667vw, 56.666667vh);
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -318,7 +318,7 @@
 .practice-answer-panel,
 .practice-camera-panel {
   min-width: 0;
-  min-height: min(30.729167vw, 49.166667vh);
+  min-height: min(32.8125vw, 52.5vh);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -360,7 +360,8 @@
   content: "📷";
 }
 
-.practice-answer-panel .practice-panel-label::after {
+/* 분류명이 글자마다 달라지므로 CSS content가 아니라 실제 요소로 넣는다. */
+.practice-answer-panel .practice-panel-tag {
   position: absolute;
   right: min(1.25vw, 2vh);
   padding: min(0.416667vw, 0.666667vh) min(0.677083vw, 1.083333vh);
@@ -369,7 +370,6 @@
   font-size: min(0.833333vw, 1.333333vh);
   font-weight: 800;
   background: #f2f5f4;
-  content: "기초 자음";
 }
 
 /* 왼쪽 정답 동작 카드 */
@@ -385,7 +385,7 @@
 .practice-answer-guide {
   position: relative;
   flex: 1;
-  min-height: min(22.916667vw, 36.666667vh);
+  min-height: min(25vw, 40vh);
   display: flex;
   align-items: center;
   flex-direction: column;
@@ -413,13 +413,15 @@
 
 /* 정답 이미지가 들어갈 원형 영역 */
 
+/* 왼쪽 상단 [ㄱ] 라벨과 겹치지 않게 아래로 내린다. 아래 요소들도 함께 밀리며,
+   넘치지 않도록 정답 영역과 카드 높이를 같이 키웠다. */
 .practice-answer-placeholder {
   width: min(16.145833vw, 25.833333vh);
   height: min(16.145833vw, 25.833333vh);
   flex: 0 0 min(16.145833vw, 25.833333vh);
   display: grid;
   place-items: center;
-  margin-top: 0;
+  margin-top: min(2.083333vw, 3.333333vh);
   overflow: hidden;
   border-radius: 50%;
   background: #ffffff;
@@ -709,7 +711,7 @@
 
 .practice-bottom-navigation {
   position: relative;
-  width: min(min(66.666667vw, 106.666667vh), calc(100% - min(6.25vw, 10vh)));
+  width: min(min(75vw, 120vh), 100%);
   margin: min(1.770833vw, 2.833333vh) auto 0;
   display: grid;
   grid-template-columns: min(7.552083vw, 12.083333vh) 1fr min(7.552083vw, 12.083333vh);

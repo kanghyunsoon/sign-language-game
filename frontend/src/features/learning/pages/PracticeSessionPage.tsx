@@ -1,6 +1,7 @@
 import "./PracticeSessionPage.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { SiteFooter } from "../../../shared/components/SiteFooter";
 import otterClapImage from "../assets/otter_clap.png";
 import {
   HandCamera,
@@ -11,7 +12,10 @@ import type {
   FingerspellingCategoryId,
   FingerspellingItem,
 } from "../data/fingerspelling";
-import { fingerspellingItems } from "../data/fingerspelling";
+import {
+  findFingerspellingEntry,
+  fingerspellingItems,
+} from "../data/fingerspelling";
 import { PracticeWebSocketSignRecognizer } from "../recognition/PracticeWebSocketSignRecognizer";
 
 type PracticeCategoryId = FingerspellingCategoryId;
@@ -182,6 +186,10 @@ export function PracticeSessionPage({
 
   const currentPracticeItems = practiceItems;
   const currentPracticeItem = currentPracticeItems[currentIndex];
+  // 오답노트에서 분류가 섞인 글자를 받을 수도 있어 글자마다 사전에서 분류를 찾는다.
+  const currentCategoryLabel =
+    findFingerspellingEntry(currentPracticeItem?.symbol ?? "")?.categoryLabel ??
+    "";
   const isFirstItem = currentIndex === 0;
   const isLastItem = currentIndex === currentPracticeItems.length - 1;
   const correctProgress = Math.round(
@@ -321,17 +329,17 @@ export function PracticeSessionPage({
             className="practice-page-back-button"
             type="button"
             onClick={onExit}
-            aria-label="연습 선택 화면으로 돌아가기"
+            aria-label="뒤로 가기"
           >
-            &lt;
+            ←
           </button>
         ) : (
           <Link
             className="practice-page-back-button"
             to="/practice"
-            aria-label="연습 선택 화면으로 돌아가기"
+            aria-label="뒤로 가기"
           >
-            &lt;
+            ←
           </Link>
         )}
 
@@ -374,7 +382,12 @@ export function PracticeSessionPage({
           }`}
         >
           <article className="practice-answer-panel">
-            <span className="practice-panel-label">정답 동작</span>
+            <span className="practice-panel-label">
+              정답 동작
+              <span className="practice-panel-tag">
+                기초 {currentCategoryLabel}
+              </span>
+            </span>
             <div className="practice-answer-content">
               <div className="practice-answer-guide">
                 <span className="practice-current-symbol">
@@ -546,6 +559,8 @@ export function PracticeSessionPage({
           </div>
         )}
       </main>
+
+      <SiteFooter />
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import "./PracticeHomePage.css";
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { SiteFooter } from "../../../shared/components/SiteFooter";
 import otterImage from "../assets/otter.png";
 import type { FingerspellingCategoryId } from "../data/fingerspelling";
 import { SYMBOLS_PARAM, parseSymbolSelection } from "../data/symbolSelection";
@@ -90,9 +91,9 @@ export function PracticeHomePage() {
     setSelectedCategory(null);
   };
 
-  /** 오답노트 연습을 끝내면 파라미터를 지워 평소 연습 선택 화면으로 돌아간다. */
+  /** 오답노트에서 들어온 연습은 오답노트로 되돌린다(들어온 곳으로 나간다). */
   const handleSelectionExit = () => {
-    navigate("/practice", { replace: true });
+    navigate("/review-notes");
   };
 
   if (selectedItems.length > 0) {
@@ -143,7 +144,7 @@ export function PracticeHomePage() {
             />
           </div>
 
-          <h1 className="practice-title">연습 모드</h1>
+          <h1 className="practice-title">연습 수달</h1>
 
           <div className="practice-category-list">
             {practiceCategories.map((category) => {
@@ -174,7 +175,7 @@ export function PracticeHomePage() {
 
                     {category.count !== undefined && (
                       <span className="practice-category-count">
-                        총 {category.count}문제
+                        {category.count}자
                       </span>
                     )}
                   </button>
@@ -202,6 +203,8 @@ export function PracticeHomePage() {
           </div>
         </section>
       </main>
+
+      <SiteFooter />
 
       {isGuideOpen && (
         <div

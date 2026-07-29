@@ -1,6 +1,7 @@
 import "./TestPage.css";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { SiteFooter } from "../../../shared/components/SiteFooter";
 import { TestProgressView } from "../components/TestProgressView";
 import { TestResultView } from "../components/TestResultView";
 import { TestSetupView } from "../components/TestSetupView";
@@ -19,6 +20,7 @@ import { SYMBOLS_PARAM, parseSymbolSelection } from "../data/symbolSelection";
 type TestPhase = "setup" | "progress" | "result";
 
 export function TestPage() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [testScale, setTestScale] = useState(1);
   const [phase, setPhase] = useState<TestPhase>("setup");
@@ -74,6 +76,21 @@ export function TestPage() {
     setPhase("result");
   };
 
+  /**
+   * 진행 화면에서 한 단계 뒤로. 들어온 경로로 되돌린다.
+   * 오답노트에서 왔으면 오답노트로, 설정 화면에서 왔으면 설정 화면으로 간다.
+   */
+  const handleBackFromProgress = () => {
+    if (hasSelection) {
+      navigate("/review-notes");
+      return;
+    }
+
+    setQuestions([]);
+    setResults([]);
+    setPhase("setup");
+  };
+
   const handleRetry = () => {
     setResults([]);
 
@@ -99,6 +116,17 @@ export function TestPage() {
         style={{ transform: `translate(-50%, -50%) scale(${testScale})` }}
       >
         <header className="test-header">
+          {phase === "progress" && (
+            <button
+              className="test-page-back-button"
+              type="button"
+              aria-label="뒤로 가기"
+              onClick={handleBackFromProgress}
+            >
+              ←
+            </button>
+          )}
+
           <nav className="test-nav" aria-label="주요 메뉴">
             <Link to="/main">메인페이지</Link>
             <Link to="/practice">연습</Link>
@@ -124,6 +152,8 @@ export function TestPage() {
         {phase === "result" && (
           <TestResultView results={results} onRetry={handleRetry} />
         )}
+
+        <SiteFooter sizing="fixed" />
       </div>
     </div>
   );

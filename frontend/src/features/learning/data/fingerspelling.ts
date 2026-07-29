@@ -93,7 +93,7 @@ export const fingerspellingItems: Record<
       name: "기역",
       image: giyeokImage,
       description: [
-        "검지를 아래로 곧게 펴고",
+        "검지를 아래로 곧게 펴고,",
         "엄지와 검지를 제외한 나머지 손가락은 접어주세요.",
         "손등이 보이도록 손을 내립니다.",
       ],
@@ -122,7 +122,8 @@ export const fingerspellingItems: Record<
       name: "리을",
       image: rieulImage,
       description: [
-        "검지, 중지, 약지를 나란히 펴고, 나머지 손가락은 접어주세요.",
+        "검지·중지·약지를 나란히 펴고,", 
+        "나머지 손가락은 접어주세요.",
         "손등이 보이도록 손가락 끝을 옆으로 향하게 합니다.",
       ],
     },
@@ -140,7 +141,7 @@ export const fingerspellingItems: Record<
       name: "비읍",
       image: bieupImage,
       description: [
-        "엄지를 접고 나머지 손가락을 나란히 펴주세요",
+        "엄지를 접고, 나머지 손가락을 나란히 펴주세요",
         "손바닥이 앞을 향하게 합니다.",
       ],
     },
@@ -149,7 +150,8 @@ export const fingerspellingItems: Record<
       name: "시옷",
       image: siotImage,
       description: [
-        "검지와 중지를 아래로 나란히 펴고, 나머지 손가락은 접어주세요.",
+        "검지와 중지를 아래로 나란히 펴고,",
+        "나머지 손가락은 접어주세요.",
         "손등이 보이도록 손끝을 아래로 향하게 합니다.",
       ],
     },
@@ -167,7 +169,8 @@ export const fingerspellingItems: Record<
       name: "지읒",
       image: jieutImage,
       description: [
-        "검지와 중지를 아래로 나란히 펴고, 엄지는 옆으로 벌려주세요.",
+        "검지와 중지를 아래로 나란히 펴고,", 
+        "엄지는 옆으로 벌려주세요.",
         "약지와 새끼손가락은 접고 손등이 보이도록 합니다.",
       ],
     },
@@ -176,8 +179,9 @@ export const fingerspellingItems: Record<
       name: "치읓",
       image: chieutImage,
       description: [
-        "검지, 중지, 약지를 아래로 펴고, 엄지는 옆으로 벌려주세요.",
-        "새끼손가락을 접고 손등이 보이도록 손끝을 아래로 향하게 합니다.",
+        "검지·중지·약지를 아래로 펴고, 엄지는 옆으로 벌려주세요.",
+        "새끼손가락을 접고 손등이 보이도록",
+        "손끝을 아래로 향하게 합니다.",
       ],
     },
     {
@@ -185,7 +189,8 @@ export const fingerspellingItems: Record<
       name: "키읔",
       image: kieukImage,
       description: [
-        "가운데 손가락을 아래로 펴고, 나머지 손가락은 접어주세요.",
+        "가운데 손가락을 아래로 펴고,", 
+        "나머지 손가락은 접어주세요.",
         "엄지는 옆으로 벌리고 손등이 보이도록 합니다.",
       ],
     },
@@ -194,7 +199,8 @@ export const fingerspellingItems: Record<
       name: "티읕",
       image: tieutImage,
       description: [
-        "검지와 중지, 약지를 옆으로 펴고, 나머지 손가락은 접어주세요.",
+        "검지·중지·약지를 옆으로 펴고,", 
+        "나머지 손가락은 접어주세요.",
         "손등이 보이도록 손을 옆으로 향하게 합니다.",
       ],
     },
@@ -204,7 +210,8 @@ export const fingerspellingItems: Record<
       image: pieupImage,
       description: [
         "네 손가락을 모두 접어 주먹을 만들어주세요.",
-        "엄지는 접은 손가락 앞쪽을 감싸고 손바닥 쪽이 보이도록 세웁니다.",
+        "엄지는 접은 손가락 앞쪽을 감싸고",
+        "손바닥 쪽이 보이도록 세웁니다.",
       ],
     },
     {
@@ -212,7 +219,8 @@ export const fingerspellingItems: Record<
       name: "히읗",
       image: hieutImage,
       description: [
-        "네 손가락을 접어 주먹을 만들고, 엄지만 위로 곧게 세워주세요.",
+        "네 손가락을 접어 주먹을 만들고,", 
+        "엄지만 위로 곧게 세워주세요.",
         "손가락이 앞쪽을 향하도록 합니다.",
       ],
     },
@@ -223,7 +231,8 @@ export const fingerspellingItems: Record<
       name: "아",
       image: aImage,
       description: [
-        "검지를 위로 곧게 펴고, 나머지 손가락은 주먹을 쥐어주세요.",
+        "검지를 위로 곧게 펴고,", 
+        "나머지 손가락은 주먹을 쥐어주세요.",
         "손바닥이 앞을 향하도록 합니다.",
       ],
     },
@@ -232,7 +241,8 @@ export const fingerspellingItems: Record<
       name: "야",
       image: yaImage,
       description: [
-        "검지와 중지를 위로 나란히 펴고, 나머지 손가락은 접어주세요.",
+        "검지와 중지를 위로 나란히 펴고,", 
+        "나머지 손가락은 접어주세요.",
         "손바닥이 앞을 향하도록 합니다.",
       ],
     },
@@ -242,7 +252,6 @@ export const fingerspellingItems: Record<
       image: eoImage,
       description: [
         "주먹을 쥔 상태에서 엄지를 옆으로 곧게 펴주세요.",
-        "그림은 손 모양을 쉽게 보여주기 위한 옆모습입니다.", 
         "손가락이 앞을 향하도록 합니다.",
       ],
     },
@@ -252,7 +261,6 @@ export const fingerspellingItems: Record<
       image: yeoImage,
       description: [
         "주먹을 쥔 상태에서 엄지와 검지를 옆으로 펴주세요.",
-        "그림은 손 모양을 쉽게 보여주기 위한 옆모습입니다.", 
         "손가락이 앞을 향하도록 합니다.",
       ],
     },
@@ -270,7 +278,8 @@ export const fingerspellingItems: Record<
       name: "요",
       image: yoImage,
       description: [
-        "검지와 중지를 위로 나란히 펴고, 나머지 손가락은 접어주세요.",
+        "검지와 중지를 위로 나란히 펴고,", 
+        "나머지 손가락은 접어주세요.",
         "손등이 앞을 향하도록 합니다.",
       ],
     },
@@ -288,7 +297,8 @@ export const fingerspellingItems: Record<
       name: "유",
       image: yuImage,
       description: [
-        "주먹을 쥔 상태에서 검지와 중지를 아래로 나란히 펴주세요.",
+        "주먹을 쥔 상태에서", 
+        "검지와 중지를 아래로 나란히 펴주세요.",
         "손등이 앞을 향하도록 합니다.",
       ],
     },
@@ -315,8 +325,9 @@ export const fingerspellingItems: Record<
       name: "애",
       image: aeImage,
       description: [
-        "검지와 새끼손가락을 함께 위로 펴주세요.",
-        "나머지 손가락은 접고 손바닥이 앞을 향하도록 합니다.",
+        "검지와 새끼손가락을 함께 위로 펴고,", 
+        "나머지 손가락은 접어주세요.",
+        "손바닥이 앞을 향하도록 합니다.",
       ],
     },
     {
@@ -324,7 +335,7 @@ export const fingerspellingItems: Record<
       name: "얘",
       image: yaeImage,
       description: [
-        "엄지와 약지를 접고 나머지 손가락은 접어주세요.",
+        "엄지와 약지를 접고, 나머지 손가락은 접어주세요.",
         "손바닥이 앞을 향하도록 합니다.",
       ],
     },
@@ -333,8 +344,7 @@ export const fingerspellingItems: Record<
       name: "에",
       image: eImage,
       description: [
-        "검지와 새끼손가락을 펴고 나머지 손가락은 접어주세요.",
-        "그림은 손 모양을 쉽게 보여주기 위한 옆모습입니다.", 
+        "검지와 새끼손가락을 펴고, 나머지 손가락은 접어주세요.",
         "손가락이 앞을 향하도록 합니다.",
       ],
     },
@@ -343,8 +353,7 @@ export const fingerspellingItems: Record<
       name: "예",
       image: yeImage,
       description: [
-        "엄지와 약지를 접고 나머지 손가락은 펴주세요.",
-        "그림은 손 모양을 쉽게 보여주기 위한 옆모습입니다.", 
+        "엄지와 약지를 접고, 나머지 손가락은 펴주세요.",
         "손가락이 앞을 향하도록 합니다.",
       ],
     },
@@ -353,7 +362,7 @@ export const fingerspellingItems: Record<
       name: "외",
       image: oeImage,
       description: [
-        "검지와 새끼손가락을 펴고 나머지 손가락은 접어주세요.",
+        "검지와 새끼손가락을 펴고, 나머지 손가락은 접어주세요.",
         "손등이 앞을 향하도록 합니다.",
       ],
     },
@@ -362,7 +371,7 @@ export const fingerspellingItems: Record<
       name: "위",
       image: wiImage,
       description: [
-        "검지와 새끼손가락을 펴고 나머지 손가락은 접어주세요.",
+        "검지와 새끼손가락을 펴고, 나머지 손가락은 접어주세요.",
         "손가락은 바닥을, 손등은 앞을 향하도록 합니다.",
       ],
     },
@@ -371,7 +380,7 @@ export const fingerspellingItems: Record<
       name: "의",
       image: uiImage,
       description: [
-        "검지와 새끼손가락을 펴고 나머지 손가락은 접어주세요.",
+        "검지와 새끼손가락을 펴고, 나머지 손가락은 접어주세요.",
         "손등이 앞을 향하도록 합니다.",
       ],
     },
@@ -391,7 +400,8 @@ export const fingerspellingItems: Record<
       name: "둘",
       image: twoImage,
       description: [
-        "검지와 중지를 위로 나란히 펴고, 나머지 손가락은 접어주세요.",
+        "검지와 중지를 위로 나란히 펴고,", 
+        "나머지 손가락은 접어주세요.",
         "손바닥이 앞을 향하도록 손을 세웁니다.",
       ],
     },
@@ -400,7 +410,8 @@ export const fingerspellingItems: Record<
       name: "셋",
       image: threeImage,
       description: [
-        "검지, 중지, 약지를 위로 나란히 펴고, 나머지 손가락은 접어주세요.",
+        "검지·중지·약지를 위로 나란히 펴고,",
+        "나머지 손가락은 접어주세요.",
         "손바닥이 앞을 향하도록 손을 세웁니다.",
       ],
     },
@@ -427,7 +438,8 @@ export const fingerspellingItems: Record<
       name: "여섯",
       image: sixImage,
       description: [
-        "엄지를 위로, 검지를 옆으로 곧게 펴고 나머지 손가락은 접어주세요.",
+        "엄지를 위로, 검지를 옆으로 곧게 펴고,",
+        "나머지 손가락은 접어주세요.",
         "손등이 앞을 향하도록 손을 옆으로 기울입니다.",
       ],
     },
@@ -436,8 +448,9 @@ export const fingerspellingItems: Record<
       name: "일곱",
       image: sevenImage,
       description: [
-        "엄지는 위로 세우고, 검지와 중지는 옆으로 나란히 펴주세요.",
-        "나머지 손가락은 접고 손등이 앞을 향하도록 합니다.",
+        "엄지는 위로 세우고,", 
+        "검지와 중지는 옆으로 나란히 펴주세요.",
+        "나머지 손가락은 접고, 손등이 앞을 향하도록 합니다.",
       ],
     },
     {
@@ -445,8 +458,9 @@ export const fingerspellingItems: Record<
       name: "여덟",
       image: eightImage,
       description: [
-        "엄지는 위로 세우고, 검지·중지·약지는 옆으로 나란히 펴주세요.",
-        "새끼손가락은 접고 손등이 앞을 향하도록 합니다.",
+        "엄지는 위로 세우고,", 
+        "검지·중지·약지는 옆으로 나란히 펴주세요.",
+        "새끼손가락은 접고, 손등이 앞을 향하도록 합니다.",
       ],
     },
     {
@@ -454,7 +468,8 @@ export const fingerspellingItems: Record<
       name: "아홉",
       image: nineImage,
       description: [
-        "엄지를 위로 세우고, 나머지 네 손가락을 옆으로 나란히 펴주세요.",
+        "엄지를 위로 세우고,", 
+        "나머지 네 손가락을 옆으로 나란히 펴주세요.",
         "손등이 앞을 향하도록 손을 옆으로 기울입니다.",
       ],
     },
@@ -464,7 +479,8 @@ export const fingerspellingItems: Record<
       image: tenImage,
       description: [
         "엄지와 검지 끝을 맞대어 동그라미를 만들어주세요.",
-        "나머지 세 손가락은 위로 자연스럽게 펴고 손바닥이 앞을 향하도록 합니다.",
+        "나머지 세 손가락은 위로 자연스럽게 펴고,",
+        "손바닥이 앞을 향하도록 합니다.",
       ],
     },
   ],

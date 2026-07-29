@@ -42,7 +42,7 @@ export function FingerspellingDetail({
       </div>
 
       <div className="fingerspelling-detail-description">
-        <h3>수형 설명</h3>
+        {/* <h3>수형 설명</h3> */}
 
         {entry.description.map((sentence) => (
           <p key={sentence}>{sentence}</p>

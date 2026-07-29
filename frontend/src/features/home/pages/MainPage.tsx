@@ -5,6 +5,7 @@
 
 import './MainPage.css'; // 작성한 CSS 불러오기
 import { Link } from "react-router-dom";
+import { SiteFooter } from "../../../shared/components/SiteFooter";
 
 // export default function MainPage() {
 export function MainPage() {
@@ -57,7 +58,7 @@ export function MainPage() {
             </div>
           </div>
 
-          <div className="hero-illustration" aria-hidden="true">
+          {/* <div className="hero-illustration" aria-hidden="true">
             <div className="desk-scene">
               <div className="books">
                 <div className="book one"></div>
@@ -78,7 +79,7 @@ export function MainPage() {
 
               <div className="desk"></div>
             </div>
-          </div>
+          </div> */}
         </section>
 
         <div className="dashboard">
@@ -132,11 +133,7 @@ export function MainPage() {
         </div>
       </main>
 
-      <footer className="footer">
-        <a href="#">이용약관</a>
-        <a href="#">개인정보처리방침</a>
-        <a href="#">문의하기</a>
-      </footer>
+      <SiteFooter />
       </div>
     </div>
   );

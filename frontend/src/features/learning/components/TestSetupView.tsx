@@ -42,6 +42,19 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
   // 보유 글자보다 많이 고르면 가능한 개수로 줄여 출제한다.
   const isCountReduced = resolvedCount > 0 && resolvedCount < requestedCount;
 
+  /**
+   * 직접 입력값을 출제 가능한 최대치로 잘라 넣는다.
+   * 넘겨 적어도 어차피 최대치로 출제되므로, 입력칸이 실제 출제 수를 그대로 보여준다.
+   * 분류를 하나도 고르지 않았으면 최대치가 0이라 자를 기준이 없어 입력값을 그대로 둔다.
+   */
+  const handleCustomCountChange = (rawValue: string) => {
+    const requested = Number(rawValue) || 0;
+
+    setCustomCount(
+      availableCount > 0 ? Math.min(requested, availableCount) : requested,
+    );
+  };
+
   const handleCategoryToggle = (categoryId: TestCategoryId) => {
     setSelectedCategories((previous) =>
       previous.includes(categoryId)
@@ -87,7 +100,7 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
           />
         </div>
 
-        <h1 className="test-setup-title">테스트</h1>
+        <h1 className="test-setup-title">테스트 수달</h1>
 
         <p className="test-setup-description">
           연습한 지문자를 문제로 풀어보세요. 문항당 제한 시간은{" "}
@@ -126,12 +139,17 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
                     {category.symbol}
                   </span>
 
-                  <span className="test-category-label">{category.label}</span>
+                  {/* 글자는 왼쪽에 크게, 분류명과 글자 수는 그 오른쪽에 위아래로 둔다. */}
+                  <span className="test-category-text">
+                    <span className="test-category-label">
+                      {category.label}
+                    </span>
 
-                  <span className="test-category-count">
-                    {isAvailable
-                      ? `${fingerspellingItems[category.id].length}자`
-                      : "준비중"}
+                    <span className="test-category-count">
+                      {isAvailable
+                        ? `${fingerspellingItems[category.id].length}자`
+                        : "준비중"}
+                    </span>
                   </span>
                 </button>
               );
@@ -165,27 +183,28 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
                 </button>
               );
             })}
+
+            {/* 입력칸은 [직접 입력] 버튼 바로 오른쪽에 붙는다. 라벨 글자는 보이지
+                않게 하고 aria-label로만 남겨 이름을 잃지 않게 한다. */}
+            {presetId === "custom" && (
+              <span className="test-count-custom">
+                <input
+                  className="test-count-custom-input"
+                  id="test-custom-count"
+                  type="number"
+                  min={1}
+                  max={Math.max(1, availableCount)}
+                  value={customCount}
+                  aria-label="문항 수 직접 입력"
+                  onChange={(event) =>
+                    handleCustomCountChange(event.target.value)
+                  }
+                />
+
+                <span className="test-count-custom-unit">개</span>
+              </span>
+            )}
           </div>
-
-          {presetId === "custom" && (
-            <div className="test-count-custom">
-              <label htmlFor="test-custom-count">문항 수 직접 입력</label>
-
-              <input
-                className="test-count-custom-input"
-                id="test-custom-count"
-                type="number"
-                min={1}
-                max={Math.max(1, availableCount)}
-                value={customCount}
-                onChange={(event) =>
-                  setCustomCount(Number(event.target.value) || 0)
-                }
-              />
-
-              <span className="test-count-custom-unit">개</span>
-            </div>
-          )}
 
           <p className="test-setup-notice" role="status">
             {countNotice()}

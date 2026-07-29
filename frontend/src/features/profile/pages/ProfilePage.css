@@ -634,3 +634,12 @@
   background: #765b48;
 }
 
+
+/* 마이페이지 캔버스는 자식을 절대 배치하므로 하단 바도 아래에 고정한다. */
+.profile-canvas .site-footer {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 5;
+}
