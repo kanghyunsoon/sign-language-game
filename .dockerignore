@@ -34,3 +34,6 @@ game-ai-dev-server/requirements-training.txt
 **/*.jpeg
 **/*.png
 **/*.zip
+
+!number-model/models/
+!number-model/models/**

@@ -58,7 +58,8 @@ class ProtocolParityTests(unittest.TestCase):
     def test_source_protocol_is_unchanged(self) -> None:
         if not msg.SOURCE_FILE.is_file():
             self.skipTest(f"jamo protocol not present at {msg.SOURCE_FILE}")
-        digest = hashlib.sha256(msg.SOURCE_FILE.read_bytes()).hexdigest()
+        source_bytes = msg.SOURCE_FILE.read_bytes().replace(b"\r\n", b"\n")
+        digest = hashlib.sha256(source_bytes).hexdigest()
         self.assertEqual(
             digest,
             msg.SOURCE_SHA256,

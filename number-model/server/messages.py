@@ -30,8 +30,7 @@ from typing import TypeAlias
 import numpy as np
 
 SOURCE_FILE = Path(__file__).resolve().parents[2] / "game-ai-dev-server" / "app" / "messages.py"
-SOURCE_SHA256 = "e83cd68a9c9afd68a8df4a5729d9e99292538f7ad81117ec2ea8a6458735f690"
-
+SOURCE_SHA256 = "3dc8f77ecba346b3dfaa1db41bea5af7ff9a06878344c2e895241f6e8f5b1d0d"
 
 class ProtocolError(ValueError):
     def __init__(self, code: str, message: str) -> None:
