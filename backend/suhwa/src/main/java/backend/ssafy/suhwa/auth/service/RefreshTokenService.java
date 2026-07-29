@@ -34,6 +34,43 @@ public class RefreshTokenService {
     /** 새 refresh token을 발급하고 해시를 저장한 뒤, 클라이언트에 줄 원문을 반환한다. */
     @Transactional
     public String issue(Long userId) {
+        return createToken(userId);
+    }
+
+    /**
+     * 재발급 요청을 검증해 기존 토큰을 무효화하고, 같은 트랜잭션에서 새 토큰을 발급한다.
+     * 저장되지 않았거나 이미 만료·무효화된 토큰이면 {@link ErrorCode#INVALID_REFRESH_TOKEN}.
+     *
+     * <p>무효화와 발급을 반드시 한 트랜잭션에 둔다. 둘로 쪼개면 사이에서 실패했을 때 기존 토큰은
+     * 이미 폐기됐는데 새 토큰이 없어 <b>사용자가 강제 로그아웃된다</b> — DB 순간 장애, 커넥션
+     * 타임아웃(3초), 풀 고갈 어느 것이든 트리거가 된다.
+     *
+     * <p>동시성은 {@link RefreshTokenRepository#revokeIfValid}의 조건부 UPDATE가 담당한다.
+     * 영향 행 수가 1인 요청만 통과하므로 동일 토큰으로 동시에 들어온 요청 중 하나만 성공한다.
+     */
+    @Transactional
+    public RotatedToken rotateAndIssue(String rawRefreshToken) {
+        String hashedToken = hash(rawRefreshToken);
+        Long userId = refreshTokenRepository.findByToken(hashedToken)
+                .map(RefreshToken::getUserId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN));
+
+        if (refreshTokenRepository.revokeIfValid(hashedToken) != 1) {
+            throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
+        }
+        return new RotatedToken(userId, createToken(userId));
+    }
+
+    /** 회전 결과 — 토큰 소유자와 새로 발급된 refresh token 원문. */
+    public record RotatedToken(Long userId, String rawRefreshToken) {}
+
+    /** 해당 사용자의 유효한 refresh token을 모두 무효화한다(로그아웃·탈퇴 시). */
+    @Transactional
+    public void revokeAll(Long userId) {
+        refreshTokenRepository.revokeAllByUserId(userId);
+    }
+
+    private String createToken(Long userId) {
         String rawRefreshToken = UUID.randomUUID().toString();
         RefreshToken refreshToken = RefreshToken.builder()
                 .userId(userId)
@@ -42,27 +79,6 @@ public class RefreshTokenService {
                 .build();
         refreshTokenRepository.save(refreshToken);
         return rawRefreshToken;
-    }
-
-    /**
-     * 재발급 요청 검증 후 사용된 토큰을 무효화하고, 소유자 userId를 반환한다.
-     * 저장되지 않았거나 이미 만료·무효화된 토큰이면 {@link ErrorCode#INVALID_REFRESH_TOKEN}.
-     */
-    @Transactional
-    public Long rotate(String rawRefreshToken) {
-        RefreshToken stored = refreshTokenRepository.findByToken(hash(rawRefreshToken))
-                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN));
-        if (!stored.isValid()) {
-            throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
-        }
-        stored.revoke();
-        return stored.getUserId();
-    }
-
-    /** 해당 사용자의 유효한 refresh token을 모두 무효화한다(로그아웃·탈퇴 시). */
-    @Transactional
-    public void revokeAll(Long userId) {
-        refreshTokenRepository.revokeAllByUserId(userId);
     }
 
     private String hash(String rawToken) {
