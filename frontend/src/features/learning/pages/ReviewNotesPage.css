@@ -403,6 +403,21 @@
   min-height: 780px;
 }
 
+/*
+ * 설명 상자를 사전 페이지와 같은 크기로 고정한다. 문장 수가 2개인 글자와
+ * 3개인 글자를 번갈아 보면 상자 높이가 들쭉날쭉했다. 높이를 고정하고 내용을
+ * 가운데 두면 글자를 바꿔도 상자가 흔들리지 않는다.
+ */
+.review-notes-detail .fingerspelling-detail-description {
+  width: 480px;
+  height: 160px;
+  margin: 30px 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
 .review-notes-detail-delete {
   min-height: 52px;
   padding: 0 34px;
