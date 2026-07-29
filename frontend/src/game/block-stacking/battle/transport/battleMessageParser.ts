@@ -1,6 +1,6 @@
 import type { BattleBodyTransform, BattleLetterState, ServerBattleMessage } from "./battleTransportTypes";
 
-const TYPES = new Set(["START_MATCH", "MATCH_STARTED", "GAME_START", "SPAWN_LETTER", "REMOVE_LETTER_ACCEPTED", "REMOVE_LETTER_REJECTED", "SCORE_UPDATED", "COMBO_UPDATED", "ATTACK_CREATED", "ATTACK_APPLIED", "MATCH_FINISHED", "PLAYER_DISCONNECTED", "PLAYER_RECONNECTED", "BODY_TRANSFORM_BATCH", "BOARD_SNAPSHOT", "LETTER_SPAWNED_SYNC", "LETTER_STATE_SYNC", "LETTER_REMOVED_SYNC", "OTTER_TRANSFER"]);
+const TYPES = new Set(["START_MATCH", "MATCH_STARTED", "GAME_START", "SHARED_TARGET", "SHARED_TARGET_CLAIMED", "SPAWN_LETTER", "REMOVE_LETTER_ACCEPTED", "REMOVE_LETTER_REJECTED", "SCORE_UPDATED", "COMBO_UPDATED", "ATTACK_CREATED", "ATTACK_APPLIED", "MATCH_FINISHED", "PLAYER_DISCONNECTED", "PLAYER_RECONNECTED", "BODY_TRANSFORM_BATCH", "BOARD_SNAPSHOT", "LETTER_SPAWNED_SYNC", "LETTER_STATE_SYNC", "LETTER_REMOVED_SYNC", "OTTER_TRANSFER"]);
 const STATES = new Set<BattleLetterState>(["FALLING", "SETTLED", "REMOVING", "REMOVED"]);
 
 export class BattleMessageParseError extends Error {}
@@ -32,6 +32,8 @@ function parseBody(value: unknown): BattleBodyTransform {
 function validateRequired(message: Record<string, unknown>, type: string): void {
   const common: Record<string, readonly string[]> = {
     MATCH_STARTED: ["matchId", "roomId", "playerIds", "startAt"], GAME_START: ["matchId", "roomId", "playerIds", "startAt"],
+    SHARED_TARGET: ["matchId", "targetId", "symbol", "presentedAt"],
+    SHARED_TARGET_CLAIMED: ["matchId", "targetId", "winnerPlayerId", "symbol", "score", "combo", "maxCombo", "removedCount", "acceptedAt"],
     SPAWN_LETTER: ["matchId", "playerId", "letterId", "spawnIndex", "symbol", "spawnAt", "normalizedX", "initialAngle"],
     REMOVE_LETTER_ACCEPTED: ["playerId", "letterId", "symbol", "score", "combo", "maxCombo", "removedCount", "acceptedAt"],
     REMOVE_LETTER_REJECTED: ["code", "message", "rejectedAt"], SCORE_UPDATED: ["playerId", "score"], COMBO_UPDATED: ["playerId", "combo", "maxCombo"],

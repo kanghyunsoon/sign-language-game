@@ -7,7 +7,6 @@ import { useGameModuleContext } from "../../../app/GameModuleContext";
 import { GameVideoTile } from "../../../media/components/GameVideoTile";
 import type { RemoteGameParticipant } from "../../../media/core/mediaTypes";
 import { HandCamera } from "../../../recognition/mediapipe/HandCamera";
-import { SignGuideImage } from "../../../recognition/components/SignGuideImage";
 import { PythonWebSocketSignRecognizer } from "../../../recognition/websocket/PythonWebSocketSignRecognizer";
 import { RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG } from "../../../recognition/runtime";
 import { RESPONSIVE_GAMEPLAY_SIGN_DECODER_CONFIG } from "../../../recognition/temporal";
@@ -23,19 +22,10 @@ import { LocalBoardPublisher } from "../sync/LocalBoardPublisher";
 import { BattleBoardPanel } from "../components/BattleBoardPanel";
 import { BattleConnectionPanel } from "../components/BattleConnectionPanel";
 import { BattleResultModal } from "../components/BattleResultModal";
-import type { OtterTransferEvent } from "../transport/battleTransportTypes";
-import otterWalkFrame0 from "../../assets/solo-walking-otter-frame-0.png";
-import otterWalkFrame1 from "../../assets/solo-walking-otter-frame-1.png";
-import otterWalkFrame2 from "../../assets/solo-walking-otter-frame-2.png";
-import otterWalkFrame3 from "../../assets/solo-walking-otter-frame-3.png";
-import otterWalkFrame4 from "../../assets/solo-walking-otter-frame-4.png";
+import letterOtter from "../../assets/solo-letter-otter.png";
 import styles from "../battle.module.css";
 import { createDevAuthHeaders } from "../../../app/devAuthHeaders";
 import { BattleResultClient } from "../../../results/BattleResultClient";
-
-const OTTER_WALK_FRAMES = [otterWalkFrame0, otterWalkFrame1, otterWalkFrame2, otterWalkFrame3, otterWalkFrame4] as const;
-type OtterDirection = "left-to-right" | "right-to-left";
-type OtterTransfer = { readonly symbol: string; readonly direction: OtterDirection; readonly phase: "carry" | "throw" } | null;
 
 const INITIAL: BattleControllerSnapshot = { state: "IDLE", gameConnectionState: "DISCONNECTED", aiConnectionState: "DISCONNECTED", countdownMs: 0, reconnectDeadlineAt: null, score: 0, combo: 0, maxCombo: 0, removedCount: 0, targetSymbol: null, prediction: null, message: "Waiting for board initialization.", result: null };
 
@@ -47,37 +37,14 @@ export function BattleGamePage() {
   const recognizer = useMemo(() => new PythonWebSocketSignRecognizer({ url: config.aiWebSocketUrl, aiInferenceFps: RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG.aiInferenceFps, decoderConfig: RESPONSIVE_GAMEPLAY_SIGN_DECODER_CONFIG }), [config.aiWebSocketUrl]);
   const replica = useMemo(() => new RemoteBoardReplica(DEFAULT_BATTLE_RUNTIME_CONFIG.sync), []);
   const exitCoordinator = useMemo(() => new BattleExitCoordinator({ roomGateway: services.battleRoomGateway, mediaSession: battleMediaSession, cameraSession: sharedCameraSession, clearRoomSession: () => setBattleRoomSession(null), navigate: (destination) => navigate(destination, { replace: true }) }), [battleMediaSession, navigate, services.battleRoomGateway, setBattleRoomSession, sharedCameraSession]);
-  const [snapshot, setSnapshot] = useState(INITIAL); const [remoteTargetSymbol, setRemoteTargetSymbol] = useState<string | null>(null); const [participants, setParticipants] = useState<readonly RemoteGameParticipant[]>(() => battleMediaSession.getRemoteParticipants());
+  const [snapshot, setSnapshot] = useState(INITIAL); const [participants, setParticipants] = useState<readonly RemoteGameParticipant[]>(() => battleMediaSession.getRemoteParticipants());
   const [resultBusy, setResultBusy] = useState(false); const [resultError, setResultError] = useState<string | null>(null);
-  const [otterWalking, setOtterWalking] = useState(false); const [otterDirection, setOtterDirection] = useState<OtterDirection>("left-to-right"); const [otterTransfer, setOtterTransfer] = useState<OtterTransfer>(null); const [otterHidesHint, setOtterHidesHint] = useState(false);
   const [cameraState, setCameraState] = useState<"CONNECTED" | "DISCONNECTED">(() => sharedCameraSession.getVideoTrack()?.readyState === "live" ? "CONNECTED" : "DISCONNECTED");
   const [rtcState, setRtcState] = useState(() => battleMediaSession.getConnectionState()); const [localRenderer, setLocalRenderer] = useState<GameRenderer | null>(null); const [remoteRenderer, setRemoteRenderer] = useState<GameRenderer | null>(null);
   const resultReportedRef = useRef(false);
-  const otterTimersRef = useRef<number[]>([]);
   const controllerRef = useRef<BattleController | null>(null); const localRuntimeRef = useRef<BattleLocalBoardRuntime | null>(null); const localViewportRef = useRef({ width: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, height: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight }); const remoteLoopRef = useRef<number | null>(null);
   const refreshMedia = useCallback(() => { setParticipants(battleMediaSession.getRemoteParticipants()); setRtcState(battleMediaSession.getConnectionState()); }, [battleMediaSession]);
   useEffect(() => battleMediaSession.subscribe(refreshMedia), [battleMediaSession, refreshMedia]);
-  useEffect(() => { const update = () => setRemoteTargetSymbol((current) => { const next = replica.targetSymbol(); return current === next ? current : next; }); update(); const timer = window.setInterval(update, 120); return () => window.clearInterval(timer); }, [replica]);
-  const showOtterTransfer = useCallback((event: OtterTransferEvent) => {
-    for (const timer of otterTimersRef.current) window.clearTimeout(timer);
-    otterTimersRef.current = [];
-    const pickupDelay = Math.max(0, event.pickupAt - Date.now());
-    const throwDelay = Math.max(pickupDelay, event.throwAt - Date.now());
-    // Each player sees their own board on the left. Derive the visual travel
-    // direction from the source, not from the host's viewport.
-    const displayDirection: OtterDirection = event.sourcePlayerId === user.userId ? "left-to-right" : "right-to-left";
-    setOtterDirection(displayDirection); setOtterTransfer(null); setOtterHidesHint(event.sourcePlayerId === user.userId); setOtterWalking(true);
-    otterTimersRef.current.push(window.setTimeout(() => {
-      if (event.sourcePlayerId === user.userId) {
-        localRuntimeRef.current?.takeLetterForOtter(event.sourceLetterId);
-        setSnapshot((current) => ({ ...current, targetSymbol: localRuntimeRef.current?.getTargetSymbol() ?? null }));
-      }
-      setOtterTransfer({ symbol: event.symbol, direction: displayDirection, phase: "carry" });
-    }, pickupDelay));
-    otterTimersRef.current.push(window.setTimeout(() => setOtterTransfer({ symbol: event.symbol, direction: displayDirection, phase: "throw" }), throwDelay));
-    otterTimersRef.current.push(window.setTimeout(() => { setOtterWalking(false); setOtterTransfer(null); setOtterHidesHint(false); }, throwDelay + 6_900));
-  }, [user.userId]);
-  useEffect(() => () => { for (const timer of otterTimersRef.current) window.clearTimeout(timer); }, []);
 
   useEffect(() => { const track = sharedCameraSession.getVideoTrack(); const update = () => setCameraState(track?.readyState === "live" && track.enabled ? "CONNECTED" : "DISCONNECTED"); update(); if (!track) return; track.addEventListener("ended", update); track.addEventListener("mute", update); track.addEventListener("unmute", update); return () => { track.removeEventListener("ended", update); track.removeEventListener("mute", update); track.removeEventListener("unmute", update); }; }, [sharedCameraSession]);
 
@@ -85,7 +52,7 @@ export function BattleGamePage() {
     if (!localRenderer || !remoteRenderer || !roomId) return;
     const physics = new MatterPhysicsWorld({ ...DEFAULT_PHYSICS_CONFIG, width: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, height: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight, letterWidth: BATTLE_LETTER_SIZE, letterHeight: BATTLE_LETTER_SIZE, letterColliderPadding: 7, rotationInertiaScale: 1.15, restitution: 0 });
     const runtime = new BattleLocalBoardRuntime(physics, localRenderer, DEFAULT_BATTLE_RUNTIME_CONFIG); runtime.resize(localViewportRef.current.width, localViewportRef.current.height); const attack = new DefaultBattleAttackEffect();
-    const controller = new BattleController({ playerId: user.userId, roomId, initialMatchId: battleRoomSession?.activeMatchId ?? undefined, transport, localBoard: runtime, remoteBoard: replica, attackEffect: attack, recognizer, onMatchStarted: (matchId) => runtime.setPublisher(new LocalBoardPublisher(transport, DEFAULT_BATTLE_RUNTIME_CONFIG.sync, matchId, user.userId)), onOtterTransfer: showOtterTransfer });
+    const controller = new BattleController({ playerId: user.userId, roomId, initialMatchId: battleRoomSession?.activeMatchId ?? undefined, transport, localBoard: runtime, remoteBoard: replica, attackEffect: attack, recognizer, sharedTargetMode: true, onMatchStarted: (matchId) => runtime.setPublisher(new LocalBoardPublisher(transport, DEFAULT_BATTLE_RUNTIME_CONFIG.sync, matchId, user.userId)) });
     localRuntimeRef.current = runtime; controllerRef.current = controller; const unsubscribe = controller.subscribe(setSnapshot);
     void controller.connect({ url: config.gameWebSocketUrl, roomId, playerId: user.userId, accessToken, headers: accessToken ? undefined : createDevAuthHeaders(user), hostPlayerId: battleRoomSession?.hostUserId, playerIds: [...new Set(battleRoomSession?.participants.map((participant) => participant.userId) ?? [user.userId])] });
     // The remote board only consumes authoritative transforms; it never runs
@@ -126,35 +93,37 @@ export function BattleGamePage() {
     navigate(`/game/battle/${roomId}`, { replace: true });
   } catch (cause) { setResultError(cause instanceof Error ? cause.message : "대기방으로 돌아가지 못했습니다."); setResultBusy(false); } };
   const leaveBattle = async (destination: string) => { if (!roomId || resultBusy) return; setResultBusy(true); setResultError(null); try { await exitCoordinator.leaveRoom(roomId, destination); activePlayerSession?.clearRegistration(); } catch (cause) { setResultError(cause instanceof Error ? cause.message : "방을 나가지 못했습니다."); setResultBusy(false); } };
+  const localIsHost = battleRoomSession?.hostUserId === user.userId;
+  const localPlayerLabel = localIsHost ? "PLAYER 1" : "PLAYER 2";
+  const remotePlayerLabel = localIsHost ? "PLAYER 2" : "PLAYER 1";
+  const showSharedTarget = snapshot.state === "COUNTDOWN" || snapshot.state === "PLAYING" || snapshot.state === "RECONNECTING";
   return <main className={`${styles.page} ${styles.battleFixedPage}`}>
     <header className={styles.topbar}><div><h1>1:1 지문자 대전</h1><p>방 {roomId || "-"}</p></div><BattleConnectionPanel game={snapshot.gameConnectionState} rtc={rtcState} ai={snapshot.aiConnectionState} camera={cameraState} /></header>
-    <div className={styles.layout}>
-      <BattleBoardPanel title="내 게임판" subtitle="SERVER AUTHORITATIVE" toolbar={<div className={styles.boardStats}><span>지정 <strong>{snapshot.targetSymbol ?? "-"}</strong></span><span>점수 <strong>{snapshot.score}</strong></span><span>콤보 <strong>{snapshot.combo}</strong></span></div>} rendererConfig={{ dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO }} onRendererReady={(renderer, viewport) => { localViewportRef.current = viewport; setLocalRenderer(renderer); localRuntimeRef.current?.resize(viewport.width, viewport.height); }} onViewportResize={(viewport) => { localViewportRef.current = viewport; localRuntimeRef.current?.resize(viewport.width, viewport.height); }} />
-      <BattleBoardPanel title="상대 게임판" subtitle="INTERPOLATED VIEW" rendererConfig={{ dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO }} onRendererReady={(renderer, viewport) => { setRemoteRenderer(renderer); replica.resize(viewport.width, viewport.height); }} onViewportResize={(viewport) => replica.resize(viewport.width, viewport.height)} />
-      <section className={styles.videos} aria-label="내 카메라와 지문자 힌트">
-        <section className={styles.cameraPanel} aria-label="내 카메라">
-          <header><div><strong>PLAYER CAM</strong><span>손을 화면 중앙에 보여주세요</span></div><em>AI · {snapshot.aiConnectionState}</em></header>
-          <div className={styles.cameraViewport}>{localStream ? <HandCamera compact sharedStream={localStream} autoStart rateConfig={RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG} performanceMonitor={recognizer.getPerformanceMonitor()} temporalDecoder={recognizer.getTemporalDecoder()} activePlayerSession={activePlayerSession} onLandmarkFrame={(frame) => recognizer.sendLandmarkFrame(frame)} onHandNotDetected={(capturedAt) => recognizer.notifyHandNotDetected(capturedAt)} prediction={snapshot.prediction} connectionState={recognizer.getConnectionState()} /> : <GameVideoTile kind="LOCAL" label="내 영상" stream={null} cameraEnabled={false} connectionState="DISCONNECTED" />}</div>
-        </section>
-        <section className={[styles.missionPanel, otterHidesHint ? styles.otterPassing : ""].filter(Boolean).join(" ")} aria-label="현재 지정 글자 수어 안내">
-          <header><div><strong>MISSION SIGN</strong><span>목표 손모양을 따라 해보세요</span></div><em>GUIDE</em></header>
-          <div className={styles.missionValues}><article><span>목표 지문자</span><strong>{snapshot.targetSymbol ?? "-"}</strong></article><article><span>현재 인식</span><strong>{snapshot.prediction?.symbol ?? "-"}</strong><small>{snapshot.prediction ? `${Math.round(snapshot.prediction.confidence * 100)}%` : "인식 대기"}</small></article></div>
-          <div className={styles.missionGuide}><SignGuideImage symbol={snapshot.targetSymbol} responsive />{otterHidesHint ? <div className={styles.hintBreak}><strong>수달 통과 중</strong><small>해당 진영의 힌트가 잠시 가려졌어요</small></div> : null}</div>
-        </section>
+    <div className={styles.duelLayout}>
+      <section className={styles.duelStage} aria-label="공유 목표 1대1 게임판">
+        <div className={styles.duelBoards}>
+          <BattleBoardPanel title={`${localPlayerLabel} · 내 게임판`} subtitle="MY STACK" toolbar={<div className={styles.boardStats}><span>점수 <strong>{snapshot.score}</strong></span><span>콤보 <strong>{snapshot.combo}</strong></span></div>} rendererConfig={{ dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO }} onRendererReady={(renderer, viewport) => { localViewportRef.current = viewport; setLocalRenderer(renderer); localRuntimeRef.current?.resize(viewport.width, viewport.height); }} onViewportResize={(viewport) => { localViewportRef.current = viewport; localRuntimeRef.current?.resize(viewport.width, viewport.height); }} />
+          <BattleBoardPanel title={`${remotePlayerLabel} · ${opponent?.displayName ?? "상대"} 게임판`} subtitle="RIVAL STACK" rendererConfig={{ dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO }} onRendererReady={(renderer, viewport) => { setRemoteRenderer(renderer); replica.resize(viewport.width, viewport.height); }} onViewportResize={(viewport) => replica.resize(viewport.width, viewport.height)} />
+        </div>
+        {showSharedTarget ? <div className={styles.sharedTargetOtter} aria-label={`공유 목표 ${snapshot.targetSymbol ?? "대기 중"}`}>
+          <img src={letterOtter} alt="" draggable={false} />
+          <strong key={snapshot.targetSymbol ?? "waiting"}>{snapshot.targetSymbol ?? "·"}</strong>
+          <span>먼저 맞히면 내 보드에 떨어져요!</span>
+        </div> : null}
       </section>
-      <section className={styles.remoteUtility} aria-label="상대 영상과 지문자 힌트">
-        <section className={styles.remoteVideo} aria-label="상대 영상">
-          <GameVideoTile kind="REMOTE" label={opponent?.displayName ?? "상대 영상"} stream={opponent?.stream ?? null} cameraEnabled={opponent?.cameraEnabled ?? false} connectionState={opponent?.connectionState ?? rtcState} />
+      <aside className={styles.duelCameraRail} aria-label="플레이어 카메라">
+        <section className={styles.duelCameraCard} aria-label={`${localPlayerLabel} 내 카메라`}>
+          <header><div><strong>{localPlayerLabel} · 나</strong><span>손을 화면 중앙에 보여주세요</span></div><em>AI · {snapshot.aiConnectionState}</em></header>
+          <div className={styles.duelCameraViewport}>{localStream ? <HandCamera compact sharedStream={localStream} autoStart rateConfig={RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG} performanceMonitor={recognizer.getPerformanceMonitor()} temporalDecoder={recognizer.getTemporalDecoder()} activePlayerSession={activePlayerSession} onLandmarkFrame={(frame) => recognizer.sendLandmarkFrame(frame)} onHandNotDetected={(capturedAt) => recognizer.notifyHandNotDetected(capturedAt)} prediction={snapshot.prediction} connectionState={recognizer.getConnectionState()} /> : <GameVideoTile kind="LOCAL" label="내 영상" stream={null} cameraEnabled={false} connectionState="DISCONNECTED" />}
+            <div className={styles.recognitionBadge}><span>현재 인식</span><strong>{snapshot.prediction?.symbol ?? "-"}</strong><small>{snapshot.prediction ? `${Math.round(snapshot.prediction.confidence * 100)}%` : "대기"}</small></div>
+          </div>
         </section>
-        <section className={styles.missionPanel} aria-label="상대 현재 지정 글자 안내">
-          <header><div><strong>RIVAL SIGN</strong><span>상대가 제거할 지문자</span></div><em>RIVAL</em></header>
-          <div className={styles.missionValues}><article><span>상대 지정 글자</span><strong>{remoteTargetSymbol ?? "-"}</strong></article><article><span>상태</span><strong>{opponent?.cameraEnabled ? "●" : "-"}</strong><small>{opponent?.cameraEnabled ? "진행 중" : "연결 대기"}</small></article></div>
-          <div className={styles.missionGuide}><SignGuideImage symbol={remoteTargetSymbol} responsive /></div>
+        <section className={styles.duelCameraCard} aria-label={`${remotePlayerLabel} 상대 카메라`}>
+          <header><div><strong>{remotePlayerLabel} · {opponent?.displayName ?? "상대"}</strong><span>상대 플레이 화면</span></div><em>{opponent?.cameraEnabled ? "LIVE" : "WAIT"}</em></header>
+          <div className={styles.duelCameraViewport}><GameVideoTile kind="REMOTE" label={opponent?.displayName ?? "상대 영상"} stream={opponent?.stream ?? null} cameraEnabled={opponent?.cameraEnabled ?? false} connectionState={opponent?.connectionState ?? rtcState} /></div>
         </section>
-      </section>
+      </aside>
     </div>
-    {otterWalking ? <div className={styles.battleOtterWalk} data-direction={otterDirection} aria-hidden="true"><span className={styles.battleOtterBody}><span className={styles.otterWalkCycle}>{OTTER_WALK_FRAMES.map((src, index) => <img key={src} className={index === 0 ? styles.otterWalkFrame0 : index === 1 ? styles.otterWalkFrame1 : index === 2 ? styles.otterWalkFrame2 : index === 3 ? styles.otterWalkFrame3 : styles.otterWalkFrame4} src={src} alt="" draggable={false} />)}</span>{otterTransfer?.phase === "carry" ? <span className={styles.otterCargo}>{otterTransfer.symbol}</span> : null}</span></div> : null}
-    {otterTransfer?.phase === "throw" ? <div className={styles.otterThrownLetter} data-direction={otterTransfer.direction} aria-hidden="true">{otterTransfer.symbol}</div> : null}
     {snapshot.state === "COUNTDOWN" ? <div className={styles.countdown}>{Math.max(1, Math.ceil(snapshot.countdownMs / 1000))}</div> : null}
     <BattleResultModal result={snapshot.result} playerId={user.userId} busy={resultBusy} error={resultError} onReturnToWaiting={() => void returnToWaiting()} onRoomList={() => void leaveBattle("/game/battle")} onModeSelect={() => void leaveBattle("/game")} />
   </main>;

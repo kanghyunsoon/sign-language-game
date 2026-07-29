@@ -21,6 +21,7 @@ export interface BattleBodyTransform {
 interface ClientEnvelope { readonly commandId: string; readonly matchId: string; }
 
 export type ClientBattleMessage =
+  | (ClientEnvelope & { readonly type: "CLAIM_SHARED_TARGET"; readonly targetId: string; readonly symbol: string; readonly occurredAt: number })
   | (ClientEnvelope & { readonly type: "REMOVE_LETTER_COMMAND"; readonly letterId: string; readonly symbol: string; readonly occurredAt: number })
   | (ClientEnvelope & { readonly type: "PLAYER_GAME_OVER_COMMAND"; readonly occurredAt: number })
   | (ClientEnvelope & { readonly type: "PLAYER_RECONNECTED"; readonly occurredAt: number })
@@ -32,6 +33,8 @@ interface ServerEnvelope { readonly type: string; readonly sequence: number; }
 
 export interface MatchStartedEvent extends ServerEnvelope { readonly type: "START_MATCH" | "MATCH_STARTED" | "GAME_START"; readonly matchId: string; readonly roomId: string; readonly playerIds: readonly string[]; readonly startAt: number; readonly matchVersion?: string; readonly ruleVersion?: string; readonly serverTime?: number; }
 export interface SpawnLetterEvent extends ServerEnvelope { readonly type: "SPAWN_LETTER"; readonly matchId: string; readonly playerId: string; readonly letterId: string; readonly spawnIndex: number; readonly symbol: string; readonly spawnAt: number; readonly normalizedX: number; readonly initialAngle: number; readonly targetPriority?: boolean; }
+export interface SharedTargetEvent extends ServerEnvelope { readonly type: "SHARED_TARGET"; readonly matchId: string; readonly targetId: string; readonly symbol: string; readonly presentedAt: number; }
+export interface SharedTargetClaimedEvent extends ServerEnvelope { readonly type: "SHARED_TARGET_CLAIMED"; readonly matchId: string; readonly targetId: string; readonly winnerPlayerId: string; readonly symbol: string; readonly score: number; readonly combo: number; readonly maxCombo: number; readonly removedCount: number; readonly acceptedAt: number; }
 export interface RemoveAcceptedEvent extends ServerEnvelope { readonly type: "REMOVE_LETTER_ACCEPTED"; readonly commandId?: string; readonly playerId: string; readonly letterId: string; readonly symbol: string; readonly score: number; readonly combo: number; readonly maxCombo: number; readonly removedCount: number; readonly acceptedAt: number; }
 export interface RemoveRejectedEvent extends ServerEnvelope { readonly type: "REMOVE_LETTER_REJECTED"; readonly commandId?: string; readonly letterId?: string; readonly code: string; readonly message: string; readonly rejectedAt: number; }
 export interface ScoreUpdatedEvent extends ServerEnvelope { readonly type: "SCORE_UPDATED"; readonly playerId: string; readonly score: number; }
@@ -46,6 +49,6 @@ export interface LetterSpawnedSyncEvent extends ServerEnvelope { readonly type: 
 export interface LetterStateSyncEvent extends ServerEnvelope { readonly type: "LETTER_STATE_SYNC"; readonly matchId: string; readonly playerId: string; readonly letterId: string; readonly state: BattleLetterState; }
 export interface LetterRemovedSyncEvent extends ServerEnvelope { readonly type: "LETTER_REMOVED_SYNC"; readonly matchId: string; readonly playerId: string; readonly letterId: string; }
 
-export type ServerBattleMessage = MatchStartedEvent | SpawnLetterEvent | RemoveAcceptedEvent | RemoveRejectedEvent
+export type ServerBattleMessage = MatchStartedEvent | SpawnLetterEvent | SharedTargetEvent | SharedTargetClaimedEvent | RemoveAcceptedEvent | RemoveRejectedEvent
   | ScoreUpdatedEvent | ComboUpdatedEvent | AttackCreatedEvent | OtterTransferEvent | MatchFinishedEvent | PlayerConnectionEvent
   | TransformBatchEvent | BoardSnapshotEvent | LetterSpawnedSyncEvent | LetterStateSyncEvent | LetterRemovedSyncEvent;

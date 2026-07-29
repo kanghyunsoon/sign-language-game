@@ -35,3 +35,34 @@
 - 최신 결과 계약 `{winnerUserId}`와 결과 뒤 방 `WAITING` 복귀·ready 초기화 확인
 - P2P 단절의 자동 몰수패는 양쪽 네트워크 분할을 프런트만으로 판정하지 않고 서버 peer presence 정책이 확정된 뒤 활성화
 - 온라인 턴 배틀의 위치는 시점 기준(본인 왼쪽·상대 오른쪽), 외형과 체력바는 역할 기준으로 고정한다. 방장은 스카프 수달·파랑 HP, 도전자는 머리띠 수달·주황 HP이며 도전자 화면에서는 왼쪽 머리띠/주황, 오른쪽 스카프/파랑으로 뒤집힌다. 캐릭터 아래에는 표시명과 축약 사용자 ID를 표시한다.
+
+---
+
+## 2026-07-30: shared-target block duel presentation
+
+### Scope
+
+- Frontend-only change. The backend room REST, SSE, native WebSocket signaling, and result contracts are unchanged.
+- The P2P block duel now presents two solo-style boards side by side, with the local and remote video panels stacked in the right rail.
+- A single paper-holding otter sits at the center of the split boards. It is a static target display in this mode; no otter transfer animation runs in the 1:1 game.
+
+### Shared target flow
+
+1. The host publishes `SHARED_TARGET` once the match has started.
+2. Both peers render the same target symbol on the center paper.
+3. A player who recognizes the symbol sends `CLAIM_SHARED_TARGET`.
+4. The host accepts only the first valid claim, broadcasts `SHARED_TARGET_CLAIMED`, and sends a centered `SPAWN_LETTER` only to the winner's board.
+5. The host schedules the next shared target after the claim is resolved.
+
+This keeps target selection authoritative while preventing optimistic double-spawns when both players recognize the same symbol at nearly the same time.
+
+### Validation
+
+- Targeted battle controller, transport, and message-parser tests: 21 passed.
+- Production build: passed.
+- Local browser layout check: two boards and vertically split local/remote camera rail render at `/game/battle/:roomId/play`.
+
+### Remaining live verification
+
+- Validate the full two-browser WebRTC session against production signaling: ready state, shared target delivery, first-claim ownership, winner-only spawn, next-target synchronization, and result submission.
+- The center target becomes visible only after the DataChannel reaches the match start state; the static route alone intentionally does not manufacture a target.

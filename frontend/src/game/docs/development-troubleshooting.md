@@ -964,3 +964,31 @@ On `https://sudal-play.vercel.app/game/solo`, pressing **게임 ?�작** displaye
 
 If cross-device solo score history or a server-side solo ranking is required, backend needs to publish the request/response DTO and authorization policy for a solo score endpoint. Until then, local browser storage is the only supported persistence path.
 
+
+---
+
+## 2026-07-30: preventing duplicate letters in a shared-target P2P duel
+
+### Symptom
+
+When each peer treated recognition as an immediate local spawn, simultaneous recognition could create two letters or leave the two boards out of sync.
+
+### Cause
+
+The shared target is a single competitive resource. Local recognition results can arrive at different times, so each browser cannot independently decide whether it won the target.
+
+### Resolution
+
+- Added `SHARED_TARGET`, `CLAIM_SHARED_TARGET`, and `SHARED_TARGET_CLAIMED` DataChannel messages.
+- Kept the host authoritative: it accepts the first valid claim, publishes the result, and emits one centered spawn command for the winning board only.
+- Disabled local optimistic spawns while shared-target mode is active.
+- Published the next target only after the resolved claim, avoiding overlap between target generations.
+
+### Why this is lighter than streaming the board
+
+The peers exchange a small target/claim/spawn event stream instead of video or a second physics simulation. Each board still renders locally, but only the authoritative spawn commands decide gameplay state.
+
+### Verification
+
+- `BattleController`, P2P transport, and message-parser targeted tests: 21 passed.
+- Vite production build: passed.

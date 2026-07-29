@@ -19,10 +19,9 @@ export class P2pBattleTransport implements BattleGameTransport {
   private roomId = "";
   private sequence = 0;
   private spawnIndex = 0;
-  private spawnTimer: ReturnType<typeof setInterval> | null = null;
-  private otterTimer: ReturnType<typeof setTimeout> | null = null;
-  private matchStartedAt = 0;
-  private readonly otterThrowTimers = new Set<ReturnType<typeof setTimeout>>();
+  private targetIndex = 0;
+  private sharedTarget: { readonly id: string; readonly symbol: string } | null = null;
+  private targetTimer: ReturnType<typeof setTimeout> | null = null;
   private unsubscribeCommands: (() => void) | null = null;
   private connectGeneration = 0;
 
@@ -46,7 +45,7 @@ export class P2pBattleTransport implements BattleGameTransport {
       this.delegate.send({ type: "REQUEST_MATCH_STATE", commandId: crypto.randomUUID(), matchId: this.matchId, occurredAt: Date.now() });
     }
   }
-  disconnect(): void { this.connectGeneration += 1; this.unsubscribeCommands?.(); this.unsubscribeCommands = null; if (this.spawnTimer) clearInterval(this.spawnTimer); if (this.otterTimer) clearTimeout(this.otterTimer); for (const timer of this.otterThrowTimers) clearTimeout(timer); this.otterThrowTimers.clear(); this.spawnTimer = null; this.otterTimer = null; this.matchStartedAt = 0; this.delegate.disconnect(); }
+  disconnect(): void { this.connectGeneration += 1; this.unsubscribeCommands?.(); this.unsubscribeCommands = null; if (this.targetTimer) clearTimeout(this.targetTimer); this.targetTimer = null; this.delegate.disconnect(); }
   send(message: ClientBattleMessage): void { if (this.isHost()) this.handle(message, this.localPlayerId); else this.delegate.send(message); }
   subscribe(listener: (message: ServerBattleMessage) => void): () => void { return this.delegate.subscribe(listener); }
   subscribeConnectionState(listener: (state: BattleConnectionState) => void): () => void { return this.delegate.subscribeConnectionState(listener); }
@@ -55,79 +54,58 @@ export class P2pBattleTransport implements BattleGameTransport {
   private isHost(): boolean { return this.localPlayerId === this.hostPlayerId; }
   private startAuthority(): void {
     this.publishStart();
-    if (this.spawnTimer) return;
-    this.spawnTimer = setInterval(() => this.spawn(), 3_000);
-    this.matchStartedAt = Date.now();
-    this.scheduleNextOtterTransfer(18_000);
-    this.spawn();
-  }
-  private scheduleNextOtterTransfer(delay?: number): void {
-    const elapsedMinutes = Math.floor((Date.now() - this.matchStartedAt) / 60_000);
-    const highScore = Math.max(0, ...[...this.players.values()].map((player) => player.score));
-    const scoreStep = Math.floor(highScore / 5_000);
-    const nextDelay = delay ?? Math.max(12_000, 35_000 - elapsedMinutes * 5_000 - scoreStep * 2_000);
-    this.otterTimer = setTimeout(() => {
-      this.otterTimer = null;
-      this.transferOtterLetter();
-      this.scheduleNextOtterTransfer();
-    }, nextDelay);
+    if (this.sharedTarget || this.targetTimer) return;
+    this.scheduleNextTarget(800);
   }
   private publishStart(): void {
     const now = Date.now();
     this.delegate.publishEvent({ type: "MATCH_STARTED", sequence: ++this.sequence, matchId: this.matchId, roomId: this.roomId, playerIds: this.playerIds, startAt: now + 800, serverTime: now });
     for (const [playerId, bodies] of this.boards) this.delegate.publishSnapshot({ type: "BOARD_SNAPSHOT", sequence: ++this.sequence, matchId: this.matchId, playerId, sentAt: now, bodies });
   }
-  private spawn(): void {
-    if (this.playerIds.length !== 2 || [...this.players.values()].some((player) => player.gameOver)) return;
-    for (const [playerIndex, playerId] of this.playerIds.entries()) {
-      // Each player gets an independent deterministic lane in the symbol
-      // sequence. Sharing one glyph made a 1:1 round feel like two mirrors.
-      const symbol = SYMBOLS[(this.spawnIndex + playerIndex * 5) % SYMBOLS.length];
-      const letterId = `${this.matchId}-${playerId}-${this.spawnIndex}`;
-      this.letters.set(letterId, { playerId, symbol });
-      this.delegate.publishEvent({ type: "SPAWN_LETTER", sequence: ++this.sequence, matchId: this.matchId, playerId, letterId, spawnIndex: this.spawnIndex, symbol, spawnAt: Date.now(), normalizedX: 0.18 + ((this.spawnIndex * 37) % 64) / 100, initialAngle: 0 });
-    }
-    this.spawnIndex += 1;
+  private scheduleNextTarget(delay = 320): void {
+    if (this.targetTimer || [...this.players.values()].some((player) => player.gameOver)) return;
+    this.targetTimer = setTimeout(() => {
+      this.targetTimer = null;
+      this.publishNextTarget();
+    }, delay);
   }
-  private transferOtterLetter(): void {
-    if (this.playerIds.length !== 2 || [...this.players.values()].some((player) => player.gameOver)) return;
-    const sourcePlayerId = this.playerIds[Math.floor(Math.random() * this.playerIds.length)];
-    const activeIds = new Set((this.boards.get(sourcePlayerId) ?? []).filter((body) => body.state !== "REMOVED").map((body) => body.id));
-    // The current target is the oldest remaining source glyph. Pair it with
-    // its live board state so the otter removes that exact on-board letter.
-    const sourceLetter = [...this.letters.entries()].find(([letterId, letter]) => letter.playerId === sourcePlayerId && activeIds.has(letterId));
-    if (!sourceLetter) return;
-    const [sourceLetterId, source] = sourceLetter;
-    const sourceBody = (this.boards.get(sourcePlayerId) ?? []).find((body) => body.id === sourceLetterId);
-    if (!sourceBody) return;
-    const targetPlayerId = this.playerIds.find((playerId) => playerId !== sourcePlayerId);
-    if (!targetPlayerId) return;
-    const now = Date.now();
-    const direction = sourcePlayerId === this.playerIds[0] ? "left-to-right" : "right-to-left";
-    this.letters.delete(sourceLetterId);
-    const pickupAt = now + 2_500;
-    const throwAt = now + 5_100;
-    this.delegate.publishEvent({ type: "OTTER_TRANSFER", sequence: ++this.sequence, matchId: this.matchId, sourcePlayerId, targetPlayerId, sourceLetterId, sourceNormalizedX: Math.max(0, Math.min(1, sourceBody.x)), symbol: source.symbol, direction, pickupAt, throwAt });
-    const pickupTimer = setTimeout(() => {
-      this.otterThrowTimers.delete(pickupTimer);
-      this.delegate.publishEvent({ type: "LETTER_REMOVED_SYNC", sequence: ++this.sequence, matchId: this.matchId, playerId: sourcePlayerId, letterId: sourceLetterId });
-    }, Math.max(0, pickupAt - Date.now()));
-    this.otterThrowTimers.add(pickupTimer);
-    const timer = setTimeout(() => {
-      this.otterThrowTimers.delete(timer);
-      if (this.players.get(targetPlayerId)?.gameOver) return;
-      const letterId = this.matchId + "-" + targetPlayerId + "-otter-" + this.spawnIndex++;
-      this.letters.set(letterId, { playerId: targetPlayerId, symbol: source.symbol });
-      this.delegate.publishEvent({ type: "SPAWN_LETTER", sequence: ++this.sequence, matchId: this.matchId, playerId: targetPlayerId, letterId, spawnIndex: this.spawnIndex, symbol: source.symbol, spawnAt: Date.now(), normalizedX: .5, initialAngle: 0, targetPriority: true });
-    }, 5_100);
-    this.otterThrowTimers.add(timer);
+  private publishNextTarget(): void {
+    if (this.playerIds.length !== 2 || this.sharedTarget || [...this.players.values()].some((player) => player.gameOver)) return;
+    const symbol = SYMBOLS[this.targetIndex % SYMBOLS.length];
+    const targetId = `${this.matchId}-target-${this.targetIndex}`;
+    this.targetIndex += 1;
+    this.sharedTarget = { id: targetId, symbol };
+    this.delegate.publishEvent({ type: "SHARED_TARGET", sequence: ++this.sequence, matchId: this.matchId, targetId, symbol, presentedAt: Date.now() });
+  }
+  private claimTarget(message: Extract<ClientBattleMessage, { type: "CLAIM_SHARED_TARGET" }>, playerId: string): void {
+    const target = this.sharedTarget;
+    if (!target || target.id !== message.targetId || target.symbol !== message.symbol) return;
+    this.sharedTarget = null;
+    const state = this.players.get(playerId);
+    if (!state || state.gameOver) return;
+    state.combo += 1;
+    state.maxCombo = Math.max(state.maxCombo, state.combo);
+    state.removedCount += 1;
+    state.score += 100 + state.combo * 10;
+    const acceptedAt = Date.now();
+    this.delegate.publishEvent({ type: "SHARED_TARGET_CLAIMED", sequence: ++this.sequence, matchId: this.matchId, targetId: target.id, winnerPlayerId: playerId, symbol: target.symbol, score: state.score, combo: state.combo, maxCombo: state.maxCombo, removedCount: state.removedCount, acceptedAt });
+    const letterId = `${this.matchId}-${playerId}-${this.spawnIndex}`;
+    this.letters.set(letterId, { playerId, symbol: target.symbol });
+    this.delegate.publishEvent({ type: "SPAWN_LETTER", sequence: ++this.sequence, matchId: this.matchId, playerId, letterId, spawnIndex: this.spawnIndex++, symbol: target.symbol, spawnAt: acceptedAt, normalizedX: .5, initialAngle: 0 });
+    this.scheduleNextTarget();
   }
   private handle(message: ClientBattleMessage, playerId: string): void {
     if (!this.isHost() || !(this.playerIds as readonly string[]).includes(playerId) || ("matchId" in message && message.matchId !== this.matchId)) return;
     if ("commandId" in message) { if (this.processed.has(message.commandId)) return; this.processed.add(message.commandId); }
-    if (message.type === "REQUEST_MATCH_STATE" || message.type === "PLAYER_RECONNECTED") { this.publishStart(); this.spawn(); return; }
+    if (message.type === "REQUEST_MATCH_STATE" || message.type === "PLAYER_RECONNECTED") {
+      this.publishStart();
+      if (this.sharedTarget) this.delegate.publishEvent({ type: "SHARED_TARGET", sequence: ++this.sequence, matchId: this.matchId, targetId: this.sharedTarget.id, symbol: this.sharedTarget.symbol, presentedAt: Date.now() });
+      else this.scheduleNextTarget();
+      return;
+    }
     if (message.type === "BODY_TRANSFORM_BATCH") { if (message.playerId !== playerId) return; this.delegate.publishEvent({ ...message, sequence: ++this.sequence }); return; }
     if (message.type === "BOARD_SNAPSHOT") { if (message.playerId !== playerId) return; this.boards.set(playerId, message.bodies); this.delegate.publishSnapshot({ ...message, sequence: ++this.sequence }); return; }
+    if (message.type === "CLAIM_SHARED_TARGET") { this.claimTarget(message, playerId); return; }
     if (message.type === "REMOVE_LETTER_COMMAND") { this.remove(message, playerId); return; }
     if (message.type === "PLAYER_GAME_OVER_COMMAND") this.finish(playerId);
   }
@@ -144,11 +122,11 @@ export class P2pBattleTransport implements BattleGameTransport {
   }
   private finish(loserPlayerId: string): void {
     const loser = this.players.get(loserPlayerId); if (!loser || loser.gameOver) return; loser.gameOver = true;
-    if (this.spawnTimer) clearInterval(this.spawnTimer); this.spawnTimer = null;
+    if (this.targetTimer) clearTimeout(this.targetTimer); this.targetTimer = null; this.sharedTarget = null;
     const winnerPlayerId = this.playerIds.find((id) => id !== loserPlayerId) ?? null;
     this.delegate.publishEvent({ type: "MATCH_FINISHED", sequence: ++this.sequence, matchId: this.matchId, winnerPlayerId, loserPlayerId, reason: "DANGER_LINE", finishedAt: Date.now(), results: this.playerIds.map((id) => { const state = this.players.get(id)!; return { playerId: id, score: state.score, maxCombo: state.maxCombo, removedCount: state.removedCount, attackCount: 0 }; }) });
   }
 }
 function freshPlayer(): PlayerState { return { score: 0, combo: 0, maxCombo: 0, removedCount: 0, gameOver: false }; }
-const SYMBOLS = ["ㄱ", "ㄴ", "ㄷ", "ㄹ", "ㅁ", "ㅂ", "ㅅ", "ㅇ", "ㅈ", "ㅊ", "ㅋ", "ㅌ"] as const;
-function isBattleEvent(value: unknown): value is ServerBattleMessage { return !!value && typeof value === "object" && typeof (value as { type?: unknown }).type === "string" && ["START_MATCH", "MATCH_STARTED", "GAME_START", "SPAWN_LETTER", "REMOVE_LETTER_ACCEPTED", "REMOVE_LETTER_REJECTED", "SCORE_UPDATED", "COMBO_UPDATED", "ATTACK_CREATED", "ATTACK_APPLIED", "MATCH_FINISHED", "PLAYER_DISCONNECTED", "PLAYER_RECONNECTED", "BODY_TRANSFORM_BATCH", "BOARD_SNAPSHOT", "LETTER_SPAWNED_SYNC", "LETTER_STATE_SYNC", "LETTER_REMOVED_SYNC", "OTTER_TRANSFER"].includes((value as { type: string }).type); }
+const SYMBOLS = ["ㄱ", "ㄴ", "ㄷ", "ㄹ", "ㅁ", "ㅂ", "ㅅ", "ㅇ", "ㅈ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ", "ㅏ", "ㅑ", "ㅓ", "ㅕ", "ㅗ", "ㅛ", "ㅜ", "ㅠ", "ㅡ", "ㅣ", "ㅐ", "ㅔ", "ㅚ", "ㅟ", "ㅢ"] as const;
+function isBattleEvent(value: unknown): value is ServerBattleMessage { return !!value && typeof value === "object" && typeof (value as { type?: unknown }).type === "string" && ["START_MATCH", "MATCH_STARTED", "GAME_START", "SHARED_TARGET", "SHARED_TARGET_CLAIMED", "SPAWN_LETTER", "REMOVE_LETTER_ACCEPTED", "REMOVE_LETTER_REJECTED", "SCORE_UPDATED", "COMBO_UPDATED", "ATTACK_CREATED", "ATTACK_APPLIED", "MATCH_FINISHED", "PLAYER_DISCONNECTED", "PLAYER_RECONNECTED", "BODY_TRANSFORM_BATCH", "BOARD_SNAPSHOT", "LETTER_SPAWNED_SYNC", "LETTER_STATE_SYNC", "LETTER_REMOVED_SYNC", "OTTER_TRANSFER"].includes((value as { type: string }).type); }
