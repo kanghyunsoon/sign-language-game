@@ -131,6 +131,10 @@ public class GameRoomService {
         // 뒤늦은 발동 등)는 아무 것도 바뀐 게 없으므로 조용히 무시한다 — 그렇지 않으면 끝난
         // 방의 host/guest를 계속 고쳐 쓰고, 실시간 알림도 매번 다시 나가게 된다.
         if (room.getStatus() == GameRoomStatus.CLOSED) {
+            // 이 경로가 잔여물을 치우는 안전망이다 — 앞선 종료에서 폐기가 누락됐거나, 유예 타이머가
+            // 방이 닫힌 뒤에 만료된 경우 남은 참가자의 세션·타이머가 여기서 회수된다. 이미 폐기된
+            // 방이면 disposeRoom이 아무 일도 하지 않는다.
+            afterCommit(() -> roomRealtimeNotifier.disposeRoom(roomId));
             return;
         }
 
@@ -155,10 +159,19 @@ public class GameRoomService {
         // 방 상태를 재조회했을 때 아직 반영되지 않은 값을 읽는 경쟁 조건이 생기므로, 트랜잭션이
         // 실제로 커밋된 이후에만 호출되도록 등록한다.
         Long finalNewHostUserId = newHostUserId;
+        // 방이 이 나가기로 끝났다면 남은 참가자의 실시간 자원까지 회수해야 한다. notifyPeerLeft는
+        // 나간 당사자 하나만 정리하므로, 그것만으로는 남은 참가자의 세션 참조와 예약 타이머가
+        // 힙에 계속 남는다(방 수에 비례해 누적).
+        boolean roomClosed = room.getStatus() == GameRoomStatus.CLOSED;
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
+                // 알림이 먼저다 — notifyPeerLeft는 레지스트리에서 방을 찾아 남은 참가자에게
+                // 전송하므로, 폐기가 먼저 실행되면 PEER_LEFT를 전달할 대상이 사라진다.
                 roomRealtimeNotifier.notifyPeerLeft(roomId, userId, finalNewHostUserId);
+                if (roomClosed) {
+                    roomRealtimeNotifier.disposeRoom(roomId);
+                }
                 lobbyBroadcastService.broadcastUpdate();
             }
         });

@@ -1,9 +1,11 @@
 package backend.ssafy.suhwa.game.scheduler;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import backend.ssafy.suhwa.game.domain.GameRoom;
 import backend.ssafy.suhwa.game.realtime.RoomParticipantRegistry;
+import backend.ssafy.suhwa.game.realtime.RoomRealtimeNotifier;
 import backend.ssafy.suhwa.game.repository.GameRoomRepository;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
@@ -25,7 +27,7 @@ class GameRoomCleanupSchedulerTest {
     @Test
     void cleanup_deletesOnlyStaleClosedRooms() {
         GameRoomCleanupScheduler scheduler =
-                new GameRoomCleanupScheduler(gameRoomRepository, new RoomParticipantRegistry(), 30);
+                new GameRoomCleanupScheduler(gameRoomRepository, new RoomParticipantRegistry(), mock(RoomRealtimeNotifier.class), 30);
 
         GameRoom staleClosed = gameRoomRepository.save(
                 GameRoom.builder().roomCode("STALE1").hostUserId(1L).build());
@@ -53,7 +55,7 @@ class GameRoomCleanupSchedulerTest {
     @Test
     void cleanup_deletesStaleWaitingRoomsButKeepsRecentWaitingAndInProgress() {
         GameRoomCleanupScheduler scheduler =
-                new GameRoomCleanupScheduler(gameRoomRepository, new RoomParticipantRegistry(), 30);
+                new GameRoomCleanupScheduler(gameRoomRepository, new RoomParticipantRegistry(), mock(RoomRealtimeNotifier.class), 30);
 
         GameRoom staleWaiting = gameRoomRepository.save(
                 GameRoom.builder().roomCode("SWAIT1").hostUserId(1L).build());
@@ -83,7 +85,7 @@ class GameRoomCleanupSchedulerTest {
     @Test
     void cleanup_keepsStaleWaitingRoomWithConfirmedLiveParticipant() {
         RoomParticipantRegistry registry = new RoomParticipantRegistry();
-        GameRoomCleanupScheduler scheduler = new GameRoomCleanupScheduler(gameRoomRepository, registry, 30);
+        GameRoomCleanupScheduler scheduler = new GameRoomCleanupScheduler(gameRoomRepository, registry, mock(RoomRealtimeNotifier.class), 30);
 
         GameRoom staleWaitingButConnected = gameRoomRepository.save(
                 GameRoom.builder().roomCode("SWAIT2").hostUserId(1L).build());

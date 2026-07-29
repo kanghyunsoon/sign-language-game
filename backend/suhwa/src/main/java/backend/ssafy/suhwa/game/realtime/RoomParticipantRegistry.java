@@ -26,4 +26,13 @@ public class RoomParticipantRegistry {
     public void removeRoomIfEmpty(Long roomId) {
         rooms.computeIfPresent(roomId, (id, state) -> state.isEmpty() ? null : state);
     }
+
+    /**
+     * 남은 참가자가 있어도 방을 레지스트리에서 떼어내고 그 상태를 반환한다(없으면 {@code null}).
+     * 방 생명주기가 끝났을 때의 자원 폐기용이며, 반환된 상태의 타이머·세션 정리는 호출자가
+     * 수행한다({@code RoomRealtimeNotifier.disposeRoom}).
+     */
+    public RoomLiveState removeRoom(Long roomId) {
+        return rooms.remove(roomId);
+    }
 }
