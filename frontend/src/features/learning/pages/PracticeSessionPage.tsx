@@ -329,17 +329,17 @@ export function PracticeSessionPage({
             className="practice-page-back-button"
             type="button"
             onClick={onExit}
-            aria-label="연습 선택 화면으로 돌아가기"
+            aria-label="뒤로 가기"
           >
-            &lt;
+            ←
           </button>
         ) : (
           <Link
             className="practice-page-back-button"
             to="/practice"
-            aria-label="연습 선택 화면으로 돌아가기"
+            aria-label="뒤로 가기"
           >
-            &lt;
+            ←
           </Link>
         )}
 

@@ -316,7 +316,7 @@
  * 지정색을 그대로 보여주려고 비활성 상태의 opacity는 되돌린다.
  */
 .practice-start-button {
-  background-color: #b0a99d;
+  background-color: #d5cfbc;
 }
 
 .practice-start-button:disabled,
