@@ -357,7 +357,10 @@ describe("TestPage 결과 화면", () => {
     // 기본 선택은 첫 문항이고, 상세 패널이 같은 글자를 보여준다.
     expect(listItems[0].getAttribute("aria-pressed")).toBe("true");
     expect(detailSymbol()).toBe(itemSymbol(listItems[0]));
-    expect(screen.getByText("수형 설명")).toBeTruthy();
+    // 제목 없이 설명 문장만 노출한다.
+    expect(
+      document.querySelectorAll(".fingerspelling-detail-description p").length,
+    ).toBeGreaterThan(0);
 
     // 손그림 이미지 경로가 문항에서 상세 패널까지 전달되어야 한다.
     const image = document.querySelector(
