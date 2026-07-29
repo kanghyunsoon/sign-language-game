@@ -49,7 +49,8 @@ class FeatureParityTests(unittest.TestCase):
     def test_source_file_is_unchanged(self) -> None:
         if not SOURCE_FILE.is_file():
             self.skipTest(f"shared implementation not present at {SOURCE_FILE}")
-        digest = hashlib.sha256(SOURCE_FILE.read_bytes()).hexdigest()
+        source_bytes = SOURCE_FILE.read_bytes().replace(b"\r\n", b"\n")
+        digest = hashlib.sha256(source_bytes).hexdigest()
         self.assertEqual(
             digest,
             SOURCE_SHA256,
