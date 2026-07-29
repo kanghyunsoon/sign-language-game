@@ -98,6 +98,7 @@ button { font: inherit; }
 .solo-target-card > div small { color: #667783; font-size: 11px; }
 .sign-guide-crop { position: relative; display: block; flex: 0 0 auto; overflow: hidden; border: 2px solid #7d6966; border-radius: 7px; background: #675755; }
 .sign-guide-crop img { position: absolute; max-width: none; user-select: none; }
+.sign-guide-learning { display: block; object-fit: contain; user-select: none; }
 .sign-guide-empty { border-style: dashed; opacity: .35; }
 .solo-sidebar > .camera-workspace { order: 2; padding: 12px; border: 3px solid #245a8d; }
 .solo-sidebar > .solo-ai-panel { order: 3; padding: 13px; border: 2px solid #9abbd4; }

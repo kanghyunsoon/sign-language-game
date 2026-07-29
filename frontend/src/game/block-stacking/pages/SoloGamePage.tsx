@@ -27,22 +27,18 @@ import {
 import { GAME_SYMBOLS } from "../../recognition/core/symbols";
 import { RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG } from "../../recognition/runtime";
 import { RESPONSIVE_GAMEPLAY_SIGN_DECODER_CONFIG } from "../../recognition/temporal";
+import { SignGuideImage } from "../../recognition/components/SignGuideImage";
 import { useSharedCameraOwnerCleanup } from "../../media/camera/useSharedCameraOwnerCleanup";
-import otterWalkFrame0 from "../assets/solo-walking-otter-frame-0.png";
-import otterWalkFrame1 from "../assets/solo-walking-otter-frame-1.png";
-import otterWalkFrame2 from "../assets/solo-walking-otter-frame-2.png";
-import otterWalkFrame3 from "../assets/solo-walking-otter-frame-3.png";
-import otterWalkFrame4 from "../assets/solo-walking-otter-frame-4.png";
 import resultOtter from "../assets/game-menu-otter.png";
 import letterOtter from "../assets/solo-letter-otter.png";
-
-const OTTER_WALK_FRAMES = [
-  otterWalkFrame0,
-  otterWalkFrame1,
-  otterWalkFrame2,
-  otterWalkFrame3,
-  otterWalkFrame4,
-] as const;
+import hintCarryFrame0 from "../assets/solo-paper-carry-frame-0.png";
+import hintCarryFrame1 from "../assets/solo-paper-carry-frame-1.png";
+import hintCarryFrame2 from "../assets/solo-paper-carry-frame-2.png";
+import hintCelebrateFrame0 from "../assets/solo-paper-celebrate-frame-0.png";
+import hintCelebrateFrame1 from "../assets/solo-paper-celebrate-frame-1.png";
+import hintCelebrateFrame2 from "../assets/solo-paper-celebrate-frame-2.png";
+import hintCelebrateFrame3 from "../assets/solo-paper-celebrate-frame-3.png";
+import hintPaperThrow from "../assets/solo-paper-throw.png";
 
 // Gameplay prioritises prompt feedback. Frames are still latest-only, so a
 // busy AI connection drops stale work instead of making the hand overlay lag.
@@ -52,6 +48,30 @@ const SOLO_DECODER_CONFIG = RESPONSIVE_GAMEPLAY_SIGN_DECODER_CONFIG;
 // consequential. Renderer, physics, and game-over geometry must always share
 // this exact value.
 const SOLO_LETTER_SIZE = 220;
+const HINT_DELAY_MS = 7_000;
+const HINT_WALK_FULL_PATH_MS = 6_600;
+const HINT_THROW_DURATION_MS = 1_520;
+// The two celebration frames need enough travel time for each planted foot to
+// read as a stride. Faster movement makes the sprite look as if it is sliding
+// while its feet flicker in place.
+const HINT_RUN_FULL_PATH_MS = 1_900;
+
+type HintOtterPhase = "HIDDEN" | "WALKING" | "THROWING" | "RUNNING";
+type HintOtterDirection = "LEFT_TO_RIGHT" | "RIGHT_TO_LEFT";
+
+interface HintOtterState {
+  readonly phase: HintOtterPhase;
+  readonly direction: HintOtterDirection;
+  readonly symbol: string | null;
+  readonly cycle: number;
+}
+
+const INITIAL_HINT_OTTER_STATE: HintOtterState = {
+  phase: "HIDDEN",
+  direction: "LEFT_TO_RIGHT",
+  symbol: null,
+  cycle: 0,
+};
 
 const INITIAL_SNAPSHOT: GameRuntimeSnapshot = {
   runState: "IDLE",
@@ -116,14 +136,23 @@ export function SoloGamePage({
   const controllerRef = useRef<RecognitionGameController | null>(null);
   const sessionCoordinatorRef = useRef<SoloSessionCoordinator | null>(null);
   const savedGameOverRef = useRef(false);
+  const hintOtterElementRef = useRef<HTMLDivElement | null>(null);
+  const hintOtterStateRef = useRef<HintOtterState>(INITIAL_HINT_OTTER_STATE);
+  const hintTargetRef = useRef<string | null>(null);
+  const hintDelayRemainingRef = useRef(HINT_DELAY_MS);
+  const hintTravelProgressRef = useRef(0);
+  const hintPhaseElapsedRef = useRef(0);
+  const hintRunStateRef = useRef<GameRuntimeSnapshot["runState"]>("IDLE");
+  const lastHintTargetRef = useRef<string | null>(null);
+  const lastPaperBurstVersionRef = useRef(0);
   const [snapshot, setSnapshot] = useState<GameRuntimeSnapshot>(INITIAL_SNAPSHOT);
   const [recognition, setRecognition] = useState<RecognitionGameState>(INITIAL_RECOGNITION_STATE);
+  const [hintOtter, setHintOtter] = useState<HintOtterState>(INITIAL_HINT_OTTER_STATE);
   const [sessionStarting, setSessionStarting] = useState(false);
   const [completionError, setCompletionError] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [savedResult, setSavedResult] = useState<SoloGameResult | null>(null);
   const [soloRank, setSoloRank] = useState<number | null>(null);
-  const [otterWalking, setOtterWalking] = useState(false);
   const [cameraStream,setCameraStream]=useState(()=>sharedCameraSession.getStream());
   const rendererConfig = useMemo(() => ({
     dangerLineY: 160,
@@ -148,6 +177,21 @@ export function SoloGamePage({
   // released into physics the paper must stay empty; falling back to the
   // board's preferred target rendered a second copy behind the falling one.
   const paperTargetSymbol = snapshot.queuedSymbol;
+
+  const updateHintOtterState = useCallback((next: HintOtterState) => {
+    hintOtterStateRef.current = next;
+    setHintOtter(next);
+  }, []);
+
+  const hideHintOtter = useCallback(() => {
+    hintTravelProgressRef.current = 0;
+    hintPhaseElapsedRef.current = 0;
+    hintDelayRemainingRef.current = HINT_DELAY_MS;
+    updateHintOtterState({
+      ...INITIAL_HINT_OTTER_STATE,
+      cycle: hintOtterStateRef.current.cycle,
+    });
+  }, [updateHintOtterState]);
 
   if (sessionCoordinatorRef.current === null) {
     sessionCoordinatorRef.current = new SoloSessionCoordinator(resolvedSoloGameApiFactory());
@@ -211,36 +255,117 @@ export function SoloGamePage({
   useEffect(() => recognitionController.subscribe(setRecognition), [recognitionController]);
 
   useEffect(() => {
-    if (snapshot.runState !== "RUNNING") {
-      setOtterWalking(false);
-      return undefined;
+    hintRunStateRef.current = snapshot.runState;
+    if (
+      (snapshot.runState === "IDLE" || snapshot.runState === "GAME_OVER")
+      && hintOtterStateRef.current.phase !== "HIDDEN"
+    ) {
+      hideHintOtter();
     }
+  }, [hideHintOtter, snapshot.runState]);
 
-    let finishTimer: number | undefined;
-    const triggerWalk = () => {
-      setOtterWalking(true);
-      window.clearTimeout(finishTimer);
-      finishTimer = window.setTimeout(() => setOtterWalking(false), 12_000);
+  useEffect(() => {
+    hintTargetRef.current = paperTargetSymbol;
+    if (lastHintTargetRef.current === paperTargetSymbol) return;
+    lastHintTargetRef.current = paperTargetSymbol;
+    if (paperTargetSymbol !== null) {
+      hintDelayRemainingRef.current = HINT_DELAY_MS;
+    }
+  }, [paperTargetSymbol]);
+
+  useEffect(() => {
+    if (lastPaperBurstVersionRef.current === snapshot.paperBurstVersion) return;
+    lastPaperBurstVersionRef.current = snapshot.paperBurstVersion;
+    hintDelayRemainingRef.current = HINT_DELAY_MS;
+
+    const currentHint = hintOtterStateRef.current;
+    if (
+      currentHint.phase !== "WALKING"
+      || currentHint.symbol === null
+      || snapshot.paperBurstSymbol !== currentHint.symbol
+    ) return;
+
+    hintPhaseElapsedRef.current = 0;
+    updateHintOtterState({
+      ...currentHint,
+      phase: "THROWING",
+    });
+  }, [snapshot.paperBurstSymbol, snapshot.paperBurstVersion, updateHintOtterState]);
+
+  useEffect(() => {
+    let animationFrame = 0;
+    let previousFrameAt = performance.now();
+
+    const positionHintOtter = () => {
+      const element = hintOtterElementRef.current;
+      const state = hintOtterStateRef.current;
+      if (!element || state.phase === "HIDDEN") return;
+
+      const parentWidth = element.parentElement?.clientWidth ?? 0;
+      const otterWidth = element.offsetWidth || 190;
+      const startX = -otterWidth * 1.08;
+      const endX = parentWidth + otterWidth * 0.08;
+      const directedProgress = state.direction === "LEFT_TO_RIGHT"
+        ? hintTravelProgressRef.current
+        : 1 - hintTravelProgressRef.current;
+      const x = startX + (endX - startX) * directedProgress;
+      element.style.transform = `translate3d(${x}px, 0, 0)`;
     };
-    const startedAt = Date.now();
-    let nextWalkTimer: number | undefined;
-    const scheduleNextWalk = () => {
-      const elapsedMinutes = Math.floor((Date.now() - startedAt) / 60_000);
-      const scoreStep = Math.floor((runtimeRef.current?.snapshot().score ?? 0) / 5_000);
-      // The interruption becomes noticeably more frequent as the round and
-      // score build: 35s initially, then progressively down to 12s.
-      const delay = Math.max(12_000, 35_000 - elapsedMinutes * 5_000 - scoreStep * 2_000);
-      nextWalkTimer = window.setTimeout(() => {
-        triggerWalk();
-        scheduleNextWalk();
-      }, delay);
+
+    const startHintWalk = (symbol: string) => {
+      hintTravelProgressRef.current = 0;
+      hintPhaseElapsedRef.current = 0;
+      updateHintOtterState({
+        phase: "WALKING",
+        direction: Math.random() < 0.5 ? "LEFT_TO_RIGHT" : "RIGHT_TO_LEFT",
+        symbol,
+        cycle: hintOtterStateRef.current.cycle + 1,
+      });
     };
-    scheduleNextWalk();
-    return () => {
-      window.clearTimeout(nextWalkTimer);
-      window.clearTimeout(finishTimer);
+
+    const step = (frameAt: number) => {
+      const deltaMs = Math.min(50, Math.max(0, frameAt - previousFrameAt));
+      previousFrameAt = frameAt;
+      const state = hintOtterStateRef.current;
+
+      if (hintRunStateRef.current === "RUNNING") {
+        if (state.phase === "HIDDEN") {
+          const target = hintTargetRef.current;
+          if (target !== null) {
+            hintDelayRemainingRef.current = Math.max(0, hintDelayRemainingRef.current - deltaMs);
+            if (hintDelayRemainingRef.current === 0) startHintWalk(target);
+          }
+        } else if (state.phase === "WALKING") {
+          hintTravelProgressRef.current = Math.min(
+            1,
+            hintTravelProgressRef.current + deltaMs / HINT_WALK_FULL_PATH_MS,
+          );
+          if (hintTravelProgressRef.current >= 1) hideHintOtter();
+        } else if (state.phase === "THROWING") {
+          hintPhaseElapsedRef.current += deltaMs;
+          if (hintPhaseElapsedRef.current >= HINT_THROW_DURATION_MS) {
+            hintPhaseElapsedRef.current = 0;
+            updateHintOtterState({
+              ...state,
+              phase: "RUNNING",
+            });
+          }
+        } else if (state.phase === "RUNNING") {
+          hintTravelProgressRef.current = Math.min(
+            1,
+            hintTravelProgressRef.current + deltaMs / HINT_RUN_FULL_PATH_MS,
+          );
+          if (hintTravelProgressRef.current >= 1) hideHintOtter();
+        }
+      }
+
+      positionHintOtter();
+      animationFrame = window.requestAnimationFrame(step);
     };
-  }, [snapshot.runState]);
+
+    animationFrame = window.requestAnimationFrame(step);
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [hideHintOtter, updateHintOtterState]);
 
   useEffect(() => {
     if (snapshot.runState !== "GAME_OVER" || savedGameOverRef.current) return;
@@ -312,6 +437,10 @@ export function SoloGamePage({
     runtime.setSpawnSymbols(sessionSymbols);
     setCompletionError(null);
     setSavedResult(null);
+    // The play clock belongs to the local game runtime, not to the optional
+    // session/weight requests.  Start it immediately when the player presses
+    // the button so a slow network response cannot delay the visible timer.
+    runtime.start();
     setSessionStarting(true);
     const symbolWeightsPromise = accessToken
       ? tetrisWeightApi.getSymbolWeights()
@@ -333,7 +462,6 @@ export function SoloGamePage({
       runtime.setSymbolWeights(await symbolWeightsPromise);
       setSessionStarting(false);
     }
-    runtime.start();
   }, [accessToken, recognition.playableSymbols, recognitionController, sessionStarting, tetrisWeightApi]);
   const pause = useCallback(() => runtimeRef.current?.pause(), []);
   const leaveGame = useCallback(() => {
@@ -436,6 +564,49 @@ export function SoloGamePage({
             <span>TIME</span>
             <strong>{formatPlayTime(snapshot.playTimeMs)}</strong>
           </div>
+          {hintOtter.phase !== "HIDDEN" && hintOtter.symbol !== null && (
+            <div
+              ref={hintOtterElementRef}
+              key={hintOtter.cycle}
+              className={`solo-hint-otter is-${hintOtter.phase.toLowerCase()}${snapshot.runState === "PAUSED" ? " is-paused" : ""}`}
+              data-direction={hintOtter.direction}
+              aria-hidden="true"
+            >
+              <div className="solo-hint-otter-sprite">
+                {hintOtter.phase === "WALKING" && (
+                  <>
+                    <img className="solo-hint-frame hint-carry-frame hint-carry-frame-0" src={hintCarryFrame0} alt="" draggable={false} />
+                    <img className="solo-hint-frame hint-carry-frame hint-carry-frame-1" src={hintCarryFrame1} alt="" draggable={false} />
+                    <div className="solo-hint-paper-guide">
+                      <SignGuideImage symbol={hintOtter.symbol} size={82} />
+                    </div>
+                  </>
+                )}
+                {hintOtter.phase === "THROWING" && (
+                  <>
+                    <img className="solo-hint-frame hint-throw-frame hint-throw-carry" src={hintCarryFrame2} alt="" draggable={false} />
+                    <img className="solo-hint-frame hint-throw-frame hint-throw-celebrate-0" src={hintCelebrateFrame0} alt="" draggable={false} />
+                    <img className="solo-hint-frame hint-throw-frame hint-throw-celebrate-1" src={hintCelebrateFrame1} alt="" draggable={false} />
+                    <div className="solo-hint-paper-guide hint-throw-guide">
+                      <SignGuideImage symbol={hintOtter.symbol} size={82} />
+                    </div>
+                    <div className="solo-hint-thrown-paper">
+                      <img src={hintPaperThrow} alt="" draggable={false} />
+                      <span>
+                        <SignGuideImage symbol={hintOtter.symbol} size={38} />
+                      </span>
+                    </div>
+                  </>
+                )}
+                {hintOtter.phase === "RUNNING" && (
+                  <>
+                    <img className="solo-hint-frame hint-run-frame hint-run-frame-0" src={hintCelebrateFrame2} alt="" draggable={false} />
+                    <img className="solo-hint-frame hint-run-frame hint-run-frame-1" src={hintCelebrateFrame3} alt="" draggable={false} />
+                  </>
+                )}
+              </div>
+            </div>
+          )}
           {(snapshot.runState === "IDLE" || snapshot.runState === "PAUSED") && (
             <div className="solo-start-overlay" aria-label="게임 시작">
               <div>
@@ -447,24 +618,6 @@ export function SoloGamePage({
                   {sessionStarting ? "준비 중" : snapshot.runState === "PAUSED" ? "게임 계속하기" : "게임 시작"}
                 </button>
               </div>
-            </div>
-          )}
-          {otterWalking && (
-            <div className="solo-otter-walk" aria-hidden="true">
-              <span className="solo-otter-body">
-                <span className="otter-walk-cycle">
-                  {OTTER_WALK_FRAMES.map((src, index) => (
-                    <img
-                      key={src}
-                      className={`otter-walk-frame otter-walk-frame-${index}`}
-                      src={src}
-                      alt=""
-                      draggable={false}
-                    />
-                  ))}
-                </span>
-                <span className="otter-front-pose" />
-              </span>
             </div>
           )}
           {snapshot.runState === "GAME_OVER" && (

@@ -8,6 +8,37 @@ import number7Url from "../../assets/guides/number-7.png";
 import number8Url from "../../assets/guides/number-8.png";
 import number9Url from "../../assets/guides/number-9.png";
 import fingerspellingSheetUrl from "../../media/korean-fingerspelling-sheet.png";
+import consonantGiyeokUrl from "../../../features/learning/assets/consonant/consonant-giyeok.png";
+import consonantNieunUrl from "../../../features/learning/assets/consonant/consonant-nieun.png";
+import consonantDigeutUrl from "../../../features/learning/assets/consonant/consonant-digeut.png";
+import consonantRieulUrl from "../../../features/learning/assets/consonant/consonant-rieul.png";
+import consonantMieumUrl from "../../../features/learning/assets/consonant/consonant-mieum.png";
+import consonantBieupUrl from "../../../features/learning/assets/consonant/consonant-bieup.png";
+import consonantSiotUrl from "../../../features/learning/assets/consonant/consonant-siot.png";
+import consonantIeungUrl from "../../../features/learning/assets/consonant/consonant-ieung.png";
+import consonantJieutUrl from "../../../features/learning/assets/consonant/consonant-jieut.png";
+import consonantChieutUrl from "../../../features/learning/assets/consonant/consonant-chieut.png";
+import consonantKieukUrl from "../../../features/learning/assets/consonant/consonant-kieuk.png";
+import consonantTieutUrl from "../../../features/learning/assets/consonant/consonant-tieut.png";
+import consonantPieupUrl from "../../../features/learning/assets/consonant/consonant-pieup.png";
+import consonantHieutUrl from "../../../features/learning/assets/consonant/consonant-hieut.png";
+import vowelAUrl from "../../../features/learning/assets/vowel/vowel-a.png";
+import vowelAeUrl from "../../../features/learning/assets/vowel/vowel-ae.png";
+import vowelYaUrl from "../../../features/learning/assets/vowel/vowel-ya.png";
+import vowelYaeUrl from "../../../features/learning/assets/vowel/vowel-yae.png";
+import vowelEoUrl from "../../../features/learning/assets/vowel/vowel-eo.png";
+import vowelEUrl from "../../../features/learning/assets/vowel/vowel-e.png";
+import vowelYeoUrl from "../../../features/learning/assets/vowel/vowel-yeo.png";
+import vowelYeUrl from "../../../features/learning/assets/vowel/vowel-ye.png";
+import vowelOUrl from "../../../features/learning/assets/vowel/vowel-o.png";
+import vowelYoUrl from "../../../features/learning/assets/vowel/vowel-yo.png";
+import vowelUUrl from "../../../features/learning/assets/vowel/vowel-u.png";
+import vowelYuUrl from "../../../features/learning/assets/vowel/vowel-yu.png";
+import vowelEuUrl from "../../../features/learning/assets/vowel/vowel-eu.png";
+import vowelUiUrl from "../../../features/learning/assets/vowel/vowel-ui.png";
+import vowelIUrl from "../../../features/learning/assets/vowel/vowel-i.png";
+import vowelOeUrl from "../../../features/learning/assets/vowel/vowel-oe.png";
+import vowelWiUrl from "../../../features/learning/assets/vowel/vowel-wi.png";
 
 interface CropPosition {
   readonly x: number;
@@ -47,6 +78,22 @@ const NUMBER_GUIDES: Readonly<Record<(typeof SIGN_GUIDE_NUMBER_SYMBOLS)[number],
   "9": number9Url,
 };
 
+// The solo game, practice screens, and hand-guide overlays deliberately share
+// the same approved learning assets.  Keeping the mapping here prevents a
+// target glyph and its hint picture from drifting apart again.
+const LEARNING_GUIDES: Readonly<Record<string, string>> = {
+  "ㄱ": consonantGiyeokUrl, "ㄴ": consonantNieunUrl, "ㄷ": consonantDigeutUrl,
+  "ㄹ": consonantRieulUrl, "ㅁ": consonantMieumUrl, "ㅂ": consonantBieupUrl,
+  "ㅅ": consonantSiotUrl, "ㅇ": consonantIeungUrl, "ㅈ": consonantJieutUrl,
+  "ㅊ": consonantChieutUrl, "ㅋ": consonantKieukUrl, "ㅌ": consonantTieutUrl,
+  "ㅍ": consonantPieupUrl, "ㅎ": consonantHieutUrl,
+  "ㅏ": vowelAUrl, "ㅐ": vowelAeUrl, "ㅑ": vowelYaUrl, "ㅒ": vowelYaeUrl,
+  "ㅓ": vowelEoUrl, "ㅔ": vowelEUrl, "ㅕ": vowelYeoUrl, "ㅖ": vowelYeUrl,
+  "ㅗ": vowelOUrl, "ㅛ": vowelYoUrl, "ㅜ": vowelUUrl, "ㅠ": vowelYuUrl,
+  "ㅡ": vowelEuUrl, "ㅢ": vowelUiUrl, "ㅣ": vowelIUrl, "ㅚ": vowelOeUrl,
+  "ㅟ": vowelWiUrl,
+};
+
 const SOURCE_CROP_INSET = 5;
 const SOURCE_CROP_SIZE = 74;
 const SOURCE_IMAGE_WIDTH = 815;
@@ -55,7 +102,7 @@ const SOURCE_IMAGE_HEIGHT = 750;
 /** True only when the exact game symbol has an approved visual guide. */
 export function hasSignGuide(symbol: string | null): boolean {
   if (!symbol) return false;
-  return symbol in NUMBER_GUIDES || symbol in SIGN_GUIDE_CROPS;
+  return symbol in NUMBER_GUIDES || symbol in LEARNING_GUIDES || symbol in SIGN_GUIDE_CROPS;
 }
 
 function numberGuideFor(symbol: string | null): string | undefined {
@@ -73,11 +120,16 @@ export function SignGuideImage({
   readonly responsive?: boolean;
 }): React.JSX.Element {
   const numberGuide = numberGuideFor(symbol);
+  const learningGuide = symbol ? LEARNING_GUIDES[symbol] : undefined;
   const crop = symbol ? SIGN_GUIDE_CROPS[symbol] : undefined;
   const scale = size / SOURCE_CROP_SIZE;
   const viewportStyle = responsive ? undefined : { width: size, height: size };
   if (numberGuide) {
     return <img className={`sign-guide-number${responsive ? " sign-guide-responsive" : ""}`} style={responsive ? undefined : { width: size, height: size }} src={numberGuide} alt={`${symbol} 지숫자 손 모양`} draggable={false} />;
+  }
+
+  if (learningGuide) {
+    return <img className={`sign-guide-learning${responsive ? " sign-guide-responsive" : ""}`} style={responsive ? undefined : { width: size, height: size }} src={learningGuide} alt={`${symbol} 지문자 손 모양`} draggable={false} />;
   }
 
   if (!symbol || !crop) {
