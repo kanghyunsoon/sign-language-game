@@ -74,6 +74,16 @@ export class LocalSoloGameApi implements SoloGameApi {
     return this.readResults();
   }
 
+  async getRank(): Promise<number | null> {
+    const results = this.readResults();
+    if (results.length === 0) return null;
+    const latest = results[results.length - 1];
+    const rank = [...results]
+      .sort((left, right) => left.finalScore - right.finalScore || left.endedAt - right.endedAt)
+      .findIndex((result) => result.soloSessionId === latest.soloSessionId);
+    return rank < 0 ? null : rank + 1;
+  }
+
   private readResults(): SoloGameResult[] {
     try {
       const raw = this.storage?.getItem(this.storageKey);

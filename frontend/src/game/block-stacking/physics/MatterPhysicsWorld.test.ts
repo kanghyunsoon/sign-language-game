@@ -44,7 +44,7 @@ describe("MatterPhysicsWorld", () => {
     const siot = factory.create({ id: "siot", symbol: "\u3145", x: 100, y: 100 });
     const digit = factory.create({ id: "digit", symbol: "1", x: 100, y: 100 });
     expect(giyeok.parts).toHaveLength(3);
-    expect(siot.parts).toHaveLength(3);
+    expect(siot.parts).toHaveLength(5);
     expect(digit.parts).toHaveLength(1);
     expect(giyeok.bounds.max.x - giyeok.bounds.min.x).toBeLessThanOrEqual(TEST_CONFIG.letterWidth);
     expect(siot.bounds.max.x - siot.bounds.min.x).toBeLessThanOrEqual(TEST_CONFIG.letterWidth);
@@ -59,6 +59,17 @@ describe("MatterPhysicsWorld", () => {
     const spacedWidth = spaced.bounds.max.x - spaced.bounds.min.x;
 
     expect(spacedWidth - tightWidth).toBeCloseTo(6, 4);
+  });
+
+  it("keeps compound-vowel blank spaces out of fallback colliders", () => {
+    const factory = new LetterBodyFactory(TEST_CONFIG);
+    const ui = factory.create({ id: "ui", symbol: "\u3162", x: 100, y: 100 });
+    const oe = factory.create({ id: "oe", symbol: "\u315A", x: 100, y: 100 });
+    const wi = factory.create({ id: "wi", symbol: "\u315F", x: 100, y: 100 });
+
+    expect(ui.parts).toHaveLength(3);
+    expect(oe.parts).toHaveLength(4);
+    expect(wi.parts).toHaveLength(4);
   });
 
   it("falls under gravity, rotates, and collides with the floor boundary", () => {

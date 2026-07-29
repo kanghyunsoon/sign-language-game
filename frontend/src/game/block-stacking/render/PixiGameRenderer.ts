@@ -1,6 +1,11 @@
 import { Application, Container, Graphics } from "pixi.js";
 
-import { prepareGameGlyphFont } from "../glyphs/glyphRaster";
+import {
+  GLYPH_DISPLAY_FONT_RATIO,
+  GLYPH_SOURCE_FONT_SIZE,
+  createGlyphRaster,
+  prepareGameGlyphFont,
+} from "../glyphs/glyphRaster";
 import type { PhysicsLetterState } from "../physics/types";
 import { LetterViewFactory, type LetterView } from "./LetterViewFactory";
 import { RemovalBurst } from "./RemovalBurst";
@@ -25,6 +30,21 @@ export class PixiGameRenderer implements GameRenderer {
   private readonly views = new Map<string, LetterView>();
   private readonly removalEffects = new Map<string, { readonly effect: RemovalEffect; readonly burst: RemovalBurst }>();
   private readonly spawnEffects = new Map<string, number>();
+  private readonly hiddenLetterIds = new Set<string>();
+  /**
+   * Physics glyphs deliberately live in their own DOM layer.  The scenery
+   * canvas stays below the otter/start UI while a falling letter can remain
+   * above the paper for its entire physical lifetime.
+   */
+  private readonly frontLetterLayer: HTMLDivElement;
+  private readonly frontLetterHost: HTMLElement;
+  private readonly rendererHost: HTMLElement;
+  private readonly frontLetters = new Map<string, HTMLSpanElement>();
+  private readonly frontLetterMasks = new Map<string, {
+    readonly url: string;
+    readonly width: number;
+    readonly height: number;
+  }>();
   private readonly viewFactory = new LetterViewFactory();
   private targetId: string | null = null;
   private width: number;
@@ -34,11 +54,24 @@ export class PixiGameRenderer implements GameRenderer {
   private constructor(
     private readonly app: Application,
     private readonly config: RendererConfig,
+    mount: HTMLElement,
   ) {
     this.width = config.width;
     this.height = config.height;
     this.overlayLayer.addChild(this.dangerLine);
     this.app.stage.addChild(this.boardScenery, this.boardGrid, this.lettersLayer, this.overlayLayer);
+    this.frontLetterLayer = document.createElement("div");
+    this.frontLetterLayer.className = "solo-physics-letter-layer";
+    this.frontLetterLayer.setAttribute("aria-hidden", "true");
+    this.rendererHost = mount;
+    // The canvas is clipped by the rounded game-board frame. Keeping the
+    // falling glyph inside that element made the completed paper glyph look
+    // as if it disappeared behind the paper before reappearing below it.
+    // Mount only the glyph layer on the unclipped board wrapper so the same
+    // foreground glyph can grow on the paper and continue falling in front.
+    this.frontLetterHost = mount.closest<HTMLElement>(".solo-stage-column") ?? mount;
+    this.frontLetterHost.append(this.frontLetterLayer);
+    this.syncFrontLetterLayerBounds();
     this.drawBoardScenery();
     this.drawBoardGrid();
     this.drawDangerLine();
@@ -65,7 +98,7 @@ export class PixiGameRenderer implements GameRenderer {
     mount.replaceChildren(app.canvas);
     // Render the complete solo-style scenery inside the game canvas.
     app.renderer.background.alpha = 1;
-    const renderer = new PixiGameRenderer(app, resolvedConfig);
+    const renderer = new PixiGameRenderer(app, resolvedConfig, mount);
     app.stop();
     return renderer;
   }
@@ -76,6 +109,7 @@ export class PixiGameRenderer implements GameRenderer {
     this.width = width;
     this.height = height;
     this.app.renderer.resize(width, height);
+    this.syncFrontLetterLayerBounds();
     this.drawBoardScenery();
     this.drawBoardGrid();
     this.drawDangerLine();
@@ -89,6 +123,10 @@ export class PixiGameRenderer implements GameRenderer {
     for (const letter of letters) {
       activeIds.add(letter.id);
       const view = this.getOrCreateView(letter);
+      // Keep Pixi for scenery/effects only.  A separate DOM glyph is the one
+      // visible to the player, so it can sit above the otter without raising
+      // the entire board canvas above the start overlay.
+      view.setVisible(false);
       if (
         Math.abs(view.root.x - letter.x) >= POSITION_RENDER_EPSILON
         || Math.abs(view.root.y - letter.y) >= POSITION_RENDER_EPSILON
@@ -101,6 +139,7 @@ export class PixiGameRenderer implements GameRenderer {
       view.setMotionState(letter.velocityY, letter.settled);
       const spawnElapsedMs = this.spawnEffects.get(letter.id);
       view.setSpawnProgress(spawnElapsedMs === undefined ? null : Math.min(1, spawnElapsedMs / SPAWN_EFFECT_DURATION_MS));
+      this.renderFrontLetter(letter, spawnElapsedMs);
     }
 
     for (const [id, view] of this.views) {
@@ -110,6 +149,9 @@ export class PixiGameRenderer implements GameRenderer {
         this.removalEffects.get(id)?.burst.destroy();
         this.removalEffects.delete(id);
         this.spawnEffects.delete(id);
+        this.hiddenLetterIds.delete(id);
+        this.frontLetters.get(id)?.remove();
+        this.frontLetters.delete(id);
       }
     }
     this.app.render();
@@ -136,6 +178,13 @@ export class PixiGameRenderer implements GameRenderer {
     // The paper animation has already completed most of the red-to-gold
     // transition. Continue from that colour rather than flashing back red.
     this.spawnEffects.set(id, SPAWN_EFFECT_DURATION_MS * .58);
+  }
+
+  setLetterVisible(id: string, visible: boolean): void {
+    this.assertActive();
+    if (visible) this.hiddenLetterIds.delete(id);
+    else this.hiddenLetterIds.add(id);
+    this.views.get(id)?.setVisible(visible);
   }
 
   setTarget(id: string | null): void {
@@ -184,6 +233,9 @@ export class PixiGameRenderer implements GameRenderer {
     this.views.clear();
     this.removalEffects.clear();
     this.spawnEffects.clear();
+    this.hiddenLetterIds.clear();
+    for (const glyph of this.frontLetters.values()) glyph.remove();
+    this.frontLetters.clear();
     this.targetId = null;
   }
 
@@ -194,6 +246,7 @@ export class PixiGameRenderer implements GameRenderer {
 
     this.clear();
     this.viewFactory.destroy();
+    this.frontLetterLayer.remove();
     this.destroyed = true;
     this.app.destroy({ removeView: true }, { children: true });
   }
@@ -214,6 +267,66 @@ export class PixiGameRenderer implements GameRenderer {
     if (letter.id === this.targetId) view.setTargetHighlighted(true);
     this.lettersLayer.addChild(view.root);
     return view;
+  }
+
+  private renderFrontLetter(letter: PhysicsLetterState, spawnElapsedMs: number | undefined): void {
+    let glyph = this.frontLetters.get(letter.id);
+    if (!glyph) {
+      glyph = document.createElement("span");
+      glyph.className = "solo-physics-letter";
+      const mask = this.getFrontLetterMask(letter.symbol);
+      glyph.style.width = `${mask.width}px`;
+      glyph.style.height = `${mask.height}px`;
+      glyph.style.maskImage = `url("${mask.url}")`;
+      glyph.style.webkitMaskImage = `url("${mask.url}")`;
+      this.frontLetterLayer.append(glyph);
+      this.frontLetters.set(letter.id, glyph);
+    }
+
+    const spawnProgress = spawnElapsedMs === undefined ? 1 : Math.min(1, spawnElapsedMs / SPAWN_EFFECT_DURATION_MS);
+    const color = spawnElapsedMs === undefined
+      ? (letter.id === this.targetId ? "#d95b7d" : "#416d72")
+      : `hsl(${16 + spawnProgress * 28} 88% ${57 - spawnProgress * 7}%)`;
+    const motion = letter.settled ? 0 : Math.min(1, Math.abs(letter.velocityY) / 4.5);
+    glyph.style.display = this.hiddenLetterIds.has(letter.id) ? "none" : "block";
+    glyph.style.backgroundColor = color;
+    glyph.style.transform = `translate(-50%, -50%) translate(${letter.x}px, ${letter.y}px) rotate(${letter.angle}rad) scale(${1 - motion * .018}, ${1 + motion * .032})`;
+  }
+
+  private getFrontLetterMask(symbol: string): {
+    readonly url: string;
+    readonly width: number;
+    readonly height: number;
+  } {
+    const cached = this.frontLetterMasks.get(symbol);
+    if (cached) return cached;
+    const raster = createGlyphRaster(symbol);
+    const scale = Math.min(this.config.letterWidth, this.config.letterHeight)
+      * GLYPH_DISPLAY_FONT_RATIO / GLYPH_SOURCE_FONT_SIZE;
+    const mask = {
+      url: raster.canvas.toDataURL("image/png"),
+      width: raster.canvas.width * scale,
+      height: raster.canvas.height * scale,
+    };
+    this.frontLetterMasks.set(symbol, mask);
+    return mask;
+  }
+
+  private syncFrontLetterLayerBounds(): void {
+    if (this.frontLetterHost === this.rendererHost) {
+      this.frontLetterLayer.style.inset = "0";
+      this.frontLetterLayer.style.width = "";
+      this.frontLetterLayer.style.height = "";
+      return;
+    }
+
+    const hostBounds = this.rendererHost.getBoundingClientRect();
+    const overlayBounds = this.frontLetterHost.getBoundingClientRect();
+    this.frontLetterLayer.style.inset = "auto";
+    this.frontLetterLayer.style.left = `${hostBounds.left - overlayBounds.left - this.frontLetterHost.clientLeft}px`;
+    this.frontLetterLayer.style.top = `${hostBounds.top - overlayBounds.top - this.frontLetterHost.clientTop}px`;
+    this.frontLetterLayer.style.width = `${hostBounds.width}px`;
+    this.frontLetterLayer.style.height = `${hostBounds.height}px`;
   }
 
   private drawDangerLine(): void {

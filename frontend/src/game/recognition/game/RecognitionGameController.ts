@@ -147,7 +147,7 @@ export class RecognitionGameController {
 
   syncTargetToBoard(): void {
     const targetSymbol = this.gameInput.getPreferredTargetSymbol(this.state.playableSymbols);
-    if (targetSymbol === null || targetSymbol === this.state.targetSymbol) return;
+    if (targetSymbol === this.state.targetSymbol) return;
 
     // A removed/otter-carried target may change while the player still holds
     // the previous sign.  Release the old input lock immediately so a correct
@@ -162,7 +162,7 @@ export class RecognitionGameController {
       awaitingHandRelease: false,
       message: `Guide target: ${targetSymbol}. It is the oldest letter on the board.`,
     };
-    if (this.state.mode === "PYTHON_AI") this.recordTarget(targetSymbol);
+    if (this.state.mode === "PYTHON_AI" && targetSymbol !== null) this.recordTarget(targetSymbol);
     this.emit();
   }
 
@@ -222,13 +222,17 @@ export class RecognitionGameController {
 
   private handleConfirmedSymbol(symbol: string, confidence: number): void {
     if (this.state.mode !== "PYTHON_AI") return;
+    if (this.state.targetSymbol === null) {
+      this.resetRecognitionGate();
+      return;
+    }
+    if (this.state.awaitingHandRelease && this.awaitingReleaseSymbol === symbol) return;
+    if (this.state.awaitingHandRelease && this.awaitingReleaseSymbol !== symbol) {
+      this.gameInput.releaseInput();
+      this.awaitingReleaseSymbol = null;
+      this.state = { ...this.state, awaitingHandRelease: false, answer: "IDLE" };
+    }
     if (this.recognizer?.getConfirmationAuthority?.() !== "TEMPORAL_DECODER") {
-      if (this.state.awaitingHandRelease && this.awaitingReleaseSymbol === symbol) return;
-      if (this.state.awaitingHandRelease && this.awaitingReleaseSymbol !== symbol) {
-        this.gameInput.releaseInput();
-        this.awaitingReleaseSymbol = null;
-        this.state = { ...this.state, awaitingHandRelease: false, answer: "IDLE" };
-      }
       const prediction = this.state.prediction;
       if (confidence < this.config.minimumConfidence || !prediction || !prediction.isStable || prediction.symbol !== symbol || prediction.confidence < this.config.minimumConfidence) {
         this.state = { ...this.state, message: `Ignored ${symbol}: legacy recognizer confirmation was not stable.` };

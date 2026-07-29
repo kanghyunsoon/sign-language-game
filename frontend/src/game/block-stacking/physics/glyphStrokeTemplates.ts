@@ -41,9 +41,12 @@ export const GLYPH_STROKE_TEMPLATES: Readonly<Record<string, readonly GlyphStrok
   "\u3152": [V(-0.22, 0), V(0.22, 0), H(0.02, -0.2, 0.42), H(0.02, 0.2, 0.42)],
   "\u3154": [V(0.22, 0), V(-0.22, 0), H(-0.02, 0, 0.42)],
   "\u3156": [V(0.22, 0), V(-0.22, 0), H(-0.02, -0.2, 0.42), H(-0.02, 0.2, 0.42)],
-  "\u3162": [H(0, 0.2), V(0, -0.18, 0.5)],
-  "\u315A": [H(0, 0.22), V(0.18, -0.18, 0.5)],
-  "\u315F": [H(0, -0.22), V(0.18, 0.18, 0.5)],
+  // Compound vowels keep their separated strokes even when browser raster
+  // colliders are unavailable. This prevents the blank area between the
+  // component vowels from becoming one solid collision rectangle.
+  "\u3162": [H(-0.2, 0.2, 0.56), V(0.34, 0, 0.82)],
+  "\u315A": [H(-0.2, 0.22, 0.56), V(-0.2, -0.14, 0.46), V(0.34, 0, 0.82)],
+  "\u315F": [H(-0.2, -0.22, 0.56), V(-0.2, 0.14, 0.46), V(0.34, 0, 0.82)],
 };
 
 export function glyphStrokeTemplatesFor(symbol: string): readonly GlyphStrokeTemplate[] | undefined {

@@ -1,42 +1,49 @@
 # Solo Game Results API
 
-`game-dev-backend/dev-app` is a Java 11-compatible Spring Boot 2.7 module. It is intentionally a separate prototype module because this repository has no existing Spring Boot application or authentication integration.
+2026-07-29 현재 운영 Swagger에 맞춘 프런트 계약이다. 백엔드 코드는 이 작업 범위에서 수정하지 않는다.
 
-## Contract
+## 세션
 
-`POST /api/game-results` saves a completed solo run. The request deliberately has no `userId`; the API derives the user from `X-User-Id` only as a development placeholder. A host application with authentication must replace that header source with its authenticated security principal.
+백엔드에는 솔로 방/세션 시작 API가 없다. `HttpSoloGameApi.startSession()`은 브라우저 안에서만 세션 ID와 시작 시각을 만든다. 게임 시작을 원격 세션 API 성공에 의존시키지 않는다.
 
-`GET /api/game-results/me` returns the current user's runs, newest first. `GET /api/game-results/me/best` returns the highest-score run or `404`. `GET /api/sign-statistics/me` aggregates statistics by symbol, weighting average confidence by `confirmedCount`.
+## 결과 저장
 
-```json
-{
-  "mode": "PYTHON_AI",
-  "score": 120,
-  "maxCombo": 3,
-  "removedCount": 4,
-  "durationSeconds": 90,
-  "playedAt": "2026-07-14T12:00:00Z",
-  "symbolStatistics": [{
-    "symbol": "ㄱ",
-    "targetCount": 3,
-    "confirmedCount": 2,
-    "correctCount": 1,
-    "incorrectCount": 1,
-    "averageConfidence": 0.83
-  }]
-}
+```http
+POST /api/solo-results?userId={userId}
+Authorization: Bearer {accessToken}
+Content-Type: application/json
+
+{"score": 87}
 ```
 
-The contract stores no camera video, image, or landmark sequence. The current repository is in-memory for contract validation only; restarting the Java process clears it.
+- `score`는 게임 포인트가 아니라 결승선 도달까지 걸린 정수 초다.
+- 프런트는 `ceil(playTimeMs / 1000)`으로 계산한다.
+- 카메라 프레임, 이미지, 랜드마크와 글자별 인식 통계는 전송하지 않는다.
 
-## Frontend adapters
+## 랭킹 조회
 
-`GameResultRepository` is independent of `GameCore`. `HttpGameResultRepository` uses the browser Fetch API, while `LocalGameResultRepository` persists only the same aggregate result schema in browser storage. `ResilientGameResultRepository` falls back to local storage when the HTTP API cannot be reached, so a solo game remains playable without this backend.
-
-## Run
-
-```powershell
-cd game-dev-backend\dev-app
-mvn test
-mvn spring-boot:run
+```http
+GET /api/rankings?userId={userId}&gameType=TETRIS_SOLO
+Authorization: Bearer {accessToken}
 ```
+
+프런트는 응답의 `me.rank`를 결과 화면에 표시하며 전체 순위를 다시 계산하지 않는다. `TETRIS_SOLO`는 기록이 짧을수록 높은 순위여야 하므로 백엔드 정책은 `score ASC` 또는 MIN 기준이어야 한다.
+
+## 오답 가중치
+
+게임 시작 시 한 번 호출한다.
+
+```http
+GET /api/wrong-answers/tetris-weights
+GET /api/signs?category=CONSONANT
+GET /api/signs?category=VOWEL
+Authorization: Bearer {accessToken}
+```
+
+`signId`는 signs 응답의 `id`와 `label`로 연결한다. 게임에서는 다양성을 위해 서버 가중치를 다음처럼 완화한다.
+
+```text
+effectiveWeight = min(1.2, 1 + (serverWeight - 1) * 0.2)
+```
+
+예: `1.4 → 1.08`, `2.0 → 1.20`. 요청 또는 계약 실패 시 모든 글자의 기본값 `1.0`을 사용한다.
