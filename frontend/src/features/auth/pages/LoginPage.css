@@ -103,7 +103,7 @@
 .login-eyebrow {
   margin-top: 0;
   color: #a99b90;
-  font-size: min(1.0417vw, 1.6667vh);
+  font-size: min(1.40625vw, 2.25vh);
   font-weight: 900;
   letter-spacing: 0.1em;
 }
@@ -134,7 +134,7 @@
 
 .login-field > span {
   color: #4d4038;
-  font-size: min(0.9896vw, 1.5833vh);
+  font-size: min(1.302083vw, 2.083333vh);
   font-weight: 900;
 }
 
@@ -146,7 +146,7 @@
   border-radius: min(0.625vw, 1vh);
   color: #4b3d35;
   font-family: inherit;
-  font-size: min(0.8854vw, 1.4167vh);
+  font-size: min(1.197917vw, 1.916667vh);
   background: rgba(255, 255, 255, 0.76);
   box-sizing: border-box;
   outline: none;
@@ -154,7 +154,7 @@
 
 .login-field input::placeholder {
   color: #b8aea6;
-  font-size: min(0.8333vw, 1.3333vh);
+  font-size: min(1.09375vw, 1.75vh);
 }
 
 .login-field input:focus {
@@ -221,7 +221,7 @@
   align-items: center;
   gap: min(0.4688vw, 0.75vh);
   color: #74675f;
-  font-size: min(0.7813vw, 1.25vh);
+  font-size: min(1.041667vw, 1.666667vh);
   font-weight: 800;
   cursor: pointer;
 }
@@ -236,7 +236,7 @@
   display: flex;
   align-items: center;
   gap: min(0.4167vw, 0.6667vh);
-  font-size: min(0.7813vw, 1.25vh);
+  font-size: min(1.041667vw, 1.666667vh);
 }
 
 .login-help-links a {
@@ -258,7 +258,7 @@
   border-radius: min(0.7292vw, 1.1667vh);
   color: #ffffff;
   font-family: inherit;
-  font-size: min(0.9896vw, 1.5833vh);
+  font-size: min(1.302083vw, 2.083333vh);
   font-weight: 900;
   background: #6d5345;
   box-shadow:
@@ -288,14 +288,14 @@
 .login-signup-guide {
   margin: auto 0 0;
   color: #958a82;
-  font-size: min(0.7813vw, 1.25vh);
+  font-size: min(1.041667vw, 1.666667vh);
   font-weight: 800;
 }
 
 .login-signup-guide a {
   margin-left: min(0.5208vw, 0.8333vh);
   color: #6d5345;
-  font-size: min(0.7813vw, 1.25vh);
+  font-size: min(1.041667vw, 1.666667vh);
   font-weight: 900;
   text-decoration: none;
 }

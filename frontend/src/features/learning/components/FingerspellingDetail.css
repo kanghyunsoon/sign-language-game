@@ -18,7 +18,7 @@
   border-radius: 999px;
   background: #eef2e3;
   color: #5f724a;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 800;
 }
 
@@ -33,7 +33,7 @@
 .fingerspelling-detail-name {
   margin: 0;
   color: #827368;
-  font-size: 20px;
+  font-size: 27px;
   font-weight: 700;
 }
 
@@ -70,13 +70,13 @@
 .fingerspelling-detail-description h3 {
   margin: 0 0 2px;
   color: #3f2b20;
-  font-size: 16px;
+  font-size: 21px;
 }
 
 .fingerspelling-detail-description p {
   margin: 0;
   color: #8a7e73;
-  font-size: 14px;
+  font-size: 19px;
   line-height: 1.7;
   word-break: keep-all;
 }

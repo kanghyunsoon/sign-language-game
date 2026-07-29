@@ -57,7 +57,7 @@
   display: flex;
   align-items: center;
   color: #7d6d61;
-  font-size: 17px;
+  font-size: 24px;
   font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
@@ -89,7 +89,7 @@
   border: 1px solid #dbc8b1;
   border-radius: 999px;
   color: #5f402b;
-  font-size: 16px;
+  font-size: 21px;
   font-weight: 800;
   text-decoration: none;
   background: #fffaf2;
@@ -115,7 +115,7 @@
   border-radius: 999px;
   background: #eef2e3;
   color: #5f724a;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 800;
   letter-spacing: 0.06em;
 }
@@ -123,14 +123,14 @@
 .review-notes-heading h1 {
   margin: 12px 0 6px;
   color: #3f2b20;
-  font-size: 30px;
+  font-size: 40px;
   letter-spacing: -0.03em;
 }
 
 .review-notes-heading p {
   margin: 0;
   color: #827368;
-  font-size: 15px;
+  font-size: 20px;
 }
 
 .review-notes-layout {
@@ -175,7 +175,7 @@
   background: #fffdf8;
   color: #7d6d61;
   font: inherit;
-  font-size: 15px;
+  font-size: 20px;
   font-weight: 800;
   cursor: pointer;
   transition:
@@ -212,7 +212,7 @@
   background: #eef2e3;
   color: #4d5c39;
   font: inherit;
-  font-size: 15px;
+  font-size: 20px;
   font-weight: 800;
   cursor: pointer;
 }
@@ -234,7 +234,7 @@
   background: #fffaf2;
   color: #5f402b;
   font: inherit;
-  font-size: 15px;
+  font-size: 20px;
   font-weight: 800;
   cursor: pointer;
 }
@@ -300,7 +300,7 @@
   border-radius: 999px;
   background: #f1ece4;
   color: #8a7c70;
-  font-size: 11px;
+  font-size: 15px;
   font-weight: 700;
 }
 
@@ -313,7 +313,7 @@
 
 .review-notes-card-name {
   color: #a99a8e;
-  font-size: 13px;
+  font-size: 17px;
   font-weight: 700;
 }
 
@@ -337,7 +337,7 @@
 .review-notes-empty {
   margin: 60px 0;
   color: #a99a8e;
-  font-size: 15px;
+  font-size: 20px;
   font-weight: 700;
   text-align: center;
 }
@@ -355,7 +355,7 @@
 .review-notes-action-count {
   margin-right: auto;
   color: #8a7c70;
-  font-size: 14px;
+  font-size: 19px;
   font-weight: 800;
 }
 
@@ -365,7 +365,7 @@
   border: 1px solid transparent;
   border-radius: 999px;
   font: inherit;
-  font-size: 15px;
+  font-size: 20px;
   font-weight: 800;
   cursor: pointer;
 }
@@ -410,7 +410,7 @@
   background: #fbeee8;
   color: #b4523a;
   font: inherit;
-  font-size: 16px;
+  font-size: 21px;
   font-weight: 800;
   cursor: pointer;
   box-shadow: 0 4px 0 #e8c4b6;
@@ -445,13 +445,13 @@
 .review-notes-detail-empty p {
   margin: 0;
   color: #5f402b;
-  font-size: 22px;
+  font-size: 29px;
   font-weight: 800;
 }
 
 .review-notes-detail-empty span:last-child {
   color: #a99a8e;
-  font-size: 15px;
+  font-size: 20px;
 }
 
 /* 삭제 알림 — 테스트 결과 화면의 .test-toast와 같은 결 */
@@ -471,7 +471,7 @@
     0 6px 0 #d8a48e,
     0 16px 32px rgba(82, 54, 35, 0.22);
   color: #b4523a;
-  font-size: 16px;
+  font-size: 21px;
   font-weight: 800;
   white-space: nowrap;
   transform: translateX(-50%);
@@ -479,7 +479,7 @@
 }
 
 .review-notes-toast-face {
-  font-size: 17px;
+  font-size: 23px;
   font-weight: 700;
   letter-spacing: -0.04em;
 }
