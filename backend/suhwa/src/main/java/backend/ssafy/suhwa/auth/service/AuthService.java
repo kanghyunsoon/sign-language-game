@@ -38,9 +38,19 @@ public class AuthService {
         return issueTokens(user.getId());
     }
 
+    /**
+     * refresh token 회전. 기존 토큰 무효화와 새 토큰 발급이 {@link RefreshTokenService}의 한
+     * 트랜잭션 안에서 함께 처리된다 — 둘로 쪼개면 사이에서 실패했을 때 기존 토큰은 폐기됐는데
+     * 새 토큰이 없어 사용자가 강제 로그아웃된다.
+     *
+     * <p>클래스 주석의 "트랜잭션 없음" 방침은 BCrypt 때문이며 {@code login}에만 해당한다.
+     * 이 경로에는 해싱 연산이 없어 두 쓰기를 묶지 못할 이유가 없다. 액세스 토큰 서명은 DB 작업이
+     * 아니므로 트랜잭션이 끝난 뒤 수행한다.
+     */
     public TokenResponse refresh(String rawRefreshToken) {
-        Long userId = refreshTokenService.rotate(rawRefreshToken);
-        return issueTokens(userId);
+        RefreshTokenService.RotatedToken rotated = refreshTokenService.rotateAndIssue(rawRefreshToken);
+        return new TokenResponse(
+                jwtTokenProvider.createAccessToken(rotated.userId()), rotated.rawRefreshToken());
     }
 
     public void logout(Long userId) {

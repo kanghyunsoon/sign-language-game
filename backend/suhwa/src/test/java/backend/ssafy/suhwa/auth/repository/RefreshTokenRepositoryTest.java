@@ -53,6 +53,35 @@ class RefreshTokenRepositoryTest {
                 .allMatch(RefreshToken::isValid);
     }
 
+    /**
+     * 조건부 UPDATE가 회전 권한의 심판 역할을 한다. 유효한 토큰은 1을 반환하고, 같은 토큰에 대한
+     * 두 번째 호출은 0이 되어야 한다 — 동시 요청 중 하나만 통과시키는 성질이 여기서 나온다.
+     */
+    @Test
+    void revokeIfValid_returnsOneOnlyForTheFirstCall() {
+        refreshTokenRepository.save(RefreshToken.builder()
+                .userId(10L).token("rotatable").expiresAt(LocalDateTime.now().plusDays(1)).build());
+
+        assertThat(refreshTokenRepository.revokeIfValid("rotatable")).isEqualTo(1);
+        assertThat(refreshTokenRepository.revokeIfValid("rotatable"))
+                .as("이미 무효화된 토큰은 다시 회전될 수 없다")
+                .isZero();
+        assertThat(refreshTokenRepository.findByToken("rotatable").orElseThrow().isValid()).isFalse();
+    }
+
+    @Test
+    void revokeIfValid_returnsZero_whenExpired() {
+        refreshTokenRepository.save(RefreshToken.builder()
+                .userId(11L).token("stale").expiresAt(LocalDateTime.now().minusMinutes(1)).build());
+
+        assertThat(refreshTokenRepository.revokeIfValid("stale")).isZero();
+    }
+
+    @Test
+    void revokeIfValid_returnsZero_whenTokenUnknown() {
+        assertThat(refreshTokenRepository.revokeIfValid("never-issued")).isZero();
+    }
+
     @Test
     void isValid_returnsFalse_whenExpired() {
         RefreshToken expired = refreshTokenRepository.save(RefreshToken.builder()
