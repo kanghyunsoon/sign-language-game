@@ -3,11 +3,15 @@
 `game-ai-dev-server`와 **동일한 WebSocket 계약**을 구현한다. 프런트는 포트만 바꾸면 두 서버 중 어느 쪽에도 붙을 수 있다. 요청 타입, 필드 이름, 오류 코드, 응답 형태가 모두 같다.
 
 ```
-ws://localhost:8766     지숫자 10종 + none  (이 서버)
-ws://localhost:8765     자모 서버           (변경 없음)
+ws://localhost:8766/number     지숫자 10종 + none  (이 서버)
+ws://localhost:8765            자모 서버           (변경 없음)
 ```
 
 두 서버를 나란히 띄우는 것을 전제로 포트를 다르게 잡았다. 지숫자 모델은 아직 인증 전이므로 자모 서버를 대체하지 않는다.
+
+**경로 `/number`는 필수이며 다른 경로는 404로 거절한다.** 자모 서버는 모든 경로를 받으므로, 클라이언트가 포트를 잘못 가리켜도 연결은 되고 이상 동작은 한참 뒤에 드러난다. 경로에 모델 이름을 넣으면 그 실수가 연결 시점에 실패하고, 응답 본문이 어느 서버에 닿았는지 알려준다.
+
+쿼리스트링과 끝 슬래시는 무시하므로 `/number/`, `/number?room=7` 모두 같은 경로다.
 
 자모 서버와 마찬가지로 **MediaPipe 랜드마크만 받는다.** 카메라·이미지·영상은 이 프로세스에 들어오지 않는다.
 
@@ -23,7 +27,8 @@ python -m server.main
 | --- | --- | --- |
 | `HANDPRACTICE_NUMBER_MODEL_DIR` | `models/number-10-v1` | 다른 번들 지정 |
 | `HANDPRACTICE_NUMBER_PORT` | `8766` | 포트 변경 |
-| `HANDPRACTICE_NUMBER_HOST` | `localhost` | 바인드 주소 |
+| `HANDPRACTICE_NUMBER_HOST` | `localhost` | 바인드 주소. 다른 장비에서 붙이려면 `0.0.0.0` |
+| `HANDPRACTICE_NUMBER_PATH` | `/number` | WebSocket 경로 |
 
 테스트:
 
@@ -68,6 +73,7 @@ python -m unittest discover -s tests -t . -v
 
 | | 자모 서버 | 이 서버 |
 | --- | --- | --- |
+| 경로 | 아무거나 | **`/number` 고정** |
 | `sequenceLength` | 10 | **1** |
 | 추가 필드 | — | `frameInput`, `featureVersion` |
 | 특징 | `feature_v2` 55차원 | `feature_v3` 78차원 |

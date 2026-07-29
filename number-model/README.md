@@ -62,7 +62,7 @@ collection-template/  참가자별 촬영 폴더 템플릿
 ```powershell
 cd number-model
 pip install -r requirements.txt        # 서버 + 학습
-python -m server.main                  # ws://localhost:8766
+python -m server.main                  # ws://localhost:8766/number
 
 python -m unittest discover -s tests -t . -v
 ```
