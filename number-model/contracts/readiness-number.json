@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "modelVersion": "number-10-v1",
+  "confirmationAuthority": "FRONTEND_TEMPORAL_DECODER",
+  "status": "below-criteria",
+  "evaluation": {
+    "attemptId": "T-163",
+    "sampleCount": 158,
+    "sampling": "locked test: participants p14 and p15, held out of training and of validation",
+    "trainingIndependent": true,
+    "numberAccuracy": 0.956,
+    "confirmationRate": 0.81,
+    "minimumClassConfirmationRate": 0.562,
+    "falseConfirmationRateOnUnseenShapes": 0.043,
+    "warning": "Measured, but below criteria: confirmationRate 0.810 < 0.850 and the weakest class (9) confirms at 0.562. Every symbol therefore stays ineligible and thresholds stay at 1.0. Do not lower a threshold from this run: the p14/p15 set was also used to draw the threshold curve in T-163, so it is no longer a clean locked test. Seal at least two new participants first, and record the result in number-model-log.md before replacing this file."
+  },
+  "criteria": {
+    "minimumConfirmationRate": 0.85,
+    "minimumCompetitivePrecision": 0.9,
+    "minimumClassRecall": 0.93
+  },
+  "classes": [
+    { "symbol": "1", "threshold": 1.0, "competitiveEligible": false, "reason": "not evaluated" },
+    { "symbol": "2", "threshold": 1.0, "competitiveEligible": false, "reason": "not evaluated" },
+    { "symbol": "3", "threshold": 1.0, "competitiveEligible": false, "reason": "not evaluated" },
+    { "symbol": "4", "threshold": 1.0, "competitiveEligible": false, "reason": "not evaluated" },
+    { "symbol": "5", "threshold": 1.0, "competitiveEligible": false, "reason": "not evaluated" },
+    { "symbol": "6", "threshold": 1.0, "competitiveEligible": false, "reason": "not evaluated" },
+    { "symbol": "7", "threshold": 1.0, "competitiveEligible": false, "reason": "not evaluated" },
+    { "symbol": "8", "threshold": 1.0, "competitiveEligible": false, "reason": "not evaluated" },
+    { "symbol": "9", "threshold": 1.0, "competitiveEligible": false, "reason": "not evaluated" },
+    { "symbol": "10", "threshold": 1.0, "competitiveEligible": false, "reason": "not evaluated" }
+  ]
+}
