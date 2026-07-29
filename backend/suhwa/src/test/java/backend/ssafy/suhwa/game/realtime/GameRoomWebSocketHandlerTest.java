@@ -272,6 +272,44 @@ class GameRoomWebSocketHandlerTest {
                 .isEqualTo(GameRoomStatus.WAITING);
     }
 
+    /**
+     * 영상 통화 전환으로 방 연결을 끊은 뒤 재대결로 다시 연결하면, 그 다음의 비정상 종료에서
+     * 이탈 감지가 정상 동작해야 한다. expectingIntentionalClose가 초기화되지 않던 동안에는
+     * 유예 타이머가 걸리지 않아 leave()가 영원히 호출되지 않고 방이 좀비로 남았다.
+     *
+     * <p>재연결 자체도 상대에게 통보돼야 한다 — 판정 조건이 pendingTask 유무였을 때는 이 경로에서
+     * PEER_RECONNECTED도 PEER_JOINED도 발송되지 않았다.
+     */
+    @Test
+    void reconnectAfterIntentionalClose_notifiesPeer_andRestoresLeaveDetection() throws Exception {
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
+        gameRoomService.join(room.roomCode(), guestId);
+
+        BlockingQueue<String> guestMessages = new LinkedBlockingQueue<>();
+        WebSocketSession hostSession = connect(room.id(), hostId, new LinkedBlockingQueue<>());
+        connect(room.id(), guestId, guestMessages);
+
+        hostSession.sendMessage(new TextMessage("{\"type\":\"WEBRTC_CONNECTED\"}"));
+        Thread.sleep(200); // 서버가 플래그를 설정할 시간을 준다.
+        hostSession.close();
+        assertThat(guestMessages.poll(500, TimeUnit.MILLISECONDS))
+                .as("의도된 종료는 어떤 이탈 신호도 보내지 않는다")
+                .isNull();
+
+        WebSocketSession reconnected = connect(room.id(), hostId, new LinkedBlockingQueue<>());
+
+        assertThat(guestMessages.poll(3, TimeUnit.SECONDS))
+                .as("재대결 재연결도 재접속이므로 상대에게 통보돼야 한다")
+                .contains("PEER_RECONNECTED");
+
+        // 이제 진짜 비정상 종료 — 유예 타이머가 다시 살아나 이탈 처리로 이어져야 한다.
+        reconnected.close();
+
+        assertThat(guestMessages.poll(3, TimeUnit.SECONDS)).contains("PEER_DISCONNECTED");
+        assertThat(guestMessages.poll(3, TimeUnit.SECONDS)).contains("PEER_LEFT");
+        assertThat(gameRoomRepository.findById(room.id()).orElseThrow().getHostUserId()).isEqualTo(guestId);
+    }
+
     @Test
     void withoutWebrtcConnectedSignal_connectionStaysOpen_noForcedClose() throws Exception {
         GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
