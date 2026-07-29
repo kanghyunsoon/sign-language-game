@@ -41,17 +41,33 @@ public class LobbyBroadcastService {
     @Scheduled(fixedDelay = 15_000)
     public void sendHeartbeat() {
         for (SseEmitter emitter : subscriberRegistry.all()) {
-            try {
-                emitter.send(SseEmitter.event().name("heartbeat"));
-            } catch (IOException e) {
-                closeAfterFailure(emitter, e);
-            }
+            dispatch(emitter, SseEmitter.event().name("heartbeat"));
         }
     }
 
     private void send(SseEmitter emitter, String eventName, Object data) {
+        dispatch(emitter, SseEmitter.event().name(eventName).data(data));
+    }
+
+    /**
+     * 구독 하나에 이벤트를 전송한다. 같은 emitter에 대한 전송은 반드시 이 메서드를 거쳐야 한다.
+     *
+     * <p>{@code SseEmitter.send()}는 스레드 안전하지 않은데, 이 클래스에는 서로 다른 스레드에서
+     * 오는 전송 주체가 셋이다 — ① {@code afterCommit} 브로드캐스트를 수행하는 여러 HTTP 요청
+     * 스레드 ② 15초 주기 하트비트 스케줄러 ③ 확인 대기·유예 타이머가 만료돼
+     * {@code GameRoomService.leave}를 실행하는 스케줄러 풀. 한 emitter에 동시에 쓰면 SSE 프레임
+     * (event/data/빈 줄)이 섞여 클라이언트가 파싱에 실패하거나 {@code IllegalStateException}으로
+     * 그 구독이 끊긴다. 사용자에게는 오류 없이 "방 목록이 갱신되지 않는" 증상으로 나타난다.
+     *
+     * <p>이 클래스가 로비 emitter에 대한 유일한 전송 지점이므로, emitter 자신을 모니터로 삼아
+     * 구독별로 직렬화하면 충분하다. 팬아웃 자체는 여전히 호출 스레드에서 수행된다 — 요청 스레드
+     * 비차단과 debounce는 별도 과제(STABLE-08-19)다.
+     */
+    private void dispatch(SseEmitter emitter, SseEmitter.SseEventBuilder event) {
         try {
-            emitter.send(SseEmitter.event().name(eventName).data(data));
+            synchronized (emitter) {
+                emitter.send(event);
+            }
         } catch (IOException e) {
             closeAfterFailure(emitter, e);
         }

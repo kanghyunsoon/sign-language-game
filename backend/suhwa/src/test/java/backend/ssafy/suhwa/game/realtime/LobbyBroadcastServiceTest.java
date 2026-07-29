@@ -3,6 +3,7 @@ package backend.ssafy.suhwa.game.realtime;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willAnswer;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -15,6 +16,11 @@ import backend.ssafy.suhwa.game.realtime.dto.LobbyRoomList;
 import backend.ssafy.suhwa.game.repository.GameRoomRepository;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -89,6 +95,66 @@ class LobbyBroadcastServiceTest {
 
         verify(emitter).completeWithError(failure);
         verify(emitter, never()).complete();
+    }
+
+    /**
+     * 한 emitter에 대한 전송은 동시에 일어나지 않아야 한다. SseEmitter.send()는 스레드 안전하지
+     * 않아, 동시에 쓰면 SSE 프레임이 섞여 클라이언트 파싱이 깨지거나 IllegalStateException으로
+     * 그 구독이 끊긴다(사용자에게는 "방 목록이 갱신되지 않는" 증상).
+     *
+     * <p>전송 중 겹침을 직접 관측한다 — send() 진입 시 in-flight를 올리고 잠시 머문 뒤 내리며,
+     * 관측된 최대 동시 진입 수가 1이어야 한다.
+     */
+    @Test
+    void sendsToSameEmitter_areSerialized() throws Exception {
+        GameRoomRepository repository = mock(GameRoomRepository.class);
+        given(repository.findByStatus(GameRoomStatus.WAITING)).willReturn(List.of());
+        LobbySubscriberRegistry registry = new LobbySubscriberRegistry();
+        SseEmitter emitter = mock(SseEmitter.class);
+
+        AtomicInteger inFlight = new AtomicInteger();
+        AtomicInteger maxInFlight = new AtomicInteger();
+        willAnswer(invocation -> {
+            maxInFlight.accumulateAndGet(inFlight.incrementAndGet(), Math::max);
+            Thread.sleep(20);
+            inFlight.decrementAndGet();
+            return null;
+        }).given(emitter).send(any(SseEmitter.SseEventBuilder.class));
+
+        registry.register("session-1", emitter);
+        LobbyBroadcastService service = new LobbyBroadcastService(repository, registry);
+
+        int threads = 8;
+        CountDownLatch start = new CountDownLatch(1);
+        CountDownLatch done = new CountDownLatch(threads);
+        ExecutorService pool = Executors.newFixedThreadPool(threads);
+        try {
+            for (int i = 0; i < threads; i++) {
+                boolean heartbeat = i % 2 == 0;
+                pool.submit(() -> {
+                    try {
+                        start.await();
+                        if (heartbeat) {
+                            service.sendHeartbeat();
+                        } else {
+                            service.broadcastUpdate();
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    } finally {
+                        done.countDown();
+                    }
+                });
+            }
+            start.countDown();
+            assertThat(done.await(10, TimeUnit.SECONDS)).isTrue();
+        } finally {
+            pool.shutdownNow();
+        }
+
+        assertThat(maxInFlight.get())
+                .as("같은 구독에 대한 전송이 동시에 일어나면 SSE 프레임이 섞인다")
+                .isEqualTo(1);
     }
 
     /** 스냅샷·업데이트 전송도 하트비트와 같은 종료 규칙을 따른다. */
