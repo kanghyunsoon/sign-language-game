@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { landmarkToFittedCanvasPoint } from "./canvasCoordinates";
+import { isHandVisibleInViewport, landmarkToFittedCanvasPoint, visibleSourceBounds } from "./canvasCoordinates";
 
 describe("landmarkToFittedCanvasPoint", () => {
   it("accounts for horizontal cropping when a portrait viewport covers a landscape video", () => {
@@ -37,5 +37,23 @@ describe("landmarkToFittedCanvasPoint", () => {
 
     expect(topLeft.x).toBeCloseTo(125);
     expect(topLeft.y).toBeCloseTo(0);
+  });
+
+  it("exposes only the center source slice for a covered portrait camera", () => {
+    expect(visibleSourceBounds(640, 480, 300, 400, "cover")).toEqual({
+      left: 0.21875,
+      top: 0,
+      right: 0.78125,
+      bottom: 1,
+    });
+  });
+
+  it("does not recognize a hand whose palm is in the cropped-out part of the video", () => {
+    const landmarks = Array.from({ length: 21 }, () => ({ x: .5, y: .5, z: 0 }));
+    landmarks[0] = { x: .1, y: .5, z: 0 };
+
+    expect(isHandVisibleInViewport(landmarks, 640, 480, 300, 400, "cover")).toBe(false);
+    landmarks[0] = { x: .5, y: .5, z: 0 };
+    expect(isHandVisibleInViewport(landmarks, 640, 480, 300, 400, "cover")).toBe(true);
   });
 });

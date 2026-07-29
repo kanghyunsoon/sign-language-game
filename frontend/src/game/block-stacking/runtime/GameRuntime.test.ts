@@ -149,6 +149,64 @@ describe("GameRuntime", () => {
     runtime.dispose();
   });
 
+  it("ends quickly when a letter remains nearly still across the danger line", () => {
+    const world = new FakePhysicsWorld();
+    const runtime = new GameRuntime({
+      physics: () => world,
+      renderer: new FakeRenderer(),
+      symbols: ["A"],
+      soloConfig: { spawnIntervalMs: 10_000 },
+      requestFrame: () => 1,
+      cancelFrame: () => undefined,
+    });
+    runtime.start();
+    world.states.set("stable-danger", {
+      id: "stable-danger",
+      symbol: "A",
+      x: 100,
+      y: 180,
+      angle: 0,
+      velocityX: 0.01,
+      velocityY: 0.01,
+      angularVelocity: 0.001,
+      settled: false,
+    });
+
+    for (let elapsed = 0; elapsed < 288; elapsed += 32) runtime.advance(32);
+    expect(runtime.snapshot().runState).toBe("RUNNING");
+    runtime.advance(32);
+    expect(runtime.snapshot().runState).toBe("GAME_OVER");
+    runtime.dispose();
+  });
+
+  it("keeps playing while a letter crossing the danger line is still moving", () => {
+    const world = new FakePhysicsWorld();
+    const runtime = new GameRuntime({
+      physics: () => world,
+      renderer: new FakeRenderer(),
+      symbols: ["A"],
+      soloConfig: { spawnIntervalMs: 10_000 },
+      requestFrame: () => 1,
+      cancelFrame: () => undefined,
+    });
+    runtime.start();
+    world.states.set("moving-danger", {
+      id: "moving-danger",
+      symbol: "A",
+      x: 100,
+      y: 180,
+      angle: 0,
+      velocityX: 0.2,
+      velocityY: 0.1,
+      angularVelocity: 0.02,
+      settled: false,
+    });
+
+    for (let elapsed = 0; elapsed < 640; elapsed += 32) runtime.advance(32);
+    expect(runtime.snapshot().runState).toBe("RUNNING");
+    runtime.dispose();
+  });
+
   it("keeps the danger line at the same board ratio after resize", () => {
     const { runtime, world } = createRuntime();
     runtime.resizeViewport(640, 480);
@@ -229,6 +287,43 @@ describe("GameRuntime", () => {
     if (released) world.states.set(released.id, { ...released, y: DEFAULT_SOLO_GAME_CONFIG.letterHeight * 1.2 });
     runtime.advance(1);
     expect(runtime.snapshot().queuedSymbol).toBe("A");
+    runtime.dispose();
+  });
+
+  it("queues the next paper target when a released glyph settles on a tall but safe stack", () => {
+    const world = new FakePhysicsWorld();
+    const runtime = new GameRuntime({
+      physics: () => world,
+      renderer: new FakeRenderer(),
+      symbols: ["A"],
+      now: () => 100,
+      random: () => 0,
+      soloConfig: {
+        autoDropEnabled: false,
+        letterHeight: 220,
+        dangerLineY: 160,
+      },
+      requestFrame: () => 1,
+      cancelFrame: () => undefined,
+    });
+
+    runtime.start();
+    for (let elapsed = 0; elapsed < 96; elapsed += 32) runtime.advance(32);
+    runtime.submitSymbol("A");
+    for (let elapsed = 0; elapsed < 768; elapsed += 32) runtime.advance(32);
+
+    const released = world.getLetterState("letter-1");
+    expect(runtime.snapshot().queuedSymbol).toBeNull();
+    if (released) {
+      world.states.set(released.id, { ...released, y: 240, settled: true });
+      world.queuedEvents.push({ type: "LETTER_SETTLED", id: released.id });
+    }
+    runtime.advance(1);
+
+    expect(runtime.snapshot()).toMatchObject({
+      runState: "RUNNING",
+      queuedSymbol: "A",
+    });
     runtime.dispose();
   });
 

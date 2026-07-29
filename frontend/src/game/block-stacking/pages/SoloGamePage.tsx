@@ -14,7 +14,6 @@ import {
   SoloSessionCoordinator,
   TetrisWeightApi,
   toCompleteSoloSessionRequest,
-  toElapsedScoreSeconds,
   type SoloGameApi,
   type SoloGameResult,
 } from "../solo/api";
@@ -49,6 +48,10 @@ const OTTER_WALK_FRAMES = [
 // busy AI connection drops stale work instead of making the hand overlay lag.
 const SOLO_RECOGNITION_RATE_CONFIG = RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG;
 const SOLO_DECODER_CONFIG = RESPONSIVE_GAMEPLAY_SIGN_DECODER_CONFIG;
+// Large solo blocks shorten the round and make each successful sign visually
+// consequential. Renderer, physics, and game-over geometry must always share
+// this exact value.
+const SOLO_LETTER_SIZE = 220;
 
 const INITIAL_SNAPSHOT: GameRuntimeSnapshot = {
   runState: "IDLE",
@@ -122,7 +125,12 @@ export function SoloGamePage({
   const [soloRank, setSoloRank] = useState<number | null>(null);
   const [otterWalking, setOtterWalking] = useState(false);
   const [cameraStream,setCameraStream]=useState(()=>sharedCameraSession.getStream());
-  const rendererConfig = useMemo(() => ({ dangerLineY: 160, dangerLineRatio: 1 / 6, letterWidth: 140, letterHeight: 140 }), []);
+  const rendererConfig = useMemo(() => ({
+    dangerLineY: 160,
+    dangerLineRatio: 1 / 6,
+    letterWidth: SOLO_LETTER_SIZE,
+    letterHeight: SOLO_LETTER_SIZE,
+  }), []);
   useSharedCameraOwnerCleanup(sharedCameraSession);
 
   if (controllerRef.current === null) {
@@ -160,15 +168,28 @@ export function SoloGamePage({
         ...DEFAULT_PHYSICS_CONFIG,
         width: viewport.width,
         height: viewport.height,
-        letterWidth: 140,
-        letterHeight: 140,
+        letterWidth: SOLO_LETTER_SIZE,
+        letterHeight: SOLO_LETTER_SIZE,
+        // Keep some natural movement, but prevent the pile from spreading across
+        // the whole floor before it can build toward the finish line.
+        gravityY: 0.32,
+        maxFallSpeed: 4.1,
+        friction: 0.14,
+        frictionAir: 0.0045,
+        restitution: 0.035,
+        // A leaning letter must keep reacting to later collisions rather than
+        // being converted into an immovable block after a brief pause.
+        settleDurationMs: 4_000,
+        linearVelocityThreshold: 0.018,
+        angularVelocityThreshold: 0.002,
+        freezeSettledBodies: false,
       }),
       soloConfig: {
         boardWidth: viewport.width,
         boardHeight: viewport.height,
         autoDropEnabled: false,
         dangerLineY: 160,
-        letterHeight: 140,
+        letterHeight: SOLO_LETTER_SIZE,
       },
     });
     runtimeRef.current = runtime;
@@ -453,11 +474,13 @@ export function SoloGamePage({
                 <div>
                   <p className="eyebrow">SOLO RESULT</p>
                   <h2>수어 연습 완료!</h2>
-                  <strong>{toElapsedScoreSeconds(snapshot.playTimeMs).toLocaleString()}초</strong>
-                  <p>도달 기록 {formatPlayTime(snapshot.playTimeMs)} · 최고 콤보 {snapshot.bestCombo} · 제거 {snapshot.removedCount}개</p>
+                  <strong>{formatPlayTime(snapshot.playTimeMs)}</strong>
                   <b>{soloRank ? `현재 솔로 랭킹 ${soloRank}위` : savedResult ? "기록 저장 완료" : "기록 저장 중..."}</b>
                 </div>
-                <button type="button" onClick={restart}>다시 하기</button>
+                <div className="solo-result-actions">
+                  <button type="button" onClick={restart}>다시 하기</button>
+                  <button type="button" className="is-home" onClick={() => navigate("/game")}>홈으로</button>
+                </div>
               </section>
             </div>
           )}

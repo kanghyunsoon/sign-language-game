@@ -21,6 +21,12 @@ const PAPER_GROW_DURATION_MS = 760;
 // A confirmation may already be in flight when the first round starts; if it
 // releases in that same render, the first glyph appears to burst instantly.
 const PAPER_TARGET_ARM_DURATION_MS = 80;
+// The general physics settlement window is intentionally long so letters can
+// keep rolling. At the finish line we only need a short, continuous stillness
+// window to know that the stack will not fall away again.
+const DANGER_STABLE_DURATION_MS = 320;
+const DANGER_LINEAR_SPEED_THRESHOLD = 0.05;
+const DANGER_ANGULAR_SPEED_THRESHOLD = 0.005;
 
 export class GameRuntime {
   private readonly renderer: GameRenderer;
@@ -52,6 +58,7 @@ export class GameRuntime {
   private playTimeMs = 0;
   private lastRemovalAt: number | null = null;
   private readonly newlySettledIds = new Set<string>();
+  private readonly dangerStableDurationById = new Map<string, number>();
   private symbolWeights: Readonly<Record<string, number>> = {};
   private lastPickedSymbol: string | null = null;
   private queuedSymbol: string | null = null;
@@ -143,6 +150,7 @@ export class GameRuntime {
     this.playTimeMs = 0;
     this.lastRemovalAt = null;
     this.newlySettledIds.clear();
+    this.dangerStableDurationById.clear();
     this.lastPickedSymbol = null;
     this.queuedSymbol = null;
     this.queuedSymbolArmRemainingMs = 0;
@@ -280,7 +288,7 @@ export class GameRuntime {
     const states = this.physics.getLetterStates();
     this.updatePaperRelease(states);
     this.renderer.render(states);
-    this.checkDangerLine(states);
+    this.checkDangerLine(states, boundedDelta);
   }
 
   dispose(): void {
@@ -430,7 +438,11 @@ export class GameRuntime {
     // Keep the paper empty until the same physical glyph has cleared it.
     // This prevents the next target from appearing underneath the falling
     // glyph and looking like a second, rear-layer copy.
-    if (released && released.y < this.config.letterHeight * 1.15) return;
+    // Usually the next target appears after the released glyph has cleared the
+    // paper. Near the end of a round, however, a tall but still-safe stack can
+    // stop the glyph just above that clearance point. A settled glyph is no
+    // longer covering the paper, so it must not block the next target forever.
+    if (released && !released.settled && released.y < this.config.letterHeight * 1.15) return;
     this.paperReleaseLetterId = null;
     this.queueNextSymbol();
     this.lastMessage = "Next paper letter is ready.";
@@ -489,16 +501,39 @@ export class GameRuntime {
     this.renderer.setTarget(target?.id ?? null);
   }
 
-  private checkDangerLine(states: readonly PhysicsLetterState[]): void {
+  private checkDangerLine(states: readonly PhysicsLetterState[], deltaMs: number): void {
     const dangerLineY = this.boardHeight * (this.config.dangerLineY / this.config.boardHeight);
-    // Only a letter which has actually joined the stack can end the game.
-    // Falling or bouncing letters must never trigger a premature game-over.
     const visibleHalfHeight = this.config.letterHeight * 0.32;
-    const danger = states.some((state) => (
-      this.newlySettledIds.has(state.id)
-      && state.settled
-      && state.y - visibleHalfHeight <= dangerLineY
-    ));
+    const activeDangerIds = new Set<string>();
+    let danger = false;
+
+    for (const state of states) {
+      if (state.y - visibleHalfHeight > dangerLineY) continue;
+      activeDangerIds.add(state.id);
+
+      if (this.newlySettledIds.has(state.id) && state.settled) {
+        danger = true;
+        break;
+      }
+
+      const isNearlyStill = Math.hypot(state.velocityX, state.velocityY) <= DANGER_LINEAR_SPEED_THRESHOLD
+        && Math.abs(state.angularVelocity) <= DANGER_ANGULAR_SPEED_THRESHOLD;
+      if (!isNearlyStill) {
+        this.dangerStableDurationById.delete(state.id);
+        continue;
+      }
+
+      const stableDuration = (this.dangerStableDurationById.get(state.id) ?? 0) + deltaMs;
+      this.dangerStableDurationById.set(state.id, stableDuration);
+      if (stableDuration >= DANGER_STABLE_DURATION_MS) {
+        danger = true;
+        break;
+      }
+    }
+
+    for (const id of this.dangerStableDurationById.keys()) {
+      if (!activeDangerIds.has(id)) this.dangerStableDurationById.delete(id);
+    }
     this.newlySettledIds.clear();
     if (!danger) return;
     this.runState = "GAME_OVER";
