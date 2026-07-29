@@ -66,8 +66,8 @@ export function MainPage() {
               </div>
 
               <div className="board">
-                <strong>오늘의 학습</strong>
-                <span>연습 3개 · 복습 2개</span>
+                {/* <strong>오늘의 학습</strong>
+                <span>연습 3개 · 복습 2개</span> */}
               </div>
 
               <div className="plant">
@@ -96,7 +96,7 @@ export function MainPage() {
                 <span className="menu-icon practice">✋</span>
 
                 <span>
-                  <h3>연습하기</h3>
+                  <h3>연습</h3>
                   <p>가이드 동작을 보며 수어 표현을 천천히 익혀요.</p>
                 </span>
               </Link>
@@ -105,7 +105,7 @@ export function MainPage() {
                 <span className="menu-icon test">✓</span>
 
                 <span>
-                  <h3>테스트하기</h3>
+                  <h3>테스트</h3>
                   <p>배운 내용을 퀴즈 형식으로 확인하고 점수를 기록해요.</p>
                 </span>
               </Link>
@@ -123,7 +123,7 @@ export function MainPage() {
                 <span className="menu-icon game">🎮</span>
 
                 <span>
-                  <h3>게임하기</h3>
+                  <h3>게임</h3>
                   <p>간단한 게임을 통해 수어를 연습해요.</p>
                 </span>
               </button>

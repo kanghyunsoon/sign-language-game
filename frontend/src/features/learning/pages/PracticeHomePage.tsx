@@ -137,7 +137,7 @@ export function PracticeHomePage() {
             />
           </div>
 
-          <h1 className="practice-title">연습하기</h1>
+          <h1 className="practice-title">연습 수달</h1>
 
           <div className="practice-category-list">
             {practiceCategories

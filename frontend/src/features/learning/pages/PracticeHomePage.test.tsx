@@ -56,7 +56,7 @@ describe("PracticeHomePage 기본 진입", () => {
     renderPage();
 
     expect(screen.getByRole("button", { name: /자음 연습/ })).toBeTruthy();
-    expect(screen.getByText("연습하기")).toBeTruthy();
+    expect(screen.getByText("연습 수달")).toBeTruthy();
   });
 });
 
@@ -64,7 +64,7 @@ describe("PracticeHomePage 오답노트 연동", () => {
   it("symbols 파라미터로 들어오면 분류 선택을 건너뛰고 바로 연습한다", () => {
     renderPageWithSymbols("ㄱ,ㄴ,ㄷ");
 
-    expect(screen.queryByText("연습하기")).toBeNull();
+    expect(screen.queryByText("연습 수달")).toBeNull();
     expect(readProgress()).toBe("1 / 3");
   });
 
@@ -90,6 +90,6 @@ describe("PracticeHomePage 오답노트 연동", () => {
   it("알 수 없는 글자만 넘어오면 분류 선택 화면을 그대로 보여준다", () => {
     renderPageWithSymbols("쀍,zz");
 
-    expect(screen.getByText("연습하기")).toBeTruthy();
+    expect(screen.getByText("연습 수달")).toBeTruthy();
   });
 });
