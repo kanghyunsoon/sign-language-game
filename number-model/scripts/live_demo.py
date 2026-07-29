@@ -73,11 +73,13 @@ class ConfirmationWindow:
         self.frames: deque[tuple[int, bool, float]] = deque()
         self.missing_since: int | None = None
         self.confirmed_at: int | None = None
+        self.run_start: int | None = None
 
     def reset(self) -> None:
         self.frames.clear()
         self.missing_since = None
         self.confirmed_at = None
+        self.run_start = None
 
     def observe(self, now_ms: int, detected: bool, target_confidence: float) -> None:
         if not detected:
@@ -85,18 +87,24 @@ class ConfirmationWindow:
                 self.missing_since = now_ms
             elif now_ms - self.missing_since > self.grace_ms:
                 self.frames.clear()
+                self.run_start = None
             return
         self.missing_since = None
+        if self.run_start is None:
+            self.run_start = now_ms
         self.frames.append((now_ms, True, target_confidence))
         while self.frames and now_ms - self.frames[0][0] > self.window_ms:
             self.frames.popleft()
 
     def status(self, now_ms: int) -> tuple[float, float, bool]:
         """Return (window average, held fraction, confirmed)."""
-        if not self.frames:
+        if not self.frames or self.run_start is None:
             return 0.0, 0.0, False
-        span = now_ms - self.frames[0][0]
-        held = min(1.0, span / self.window_ms) if self.window_ms else 0.0
+        # How long the hand has been held without a break, not how much the
+        # trailing buffer spans. Anything older than the window was just dropped,
+        # so the buffer's span never exceeds it and a ratio built on it only
+        # reaches 1.0 on an exact tie -- which made confirmation land by luck.
+        held = min(1.0, (now_ms - self.run_start) / self.window_ms) if self.window_ms else 0.0
         average = float(np.mean([value for _, _, value in self.frames]))
         # The valid-frame ratio needs a frame rate to be meaningful; the browser
         # samples at a fixed rate, so approximate it from what arrived in the window.
