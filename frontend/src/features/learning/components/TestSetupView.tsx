@@ -87,8 +87,6 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
           />
         </div>
 
-        <h1 className="test-setup-title">테스트</h1>
-
         <p className="test-setup-description">
           연습한 지문자를 문제로 풀어보세요. 문항당 제한 시간은{" "}
           {TEST_TIME_LIMIT_SECONDS}초입니다.
@@ -126,12 +124,17 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
                     {category.symbol}
                   </span>
 
-                  <span className="test-category-label">{category.label}</span>
+                  {/* 글자는 왼쪽에 크게, 분류명과 글자 수는 그 오른쪽에 위아래로 둔다. */}
+                  <span className="test-category-text">
+                    <span className="test-category-label">
+                      {category.label}
+                    </span>
 
-                  <span className="test-category-count">
-                    {isAvailable
-                      ? `${fingerspellingItems[category.id].length}자`
-                      : "준비중"}
+                    <span className="test-category-count">
+                      {isAvailable
+                        ? `${fingerspellingItems[category.id].length}자`
+                        : "준비중"}
+                    </span>
                   </span>
                 </button>
               );
