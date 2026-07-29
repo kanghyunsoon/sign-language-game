@@ -23,21 +23,21 @@ const practiceCategories: PracticeCategory[] = [
     id: "consonant",
     symbol: "ㄱ",
     title: "자음 연습",
-    description: "ㄱ부터 ㅎ까지 기본 자음 14개를 연습합니다.",
+    description: "기본 자음 14개를 연습합니다.",
     count: 14,
   },
   {
     id: "vowel",
     symbol: "ㅏ",
     title: "모음 연습",
-    description: "ㅏ부터 ㅢ까지 기본 모음 17개를 연습합니다.",
+    description: "기본 모음 17개를 연습합니다.",
     count: 17,
   },
   {
     id: "number",
     symbol: "1",
     title: "숫자 연습",
-    description: "1부터 10까지 기본 숫자 10개를 연습합니다.",
+    description: "기본 숫자 10개를 연습합니다.",
     count: 10,
   },
   {
@@ -174,7 +174,7 @@ export function PracticeHomePage() {
 
                     {category.count !== undefined && (
                       <span className="practice-category-count">
-                        총 {category.count}문제
+                        {category.count}문제
                       </span>
                     )}
                   </button>
