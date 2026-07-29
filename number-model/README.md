@@ -12,18 +12,21 @@
 
 ## 현재 성능
 
-레시피 결정에 쓰이지 않은 **신규 참가자 3명**(240장) 기준. 이것이 가장 신뢰할 수 있는 값이다.
+학습 참가자 11명. 학습에도 검증에도 쓰이지 않은 **잠금 시험 세트 `p14`·`p15`**(158장) 기준이다.
 
 | | 값 |
 | --- | ---: |
-| 숫자 정확도 | 0.946 |
-| **확정률** | **0.800** |
-| 미학습 손모양 오확정 | 1.2% |
+| 숫자 정확도 | 0.956 |
+| **확정률** | **0.810** |
+| 최저 확정률 | 0.562 (`9`) |
+| 미학습 손모양 오확정 | 4.3% |
 | `targetMet` | **false** |
 
 `recognition-policy.json`의 `minimumConfirmationRate`가 0.85이므로 아직 미달이다. `contracts/readiness-number.json`이 전 class를 부적격으로 두어 경쟁 모드에 노출되지 않는다.
 
 **병목은 참가자 수다.** 1인당 장수는 6장에서 8장으로 늘려도 +0.008뿐이라 포화됐고, 학습 인원은 2→4명에서 최악 최저 확정률이 0.000→0.375로 아직 상승 중이다. 근거는 회차 로그의 「다음 회차」 절에 있다.
+
+`p14`·`p15`는 T-163에서 임계값 곡선을 그리는 데 썼으므로 **더 이상 완전한 잠금 세트가 아니다.** 다음 참가자 중 최소 2명을 새로 봉인해야 한다.
 
 ## 구조
 
@@ -81,14 +84,26 @@ python scripts/extract_number_frames.py --dataset <소스> --output <npz> \
   --layout participant --running-mode video \
   --source-name <태그> --license <라이선스> --landmarker <hand_landmarker.task>
 
-# 2) 학습·평가
+# 2) 부분만 쓸 수 있는 참가자 걸러내기 (해당할 때만)
+python scripts/filter_features.py --input <npz> --output <npz> \
+  --drop-participants p07 \
+  --drop-participant-labels p10:6,7,8,9 p11:6,7,8,9 p12:6,7,8,9 --reason "<왜>"
+
+# 3) 학습·평가
 python scripts/train_number_model.py --features <npz>... \
   --candidate extra-trees --max-features 0.3 --none-sample 200 \
-  --drop-source-folders space,bieup,nieun,a --none-holdout-fraction 0.25 \
+  --drop-source-folders space,bieup,nieun,a,ieung --none-holdout-fraction 0.25 \
   --test-participants <...> --valid-participants <...> --write-bundle
+
+# 4) 잠금 시험 세트 채점 (학습 경로를 거치지 않음)
+python scripts/evaluate_holdout.py --features <npz> --figure <png> --report <json>
 ```
 
-`--drop-source-folders`의 네 폴더는 임의 선택이 아니다. `space`·`bieup`ㅂ은 숫자 `4`, `nieun`ㄴ은 `6`, `a`ㅏ는 `1`과 실질적으로 같은 손모양이라 `none`으로 가르치면 모순이 된다. 나머지 32개 폴더는 leave-one-out으로 검증해 뺄 이유가 없음을 확인했다. 근거는 회차 로그 T-153·T-157에 있다.
+`--drop-source-folders`의 다섯 폴더는 임의 선택이 아니다. `space`·`bieup`ㅂ은 숫자 `4`, `nieun`ㄴ은 `6`, `a`ㅏ는 `1`, `ieung`ㅇ은 `10`과 실질적으로 같은 손모양이라 `none`으로 가르치면 모순이 된다. 나머지 31개 폴더는 leave-one-out으로 검증해 뺄 이유가 없음을 확인했다. 근거는 회차 로그 T-153·T-157·T-163에 있다.
+
+`ieung`은 한동안 예외로 유지했다가 T-163에서 뒤집었다. 유지 근거였던 오확정 상승이 **서로 다른 negative 폴더를 비교한 결과**였고, 같은 폴더로 통일하니 제외 쪽이 오히려 낮았다(0.070 → 0.043).
+
+`p10`~`p12`는 6~9를 손바닥이 보이게 지어 그 네 숫자만 뺐다. 1~5와 10은 recall 1.000으로 멀쩡하다. `p07`은 180×320 썸네일이라 전량 제외다.
 
 원본 이미지와 npz는 저장소에 넣지 않는다. 라이선스·용량 때문이며, 실명도 저장소에 들어가지 않게 참가자 ID는 `p01` 형식만 쓴다.
 
@@ -100,6 +115,8 @@ python scripts/train_number_model.py --features <npz>... \
 | `probe_none_collisions.py` | negative 중 어떤 손모양이 어느 숫자와 충돌하는지. `nieun`·`a` 충돌을 이 도구가 짚어냈다 |
 | `probe_hybrid.py` | 게이트+헤드 합성 측정 (폐기했으나 근거로 보존) |
 | `live_demo.py` | 웹캠 실시간. 오프라인 표로는 안 보이는 문제를 잡는다 — 숫자 `1`이 확정되지 않던 것과 `10`이 `none`과 겹치는 것을 이 데모가 발견했다 |
+| `filter_features.py` | 참가자 단위 또는 참가자·라벨 단위 제외. 무엇을 왜 뺐는지 감사 파일에 남겨 번들을 플래그가 아니라 결정으로 되짚게 한다 |
+| `evaluate_holdout.py` | 완성된 번들을 **불러오기만** 해서 채점하고 컨퓨전 매트릭스를 그린다. 학습을 못 하도록 학습기와 분리했다 — 채점이 학습 경로를 거치면 잠금 시험 세트가 더 이상 잠겨 있지 않다 |
 
 ## 사본 관리
 
