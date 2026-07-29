@@ -310,6 +310,21 @@
   transform: none;
 }
 
+/*
+ * [연습 시작하기]만 배경색을 따로 쓴다. [연습 방법 보기]는 흰 배경 그대로 두고,
+ * 마우스를 올렸을 때 색(#5f402b)은 두 버튼 모두 기존 값을 유지한다.
+ * 지정색을 그대로 보여주려고 비활성 상태의 opacity는 되돌린다.
+ */
+.practice-start-button {
+  background-color: #b0a99d;
+}
+
+.practice-start-button:disabled,
+.practice-start-button:disabled:hover {
+  background: #ebe9e6;
+  opacity: 1;
+}
+
 .practice-guide-overlay {
   position: absolute;
   z-index: 10;
