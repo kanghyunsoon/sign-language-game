@@ -144,7 +144,10 @@
 }
 
 /* 메인페이지 .panel과 동일한 패널 토큰 */
+/* 오답 글자가 많아도 페이지가 늘어나지 않도록 높이를 오른쪽 상세 카드에 맞춰
+   가둔다. 넘치는 부분은 카드 그리드 안에서만 스크롤한다. */
 .review-notes-list-panel {
+  max-height: 780px;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -258,13 +261,31 @@
 }
 
 /* 바둑판 카드 그리드. 폭이 좁아지면 열 수가 자동으로 줄어든다. */
+/* 스크롤 대상은 카드 그리드뿐이다. 위쪽 필터·[선택]과 아래쪽 액션 바는
+   패널의 flex 형제라 스크롤 범위에 들어가지 않는다. */
 .review-notes-grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+  align-content: start;
   gap: 14px;
   margin: 0;
-  padding: 0;
+  /* 스크롤바와 카드가 붙지 않도록 */
+  padding: 0 4px 0 0;
   list-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: #979797 transparent;
+}
+
+.review-notes-grid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.review-notes-grid::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #979797;
 }
 
 .review-notes-card {
