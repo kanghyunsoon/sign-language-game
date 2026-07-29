@@ -11,6 +11,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @Slf4j
@@ -81,6 +82,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(ErrorCode.UNAUTHENTICATED.getStatus())
                 .body(new ErrorResponse(
                         ErrorCode.UNAUTHENTICATED.name(), ErrorCode.UNAUTHENTICATED.getDefaultMessage()));
+    }
+
+    /**
+     * 응답에 더 쓸 수 없게 된 비동기 요청(SSE 구독자 이탈 등). 아래 catch-all이 잡으면 두 가지가
+     * 잘못된다 — 정상적인 사용자 이탈이 ERROR "처리되지 않은 예외"로 기록되고, 응답
+     * Content-Type이 이미 {@code text/event-stream}으로 확정돼 있어 {@code ErrorResponse}를
+     * 쓸 컨버터가 없어 {@code HttpMessageNotWritableException} 2차 실패까지 남는다.
+     *
+     * <p>반환형을 {@code void}로 두어 본문을 아예 쓰지 않는다. 애초에 클라이언트가 없으므로
+     * 내려보낼 응답도 필요 없다. 원인 추적이 필요한 경우를 위해 DEBUG로만 남긴다.
+     */
+    @ExceptionHandler(AsyncRequestNotUsableException.class)
+    public void handleAsyncRequestNotUsable(AsyncRequestNotUsableException e) {
+        log.debug("클라이언트가 이미 끊긴 비동기 응답에 전송 시도: {}", e.getMessage());
     }
 
     /**
