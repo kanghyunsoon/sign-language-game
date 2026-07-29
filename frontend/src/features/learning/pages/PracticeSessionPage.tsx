@@ -54,9 +54,9 @@ export function PracticeSessionPage({
   const recognizer = useMemo(
     () =>
       new PythonWebSocketSignRecognizer({
-        url: getAiWebSocketUrl(),
+        url: getAiWebSocketUrl(categoryId === "number"),
       }),
-    [],
+    [categoryId],
   );
 
   const [currentIndex, setCurrentIndex] = useState(0);
