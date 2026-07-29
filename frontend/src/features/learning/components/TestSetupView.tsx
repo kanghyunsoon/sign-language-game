@@ -42,6 +42,19 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
   // 보유 글자보다 많이 고르면 가능한 개수로 줄여 출제한다.
   const isCountReduced = resolvedCount > 0 && resolvedCount < requestedCount;
 
+  /**
+   * 직접 입력값을 출제 가능한 최대치로 잘라 넣는다.
+   * 넘겨 적어도 어차피 최대치로 출제되므로, 입력칸이 실제 출제 수를 그대로 보여준다.
+   * 분류를 하나도 고르지 않았으면 최대치가 0이라 자를 기준이 없어 입력값을 그대로 둔다.
+   */
+  const handleCustomCountChange = (rawValue: string) => {
+    const requested = Number(rawValue) || 0;
+
+    setCustomCount(
+      availableCount > 0 ? Math.min(requested, availableCount) : requested,
+    );
+  };
+
   const handleCategoryToggle = (categoryId: TestCategoryId) => {
     setSelectedCategories((previous) =>
       previous.includes(categoryId)
@@ -181,9 +194,7 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
                 min={1}
                 max={Math.max(1, availableCount)}
                 value={customCount}
-                onChange={(event) =>
-                  setCustomCount(Number(event.target.value) || 0)
-                }
+                onChange={(event) => handleCustomCountChange(event.target.value)}
               />
 
               <span className="test-count-custom-unit">개</span>

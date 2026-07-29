@@ -102,17 +102,44 @@ describe("TestPage 설정 화면", () => {
     expect(screen.getByText("3문항이 무작위 순서로 출제됩니다.")).toBeTruthy();
   });
 
-  it("보유 글자보다 많이 직접 입력하면 축소 안내를 보여준다", () => {
+  it("보유 글자보다 많이 직접 입력하면 최대 문항 수로 바뀐다", () => {
     renderPage();
 
     fireEvent.click(screen.getByRole("button", { name: "직접 입력" }));
-    fireEvent.change(screen.getByLabelText("문항 수 직접 입력"), {
-      target: { value: "20" },
-    });
+    const input = screen.getByLabelText("문항 수 직접 입력");
+    fireEvent.change(input, { target: { value: "20" } });
 
-    expect(
-      screen.getByText("선택한 분류에는 14자가 있어 14문항으로 출제됩니다."),
-    ).toBeTruthy();
+    // 자음 14자가 최대이므로 입력칸 자체가 14로 바뀐다.
+    expect(input).toHaveProperty("value", "14");
+    expect(screen.getByText("14문항이 무작위 순서로 출제됩니다.")).toBeTruthy();
+  });
+
+  it("최대치 이하로 직접 입력하면 입력값을 그대로 쓴다", () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "직접 입력" }));
+    const input = screen.getByLabelText("문항 수 직접 입력");
+    fireEvent.change(input, { target: { value: "7" } });
+
+    expect(input).toHaveProperty("value", "7");
+    expect(screen.getByText("7문항이 무작위 순서로 출제됩니다.")).toBeTruthy();
+  });
+
+  it("분류를 넓히면 그만큼 더 큰 문항 수를 입력할 수 있다", () => {
+    renderPage();
+
+    // 자음(14)만 고른 상태에서는 20이 14로 잘린다.
+    fireEvent.click(screen.getByRole("button", { name: "직접 입력" }));
+    const input = screen.getByLabelText("문항 수 직접 입력");
+    fireEvent.change(input, { target: { value: "20" } });
+
+    expect(input).toHaveProperty("value", "14");
+
+    // 모음(17)까지 더하면 최대 31자가 되어 20을 그대로 넣을 수 있다.
+    fireEvent.click(screen.getByRole("button", { name: /모음/ }));
+    fireEvent.change(input, { target: { value: "20" } });
+
+    expect(input).toHaveProperty("value", "20");
   });
 
   it("직접 입력을 0으로 두면 시작할 수 없다", () => {
