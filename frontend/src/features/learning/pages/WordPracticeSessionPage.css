@@ -1,0 +1,120 @@
+.word-answer-guide {
+  justify-content: center;
+}
+
+.word-current-index {
+  position: absolute;
+  top: min(1.458333vw, 2.333333vh);
+  left: min(1.458333vw, 2.333333vh);
+  width: min(3.385417vw, 5.416667vh);
+  height: min(3.385417vw, 5.416667vh);
+  display: grid;
+  place-items: center;
+  border-radius: min(0.885417vw, 1.416667vh);
+  color: #485052;
+  font-size: min(1.5625vw, 2.5vh);
+  font-weight: 900;
+  background: #ffffff;
+}
+
+.word-guide-placeholder {
+  width: min(19.270833vw, 30.833333vh);
+  height: min(15.625vw, 25vh);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: min(0.833333vw, 1.333333vh);
+  border: min(0.104167vw, 0.166667vh) dashed #cbbda9;
+  border-radius: min(1.145833vw, 1.833333vh);
+  color: #7d6d61;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.word-guide-placeholder span {
+  font-size: min(3.125vw, 5vh);
+}
+
+.word-guide-placeholder p,
+.word-id-label {
+  margin: 0;
+}
+
+.word-guide-placeholder p {
+  font-size: min(1.041667vw, 1.666667vh);
+  font-weight: 700;
+}
+
+.word-id-label {
+  color: #9a8d82;
+  font-size: min(0.885417vw, 1.416667vh);
+  font-weight: 700;
+}
+
+.word-hand-camera,
+.word-hand-camera video,
+.word-hand-camera canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.word-hand-camera {
+  overflow: hidden;
+  background: #1f2528;
+}
+
+.word-hand-camera video,
+.word-hand-camera canvas {
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.word-hand-camera canvas {
+  pointer-events: none;
+}
+
+.word-camera-error {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  z-index: 3;
+  margin: 0;
+  color: #ffffff;
+  font-weight: 800;
+  transform: translate(-50%, -50%);
+}
+
+.word-prediction-badge {
+  position: absolute;
+  top: min(0.833333vw, 1.333333vh);
+  right: min(0.833333vw, 1.333333vh);
+  z-index: 4;
+  padding: min(0.364583vw, 0.583333vh) min(0.625vw, 1vh);
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: min(0.78125vw, 1.25vh);
+  font-weight: 900;
+  background: rgba(30, 37, 41, 0.78);
+}
+
+.word-single-user-notice {
+  min-height: min(2.5vw, 4vh);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: min(0.625vw, 1vh);
+  margin: 0;
+  padding: 0 min(1.041667vw, 1.666667vh);
+  color: #7d6d61;
+  font-size: min(0.78125vw, 1.25vh);
+  font-weight: 700;
+}
+
+.word-single-user-notice span {
+  white-space: nowrap;
+}
+
+.word-single-user-notice span[data-state="CONNECTED"] {
+  color: #67824f;
+}
