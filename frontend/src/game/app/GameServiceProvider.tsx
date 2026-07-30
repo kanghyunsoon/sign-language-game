@@ -59,6 +59,12 @@ export function GameServiceProvider({ children, user, accessToken, config, onExi
     persistBattleRoomSession(user.userId, session);
   }, [user.userId]);
   const [turnBattleRoomSession, setTurnBattleRoomSession] = useState<BattleRoomSession | null>(null);
+  useEffect(() => {
+    // Auth hydration can replace the initial user object after this provider
+    // has mounted. Re-read the room bookmark for that authenticated identity
+    // instead of leaving a refreshed /play route with an empty session.
+    setBattleRoomSessionState((current) => current && String(current.currentUser.userId) === String(user.userId) ? current : readBattleRoomSession(user.userId));
+  }, [user.userId]);
   const services = useMemo(
     () => ({ ...createDefaultServices(user, accessToken, config, () => battleMediaSession.getGameDataChannel()), ...serviceOverrides }),
     [accessToken, config, serviceOverrides, user],
@@ -101,10 +107,13 @@ const BATTLE_ROOM_SESSION_KEY_PREFIX = "sudal:block-battle:room:";
 function readBattleRoomSession(userId: string): BattleRoomSession | null {
   try {
     if (typeof window === "undefined") return null;
-    const raw = window.sessionStorage.getItem(BATTLE_ROOM_SESSION_KEY_PREFIX + userId);
+    const key = BATTLE_ROOM_SESSION_KEY_PREFIX + userId;
+    const raw = window.sessionStorage.getItem(key) ?? window.localStorage.getItem(key);
     if (!raw) return null;
     const session = JSON.parse(raw) as BattleRoomSession;
-    return session?.roomId && session.currentUser?.userId === userId ? session : null;
+    // Earlier builds persisted a numeric user id. Keep its room recovery
+    // entry when it still belongs to this authenticated browser user.
+    return session?.roomId && String(session.currentUser?.userId) === String(userId) ? session : null;
   } catch {
     return null;
   }
@@ -114,8 +123,14 @@ function persistBattleRoomSession(userId: string, session: BattleRoomSession | n
   try {
     if (typeof window === "undefined") return;
     const key = BATTLE_ROOM_SESSION_KEY_PREFIX + userId;
-    if (session) window.sessionStorage.setItem(key, JSON.stringify(session));
-    else window.sessionStorage.removeItem(key);
+    if (session) {
+      const serialized = JSON.stringify(session);
+      window.sessionStorage.setItem(key, serialized);
+      window.localStorage.setItem(key, serialized);
+    } else {
+      window.sessionStorage.removeItem(key);
+      window.localStorage.removeItem(key);
+    }
   } catch {
     // Browser privacy settings can disable session storage; gameplay still works.
   }
