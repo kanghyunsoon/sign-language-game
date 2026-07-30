@@ -105,7 +105,7 @@ export function BattleGamePage() {
       const effect = { id: event.acceptedAt, symbol: event.symbol };
       setClaimedSymbol(effect);
       if (claimEffectTimerRef.current !== null) window.clearTimeout(claimEffectTimerRef.current);
-      claimEffectTimerRef.current = window.setTimeout(() => { claimEffectTimerRef.current = null; setClaimedSymbol(null); }, 760);
+      claimEffectTimerRef.current = window.setTimeout(() => { claimEffectTimerRef.current = null; setClaimedSymbol(null); }, 1_650);
     } });
     localRuntimeRef.current = runtime; controllerRef.current = controller; const unsubscribe = controller.subscribe(setSnapshot);
     void controller.connect({ url: config.gameWebSocketUrl, roomId, playerId: user.userId, accessToken, headers: accessToken ? undefined : createDevAuthHeaders(user), hostPlayerId: battleRoomSession?.hostUserId, playerIds: [...new Set(battleRoomSession?.participants.map((participant) => participant.userId) ?? [user.userId])] });
@@ -186,10 +186,9 @@ export function BattleGamePage() {
     <div className={styles.duelLayout}>
       <section className={styles.duelStage} aria-label="공유 목표 1대1 게임판">
         <div className={styles.duelBoards}>
-          <BattleBoardPanel title={user.userId || localPlayerLabel} dropBurst={claimedSymbol} towerHeightRatio={towerHeights.local} toolbar={<div className={styles.boardStats}><span>콤보 <strong>{snapshot.combo}</strong></span></div>} rendererConfig={{ dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO }} onRendererReady={(renderer, viewport) => { localViewportRef.current = viewport; setLocalRenderer(renderer); localRuntimeRef.current?.resize(viewport.width, viewport.height); }} onViewportResize={(viewport) => { localViewportRef.current = viewport; localRuntimeRef.current?.resize(viewport.width, viewport.height); }} />
-          <BattleBoardPanel className={styles.remoteBoardPanel} title={opponent?.displayName ?? remotePlayerLabel} towerHeightRatio={towerHeights.remote} rendererConfig={{ dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO }} onRendererReady={(renderer, viewport) => { remoteViewportRef.current = viewport; setRemoteRenderer(renderer); replica.resize(viewport.width, viewport.height); }} onViewportResize={(viewport) => { remoteViewportRef.current = viewport; replica.resize(viewport.width, viewport.height); }} />
+          <BattleBoardPanel title={user.userId || localPlayerLabel} dropBurst={claimedSymbol} targetDrain={claimedSymbol} towerHeightRatio={towerHeights.local} toolbar={<div className={styles.boardStats}><span>콤보 <strong>{snapshot.combo}</strong></span></div>} rendererConfig={{ dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO, showScenery: false }} onRendererReady={(renderer, viewport) => { localViewportRef.current = viewport; setLocalRenderer(renderer); localRuntimeRef.current?.resize(viewport.width, viewport.height); }} onViewportResize={(viewport) => { localViewportRef.current = viewport; localRuntimeRef.current?.resize(viewport.width, viewport.height); }} />
+          <BattleBoardPanel className={styles.remoteBoardPanel} title={opponent?.displayName ?? remotePlayerLabel} targetDrain={claimedSymbol} towerHeightRatio={towerHeights.remote} rendererConfig={{ dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO, showScenery: false }} onRendererReady={(renderer, viewport) => { remoteViewportRef.current = viewport; setRemoteRenderer(renderer); replica.resize(viewport.width, viewport.height); }} onViewportResize={(viewport) => { remoteViewportRef.current = viewport; replica.resize(viewport.width, viewport.height); }} />
         </div>
-        {claimedSymbol ? <span key={claimedSymbol.id} className={styles.sharedTargetDrain} aria-hidden="true">{claimedSymbol.symbol}</span> : null}
         <div className={styles.sharedBattleSky} aria-hidden="true">
           <i className={styles.sharedNightSky}/><i className={[styles.sharedCelestial, styles.sharedSun].join(" ")}/><i className={[styles.sharedCelestial, styles.sharedMoon].join(" ")}/><i className={styles.sharedShootingStar}/>
           <i className={[styles.sharedCloud, styles.sharedCloudOne].join(" ")}/><i className={[styles.sharedCloud, styles.sharedCloudTwo].join(" ")}/><i className={[styles.sharedCloud, styles.sharedCloudThree].join(" ")}/>
