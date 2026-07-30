@@ -3,7 +3,6 @@ import type { GameRenderer } from "../../render/types";
 import type { SpawnLetterEvent } from "../transport/battleTransportTypes";
 import type { LocalBoardPublisher } from "../sync/LocalBoardPublisher";
 import { BATTLE_LETTER_SIZE, type BattleRuntimeConfig } from "./BattleRuntimeConfig";
-import { chooseDistributedSpawnX } from "../../runtime/DistributedSpawnPolicy";
 
 interface LetterRecord { readonly id: string; readonly symbol: string; readonly spawnedAt: number; settledAt?: number; pending: boolean; }
 
@@ -29,12 +28,10 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
   stop(): void { this.running = false; if (this.frame !== null) { this.cancelFrame(this.frame); this.frame = null; } }
   spawn(event: SpawnLetterEvent): void {
     if (this.letters.has(event.letterId)) return;
-    const halfLetter = BATTLE_LETTER_SIZE / 2;
-    // An otter throw is a visible, intentional drop. Keep its physical spawn
-    // directly beneath the throw instead of redistributing it to another lane.
-    const x = event.targetPriority
-      ? Math.max(halfLetter, Math.min(this.width - halfLetter, event.normalizedX * this.width))
-      : chooseDistributedSpawnX(this.physics.getLetterStates(), this.width, this.height, BATTLE_LETTER_SIZE, event.normalizedX);
+    // Both players start every confirmed letter from the exact board center.
+    // This makes the local and opponent Matter.js simulations share identical
+    // initial conditions, without depending on streamed transform positions.
+    const x = this.width / 2;
     this.physics.createLetter({ id: event.letterId, symbol: event.symbol, x, y: Math.max(-70, -Math.min(this.width, this.height) * .12), angle: event.initialAngle });
     this.letters.set(event.letterId, { id: event.letterId, symbol: event.symbol, spawnedAt: event.spawnAt, pending: false });
     if (event.targetPriority) this.priorityTargetId = event.letterId;

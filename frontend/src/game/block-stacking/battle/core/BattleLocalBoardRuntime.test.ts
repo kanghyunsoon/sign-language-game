@@ -45,7 +45,7 @@ describe("BattleLocalBoardRuntime", () => {
     expect(view.setTarget).toHaveBeenLastCalledWith("second");
   });
 
-  it("redirects repeated center spawns toward less occupied lanes", () => {
+  it("spawns every confirmed letter at the board center", () => {
     const states = new Map<string, ReturnType<typeof letterState>>();
     const world = physics();
     vi.mocked(world.createLetter).mockImplementation((spec) => { const state = letterState(spec.id, spec.symbol, spec.x, 500); states.set(spec.id, state); return state; });
@@ -58,7 +58,7 @@ describe("BattleLocalBoardRuntime", () => {
     runtime.spawn(spawn("third", "ㄷ", 3));
 
     const xs = vi.mocked(world.createLetter).mock.calls.map(([spec]) => spec.x);
-    expect(new Set(xs).size).toBe(3);
+    expect(xs).toEqual([360, 360, 360]);
   });
 
   it("picks up exactly the letter selected for the otter and promotes the next target", () => {
@@ -77,7 +77,7 @@ describe("BattleLocalBoardRuntime", () => {
     expect(runtime.takeLetterForOtter("missing")).toBeNull();
   });
 
-  it("keeps an otter-thrown priority letter at its thrown horizontal position", () => {
+  it("keeps an otter-thrown priority letter at the board center", () => {
     const world = physics();
     const states = new Map<string, ReturnType<typeof letterState>>();
     vi.mocked(world.createLetter).mockImplementation((spec) => { const state = letterState(spec.id, spec.symbol, spec.x, spec.y); states.set(spec.id, state); return state; });
@@ -85,7 +85,7 @@ describe("BattleLocalBoardRuntime", () => {
     const runtime = new BattleLocalBoardRuntime(world, renderer(), DEFAULT_BATTLE_RUNTIME_CONFIG, undefined, () => 0, () => 1, () => undefined);
     runtime.spawn({ ...spawn("thrown", "ㄷ", 1), normalizedX: .72, targetPriority: true });
 
-    expect(vi.mocked(world.createLetter).mock.calls[0]?.[0].x).toBeCloseTo(DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth * .72);
+    expect(vi.mocked(world.createLetter).mock.calls[0]?.[0].x).toBeCloseTo(DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth / 2);
     expect(runtime.getTargetSymbol()).toBe("ㄷ");
   });
 
