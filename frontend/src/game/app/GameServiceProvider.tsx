@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
 
 import { HttpSoloGameApi, LocalSoloGameApi } from "../block-stacking/solo/api";
 import { DevBattleRoomGateway, SwaggerBattleRoomGateway } from "../block-stacking/battle/room";
@@ -53,7 +53,11 @@ export function GameServiceProvider({ children, user, accessToken, config, onExi
       },
     });
   });
-  const [battleRoomSession, setBattleRoomSession] = useState<BattleRoomSession | null>(null);
+  const [battleRoomSession, setBattleRoomSessionState] = useState<BattleRoomSession | null>(() => readBattleRoomSession(user.userId));
+  const setBattleRoomSession = useCallback((session: BattleRoomSession | null) => {
+    setBattleRoomSessionState(session);
+    persistBattleRoomSession(user.userId, session);
+  }, [user.userId]);
   const [turnBattleRoomSession, setTurnBattleRoomSession] = useState<BattleRoomSession | null>(null);
   const services = useMemo(
     () => ({ ...createDefaultServices(user, accessToken, config, () => battleMediaSession.getGameDataChannel()), ...serviceOverrides }),
@@ -90,6 +94,31 @@ export function GameServiceProvider({ children, user, accessToken, config, onExi
       <GameModuleContext.Provider value={value}>{children}</GameModuleContext.Provider>
     </RecognitionVisionProvider>
   );
+}
+
+const BATTLE_ROOM_SESSION_KEY_PREFIX = "sudal:block-battle:room:";
+
+function readBattleRoomSession(userId: string): BattleRoomSession | null {
+  try {
+    if (typeof window === "undefined") return null;
+    const raw = window.sessionStorage.getItem(BATTLE_ROOM_SESSION_KEY_PREFIX + userId);
+    if (!raw) return null;
+    const session = JSON.parse(raw) as BattleRoomSession;
+    return session?.roomId && session.currentUser?.userId === userId ? session : null;
+  } catch {
+    return null;
+  }
+}
+
+function persistBattleRoomSession(userId: string, session: BattleRoomSession | null): void {
+  try {
+    if (typeof window === "undefined") return;
+    const key = BATTLE_ROOM_SESSION_KEY_PREFIX + userId;
+    if (session) window.sessionStorage.setItem(key, JSON.stringify(session));
+    else window.sessionStorage.removeItem(key);
+  } catch {
+    // Browser privacy settings can disable session storage; gameplay still works.
+  }
 }
 
 function createDefaultServices(user: GameModuleUser, accessToken: string | undefined, config: GameModuleConfig, getGameDataChannel: () => import("../media/core/GameDataChannel").GameDataChannel | null): GameModuleServices {

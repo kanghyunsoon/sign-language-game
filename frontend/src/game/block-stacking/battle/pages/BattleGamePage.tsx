@@ -41,6 +41,7 @@ export function BattleGamePage() {
   const exitCoordinator = useMemo(() => new BattleExitCoordinator({ roomGateway: services.battleRoomGateway, mediaSession: battleMediaSession, cameraSession: sharedCameraSession, clearRoomSession: () => setBattleRoomSession(null), navigate: (destination) => navigate(destination, { replace: true }) }), [battleMediaSession, navigate, services.battleRoomGateway, setBattleRoomSession, sharedCameraSession]);
   const [snapshot, setSnapshot] = useState(INITIAL); const [participants, setParticipants] = useState<readonly RemoteGameParticipant[]>(() => battleMediaSession.getRemoteParticipants());
   const [resultBusy, setResultBusy] = useState(false); const [resultError, setResultError] = useState<string | null>(null);
+  const [mediaReady, setMediaReady] = useState(() => battleMediaSession.getConnectionState() === "CONNECTED");
   const [cameraState, setCameraState] = useState<"CONNECTED" | "DISCONNECTED">(() => sharedCameraSession.getVideoTrack()?.readyState === "live" ? "CONNECTED" : "DISCONNECTED");
   const [rtcState, setRtcState] = useState(() => battleMediaSession.getConnectionState()); const [localRenderer, setLocalRenderer] = useState<GameRenderer | null>(null); const [remoteRenderer, setRemoteRenderer] = useState<GameRenderer | null>(null);
   const resultReportedRef = useRef(false);
@@ -67,10 +68,29 @@ export function BattleGamePage() {
   const refreshMedia = useCallback(() => { setParticipants(battleMediaSession.getRemoteParticipants()); setRtcState(battleMediaSession.getConnectionState()); }, [battleMediaSession]);
   useEffect(() => battleMediaSession.subscribe(refreshMedia), [battleMediaSession, refreshMedia]);
 
+  useEffect(() => {
+    if (battleMediaSession.getConnectionState() === "CONNECTED") {
+      setMediaReady(true);
+      return;
+    }
+    if (!battleRoomSession || battleRoomSession.status !== "PLAYING") return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const stream = await sharedCameraSession.start();
+        await battleMediaSession.connect(battleRoomSession, stream);
+        if (!cancelled) setMediaReady(true);
+      } catch (cause) {
+        if (!cancelled) setResultError(cause instanceof Error ? `게임 재연결에 실패했습니다: ${cause.message}` : "게임 재연결에 실패했습니다.");
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [battleMediaSession, battleRoomSession, sharedCameraSession]);
+
   useEffect(() => { const track = sharedCameraSession.getVideoTrack(); const update = () => setCameraState(track?.readyState === "live" && track.enabled ? "CONNECTED" : "DISCONNECTED"); update(); if (!track) return; track.addEventListener("ended", update); track.addEventListener("mute", update); track.addEventListener("unmute", update); return () => { track.removeEventListener("ended", update); track.removeEventListener("mute", update); track.removeEventListener("unmute", update); }; }, [sharedCameraSession]);
 
   useEffect(() => {
-    if (!localRenderer || !remoteRenderer || !roomId) return;
+    if (!localRenderer || !remoteRenderer || !roomId || !mediaReady) return;
     const physics = new MatterPhysicsWorld({ ...DEFAULT_PHYSICS_CONFIG, width: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, height: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight, letterWidth: BATTLE_LETTER_SIZE, letterHeight: BATTLE_LETTER_SIZE, letterColliderPadding: 7, rotationInertiaScale: 1.15, restitution: 0 });
     const runtime = new BattleLocalBoardRuntime(physics, localRenderer, DEFAULT_BATTLE_RUNTIME_CONFIG); runtime.resize(localViewportRef.current.width, localViewportRef.current.height); const attack = new DefaultBattleAttackEffect();
     const controller = new BattleController({ playerId: user.userId, roomId, initialMatchId: battleRoomSession?.activeMatchId ?? undefined, transport, localBoard: runtime, remoteBoard: replica, attackEffect: attack, recognizer, sharedTargetMode: true, onMatchStarted: (matchId) => runtime.setPublisher(new LocalBoardPublisher(transport, DEFAULT_BATTLE_RUNTIME_CONFIG.sync, matchId, user.userId)) });
@@ -85,7 +105,7 @@ export function BattleGamePage() {
     };
     remoteLoopRef.current = requestAnimationFrame(renderRemote);
     return () => { if (remoteLoopRef.current !== null) cancelAnimationFrame(remoteLoopRef.current); remoteLoopRef.current = null; unsubscribe(); controller.dispose(); controllerRef.current = null; localRuntimeRef.current = null; remote.clear(); };
-  }, [accessToken, battleRoomSession?.activeMatchId, config.gameWebSocketUrl, localRenderer, recognizer, remoteRenderer, replica, roomId, transport, user]);
+  }, [accessToken, battleRoomSession?.activeMatchId, config.gameWebSocketUrl, localRenderer, mediaReady, recognizer, remoteRenderer, replica, roomId, transport, user]);
 
   useEffect(() => {
     let frame = 0;
