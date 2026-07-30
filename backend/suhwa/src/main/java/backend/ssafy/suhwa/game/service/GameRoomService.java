@@ -132,8 +132,8 @@ public class GameRoomService {
         // 방의 host/guest를 계속 고쳐 쓰고, 실시간 알림도 매번 다시 나가게 된다.
         if (room.getStatus() == GameRoomStatus.CLOSED) {
             // 이 경로가 잔여물을 치우는 안전망이다 — 앞선 종료에서 폐기가 누락됐거나, 유예 타이머가
-            // 방이 닫힌 뒤에 만료된 경우 남은 참가자의 세션·타이머가 여기서 회수된다. 이미 폐기된
-            // 방이면 disposeRoom이 아무 일도 하지 않는다.
+            // 방이 닫힌 뒤에 만료된 경우 남은 참가자의 예약 타이머와 레지스트리 엔트리가 여기서
+            // 회수된다. 이미 폐기된 방이면 disposeRoom이 아무 일도 하지 않는다.
             afterCommit(() -> roomRealtimeNotifier.disposeRoom(roomId));
             return;
         }
