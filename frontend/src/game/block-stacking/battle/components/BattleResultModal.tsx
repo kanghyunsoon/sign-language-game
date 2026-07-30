@@ -112,5 +112,6 @@ function ResultCard({
 
 function formatReason(reason: string): string {
   if (reason === "FORFEIT") return "상대 기권";
+  if (reason === "RECONNECT_TIMEOUT") return "재접속 시간 초과";
   return reason === "GAME_OVER" ? "위험선 도달" : reason === "DISCONNECTED" ? "연결 종료" : "게임 종료";
 }
