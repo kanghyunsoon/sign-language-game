@@ -40,4 +40,5 @@ export interface SoloGameApi {
   startSession(request: StartSoloSessionRequest): Promise<StartSoloSessionResponse>;
   completeSession(soloSessionId: string, request: CompleteSoloSessionRequest): Promise<SoloGameResult>;
   getResults(): Promise<readonly SoloGameResult[]>;
+  getRank(): Promise<number | null>;
 }

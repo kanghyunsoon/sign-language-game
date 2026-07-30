@@ -28,6 +28,19 @@ export const DEFAULT_SIGN_DECODER_CONFIG: SignDecoderConfig = Object.freeze({
   differentSymbolReleaseVotes: 2,
 });
 
+/** Active-game profile: retain model confidence gates but remove excess wait. */
+export const RESPONSIVE_GAMEPLAY_SIGN_DECODER_CONFIG: SignDecoderConfig = Object.freeze({
+  ...DEFAULT_SIGN_DECODER_CONFIG,
+  candidateWindowSize: 2,
+  minimumCandidateVotes: 1,
+  minimumStableDurationMs: 35,
+  movementThreshold: .1,
+  releasePoseDistanceThreshold: .09,
+  releaseMinimumDurationMs: 45,
+  noHandReleaseDurationMs: 45,
+  differentSymbolReleaseVotes: 1,
+});
+
 export function validateSignDecoderConfig(config: SignDecoderConfig): SignDecoderConfig {
   const positive = [
     config.candidateWindowSize,

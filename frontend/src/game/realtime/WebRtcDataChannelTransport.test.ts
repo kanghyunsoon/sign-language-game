@@ -45,13 +45,29 @@ describe("WebRtcDataChannelTransport", () => {
       expect.objectContaining({ kind: "SNAPSHOT", payload: { type: "EVENT", value: "recovery" } }),
     ]);
   });
+
+  it("immediately reports a closed DataChannel instead of waiting for the next command", async () => {
+    const channel = new FakeChannel();
+    const transport = new WebRtcDataChannelTransport<Command, Event>(() => channel, (value): value is Event => !!value);
+    const states: string[] = [];
+    transport.subscribeConnectionState((state) => states.push(state));
+    await transport.connect({ url: "unused", roomId: "room-a", playerId: "user-a" });
+
+    channel.setOpen(false);
+
+    expect(states).toEqual(["DISCONNECTED", "CONNECTING", "CONNECTED", "DISCONNECTED"]);
+  });
 });
 
 class FakeChannel implements GameDataChannel {
   readonly sent: string[] = [];
   private readonly listeners = new Set<(payload: string, remoteUserId: string) => void>();
+  private readonly stateListeners = new Set<(open: boolean) => void>();
+  private open = true;
   send(payload: string): void { this.sent.push(payload); }
   subscribe(listener: (payload: string, remoteUserId: string) => void): () => void { this.listeners.add(listener); return () => this.listeners.delete(listener); }
-  isOpen(): boolean { return true; }
+  subscribeState(listener: (open: boolean) => void): () => void { this.stateListeners.add(listener); listener(this.open); return () => this.stateListeners.delete(listener); }
+  isOpen(): boolean { return this.open; }
+  setOpen(open: boolean): void { this.open = open; for (const listener of this.stateListeners) listener(open); }
   receive(payload: string): void { for (const listener of this.listeners) listener(payload, "remote"); }
 }

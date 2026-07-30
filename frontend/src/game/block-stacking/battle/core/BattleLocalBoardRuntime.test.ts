@@ -27,6 +27,20 @@ describe("BattleLocalBoardRuntime", () => {
     expect(cancelFrame).toHaveBeenCalledWith(7);
   });
 
+  it("restores an existing tower as fixed blocks without replaying its fall", () => {
+    const world = physics();
+    const restored = vi.fn((spec) => letterState(spec.id, spec.symbol, spec.x, spec.y));
+    (world as PhysicsWorld & { restoreLetter: typeof restored }).restoreLetter = restored;
+    const runtime = new BattleLocalBoardRuntime(world, renderer(), DEFAULT_BATTLE_RUNTIME_CONFIG);
+
+    runtime.restore([{ id: "saved", symbol: "ㄱ", x: .4, y: .75, angle: .3, velocityX: 18, velocityY: -12, angularVelocity: .2, state: "FALLING" }]);
+
+    expect(restored).toHaveBeenCalledWith(expect.objectContaining({
+      id: "saved", x: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth * .4, y: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight * .75,
+      velocityX: 0, velocityY: 0, angularVelocity: 0, settled: true,
+    }));
+  });
+
   it("allows removal of only the currently designated oldest block", () => {
     const states = new Map<string, { readonly id: string; readonly symbol: string; readonly x: number; readonly y: number; readonly angle: number; readonly velocityX: number; readonly velocityY: number; readonly angularVelocity: number; readonly settled: boolean }>();
     const world = physics();
@@ -45,7 +59,7 @@ describe("BattleLocalBoardRuntime", () => {
     expect(view.setTarget).toHaveBeenLastCalledWith("second");
   });
 
-  it("redirects repeated center spawns toward less occupied lanes", () => {
+  it("spawns every confirmed letter at the board center", () => {
     const states = new Map<string, ReturnType<typeof letterState>>();
     const world = physics();
     vi.mocked(world.createLetter).mockImplementation((spec) => { const state = letterState(spec.id, spec.symbol, spec.x, 500); states.set(spec.id, state); return state; });
@@ -58,15 +72,51 @@ describe("BattleLocalBoardRuntime", () => {
     runtime.spawn(spawn("third", "ㄷ", 3));
 
     const xs = vi.mocked(world.createLetter).mock.calls.map(([spec]) => spec.x);
-    expect(new Set(xs).size).toBe(3);
+    expect(xs).toEqual([360, 360, 360]);
+  });
+
+  it("picks up exactly the letter selected for the otter and promotes the next target", () => {
+    const states = new Map<string, ReturnType<typeof letterState>>();
+    const world = physics();
+    vi.mocked(world.createLetter).mockImplementation((spec) => { const state = letterState(spec.id, spec.symbol, spec.x, spec.y); states.set(spec.id, state); return state; });
+    vi.mocked(world.getLetterState).mockImplementation((id) => states.get(id));
+    vi.mocked(world.getLetterStates).mockImplementation(() => [...states.values()]);
+    vi.mocked(world.removeLetter).mockImplementation((id) => states.delete(id));
+    const runtime = new BattleLocalBoardRuntime(world, renderer(), DEFAULT_BATTLE_RUNTIME_CONFIG, undefined, () => 0, () => 1, () => undefined);
+    runtime.spawn(spawn("first", "ㄱ", 1)); runtime.spawn(spawn("second", "ㄴ", 2));
+
+    expect(runtime.takeLetterForOtter("second")).toBe("ㄴ");
+    expect(world.removeLetter).toHaveBeenCalledWith("second");
+    expect(runtime.getTargetSymbol()).toBe("ㄱ");
+    expect(runtime.takeLetterForOtter("missing")).toBeNull();
+  });
+
+  it("keeps an otter-thrown priority letter at the board center", () => {
+    const world = physics();
+    const states = new Map<string, ReturnType<typeof letterState>>();
+    vi.mocked(world.createLetter).mockImplementation((spec) => { const state = letterState(spec.id, spec.symbol, spec.x, spec.y); states.set(spec.id, state); return state; });
+    vi.mocked(world.getLetterState).mockImplementation((id) => states.get(id));
+    const runtime = new BattleLocalBoardRuntime(world, renderer(), DEFAULT_BATTLE_RUNTIME_CONFIG, undefined, () => 0, () => 1, () => undefined);
+    runtime.spawn({ ...spawn("thrown", "ㄷ", 1), normalizedX: .72, targetPriority: true });
+
+    expect(vi.mocked(world.createLetter).mock.calls[0]?.[0].x).toBeCloseTo(DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth / 2);
+    expect(runtime.getTargetSymbol()).toBe("ㄷ");
   });
 
   it("reports game over once when a settled block crosses the proportional danger line", () => {
+    let now = 0;
+    const states = new Map<string, ReturnType<typeof letterState>>();
     const world = physics();
-    vi.mocked(world.getLetterStates).mockReturnValue([letterState("danger", "ㄱ", 200, 180)]);
-    const runtime = new BattleLocalBoardRuntime(world, renderer(), DEFAULT_BATTLE_RUNTIME_CONFIG, undefined, () => 0, () => 1, () => undefined);
+    vi.mocked(world.createLetter).mockImplementation((spec) => { const state = letterState(spec.id, spec.symbol, spec.x, 180); states.set(spec.id, state); return state; });
+    vi.mocked(world.getLetterState).mockImplementation((id) => states.get(id));
+    vi.mocked(world.getLetterStates).mockImplementation(() => [...states.values()]);
+    const runtime = new BattleLocalBoardRuntime(world, renderer(), DEFAULT_BATTLE_RUNTIME_CONFIG, undefined, () => now, () => 1, () => undefined);
+    runtime.spawn(spawn("danger", "ㄱ", 1));
+    vi.mocked(world.update).mockReturnValue([{ type: "LETTER_SETTLED", id: "danger" }]);
     const handler = vi.fn(); runtime.setGameOverHandler(handler); runtime.start();
-    runtime.advance(16); runtime.advance(16);
+    runtime.advance(16); now = 751; vi.mocked(world.update).mockReturnValue([]); runtime.advance(16);
+    expect(handler).not.toHaveBeenCalled();
+    now = 6_751; runtime.advance(16);
     expect(handler).toHaveBeenCalledOnce();
   });
 });
@@ -80,7 +130,7 @@ function physics(): PhysicsWorld {
 }
 
 function renderer(): GameRenderer {
-  return { resize: vi.fn(), render: vi.fn(), highlightRemoval: vi.fn(), setTarget: vi.fn(), updateEffects: vi.fn(() => []), clear: vi.fn(), destroy: vi.fn() };
+  return { resize: vi.fn(), render: vi.fn(), highlightRemoval: vi.fn(), startSpawnEffect: vi.fn(), setTarget: vi.fn(), updateEffects: vi.fn(() => []), clear: vi.fn(), destroy: vi.fn() };
 }
 
 function letterState(id: string, symbol: string, x: number, y: number) {

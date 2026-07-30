@@ -1,13 +1,36 @@
+import { useEffect, useState } from "react";
 import { ArrowLeft, Bot, Hand, Radio, Sparkles, Swords, Trophy, UserRound, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { useGameModuleContext } from "../../app/GameModuleContext";
 import styles from "../../shared/GameModule.module.css";
 
+const MODE_CANVAS_WIDTH = 1280;
+const MODE_CANVAS_HEIGHT = 720;
+
 export function GameModePage() {
   const { user } = useGameModuleContext();
+  const [pageScale, setPageScale] = useState(1);
+
+  useEffect(() => {
+    const updatePageScale = () => {
+      setPageScale(Math.min(
+        window.innerWidth / MODE_CANVAS_WIDTH,
+        window.innerHeight / MODE_CANVAS_HEIGHT,
+      ));
+    };
+
+    updatePageScale();
+    window.addEventListener("resize", updatePageScale);
+    return () => window.removeEventListener("resize", updatePageScale);
+  }, []);
+
   return (
-    <main className={`${styles.modePage} ${styles.tetrisModePage}`}>
+    <main
+      className={`${styles.modePage} ${styles.tetrisModePage}`}
+      data-fixed-mode-canvas="true"
+      style={{ transform: `translate(-50%, -50%) scale(${pageScale})` }}
+    >
       <div className={`${styles.modeCloud} ${styles.modeCloudLeft}`} aria-hidden="true" />
       <div className={`${styles.modeCloud} ${styles.modeCloudRight}`} aria-hidden="true" />
       <div className={`${styles.fallingBlock} ${styles.blockOne}`} aria-hidden="true"><i /><i /><i /><i /></div>

@@ -6,6 +6,7 @@ import { AuthApiError } from "../api/authApi";
 import backgroundLeft from "../assets/background_left.png";
 import backgroundRight from "../assets/background_right.png";
 import otterBook from "../assets/otter_book.png";
+import { PasswordVisibilityIcon } from "../components/PasswordVisibilityIcon";
 import "./LoginPage.css";
 
 export function LoginPage() {
@@ -13,6 +14,7 @@ export function LoginPage() {
   const { login } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleLoginSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -84,16 +86,27 @@ export function LoginPage() {
               <label className="login-field">
                 <span>비밀번호</span>
 
-                <input
-                  type="password"
-                  name="password"
-                  placeholder="영문, 숫자 포함 8자 이상"
-                  autoComplete="current-password"
-                  required
-                />
+                <div className="login-password-input">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    placeholder="영문, 숫자 포함 8자 이상"
+                    autoComplete="current-password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="login-password-toggle"
+                    onClick={() => setShowPassword((visible) => !visible)}
+                    aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
+                    aria-pressed={showPassword}
+                  >
+                    <PasswordVisibilityIcon visible={showPassword} />
+                  </button>
+                </div>
               </label>
 
-              <div className="login-options">
+              {/* <div className="login-options">
                 <label className="login-remember">
                   <input type="checkbox" name="remember" />
                   <span>로그인 유지</span>
@@ -104,7 +117,7 @@ export function LoginPage() {
                   <span aria-hidden="true">·</span>
                   <a href="#">비밀번호 찾기</a>
                 </div>
-              </div>
+              </div> */}
 
               {error && (
                 <p className="login-error" role="alert" style={{ color: "#d64545", margin: 0 }}>

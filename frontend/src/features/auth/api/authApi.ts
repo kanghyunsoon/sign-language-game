@@ -38,7 +38,14 @@ export interface SignupResponse {
 /** GET /users/me 응답. userId는 String(id)로 파생한다(로그인 응답에는 userId가 없음). */
 export interface MeResponse {
   readonly id: number | string;
+  readonly email: string;
   readonly nickname: string;
+  readonly profileImageUrl: string | null;
+}
+
+export interface UpdateProfileRequest {
+  readonly nickname?: string | null;
+  readonly profileImageUrl?: string | null;
 }
 
 /** 서버가 내려준 메시지를 최대한 보존하는 인증 에러. */
@@ -108,6 +115,37 @@ export function signup(request: SignupRequest): Promise<SignupResponse> {
 export function getMe(accessToken: string): Promise<MeResponse> {
   return requestJson<MeResponse>("/users/me", {
     method: "GET",
+    headers: authHeader(accessToken),
+  });
+}
+
+export function getProfile(
+  accessToken: string,
+): Promise<MeResponse> {
+  return getMe(accessToken);
+}
+
+export function updateProfile(
+  accessToken: string,
+  request: UpdateProfileRequest,
+): Promise<MeResponse> {
+  return requestJson<MeResponse>("/users/me", {
+    method: "PATCH",
+    headers: authHeader(accessToken),
+    body: JSON.stringify(request),
+  });
+}
+
+export function logout(accessToken: string): Promise<void> {
+  return requestJson<void>("/auth/logout", {
+    method: "POST",
+    headers: authHeader(accessToken),
+  });
+}
+
+export function deleteAccount(accessToken: string): Promise<void> {
+  return requestJson<void>("/users/me", {
+    method: "DELETE",
     headers: authHeader(accessToken),
   });
 }

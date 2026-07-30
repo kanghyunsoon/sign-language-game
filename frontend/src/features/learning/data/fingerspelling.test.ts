@@ -31,11 +31,18 @@ describe("fingerspellingItems", () => {
     ]);
   });
 
-  it("모든 항목이 이미지와 수형 설명 2문장을 갖는다", () => {
+  it("모든 항목이 이미지와 수형 설명을 갖는다", () => {
     for (const entry of fingerspellingEntries) {
       expect(entry.image, `${entry.symbol} 이미지`).toBeTruthy();
       expect(entry.name, `${entry.symbol} 이름`).toBeTruthy();
-      expect(entry.description, `${entry.symbol} 수형 설명`).toHaveLength(2);
+      // 문장 수는 설명 길이에 따라 다르다. 줄바꿈 위치를 조절하려고 쪼개기도 한다.
+      expect(
+        entry.description.length,
+        `${entry.symbol} 수형 설명`,
+      ).toBeGreaterThan(0);
+      entry.description.forEach((sentence) => {
+        expect(sentence.trim(), `${entry.symbol} 빈 문장`).toBeTruthy();
+      });
     }
   });
 });

@@ -12,7 +12,7 @@ import { glyphStrokeTemplatesFor, type GlyphStrokeTemplate } from "./glyphStroke
 import type { LetterBodySpec, PhysicsConfig } from "./types";
 
 const COLLISION_SLOP_PX = 0.05;
-export const MAX_RASTER_COLLIDER_PARTS = 8;
+export const MAX_RASTER_COLLIDER_PARTS = 48;
 
 export interface LetterBodyMetadata {
   readonly id: string;
@@ -37,6 +37,7 @@ export class LetterBodyFactory {
     Body.setInertia(body, body.inertia * this.config.rotationInertiaScale);
     if (spec.angle !== undefined) Body.setAngle(body, spec.angle);
     if (spec.angularVelocity !== undefined) Body.setAngularVelocity(body, spec.angularVelocity);
+    if (spec.velocityY !== undefined) Body.setVelocity(body, { x: 0, y: spec.velocityY });
     return body;
   }
 
@@ -52,7 +53,7 @@ export class LetterBodyFactory {
       spec.y + rectangle.y * scale,
       rectangle.width * scale + padding * 2,
       rectangle.height * scale + padding * 2,
-      bodyOptions,
+      { ...bodyOptions, angle: rectangle.angle ?? 0 },
     ));
     const body = Body.create({ ...bodyOptions, parts });
 

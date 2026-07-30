@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import type { GameModuleServices } from "../contracts/GameModuleServices";
 import { GameModuleRoutes } from "./GameModuleRoutes";
 import { GameServiceProvider } from "./GameServiceProvider";
@@ -29,18 +28,6 @@ export interface GameModuleProps {
 }
 
 export function GameModule(props: GameModuleProps) {
-  useEffect(() => {
-    const preventWheelZoom = (event: WheelEvent) => { if (event.ctrlKey) event.preventDefault(); };
-    const preventKeyboardZoom = (event: KeyboardEvent) => {
-      if (event.ctrlKey && ["+", "-", "=", "0"].includes(event.key)) event.preventDefault();
-    };
-    window.addEventListener("wheel", preventWheelZoom, { passive: false });
-    window.addEventListener("keydown", preventKeyboardZoom);
-    return () => {
-      window.removeEventListener("wheel", preventWheelZoom);
-      window.removeEventListener("keydown", preventKeyboardZoom);
-    };
-  }, []);
   return (
     <GameServiceProvider {...props}>
       <section className={styles.module} data-game-module="true">

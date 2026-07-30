@@ -1,14 +1,14 @@
 # Backend Integration Guide
 
-## 2026-07-23 운영 계약 기준
+## 2026-07-23 ?댁쁺 怨꾩빟 湲곗?
 
-현재 운영 연동의 기준은 상위 문서 `../backend-contract-alignment-2026-07-23.md`다.
+?꾩옱 ?댁쁺 ?곕룞??湲곗?? ?곸쐞 臾몄꽌 `../backend-contract-alignment-2026-07-23.md`??
 
-이 문서 아래의 `/api/game-results`, `/game/solo/sessions`, `game-dev-backend` 예시는 과거 독립 프로토타입 계약이다. 배포 Swagger에는 해당 엔드포인트가 없으므로 production adapter에서 사용하지 않는다.
+??臾몄꽌 ?꾨옒??`/api/game-results`, `/game/solo/sessions`, `game-dev-backend` ?덉떆??怨쇨굅 ?낅┰ ?꾨줈?좏???怨꾩빟?대떎. 諛고룷 Swagger?먮뒗 ?대떦 ?붾뱶?ъ씤?멸? ?놁쑝誘濡?production adapter?먯꽌 ?ъ슜?섏? ?딅뒗??
 
-현재 운영 백엔드는 ticket 기반 Lobby SSE, ticket 기반 순수 Room WebSocket, REST 방 API, WebRTC ICE API, 대전 결과와 랭킹 API를 제공한다. Room WebSocket은 STOMP가 아니며 클라이언트가 보내는 메시지는 `SIGNAL`뿐이다.
+?꾩옱 ?댁쁺 諛깆뿏?쒕뒗 ticket 湲곕컲 Lobby SSE, ticket 湲곕컲 ?쒖닔 Room WebSocket, REST 諛?API, WebRTC ICE API, ???寃곌낵? ??궧 API瑜??쒓났?쒕떎. Room WebSocket? STOMP媛 ?꾨땲硫??대씪?댁뼵?멸? 蹂대궡??硫붿떆吏??`SIGNAL`肉먯씠??
 
-솔로 점수 저장과 10초 이탈 패배·랭킹 반영은 현재 배포 계약으로 완료할 수 없다. 백엔드 계약 확정 전에는 프런트 로컬 저장이나 임의의 1/0 결과 전송을 운영 완료로 간주하지 않는다.
+?붾줈 ?먯닔 ??κ낵 10珥??댄깉 ?⑤같쨌??궧 諛섏쁺? ?꾩옱 諛고룷 怨꾩빟?쇰줈 ?꾨즺?????녿떎. 諛깆뿏??怨꾩빟 ?뺤젙 ?꾩뿉???꾨윴??濡쒖뺄 ??μ씠???꾩쓽??1/0 寃곌낵 ?꾩넚???댁쁺 ?꾨즺濡?媛꾩＜?섏? ?딅뒗??
 
 ## Integration boundary
 
@@ -82,7 +82,7 @@ Request body for `POST /api/game-results`:
   "playedAt": "2026-07-14T07:30:00.000Z",
   "symbolStatistics": [
     {
-      "symbol": "ㄱ",
+      "symbol": "??,
       "targetCount": 4,
       "confirmedCount": 3,
       "correctCount": 2,
@@ -120,3 +120,41 @@ Use `wss://` when the frontend is served over HTTPS. Browsers block insecure `ws
 ## Failure behavior
 
 `ResilientGameResultRepository` keeps gameplay available when HTTP persistence fails and stores the result in local storage. It does not currently synchronize local fallback records to the server later. Add an explicit synchronization policy before relying on offline records across devices.
+
+## Solo score persistence (current deployment)
+
+The backend currently does not publish an authorized POST /game/solo/sessions contract. The frontend therefore keeps the solo game playable and stores completed solo scores in browser local storage by default. Set VITE_ENABLE_REMOTE_SOLO_GAME_API=true only after the backend publishes and accepts the start/complete solo-session endpoints; otherwise it will reproduce the 401 seen in production.
+
+---
+
+## 2026-07-27 ??Production solo game start returned HTTP 401
+
+### Symptom
+
+On `https://sudal-play.vercel.app/game/solo`, pressing **게임 ?�작** displayed `Solo game API returned 401.` and did not start the game.
+
+### Investigation
+
+- The production bundle uses `https://i15a405.p.ssafy.io/api` for both auth and game REST calls.
+- The failing request is `POST /api/game/solo/sessions`.
+- The route reaches the backend and returns `401`; it is not a Vercel deployment, CORS, or WebSocket failure.
+- The current backend/Swagger integration does not publish the legacy solo-session start/complete contract used by this frontend. The authenticated room and result contracts must not be inferred to include it.
+
+### Resolution
+
+- Do not block solo gameplay on the unsupported remote session endpoint.
+- `LocalSoloGameApi` now creates the session and stores the completed aggregate score in browser local storage, scoped by user ID.
+- No camera frames, landmarks, or images are saved.
+- Remote solo persistence remains opt-in through `VITE_ENABLE_REMOTE_SOLO_GAME_API=true`, and must only be enabled after the backend formally provides and authorizes the start/complete session contract.
+
+### Verification
+
+- Local unit test for session creation and persisted score: passed.
+- TypeScript/Vite production build: passed.
+- GitLab pipeline `#157088` and its Vercel production deploy: passed.
+- Production browser retest: **게임 ?�작** changes the game to running state and no alert is rendered.
+
+### Backend follow-up
+
+If cross-device solo score history or a server-side solo ranking is required, backend needs to publish the request/response DTO and authorization policy for a solo score endpoint. Until then, local browser storage is the only supported persistence path.
+

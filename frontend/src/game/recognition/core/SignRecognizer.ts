@@ -12,4 +12,5 @@ export interface SignRecognizer {
   getSupportedSymbols(): readonly string[];
   getConnectionState(): RecognitionConnectionState;
   getConfirmationAuthority?(): "TEMPORAL_DECODER" | "LEGACY";
+  resetRecognitionSession?(): void;
 }

@@ -280,3 +280,21 @@ T-92 development macro-F1 91.71%, CER 5.24%, 완전일치 75.53%이고
 - Room WebSocket은 native WebSocket + ticket + SIGNAL 전용이다. STOMP를 신규 코드에 사용하지 않는다.
 - WebRTC `game-v1` DataChannel과 `WebRtcDataChannelTransport` 기반은 구현됐지만 P2P host authority 전환은 아직 진행 중이다.
 - 다음 구현과 검증 순서는 새 핸드오프 문서를 canonical 기준으로 한다.
+
+## 2026-07-29 솔로 게임 최신 핸드오프
+
+과거 `Sign_Language_Translation` 폴더가 아니라 현재 GitLab 프런트 저장소를 사용한다.
+
+- 저장소: `C:\Users\SSAFY\Documents\Codex\S15P11A405-frontend`
+- 브랜치: `frontend`
+- 백엔드 폴더는 수정하지 않는다.
+- 최신 상세 상태: `frontend/src/game/docs/solo-game-status-2026-07-29.md`
+- 오늘 트러블슈팅: `frontend/src/game/docs/solo-game-troubleshooting-2026-07-29.md`
+- 결과·랭킹·가중치 계약: `frontend/src/game/docs/reference/game-results-api.md`
+
+이어갈 때 확인할 사항:
+
+1. `TETRIS_SOLO` 랭킹이 경과 초 오름차순인지 백엔드 응답으로 확인한다.
+2. 충돌 편집기는 `/game/solo?collisionAudit=1`에서 열고 최종 JSON이 `glyphCollisionDefaults.json`에 들어갔는지 확인한다.
+3. 자동 생성 타이머를 다시 켜지 않는다. 목표 인식 → 종이 확대 → 같은 위치 물리 낙하가 현재 흐름이다.
+4. 숫자는 대상이 아니다. 현재 모델과 게임 풀은 지문자 자음·모음만 사용한다.

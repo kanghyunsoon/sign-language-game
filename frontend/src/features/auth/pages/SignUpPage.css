@@ -51,7 +51,7 @@
   width: 82.2917%;
   height: 67.5%;
   overflow: hidden;
-  border: 1px solid rgba(109, 83, 69, 0.07);
+  border: min(0.0521vw, 0.0833vh) solid rgba(109, 83, 69, 0.07);
   border-radius: min(1.4583vw, 2.3333vh);
   background: rgba(255, 253, 249, 0.91);
   box-shadow:
@@ -100,7 +100,7 @@
 .signup-eyebrow {
   margin-top: 0;
   color: #a99b90;
-  font-size: min(1.0417vw, 1.6667vh);
+  font-size: min(1.40625vw, 2.25vh);
   font-weight: 900;
   letter-spacing: 0.1em;
 }
@@ -117,18 +117,21 @@
 .signup-form {
   width: 100%;
   margin-top: min(1.0417vw, 1.6667vh);
+  display: flex;
+  flex-direction: column;
+  gap: min(0.625vw, 1vh);
 }
 
 .signup-field {
   display: flex;
   flex-direction: column;
   gap: min(0.4688vw, 0.75vh);
-  margin-bottom: min(0.625vw, 1vh);
+  margin-bottom: 0;
 }
 
 .signup-field > span {
   color: #4d4038;
-  font-size: min(0.9896vw, 1.5833vh);
+  font-size: min(1.302083vw, 2.083333vh);
   font-weight: 900;
 }
 
@@ -136,11 +139,11 @@
   width: 100%;
   height: min(3.0208vw, 4.8333vh);
   padding: 0 min(1.0417vw, 1.6667vh);
-  border: 1px solid #d8cbbd;
+  border: min(0.0521vw, 0.0833vh) solid #d8cbbd;
   border-radius: min(0.625vw, 1vh);
   color: #4b3d35;
   font-family: inherit;
-  font-size: min(0.8854vw, 1.4167vh);
+  font-size: min(1.197917vw, 1.916667vh);
   background: rgba(255, 255, 255, 0.76);
   box-sizing: border-box;
   outline: none;
@@ -148,7 +151,7 @@
 
 .signup-field input::placeholder {
   color: #b8aea6;
-  font-size: min(0.8333vw, 1.3333vh);
+  font-size: min(1.09375vw, 1.75vh);
 }
 
 .signup-field input:focus {
@@ -158,13 +161,58 @@
     rgba(109, 83, 69, 0.08);
 }
 
+.signup-password-input {
+  position: relative;
+  width: 100%;
+  height: min(3.0208vw, 4.8333vh);
+}
+
+.signup-password-input input {
+  display: block;
+  height: 100%;
+  padding-right: min(3.125vw, 5vh);
+}
+
+.signup-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: min(0.8333vw, 1.3333vh);
+  width: min(2.0833vw, 3.3333vh);
+  height: min(2.0833vw, 3.3333vh);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: #8a7e73;
+  background: transparent;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.signup-password-toggle .password-visibility-icon {
+  width: min(1.0417vw, 1.6667vh);
+  height: min(1.0417vw, 1.6667vh);
+  max-width: 20px;
+  max-height: 20px;
+  display: block;
+  flex: 0 0 auto;
+}
+
+.signup-password-toggle:hover,
+.signup-password-toggle:focus-visible {
+  color: #4d4038;
+  background: rgba(109, 83, 69, 0.08);
+  outline: none;
+}
+
 .signup-agreement {
   display: flex;
   align-items: center;
   gap: min(0.4688vw, 0.75vh);
   margin-top: min(0.2083vw, 0.3333vh);
   color: #74675f;
-  font-size: min(0.7813vw, 1.25vh);
+  font-size: min(1.041667vw, 1.666667vh);
   font-weight: 800;
   cursor: pointer;
 }
@@ -178,7 +226,7 @@
 .signup-error {
   margin: 0;
   color: #d64545;
-  font-size: min(0.8854vw, 1.4167vh);
+  font-size: min(1.197917vw, 1.916667vh);
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
@@ -187,11 +235,12 @@
   width: 100%;
   height: min(3.0208vw, 4.8333vh);
   margin-top: min(0.7292vw, 1.1667vh);
+  flex: 0 0 auto;
   border: 0;
   border-radius: min(0.7292vw, 1.1667vh);
   color: #ffffff;
   font-family: inherit;
-  font-size: min(0.9896vw, 1.5833vh);
+  font-size: min(1.302083vw, 2.083333vh);
   font-weight: 900;
   background: #6d5345;
   box-shadow:
@@ -221,14 +270,14 @@
 .signup-login-guide {
   margin: auto 0 0;
   color: #958a82;
-  font-size: min(0.7813vw, 1.25vh);
+  font-size: min(1.041667vw, 1.666667vh);
   font-weight: 800;
 }
 
 .signup-login-guide a {
   margin-left: min(0.5208vw, 0.8333vh);
   color: #6d5345;
-  font-size: min(0.7813vw, 1.25vh);
+  font-size: min(1.041667vw, 1.666667vh);
   font-weight: 900;
   text-decoration: none;
 }

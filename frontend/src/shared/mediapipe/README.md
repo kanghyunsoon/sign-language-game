@@ -13,6 +13,16 @@
 
 worker가 초기화 또는 추론 중 실패하면 같은 프레임부터 main-thread tracker로 전환한다. main-thread tracker가 일시적으로 실패하면 해당 프레임만 버리고 tracker를 닫은 뒤 다음 프레임에서 다시 만든다. 카메라 `MediaStreamTrack`의 소유권은 호출자에게 있으며 tracker의 `close()`는 공유 track을 종료하지 않는다.
 
+## 카메라 프레임과 좌표
+
+웹캠 원본 비율과 화면의 카메라 카드 비율이 다르면 `object-fit`에 의해 원본 일부가 잘린다. `canvasCoordinates.ts`는 카드에 실제로 노출되는 원본 crop을 계산하고 다음 규칙을 적용한다.
+
+- 랜드마크 좌표는 노출된 crop 기준으로 캔버스에 투영한다.
+- 손의 21개 랜드마크가 모두 crop 안에 있을 때만 보이는 손으로 취급한다.
+- 보이지 않는 영역의 손은 관절선 렌더링과 AI 인식 입력에서 모두 제외한다.
+
+카메라 UI를 변경할 때는 CSS의 `object-fit` 방식과 좌표 계산의 fit 모드를 함께 유지해야 한다.
+
 ## 검증
 
 ```powershell

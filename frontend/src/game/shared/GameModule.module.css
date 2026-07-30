@@ -26,7 +26,7 @@
 .disabled:hover { border-color: #9abbd4; background: #f7fbfe; }
 .placeholder a { display: inline-flex; align-items: center; gap: 7px; margin-top: 18px; color: #245a8d; font-weight: 800; }
 .placeholderIcon { display: inline-grid; place-items: center; width: 62px; height: 62px; border-radius: 50%; background: #eef7fd; color: #245a8d; }
-@media (max-width: 720px) { .modeGrid, .categoryGrid { grid-template-columns: 1fr; } .modeHeader { flex-direction: column; } .categoryCard { min-height: 270px; } }
+@media (max-width: 720px) { .module .modeGrid { grid-template-columns: 1fr; } .module .modeHeader { flex-direction: column; } }
 
 /* Legacy solo class names are scoped below the module root during staged extraction. */
 .module :global(.solo-game-page) { position: relative; display: grid; height: calc(100dvh - 28px); min-height: 0; grid-template-rows: auto minmax(0, 1fr); gap: 8px; padding: 14px; background: #dceefa; }
@@ -70,9 +70,10 @@
 .module :global(.socket-connected) { border-color: #86c9ac; background: #effaf4; color: #176343; }
 .module :global(.status-dot) { width: 7px; height: 7px; border-radius: 50%; background: #9ba49f; }
 .module :global(.status-running .status-dot) { background: #16a36a; box-shadow: 0 0 0 3px #d8f5e9; }
-.module :global(.camera-stage) { position: relative; width: 100%; aspect-ratio: 4 / 3; overflow: hidden; border: 2px solid #173a5e; border-radius: 6px; background: #17201d; }
-.module :global(.camera-media), .module :global(.camera-overlay) { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.module :global(.camera-overlay) { pointer-events: none; }
+.module :global(.camera-stage) { position: relative; isolation: isolate; contain: paint; width: 100%; aspect-ratio: 4 / 3; overflow: hidden; clip-path: inset(0 round 6px); border: 2px solid #173a5e; border-radius: 6px; background: #17201d; }
+.module :global(.camera-media), .module :global(.camera-overlay) { position: absolute; inset: 0; width: 100%; height: 100%; }
+.module :global(.camera-media) { object-fit: cover; }
+.module :global(.camera-overlay) { object-fit: fill !important; pointer-events: none; }
 .module :global(.mirrored) { transform: scaleX(-1); }
 .module :global(.recognition-performance) { margin-top: 8px; padding: 8px 10px; border: 1px solid #bfd0dc; border-radius: 10px; font-size: 11px; }
 .module :global(.recognition-performance span),.module :global(.recognition-performance small) { display: inline-block; margin: 4px 10px 0 0; }
@@ -97,7 +98,18 @@
 .module :global(.sign-guide-crop) { position: relative; display: block; overflow: hidden; border: 2px solid #7d6966; border-radius: 7px; background: #675755; }
 .module :global(.sign-guide-crop img) { position: absolute; max-width: none; user-select: none; }
 .module :global(.sign-guide-responsive) { width: 100%; height: 100%; }
-.module :global(.game-over-overlay) { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 10px; padding: 28px; background: rgba(15, 24, 32, .88); color: #f6fbff; text-align: center; }
+.module :global(.game-over-overlay) { position: absolute; inset: 31px 8px 8px; display: grid; place-content: center; justify-items: center; gap: 10px; padding: clamp(22px, 3vw, 48px); background: rgba(15, 24, 32, .88); color: #f6fbff; text-align: center; }
+.module :global(.solo-result-card) { box-sizing:border-box; display:grid; grid-template-columns:128px minmax(270px,1fr); align-items:center; gap:20px 28px; width:min(650px,100%); padding:30px 42px 34px; border:2px solid #d8e9a5; border-radius:28px; background:linear-gradient(145deg,#fff,#f4fae9); box-shadow:0 18px 45px rgba(7,19,29,.35); color:#354651; text-align:left; }
+.module :global(.solo-result-card > img) { width:128px; max-height:154px; object-fit:contain; align-self:center; }
+.module :global(.solo-result-card h2) { margin:2px 0 5px; font-size:clamp(1.45rem,3vw,2rem); line-height:1.22; }
+.module :global(.solo-result-card strong) { display:block; margin:2px 0 5px; color:#7f9e36; font-size:clamp(2.2rem,5vw,3.6rem); line-height:1; }
+.module :global(.solo-result-card p) { margin:0 0 12px; color:#65747b; font-weight:700; line-height:1.45; }
+.module :global(.solo-result-card b) { display:inline-block; padding:8px 12px; border-radius:999px; background:#ecf6d4; color:#6b8d2b; }
+.module :global(.solo-result-actions) { grid-column:1 / -1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; width:100%; min-width:0; margin-top:6px; }
+.module :global(.solo-result-card button) { box-sizing:border-box; width:100%; min-width:0; min-height:48px; margin:0; border:0; border-radius:14px; background:#b7d84e; box-shadow:0 5px 0 #8ba533; color:#fff; font-size:1rem; font-weight:900; cursor:pointer; }
+.module :global(.solo-result-card button.is-home) { border:1px solid #d6e2ca; background:#fff; box-shadow:0 5px 0 #dce5d5; color:#52645b; }
+.module :global(.solo-result-card button:active) { transform:translateY(3px); box-shadow:0 2px 0 #8ba533; }
+.module :global(.solo-result-card button.is-home:active) { box-shadow:0 2px 0 #dce5d5; }
 @media (max-width: 900px) { .module :global(.solo-game-page) { height: auto; } .module :global(.solo-workspace) { grid-template-columns: 1fr; } .module :global(.solo-stage-column), .module :global(.solo-sidebar) { min-height: 720px; padding-bottom: 0; } }
 
 .battleMediaPage { width: min(1120px, 100%); margin: 0 auto; padding: 24px 20px; color: #172b3a; }
@@ -164,19 +176,19 @@
 .module :global(.crowd-dashboard dt) { color:#627087; }
 .module :global(.crowd-dashboard dd) { margin:0; overflow-wrap:anywhere; font-weight:700; }
 @media (max-width:900px) { .module :global(.crowd-runtime) { grid-template-columns:1fr; } .module :global(.crowd-dashboard) { position:static; max-height:none; } }
-.module:has(> :global(.solo-game-page)) { display: grid; width: 100vw; height: 100dvh; min-height: 0; place-items: center; overflow: hidden; background: #e0f1ff; }
-.module :global(.solo-game-page) { position: relative; display: grid; width: 100vw; height: 100dvh; min-width: 0; min-height: 0; grid-template-rows: 58px minmax(0, 1fr); gap: 7px; margin: 0; padding: 7px 9px 9px; overflow: hidden; border: 1px solid #c8dfe9; border-radius: 4px; background: linear-gradient(to bottom, #e0f1ff 0 84%, #c9e59d 84% 95%, #a9cd7c 95%); box-shadow: 0 12px 34px rgba(44,84,103,.14); isolation: isolate; }
+.module:has(> :global(.solo-game-page)) { position: fixed; inset: 0; display: block; width: 100%; min-height: 0; overflow: hidden; background: #e0f1ff; }
+.module :global(.solo-game-page) { position: relative; display: grid; width: 100%; height: 100dvh; min-width: 0; min-height: 720px; grid-template-rows: 115px minmax(0, 1fr); gap: 7px; margin: 0; padding: 7px 9px 9px; overflow: hidden; border: 1px solid #c8dfe9; border-radius: 4px; background: linear-gradient(to bottom, #e0f1ff 0 84%, #c9e59d 84% 95%, #a9cd7c 95%); box-shadow: 0 12px 34px rgba(44,84,103,.14); isolation: isolate; }
 .module :global(.solo-game-page::before) { position: absolute; z-index: -1; inset: 0; background-image: linear-gradient(rgba(99,165,201,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(99,165,201,.07) 1px, transparent 1px); background-size: 42px 42px; content: ""; mask-image: linear-gradient(to bottom, #000 0 76%, transparent 94%); }
 .module :global(.solo-game-header) { position: relative; min-height: 0; padding: 8px 12px 8px 15px; overflow: hidden; border: 2px solid rgba(255,255,255,.92); border-radius: 15px !important; background: rgba(255,255,255,.92); box-shadow: 0 5px 0 rgba(70,119,139,.12), 0 10px 24px rgba(49,92,111,.09) !important; color: #2d3d44; }
 .module :global(.solo-game-header::before), .module :global(.solo-game-header::after) { content: none; }
 .module :global(.solo-game-header .eyebrow) { color: #73913b; font-size: 10px; letter-spacing: .12em; }
-.module :global(.solo-game-header h1) { color: #2d3d44; font-family: "Arial Rounded MT Bold", "Malgun Gothic", sans-serif; font-size: 24px; font-weight: 1000; letter-spacing: -.045em; text-shadow: 2px 2px 0 #d9eef7; }
+.module :global(.solo-game-header h1) { color: #2d3d44; font-family: "Arial Rounded MT Bold", "Malgun Gothic", sans-serif; font-size: 8px; font-weight: 1000; letter-spacing: -.045em; text-shadow: 2px 2px 0 #d9eef7; }
 .module :global(.solo-controls) { gap: 6px; }
 .module :global(.solo-game-header .solo-controls button) { min-height: 34px; padding: 0 13px; border: 0; border-radius: 9px; background: #b8d648; box-shadow: 0 4px 0 #8fab2c; color: #fff; font-weight: 1000; transition: translate 140ms ease, box-shadow 140ms ease; }
 .module :global(.solo-controls button:not(:disabled):hover) { translate: 0 -2px; box-shadow: 0 6px 0 #8fab2c; }
 .module :global(.solo-game-header .solo-controls button.secondary) { border: 0; background: #edf5f7; box-shadow: 0 4px 0 #c7dce3; color: #466674; }
 .module :global(.solo-game-header .solo-controls button.secondary.icon) { background: #fff; box-shadow: 0 4px 0 #c8dfe9; color: #3d6477; }
-.module :global(.solo-workspace) { display: grid; min-height: 0; grid-template-columns: minmax(0, 1.22fr) minmax(350px, .78fr); grid-template-rows: 50px minmax(0, 1fr); align-items: stretch; gap: 7px 9px; }
+.module :global(.solo-game-page .solo-workspace) { display: grid; min-height: 0; grid-template-columns: minmax(0, 3fr) minmax(350px, 1fr) !important; grid-template-rows: minmax(0, 1fr); align-items: stretch; gap: 7px 9px; }
 .module :global(.solo-hud) { position: relative; grid-column: 1 / -1; display: grid; height: 50px; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; padding: 3px 5px; overflow: hidden; border: 2px solid rgba(255,255,255,.9); border-radius: 12px; background: #2a4553; box-shadow: 0 4px 0 rgba(48,89,105,.2); }
 .module :global(.solo-metric) { position: relative; display: grid; min-width: 0; align-content: center; padding: 3px 8px; overflow: hidden; border: 0; border-right: 1px solid rgba(220,239,245,.14); border-radius: 0; background: transparent; box-shadow: none; text-align: center; }
 .module :global(.solo-metric:last-of-type) { border-right: 0; }
@@ -189,8 +201,8 @@
 .module :global(.solo-metric span) { color: #b9ced5; font-size: 9px; font-weight: 900; letter-spacing: .08em; }
 .module :global(.solo-metric strong) { margin-top: 2px; color: #fff; font-family: "Arial Rounded MT Bold", sans-serif; font-size: 19px; font-weight: 1000; text-shadow: 2px 2px 0 rgba(239,86,133,.34); }
 .module :global(.solo-hud .solo-message), .module :global(.solo-hud .solo-lock-slot) { display: none; }
-.module :global(.solo-stage-column) { position: relative; display: grid; min-width: 0; min-height: 0; grid-template-rows: minmax(0, 1fr); padding: 0 !important; }
-.module :global(.solo-board-wrap) { position: relative; width: 100%; max-width: none; height: 100%; min-height: 0; justify-self: stretch; padding: 31px 8px 8px; overflow: hidden; border: 2px solid rgba(255,255,255,.96); border-radius: 16px !important; aspect-ratio: auto !important; background: rgba(255,255,255,.94); box-shadow: 0 6px 0 rgba(63,108,126,.15), 0 14px 28px rgba(49,91,110,.1) !important; contain: layout paint; }
+.module :global(.solo-stage-column) { position: relative; z-index: 1; display: grid; min-width: 0; min-height: 0; overflow: visible; grid-template-rows: minmax(0, 1fr); padding: 0 !important; }
+.module :global(.solo-board-wrap) { position: relative; width: 100%; max-width: none; height: 100%; min-height: 0; justify-self: stretch; padding: 31px 8px 8px; overflow: visible; border: 2px solid rgba(255,255,255,.96); border-radius: 16px !important; aspect-ratio: auto !important; background: rgba(255,255,255,.94); box-shadow: 0 6px 0 rgba(63,108,126,.15), 0 14px 28px rgba(49,91,110,.1) !important; contain: none; }
 .module :global(.solo-board-wrap::before) { position: absolute; z-index: 3; top: 8px; left: 13px; color: #536d78; font-size: 10px; font-weight: 1000; letter-spacing: .12em; content: "▣  BLOCK PLAY FIELD"; }
 .module :global(.solo-board-wrap::after) { content: none; }
 .module :global(.solo-board) { overflow: hidden; border: 4px solid #476d7c; border-radius: 9px; background: #294b5d; box-shadow: inset 0 0 0 2px rgba(202,238,249,.18); }
@@ -208,10 +220,10 @@
 .module :global(.solo-camera-fallback-guide:has(.sign-guide-empty) .camera-guide-value:first-child strong), .module :global(.camera-guide-panel:has(.sign-guide-empty) .camera-guide-value:first-child strong) { color: #5c7b89; text-shadow: none; }
 .module :global(.solo-camera-fallback-guide .sign-guide-empty), .module :global(.camera-guide-panel .sign-guide-empty) { border: 2px dashed #aac9d5; background: #e7f2f6; opacity: .72; }
 .module :global(.camera-stage) { border-color: #2d526f; border-width: 3px; border-radius: 9px; }
-.module :global(.solo-game-page .solo-sidebar) { display: grid; min-width: 0; min-height: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); gap: 8px; padding: 0 !important; }
+.module :global(.solo-game-page .solo-sidebar) { display: grid; min-width: 0; min-height: 0; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 0; padding: 0 !important; }
 .module :global(.solo-camera-cell), .module :global(.solo-guide-cell) { position: relative; display: grid; min-width: 0; min-height: 0; overflow: hidden; border: 2px solid rgba(255,255,255,.94); border-radius: 15px; background: rgba(255,255,255,.94); box-shadow: 0 6px 0 rgba(63,108,126,.15), 0 14px 28px rgba(49,91,110,.08); }
 .module :global(.solo-camera-cell) { grid-template-rows: 44px minmax(0, 1fr); padding: 7px; }
-.module :global(.solo-guide-cell) { grid-template-rows: 44px 104px minmax(0, 1fr) 8px; gap: 7px; padding: 7px; }
+.module :global(.solo-guide-cell) { grid-template-rows: 44px minmax(0, 1fr) 8px; gap: 7px; padding: 7px; }
 .module :global(.solo-panel-heading) { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 8px; padding: 0 7px; border-bottom: 1px solid #dbe8ec; }
 .module :global(.solo-panel-heading > span) { display: grid; min-width: 0; gap: 2px; }
 .module :global(.solo-panel-heading b) { color: #2a4553; font-family: "Arial Rounded MT Bold", sans-serif; font-size: 11px; font-weight: 1000; letter-spacing: .1em; }
@@ -226,6 +238,20 @@
 .module :global(.solo-camera-unavailable) { display: grid; width: 100%; height: 100%; place-content: center; justify-items: center; gap: 8px; padding: 18px; color: #e7f4f8; text-align: center; }
 .module :global(.solo-camera-unavailable strong) { color: #b8d648; font-size: 11px; letter-spacing: .12em; }
 .module :global(.solo-camera-unavailable span) { max-width: 220px; color: #c5d9e0; font-size: 11px; line-height: 1.45; }
+.module :global(.solo-camera-viewport .camera-no-hand-prompt) { position: absolute; z-index: 9; inset: 0; display: grid; place-content: center; justify-items: center; gap: 8px; padding: 24px; background: linear-gradient(135deg, rgba(18, 50, 65, .18), rgba(18, 50, 65, .42)); color: #fffdf0; font-family: "Arial Rounded MT Bold", "Malgun Gothic", sans-serif; font-weight: 1000; line-height: 1.1; text-align: center; text-shadow: 0 2px 5px rgba(17, 41, 50, .7); pointer-events: none; }
+.module :global(.solo-camera-viewport .camera-no-hand-prompt span) { font-size: clamp(1.15rem, 1.8vw, 1.65rem); letter-spacing: .02em; }
+.module :global(.solo-camera-viewport .camera-no-hand-prompt strong) { display: block; padding: 9px 16px 11px; border: 2px solid rgba(255, 251, 222, .94); border-radius: 14px; background: #df5e81; box-shadow: 0 5px 0 rgba(119, 42, 59, .78), 0 8px 22px rgba(23, 45, 55, .42); color: #fffdf0; font-size: clamp(1.45rem, 2.2vw, 2.15rem); letter-spacing: .04em; }
+.module :global(.solo-camera-viewport .camera-compact-recognition) { position: absolute; z-index: 10; top: 14px; right: 14px; display: grid; min-width: 106px; place-items: center; gap: 2px; padding: 10px 12px 8px; border: 2px solid rgba(226,239,191,.96); border-radius: 14px; background: rgba(250,252,245,.93); box-shadow: 0 4px 0 rgba(86,121,102,.18), 0 8px 18px rgba(20,47,57,.2); color: #718286; text-align: center; pointer-events: none; }
+.module :global(.solo-camera-viewport .camera-compact-recognition span) { color: #718286; font-size: 11px; font-weight: 900; }
+.module :global(.solo-camera-viewport .camera-compact-recognition strong) { color: #55718a; font-family: "Arial Rounded MT Bold", "Malgun Gothic", sans-serif; font-size: clamp(2.25rem,4vw,3.7rem); font-weight: 1000; line-height: .9; }
+.module :global(.solo-camera-viewport .camera-compact-recognition small) { color: #7b8c92; font-size: 10px; font-weight: 800; }
+.module :global(.solo-camera-recognition-values) { position: absolute; z-index: 4; top: 52px; right: 10px; left: 10px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; pointer-events: none; }
+.module :global(.solo-camera-recognition-values article) { display: grid; min-width: 0; min-height: 86px; place-items: center; align-content: center; padding: 7px; border: 2px solid rgba(223, 235, 202, .94); border-radius: 10px; background: rgba(248, 251, 239, .93); box-shadow: 0 3px 10px rgba(20, 47, 57, .2); text-align: center; }
+.module :global(.solo-camera-recognition-values article:last-child) { border-color: rgba(213, 231, 238, .96); background: rgba(245, 250, 252, .94); }
+.module :global(.solo-camera-recognition-values span) { color: #718286; font-size: 10px; font-weight: 900; }
+.module :global(.solo-camera-recognition-values strong) { margin-top: 2px; color: #759125; font-family: "Arial Rounded MT Bold", sans-serif; font-size: clamp(34px, 3.8vw, 54px); font-weight: 1000; line-height: .9; }
+.module :global(.solo-camera-recognition-values article:last-child strong) { color: #2d566b; }
+.module :global(.solo-camera-recognition-values small) { min-height: 12px; color: #7b8c92; font-size: 9px; font-weight: 800; }
 .module :global(.solo-guide-values) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
 .module :global(.solo-guide-values article) { display: grid; min-width: 0; place-items: center; align-content: center; padding: 7px; border: 2px solid #e2ebd3; border-radius: 10px; background: #f8fbeF; text-align: center; }
 .module :global(.solo-guide-values article:last-child) { border-color: #d9e8ed; background: #f5fafc; }
@@ -238,11 +264,256 @@
 .module :global(.solo-guide-figure .sign-guide-empty) { border: 2px dashed #bed1a1; opacity: .75; }
 .module :global(.solo-guide-confidence) { height: 8px; overflow: hidden; border-radius: 999px; background: #dce8ec; }
 .module :global(.solo-guide-confidence span) { display: block; height: 100%; border-radius: inherit; background: #b8d648; transition: width 160ms linear; }
-.module :global(.solo-board) { position: relative; isolation: isolate; background: #294b5d; }
-.module :global(.solo-board::before) { position: absolute; z-index: 2; inset: 0; pointer-events: none; background-image: linear-gradient(rgba(121,215,247,.12) 1px, transparent 1px), linear-gradient(90deg, rgba(121,215,247,.12) 1px, transparent 1px); background-size: clamp(44px, 4.2vw, 58px) clamp(44px, 4.2vw, 58px); content: ""; }
+.module :global(.solo-board) { position: relative; isolation: auto; background: #294b5d; }
+.module :global(.solo-board::before) { content: none; }
 .module :global(.solo-board::after) { position: absolute; z-index: 3; top: 16.66%; right: 0; left: 0; height: 7px; pointer-events: none; background: repeating-linear-gradient(90deg, #ef5685 0 14px, transparent 14px 23px); box-shadow: 0 -4px 12px rgba(239,86,133,.12), 0 4px 12px rgba(239,86,133,.12); content: ""; }
 .module :global(.solo-board canvas) { position: relative; z-index: 1; }
+.module :global(.game-over-overlay) { z-index: 200; }
+.module :global(.solo-start-overlay) { position: absolute; z-index: 11; inset: 31px 8px 8px; display: grid; place-items: center; overflow: hidden; background: linear-gradient(145deg, rgba(25,48,63,.9), rgba(41,78,94,.76)), url("../block-stacking/assets/game-menu-otter.png") center 64% / min(48%, 360px) auto no-repeat; color: #fff; text-align: center; }
+.module :global(.solo-start-overlay::before) { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(13,38,54,.48), transparent 45%, rgba(13,38,54,.36)); content: ""; }
+.module :global(.solo-start-overlay > div) { position: relative; z-index: 1; display: grid; justify-items: center; gap: 11px; max-width: 360px; padding: 26px; }
+.module :global(.solo-start-overlay p) { margin: 0; color: #ddebba; font-size: 11px; font-weight: 1000; letter-spacing: .15em; }
+.module :global(.solo-start-overlay strong) { font-family: "Arial Rounded MT Bold", sans-serif; font-size: clamp(28px, 4vw, 46px); text-shadow: 3px 4px 0 rgba(17,34,43,.45); }
+.module :global(.solo-start-overlay span) { color: #e3f1f5; font-size: 13px; font-weight: 800; }
+.module :global(.solo-start-overlay button) { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-width: 190px; min-height: 68px; margin-top: 10px; border: 0; border-radius: 17px; background: #b8d648; box-shadow: 0 7px 0 #7e9d2d, 0 13px 28px rgba(0,0,0,.24); color: #fff; cursor: pointer; font: inherit; font-size: 22px; font-weight: 1000; transition: transform 140ms ease, box-shadow 140ms ease; }
+.module :global(.solo-start-overlay button:hover:not(:disabled)) { transform: translateY(-3px); box-shadow: 0 10px 0 #7e9d2d, 0 16px 30px rgba(0,0,0,.28); }
+.module :global(.solo-start-overlay button:disabled) { opacity: .65; cursor: wait; }
 .module :global(.solo-board-wrap::after) { position: absolute; z-index: 4; top: 7px; right: 10px; padding: 3px 7px; border-radius: 6px; background: #2a4553; color: #ddebba; font-size: 8px; font-weight: 1000; letter-spacing: .08em; content: "STAGE 01"; }
+.module :global(.solo-board-time) { position: absolute; z-index: 5; top: 44px; right: 18px; display: grid; justify-items: end; gap: 2px; min-width: 126px; padding: 10px 14px 9px; border: 2px solid rgba(222,238,185,.94); border-radius: 14px; background: rgba(255,255,255,.9); box-shadow: 0 5px 0 rgba(91,133,105,.18); color: #536d78; }
+.module :global(.solo-board-time span) { color: #718b46; font-size: 10px; font-weight: 1000; letter-spacing: .13em; }
+.module :global(.solo-board-time strong) { color: #3d5960; font-family: "Arial Rounded MT Bold", sans-serif; font-size: clamp(1.75rem,3.3vw,2.6rem); font-weight: 1000; line-height: .95; font-variant-numeric: tabular-nums; }
+.module :global(.tower-height-gauge) { --tower-gauge-level:0; position:relative; display:grid; justify-items:center; width:128px; background:transparent; color:#f8ffde; font-family:"Arial Rounded MT Bold","Malgun Gothic",sans-serif; isolation:isolate; }
+.module :global(.tower-height-gauge__label), .module :global(.tower-height-gauge__value) { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+.module :global(.tower-height-gauge__track) { position:relative; display:block; width:68px; height:760px; overflow:visible; border:3px solid rgba(255,255,255,.76); border-radius:8px; background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(88,142,139,.16)); box-shadow:inset 0 0 0 1px rgba(75,141,137,.42),0 0 0 7px rgba(255,255,255,.1),0 7px 16px rgba(62,108,111,.18); }
+.module :global(.tower-height-gauge__track::before) { position:absolute; inset:7px; background:repeating-linear-gradient(to top,rgba(102,156,126,.45) 0 3px,transparent 3px 28px); content:""; }
+.module :global(.tower-height-gauge__fill) { position:absolute; right:5px; bottom:5px; left:5px; display:grid; align-content:space-around; height:calc((100% - 10px) * var(--tower-gauge-level)); min-height:0; overflow:hidden; background:linear-gradient(to top,#54aaa2 0%,#84c998 40%,#c3dc69 70%,#f3d66e 100%); box-shadow:0 -4px 18px rgba(246,222,111,.96),0 0 14px rgba(94,186,151,.65); transition:height 180ms cubic-bezier(.2,.85,.28,1); }
+.module :global(.tower-height-gauge__fill::before) { position:absolute; inset:0; background:linear-gradient(110deg,transparent 25%,rgba(255,255,255,.75) 47%,transparent 69%); content:""; animation:tower-gauge-sheen 1.65s linear infinite; }
+.module :global(.tower-height-gauge__fill i) { position:relative; display:block; width:7px; height:7px; margin-left:15px; border-radius:50%; background:#fffde9; box-shadow:0 0 8px #fff; animation:tower-gauge-spark .7s ease-in-out infinite alternate; }
+.module :global(.tower-height-gauge__fill i:nth-child(2n)) { margin-left:37px; animation-delay:.24s; }.module :global(.tower-height-gauge__fill i:nth-child(3n)) { animation-delay:.45s; }
+.module :global(.tower-height-gauge__cap) { position:absolute; z-index:1; right:-8px; left:-8px; bottom:calc(5px + (100% - 10px) * var(--tower-gauge-level)); height:9px; border-radius:3px; background:#fff8b7; box-shadow:0 0 15px #fff3a3,0 0 5px #79bf92; transition:bottom 180ms cubic-bezier(.2,.85,.28,1); }
+.module :global(.solo-tower-height-gauge) { position:absolute; z-index:8; top:22%; right:8px; bottom:16%; }
+.module :global(.solo-tower-height-gauge .tower-height-gauge__track) { height:100%; }
+@keyframes tower-gauge-sheen { from { transform:translateY(110%); } to { transform:translateY(-110%); } }
+@keyframes tower-gauge-spark { from { opacity:.28; transform:translateX(-1px) scale(.7); } to { opacity:1; transform:translateX(2px) scale(1.15); } }
+.module :global(.solo-letter-otter) { position: absolute; z-index: 30; top: -116px; left: 50%; width: 320px; isolation: isolate; pointer-events: none; transform: translateX(-50%); filter: drop-shadow(0 6px 7px rgba(73, 54, 41, .2)); }
+.module :global(.solo-letter-otter img) { position: relative; z-index: 0; display: block; width: 100%; height: auto; user-select: none; }
+.module :global(.solo-letter-otter strong) { position: absolute; z-index: 4; top: 63%; left: 50%; color: #d95b7d; font-family: "Arial Rounded MT Bold", "Malgun Gothic", sans-serif; font-size: 72px; font-weight: 1000; line-height: 1; text-shadow: 2px 2px 0 rgba(255,255,255,.94), 0 3px 8px rgba(104,55,68,.18); transform: translate(-50%, -50%) scale(1); transform-origin: center; will-change: transform, color; }
+.module :global(.solo-letter-otter strong.is-releasing) { animation: solo-paper-release .76s cubic-bezier(.16,.82,.26,1) both; }
+.module :global(.solo-letter-otter strong.is-releasing::before), .module :global(.solo-letter-otter strong.is-releasing::after) { position: absolute; z-index: -1; top: 50%; left: 50%; content: "✦"; color: #fff3a3; font-size: .48em; opacity: .95; transform: translate(-50%, -50%); }
+.module :global(.solo-letter-otter strong.is-releasing::before) { animation: solo-paper-spark-left .34s .42s cubic-bezier(.18,.8,.2,1) both; }
+.module :global(.solo-letter-otter strong.is-releasing::after) { color: #ffcb58; animation: solo-paper-spark-right .34s .42s cubic-bezier(.18,.8,.2,1) both; }
+.module :global(.solo-hint-otter) {
+  position: absolute;
+  /* Physics glyphs use the external 900 layer so they can extend past the
+     board frame. Keep the walking otter above that layer at every zoom. */
+  z-index: 1200;
+  bottom: 2.2%;
+  left: 0;
+  width: clamp(182px, 15.5vw, 220px);
+  aspect-ratio: 4 / 5;
+  pointer-events: none;
+  contain: layout style;
+  transform: translateZ(0);
+  will-change: transform;
+}
+.module :global(.solo-hint-otter-sprite) {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  transform-origin: center bottom;
+  animation: solo-hint-step-bob .6s ease-in-out infinite;
+}
+.module :global(.solo-hint-frame) {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  user-select: none;
+  backface-visibility: hidden;
+  filter: drop-shadow(0 5px 3px rgba(82,103,69,.18));
+  will-change: opacity;
+}
+.module :global(.solo-hint-otter[data-direction="RIGHT_TO_LEFT"] .solo-hint-frame) {
+  transform: scaleX(-1);
+}
+.module :global(.hint-carry-frame-0) {
+  animation: solo-hint-carry-frame-0 .6s steps(1, end) infinite;
+}
+.module :global(.hint-carry-frame-1) {
+  animation: solo-hint-carry-frame-1 .6s steps(1, end) infinite;
+}
+.module :global(.solo-hint-paper-guide) {
+  position: absolute;
+  z-index: 3;
+  top: 7%;
+  left: 50%;
+  display: grid;
+  width: 66px;
+  height: 66px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 7px;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 2px 2px rgba(80,58,47,.14));
+}
+.module :global(.solo-hint-paper-guide .sign-guide-crop),
+.module :global(.solo-hint-paper-guide .sign-guide-number),
+.module :global(.solo-hint-paper-guide .sign-guide-learning) {
+  border: 0;
+  border-radius: 8px;
+}
+.module :global(.solo-hint-otter.is-throwing .solo-hint-otter-sprite) {
+  animation: none;
+}
+.module :global(.hint-throw-frame) {
+  opacity: 0;
+  animation-duration: 1.52s;
+  animation-timing-function: steps(1, end);
+  animation-fill-mode: both;
+}
+.module :global(.hint-throw-carry) {
+  animation-name: solo-hint-throw-carry;
+}
+.module :global(.hint-throw-celebrate-0) {
+  animation-name: solo-hint-throw-celebrate-0;
+}
+.module :global(.hint-throw-celebrate-1) {
+  animation-name: solo-hint-throw-celebrate-1;
+}
+.module :global(.hint-throw-guide) {
+  animation: solo-hint-throw-guide 1.52s steps(1, end) both;
+}
+.module :global(.solo-hint-thrown-paper) {
+  --hint-paper-flight-x: 145px;
+  position: absolute;
+  z-index: 6;
+  top: 3%;
+  left: 48%;
+  width: 145px;
+  height: 72px;
+  opacity: 0;
+  transform-origin: center;
+  animation: solo-hint-paper-flight 1.52s cubic-bezier(.2,.7,.24,1) both;
+  will-change: transform, opacity;
+}
+.module :global(.solo-hint-otter[data-direction="RIGHT_TO_LEFT"] .solo-hint-thrown-paper) {
+  --hint-paper-flight-x: -145px;
+  left: auto;
+  right: 48%;
+}
+.module :global(.solo-hint-thrown-paper > img) {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+}
+.module :global(.solo-hint-otter[data-direction="RIGHT_TO_LEFT"] .solo-hint-thrown-paper > img) {
+  transform: scaleX(-1);
+}
+.module :global(.solo-hint-thrown-paper > span) {
+  position: absolute;
+  z-index: 1;
+  top: 29%;
+  left: 66%;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 4px;
+  transform: translate(-50%, -50%);
+}
+.module :global(.solo-hint-otter[data-direction="RIGHT_TO_LEFT"] .solo-hint-thrown-paper > span) {
+  left: 34%;
+}
+.module :global(.solo-hint-thrown-paper .sign-guide-crop),
+.module :global(.solo-hint-thrown-paper .sign-guide-number),
+.module :global(.solo-hint-thrown-paper .sign-guide-learning) {
+  border: 0;
+  border-radius: 4px;
+}
+.module :global(.solo-hint-otter.is-running .solo-hint-otter-sprite) {
+  animation: none;
+}
+.module :global(.hint-run-frame-0) {
+  animation: solo-hint-run-frame-0 .56s steps(1, end) infinite;
+}
+.module :global(.hint-run-frame-1) {
+  animation: solo-hint-run-frame-1 .56s steps(1, end) infinite;
+}
+.module :global(.solo-hint-otter.is-paused *),
+.module :global(.solo-hint-otter.is-paused) {
+  animation-play-state: paused !important;
+}
+@keyframes solo-hint-step-bob {
+  0%, 50%, 100% { transform: translate3d(0, 0, 0); }
+  25%, 75% { transform: translate3d(0, -3px, 0); }
+}
+@keyframes solo-hint-carry-frame-0 {
+  0%, 49.99% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+@keyframes solo-hint-carry-frame-1 {
+  0%, 49.99% { opacity: 0; }
+  50%, 100% { opacity: 1; }
+}
+@keyframes solo-hint-throw-carry {
+  0%, 33.99% { opacity: 1; }
+  34%, 100% { opacity: 0; }
+}
+@keyframes solo-hint-throw-celebrate-0 {
+  0%, 33.99%, 51.99%, 100% { opacity: 0; }
+  34%, 51.98% { opacity: 1; }
+}
+@keyframes solo-hint-throw-celebrate-1 {
+  0%, 51.99% { opacity: 0; }
+  52%, 100% { opacity: 1; }
+}
+@keyframes solo-hint-throw-guide {
+  0%, 33.99% { opacity: 1; }
+  34%, 100% { opacity: 0; }
+}
+@keyframes solo-hint-paper-flight {
+  0%, 38% { opacity: 0; transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+  42% { opacity: 1; transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+  78% { opacity: 1; transform: translate3d(calc(var(--hint-paper-flight-x) * .68), -58px, 0) rotate(22deg) scale(.8); }
+  100% { opacity: 0; transform: translate3d(var(--hint-paper-flight-x), -92px, 0) rotate(38deg) scale(.6); }
+}
+@keyframes solo-hint-run-frame-0 {
+  0%, 49.99% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+@keyframes solo-hint-run-frame-1 {
+  0%, 49.99% { opacity: 0; }
+  50%, 100% { opacity: 1; }
+}
+/* The paper overlaps the board at the top, so the glyph layer must be able to
+   draw upward there.  It must never, however, paint beyond the left, right or
+   bottom edge of the actual game board. */
+.module :global(.solo-physics-letter-layer) { position: absolute; z-index: 900; inset: 0; overflow: visible; pointer-events: none; -webkit-clip-path: inset(-360px 0 0 0); clip-path: inset(-360px 0 0 0); }
+.module :global(.solo-stage-column.is-game-over .solo-physics-letter-layer) { visibility: hidden; }
+.module :global(.solo-physics-letter) { position: absolute; top: 0; left: 0; display: block; background: #416d72; -webkit-mask-position: center; mask-position: center; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-size: 100% 100%; mask-size: 100% 100%; filter: drop-shadow(2px 3px 0 rgba(255,255,255,.92)) drop-shadow(0 5px 7px rgba(54,90,96,.24)); transform-origin: center; will-change: transform, background-color; }
+/* Grow on the paper to the exact physical block size. Matter takes over at
+   that same point; the glyph itself never performs a separate falling path. */
+@keyframes solo-paper-release {
+  0% { color: #d95b7d; transform: translate(-50%, -50%) scale(1); }
+  14% { color: #dc5d7e; transform: translate(-50%, -50%) scale(1.13); }
+  28% { color: #e15f7d; transform: translate(-50%, -50%) scale(1.41); }
+  42% { color: #e76379; transform: translate(-50%, -50%) scale(1.82); }
+  56% { color: #f06867; transform: translate(-50%, -50%) scale(2.25); }
+  70% { color: #ff6b4a; text-shadow: 0 0 12px rgba(255,107,74,.9), 2px 2px 0 rgba(104,55,68,.18); transform: translate(-50%, -50%) scale(2.64); }
+  86% { color: #f7a04a; text-shadow: 0 0 18px rgba(247,160,74,.92), 2px 2px 0 rgba(104,55,68,.18); transform: translate(-50%, -50%) scale(2.92); }
+  100% { color: #f2a642; text-shadow: 0 0 22px rgba(242,166,66,.95), 2px 2px 0 rgba(104,55,68,.18); transform: translate(-50%, -50%) scale(3.0556); }
+}
+@keyframes solo-paper-spark-left { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.4); } 35% { opacity: 1; transform: translate(-220%, -160%) scale(1.8) rotate(-22deg); } 100% { opacity: 0; transform: translate(-480%, -300%) scale(2.6) rotate(-42deg); } }
+@keyframes solo-paper-spark-right { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.4); } 35% { opacity: 1; transform: translate(160%, 90%) scale(1.8) rotate(22deg); } 100% { opacity: 0; transform: translate(380%, 230%) scale(2.6) rotate(42deg); } }
 .module :global(.solo-game-page .solo-symbol-panel) { grid-column: 1 / -1; }
 
 /* Solo stage: the same sky-and-grass world used by the game selection screen. */
@@ -252,18 +523,31 @@
 .module :global(.solo-metric:nth-child(2)), .module :global(.solo-metric:nth-child(4)) { background: rgba(240,248,221,.94); }
 .module :global(.solo-metric span) { color: #718b46; font-size: 9px; letter-spacing: .05em; }
 .module :global(.solo-metric strong) { color: #3d5960; text-shadow: 2px 2px 0 #d8edf3; }
-.module :global(.solo-board-wrap) { background: rgba(255,255,255,.92); }
+.module :global(.solo-board-wrap) { align-self: stretch; background: rgba(255,255,255,.92); }
 .module :global(.solo-board-wrap::before) { color: #718b46; content: "☁  SKY LETTER STAGE"; }
 .module :global(.solo-board-wrap::after) { background: #f0f6dc; color: #718b46; box-shadow: 0 2px 0 #cadb9a; content: "STAGE 01"; }
 .module :global(.solo-board) { position: relative; z-index: 1; border-color: #91b56a; background: transparent; box-shadow: inset 0 0 0 2px rgba(255,255,255,.4); }
 .module :global(.solo-board::before) { background: none; content: none; }
 .module :global(.solo-board::after) { top: 16.66%; height: 5px; background: repeating-linear-gradient(90deg, rgba(240,186,85,.76) 0 15px, transparent 15px 25px); box-shadow: none; }
-.module :global(.solo-sky-decor) { position: absolute; z-index: 0; top: 31px; right: 8px; bottom: 8px; left: 8px; overflow: hidden; border: 4px solid #91b56a; border-radius: 9px; background: linear-gradient(to bottom, #dff1ff 0 69%, #c9e59d 69% 87%, #a9cd7c 87% 100%); pointer-events: none; }
-.module :global(.solo-sky-decor::before) { position: absolute; top: 7%; right: 8%; width: 68px; height: 68px; border-radius: 50%; background: rgba(255,229,108,.55); box-shadow: 0 0 0 13px rgba(255,244,180,.18); content: ""; }
-.module :global(.stage-hills) { position: absolute; right: -8%; bottom: 12%; left: -8%; height: 24%; border-radius: 50% 55% 0 0 / 80% 90% 0 0; background: #b8d98c; box-shadow: 0 18px 0 #9fc676; }
-.module :global(.stage-glyphs) { position: absolute; right: 5%; bottom: 2.5%; left: 5%; display: flex; align-items: flex-end; justify-content: space-around; color: #557957; opacity: .18; }
-.module :global(.stage-glyphs b) { font-family: "Arial Rounded MT Bold", "Malgun Gothic", sans-serif; font-size: clamp(34px, 3.2vw, 54px); font-weight: 1000; transform: rotate(-8deg); }
-.module :global(.stage-glyphs b:nth-child(2)) { color: #d95b7d; font-size: clamp(42px, 3.8vw, 62px); transform: rotate(7deg) translateY(-8px); }
+.module :global(.solo-sky-decor) { position: absolute; z-index: 0; top: 31px; right: 8px; bottom: 8px; left: 8px; overflow: hidden; border: 4px solid #91b56a; border-radius: 9px; background: linear-gradient(to bottom, #dff1ff 0 69%, #c9e59d 69% 87%, #a9cd7c 87% 100%); pointer-events: none; container-type: inline-size; }
+.module :global(.solo-sky-decor::after) { position: absolute; z-index: 1; inset: 0; background: linear-gradient(to bottom, rgba(28,50,91,.82) 0 69%, rgba(56,75,87,.55) 69% 87%, rgba(45,72,67,.48) 87%); opacity: 0; content: ""; animation: solo-day-night-overlay 64s ease-in-out infinite; }
+.module :global(.solo-night-sky) { position: absolute; z-index: 2; inset: 0 0 31%; background-image: radial-gradient(circle at 8% 19%, rgba(255,255,224,.95) 0 1.4px, transparent 1.8px), radial-gradient(circle at 21% 38%, rgba(219,239,255,.9) 0 1px, transparent 1.5px), radial-gradient(circle at 36% 13%, rgba(255,255,224,.85) 0 1.2px, transparent 1.7px), radial-gradient(circle at 48% 30%, rgba(219,239,255,.86) 0 1.3px, transparent 1.8px), radial-gradient(circle at 64% 17%, rgba(255,255,224,.9) 0 1px, transparent 1.5px), radial-gradient(circle at 79% 34%, rgba(219,239,255,.88) 0 1.4px, transparent 1.9px), radial-gradient(circle at 91% 11%, rgba(255,255,224,.92) 0 1.1px, transparent 1.6px); background-size: 270px 190px; opacity: 0; animation: solo-night-stars 64s ease-in-out infinite; }
+.module :global(.solo-celestial) { position: absolute; z-index: 3; top: 8%; left: -92px; display: block; width: 68px; height: 68px; border-radius: 50%; will-change: transform, opacity; }
+.module :global(.solo-sun) { background: rgba(255,225,92,.86); box-shadow: 0 0 0 13px rgba(255,244,180,.18), 0 0 34px rgba(255,213,78,.42); animation: solo-sun-journey 64s linear infinite; }
+.module :global(.solo-moon) { background: #fffce1; opacity: 0; filter: drop-shadow(0 0 6px rgba(255,255,238,1)) drop-shadow(0 0 16px rgba(255,247,181,1)) drop-shadow(0 0 30px rgba(218,238,255,.9)); -webkit-mask-image: radial-gradient(circle at 69% 35%, transparent 0 30px, #000 31px); mask-image: radial-gradient(circle at 69% 35%, transparent 0 30px, #000 31px); animation: solo-moon-journey 64s linear infinite; }
+.module :global(.solo-moon::after) { content: none; }
+.module :global(.solo-shooting-star) { position: absolute; z-index: 3; top: 16%; left: 73%; width: 82px; height: 2px; border-radius: 999px; background: linear-gradient(90deg, transparent, rgba(255,255,239,.88)); opacity: 0; transform: rotate(-24deg); transform-origin: right center; animation: solo-shooting-star 12s ease-out infinite 4s; }
+.module :global(.stage-hills) { position: absolute; z-index: 3; right: -8%; bottom: 12%; left: -8%; height: 24%; border-radius: 50% 55% 0 0 / 80% 90% 0 0; background: #b8d98c; box-shadow: 0 18px 0 #9fc676; animation: solo-hill-breeze 7s ease-in-out infinite alternate, solo-hill-night 64s ease-in-out infinite; transform-origin: 50% 100%; }
+.module :global(.solo-fireflies) { position: absolute; z-index: 4; right: 4%; bottom: 8%; left: 4%; height: 22%; opacity: 0; animation: solo-firefly-cycle 64s ease-in-out infinite; }
+.module :global(.solo-fireflies i) { position: absolute; display: block; width: 5px; height: 5px; border-radius: 50%; background: #fff19a; box-shadow: 0 0 8px 3px rgba(255,225,89,.66); animation: solo-firefly-float 4.2s ease-in-out infinite alternate; }
+.module :global(.solo-fireflies i:nth-child(1)) { left: 9%; bottom: 28%; animation-delay: -.8s; }
+.module :global(.solo-fireflies i:nth-child(2)) { left: 31%; bottom: 61%; animation-delay: -2.4s; animation-duration: 5.1s; }
+.module :global(.solo-fireflies i:nth-child(3)) { left: 55%; bottom: 19%; animation-delay: -1.6s; animation-duration: 3.7s; }
+.module :global(.solo-fireflies i:nth-child(4)) { left: 74%; bottom: 57%; animation-delay: -3.1s; animation-duration: 4.7s; }
+.module :global(.solo-fireflies i:nth-child(5)) { left: 91%; bottom: 34%; animation-delay: -.2s; animation-duration: 5.4s; }
+.module :global(.stage-glyphs) { position: absolute; z-index: 5; right: 5%; bottom: 5%; left: 5%; display: flex; align-items: flex-end; justify-content: space-around; color: #557957; opacity: .18; }
+.module :global(.stage-glyphs b) { font-family: "Arial Rounded MT Bold", "Malgun Gothic", sans-serif; font-size: clamp(34px, 3.2cqw, 54px); font-weight: 1000; transform: rotate(-8deg); }
+.module :global(.stage-glyphs b:nth-child(2)) { color: #d95b7d; font-size: clamp(42px, 3.8cqw, 62px); transform: rotate(7deg) translateY(-8px); }
 .module :global(.stage-glyphs b:nth-child(3)) { transform: rotate(4deg); }
 .module :global(.stage-glyphs b:nth-child(4)) { color: #4f8188; transform: rotate(-3deg) translateY(-4px); }
 .module :global(.stage-glyphs b:nth-child(5)) { transform: rotate(9deg); }
@@ -293,20 +577,33 @@
 .module :global(.solo-hint-break strong) { font-size: clamp(16px, 1.5vw, 24px); font-weight: 1000; }
 .module :global(.solo-hint-break small) { color: #7f9461; font-weight: 800; }
 @keyframes solo-hint-pulse { from { transform: scale(.98); } to { transform: scale(1.015); } }
-.module :global(.cloud) { position: absolute; width: 82px; height: 28px; border-radius: 999px; background: rgba(255,255,255,.76); filter: drop-shadow(0 5px 0 rgba(126,173,196,.08)); animation: solo-cloud-drift 16s linear infinite; }
+.module :global(.cloud) { position: absolute; z-index: 2; left: -120px; width: 82px; height: 28px; border-radius: 999px; background: rgba(255,255,255,.76); filter: drop-shadow(0 5px 0 rgba(126,173,196,.08)); animation: solo-cloud-cross 36s linear infinite; will-change: transform; }
 .module :global(.cloud::before), .module :global(.cloud::after) { position: absolute; bottom: 0; border-radius: 50%; background: inherit; content: ""; }
 .module :global(.cloud::before) { left: 13px; width: 37px; height: 37px; }
 .module :global(.cloud::after) { right: 10px; width: 48px; height: 48px; }
-.module :global(.cloud-one) { top: 14%; left: 10%; }
-.module :global(.cloud-two) { top: 32%; left: 58%; scale: .72; animation-duration: 21s; animation-delay: -9s; }
-.module :global(.cloud-three) { top: 49%; left: 26%; scale: .54; opacity: .74; animation-duration: 25s; animation-delay: -14s; }
-.module :global(.cloud-four) { top: 8%; left: 78%; scale: .45; opacity: .68; animation-duration: 29s; animation-delay: -5s; }
-@keyframes solo-cloud-drift { 0% { translate: -36px 0; } 50% { translate: 36px -4px; } 100% { translate: -36px 0; } }
-@media (prefers-reduced-motion: reduce) { .module :global(.cloud), .module :global(.solo-otter-body), .module :global(.solo-otter-body > span) { animation: none; } .module :global(.solo-otter-walk) { display: none; } }
+.module :global(.cloud-one) { top: 14%; animation-duration: 32s; animation-delay: -5s; }
+.module :global(.cloud-two) { top: 32%; scale: .72; animation-duration: 38s; animation-delay: -22s; }
+.module :global(.cloud-three) { top: 49%; scale: .54; opacity: .74; animation-duration: 44s; animation-delay: -33s; }
+.module :global(.cloud-four) { top: 8%; scale: .45; opacity: .68; animation-duration: 50s; animation-delay: -14s; }
+@keyframes solo-day-night-overlay { 0%, 27%, 100% { opacity: 0; } 40% { opacity: .28; } 53%, 74% { opacity: .72; } 88% { opacity: .2; } }
+@keyframes solo-night-stars { 0%, 41%, 92%, 100% { opacity: 0; } 54%, 77% { opacity: .92; } }
+@keyframes solo-sun-journey { 0%, 100% { opacity: 1; transform: translate3d(0,64px,0) scale(.82); } 25% { opacity: 1; transform: translate3d(calc(50cqw + 46px),-20px,0) scale(1); } 46% { opacity: .25; transform: translate3d(calc(100cqw + 150px),72px,0) scale(.82); } 47%, 91% { opacity: 0; transform: translate3d(calc(100cqw + 150px),72px,0) scale(.82); } 92% { opacity: 0; transform: translate3d(0,64px,0) scale(.82); } }
+@keyframes solo-moon-journey { 0%, 47% { opacity: 0; transform: translate3d(0,75px,0) scale(.8); } 53% { opacity: 1; } 69% { opacity: 1; transform: translate3d(calc(50cqw + 46px),-16px,0) scale(1); } 91% { opacity: .2; transform: translate3d(calc(100cqw + 150px),72px,0) scale(.82); } 92%, 100% { opacity: 0; transform: translate3d(calc(100cqw + 150px),72px,0) scale(.82); } }
+@keyframes solo-shooting-star { 0%, 75% { opacity: 0; transform: translate3d(0,0,0) rotate(-24deg); } 77% { opacity: 1; } 82% { opacity: 0; transform: translate3d(-120px,62px,0) rotate(-24deg); } 100% { opacity: 0; transform: translate3d(-120px,62px,0) rotate(-24deg); } }
+@keyframes solo-hill-breeze { from { transform: translateX(-.35%) scaleX(1.006); } to { transform: translateX(.35%) scaleX(.994); } }
+@keyframes solo-hill-night { 0%, 34%, 100% { filter: none; } 55%, 79% { filter: brightness(.73) saturate(.78); } }
+@keyframes solo-firefly-cycle { 0%, 46%, 89%, 100% { opacity: 0; } 57%, 78% { opacity: 1; } }
+@keyframes solo-firefly-float { from { transform: translate3d(-4px,5px,0) scale(.65); opacity: .38; } to { transform: translate3d(10px,-12px,0) scale(1.12); opacity: 1; } }
+@keyframes solo-cloud-cross { from { transform: translate3d(-20px,0,0); } 50% { transform: translate3d(calc(50cqw + 30px),-7px,0); } to { transform: translate3d(calc(100cqw + 180px),1px,0); } }
+@media (prefers-reduced-motion: reduce) {
+  .module :global(.solo-sky-decor::after), .module :global(.solo-night-sky), .module :global(.solo-celestial), .module :global(.solo-shooting-star), .module :global(.stage-hills), .module :global(.solo-fireflies), .module :global(.solo-fireflies i), .module :global(.cloud), .module :global(.solo-otter-body), .module :global(.solo-otter-body > span) { animation: none; }
+  .module :global(.solo-sun) { opacity: 1; transform: translate3d(calc(80cqw + 92px),0,0); }
+  .module :global(.solo-moon), .module :global(.solo-night-sky), .module :global(.solo-fireflies), .module :global(.solo-shooting-star), .module :global(.solo-otter-walk) { display: none; }
+}
 
 /* Game selection: sky-and-grass stage with the existing otter mascot. */
-.module:has(> .categoryPage) { display: grid; min-height: 100dvh; place-items: center; overflow: hidden; background: #e0f1ff; }
-.categoryPage { position: relative; display: grid; width: min(100vw, calc(100dvh * 16 / 9), 1280px); height: min(100dvh, calc(100vw * 9 / 16), 720px); min-height: 0; margin: 0 auto; padding: clamp(18px, 2.6vw, 34px) clamp(24px, 3.2vw, 46px) 26px; overflow: hidden; grid-template-rows: auto minmax(270px, 1fr) auto auto; border: 1px solid #d7e7ee; border-radius: 4px; background: linear-gradient(to bottom, #e0f1ff 0 67%, #c9e59d 67% 91%, #a9cd7c 91%); color: #354248; isolation: isolate; }
+.module:has(> .categoryPage) { position: fixed; inset: 0; display: block; min-height: 0; overflow: hidden; background: #e0f1ff; }
+.categoryPage { position: absolute; top: 50%; left: 50%; display: grid; width: 1280px; height: 720px; min-height: 0; margin: 0; padding: 34px 46px 26px; overflow: hidden; grid-template-rows: auto minmax(270px, 1fr) auto auto; border: 1px solid #d7e7ee; border-radius: 4px; background: linear-gradient(to bottom, #e0f1ff 0 67%, #c9e59d 67% 91%, #a9cd7c 91%); color: #354248; isolation: isolate; transform-origin: center; }
 .categoryPage::after { position: absolute; z-index: -1; right: -8%; bottom: 0; left: -8%; height: 9%; background: #a8cb7c; content: ""; }
 .categoryTopBar { position: relative; z-index: 4; display: flex; align-items: center; justify-content: space-between; }
 .categoryUtilityButton, .categoryUser { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; border: 0; border-radius: 16px; background: rgba(255,255,255,.76); box-shadow: 0 5px 16px rgba(74,105,112,.08); color: #394950; font: inherit; font-weight: 900; }
@@ -314,19 +611,19 @@
 .categoryUtilityButton:hover { transform: translateY(-2px); background: #fff; }
 .categoryUser { min-width: 98px; padding: 0 18px; font-size: 13px; }
 .categoryHero { position: relative; z-index: 2; display: grid; align-content: center; justify-items: center; gap: 18px; margin-top: -18px; }
-.otterLogo { display: flex; align-items: flex-end; justify-content: center; gap: .04em; margin: 0; color: #fff; font-family: "Arial Rounded MT Bold", "Malgun Gothic", sans-serif; font-size: clamp(44px, 5.7vw, 72px); font-weight: 1000; letter-spacing: -.11em; line-height: .92; -webkit-text-stroke: 2px #17232b; filter: drop-shadow(0 7px 0 #17232b); transform: rotate(-1deg); }
+.otterLogo { display: flex; align-items: flex-end; justify-content: center; gap: .04em; margin: 0; color: #fff; font-family: "Arial Rounded MT Bold", "Malgun Gothic", sans-serif; font-size: 72px; font-weight: 1000; letter-spacing: -.11em; line-height: .92; -webkit-text-stroke: 2px #17232b; filter: drop-shadow(0 7px 0 #17232b); transform: rotate(-1deg); }
 .otterLogo span { display: inline-block; }
 .logoYellow { color: #ffe33f; transform: rotate(-2deg); }
 .logoPink { margin-left: .16em; color: #ef3f79; font-size: 1.12em; transform: rotate(3deg) translateY(2px); }
 .logoBlue { color: #79d7f7; transform: rotate(-3deg); }
-.categoryOtter { display: block; width: clamp(190px, 20vw, 250px); height: clamp(190px, 20vw, 250px); margin: 0; object-fit: contain; filter: drop-shadow(0 12px 10px rgba(77,91,80,.14)); }
+.categoryOtter { display: block; width: 250px; height: 250px; margin: 0; object-fit: contain; filter: drop-shadow(0 12px 10px rgba(77,91,80,.14)); }
 .skyCloud { position: absolute; z-index: 0; width: 220px; height: 74px; border-radius: 70px; background: rgba(255,255,255,.7); }
 .skyCloud::before, .skyCloud::after { position: absolute; bottom: 20px; border-radius: 50%; background: rgba(255,255,255,.72); content: ""; }
 .skyCloud::before { left: 28px; width: 105px; height: 105px; }
 .skyCloud::after { right: 24px; width: 82px; height: 82px; }
 .cloudLeft { top: 38%; left: 11%; transform: scale(.78); }
 .cloudRight { top: 12%; right: 10%; transform: scale(1.08); }
-.categoryGrid { position: relative; z-index: 3; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: clamp(20px, 2.4vw, 32px); width: min(980px, 100%); margin: 0 auto; }
+.categoryGrid { position: relative; z-index: 3; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 32px; width: min(980px, 100%); margin: 0 auto; }
 .categoryCard { position: relative; display: grid; min-width: 0; min-height: 178px; grid-template-columns: 58px minmax(0, 1fr); align-content: center; align-items: center; gap: 16px; padding: 34px 24px 25px; border: 2px solid transparent; border-radius: 20px; background: #fff; box-shadow: 0 10px 0 #dce3e5, 0 16px 26px rgba(73,95,94,.12); color: #374148; font: inherit; text-align: left; text-decoration: none; transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s ease, border-color .22s ease; }
 .categoryCard[href]:hover { z-index: 5; border-color: #cadd6d; box-shadow: 0 14px 0 #dce3e5, 0 22px 30px rgba(73,95,94,.17); transform: translateY(-10px) rotate(-.5deg); }
 .categoryCardFeatured { min-height: 194px; border-color: #d4df78; transform: translateY(-8px); }
@@ -354,21 +651,9 @@
 .comingSoonConfirm { min-width: 142px; min-height: 45px; margin-top: 20px; border: 0; border-radius: 15px; background: #b8d648; box-shadow: 0 5px 0 #8fa833; color: #fff; font: inherit; font-weight: 900; cursor: pointer; }
 .comingSoonConfirm:active { transform: translateY(3px); box-shadow: 0 2px 0 #8fa833; }
 @keyframes comingSoonPop { from { opacity: 0; transform: translateY(18px) scale(.92); } to { opacity: 1; transform: translateY(0) scale(1); } }
-@media (max-width: 760px) {
-  .module:has(> .categoryPage) { overflow: auto; }
-  .categoryPage { width: 100%; height: auto; min-height: 100dvh; margin: 0; padding: 18px; grid-template-rows: auto auto auto auto; border: 0; background: linear-gradient(to bottom, #e0f1ff 0 48%, #c9e59d 48% 94%, #a9cd7c 94%); }
-  .categoryHero { margin: 12px 0 28px; }
-  .otterLogo { font-size: clamp(38px, 13vw, 58px); }
-  .categoryOtter { width: 185px; height: 185px; }
-  .skyCloud { opacity: .58; }
-  .categoryGrid { grid-template-columns: 1fr; align-items: stretch; gap: 16px; width: min(420px, 100%); }
-  .categoryCard, .categoryCardFeatured { min-height: 142px; transform: none; }
-  .categoryCardFeatured[href]:hover, .categoryCard[href]:hover { transform: translateY(-7px); }
-}
-
 /* Tetris mode selection: same mascot palette, with a stronger arcade presentation. */
-.module:has(> .tetrisModePage) { display: grid; min-height: 100dvh; place-items: center; overflow: hidden; background: #e0f1ff; }
-.tetrisModePage { position: relative; display: grid; width: min(100vw, calc(100dvh * 16 / 9), 1280px); height: min(100dvh, calc(100vw * 9 / 16), 720px); min-height: 0; margin: 0; padding: 30px 54px 28px; overflow: hidden; grid-template-rows: auto minmax(0, 1fr) auto; gap: 20px; border: 1px solid #d7e7ee; background: linear-gradient(to bottom, #e0f1ff 0 73%, #c9e59d 73% 91%, #a9cd7c 91%); isolation: isolate; }
+.module:has(> .tetrisModePage) { position: fixed; inset: 0; display: block; min-height: 0; overflow: hidden; background: #e0f1ff; }
+.tetrisModePage { position: absolute; top: 50%; left: 50%; display: grid; width: 1280px; height: 720px; min-height: 0; margin: 0; padding: 30px 54px 28px; overflow: hidden; grid-template-rows: auto minmax(0, 1fr) auto; gap: 20px; border: 1px solid #d7e7ee; background: linear-gradient(to bottom, #e0f1ff 0 73%, #c9e59d 73% 91%, #a9cd7c 91%); isolation: isolate; transform-origin: center; }
 .tetrisModePage::before { position: absolute; inset: 0; z-index: -1; background-image: linear-gradient(rgba(83,147,177,.055) 1px, transparent 1px), linear-gradient(90deg, rgba(83,147,177,.055) 1px, transparent 1px); background-size: 32px 32px; content: ""; mask-image: linear-gradient(to bottom, #000, transparent 72%); }
 .tetrisModePage::after { position: absolute; z-index: -2; right: 0; bottom: 0; left: 0; height: 9%; border-top: 5px solid rgba(89,124,67,.18); background: linear-gradient(rgba(255,255,255,.09), rgba(61,96,55,.06)), repeating-linear-gradient(90deg, #a8cb7c 0 48px, #9fc273 48px 96px); box-shadow: inset 0 8px 0 rgba(255,255,255,.12); content: ""; }
 .tetrisModeHeader { position: relative; z-index: 3; display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; align-items: start; gap: 18px; }
@@ -380,7 +665,7 @@
 .layersMark i { display: block; width: 6px; height: 6px; border-radius: 1px; background: #b8d648; box-shadow: 0 1px 0 #78912e; }
 .layersMark i:nth-child(2) { height: 11px; background: #ffe33f; }
 .layersMark i:nth-child(3) { height: 8px; background: #ef3f79; }
-.modeTitleBlock h1 { display: flex; align-items: center; margin: 7px 0 4px; color: #28383f; font-family: "Arial Rounded MT Bold", "Malgun Gothic", sans-serif; font-size: clamp(34px, 3.5vw, 52px); font-weight: 1000; letter-spacing: -.075em; line-height: 1; text-shadow: 0 4px 0 rgba(255,255,255,.86), 3px 3px 0 rgba(121,215,247,.32); }
+.modeTitleBlock h1 { display: flex; align-items: center; margin: 7px 0 4px; color: #28383f; font-family: "Arial Rounded MT Bold", "Malgun Gothic", sans-serif; font-size: 52px; font-weight: 1000; letter-spacing: -.075em; line-height: 1; text-shadow: 0 4px 0 rgba(255,255,255,.86), 3px 3px 0 rgba(121,215,247,.32); }
 .titleSu { position: relative; display: inline-block; width: 1.36em; height: 1.45em; margin: -.27em -.08em -.08em .04em; filter: drop-shadow(4px 5px 0 rgba(23,35,43,.24)); animation: titleSuFloat 2.4s ease-in-out infinite; }
 .titleSu i { position: absolute; left: 50%; font-family: "Arial Black", "Malgun Gothic", sans-serif; font-style: normal; font-weight: 1000; line-height: .82; -webkit-text-stroke: 1.5px rgba(23,35,43,.16); transform: translateX(-50%) scaleX(1.06); }
 .titleSu i:first-child { top: -.01em; color: #ef3f79; font-size: 1.17em; }
@@ -511,14 +796,85 @@
 @keyframes pixelBlink { 0%,55% { opacity: .86; } 56%,100% { opacity: .28; } }
 @keyframes hudPulse { 0%,45% { opacity: 1; } 46%,100% { opacity: .48; } }
 @media (prefers-reduced-motion: reduce) { .titleSu, .modeChoiceCard, .modeChoiceIcon, .modeChoiceAction, .fallingBlock, .comboBurst, .battleSparkle, .modeArenaHud strong, .pixelStar { animation: none; transition: none; } }
-@media (max-width: 820px) {
-  .module:has(> .tetrisModePage) { display: block; overflow: auto; }
-  .tetrisModePage { width: 100%; height: auto; min-height: 100dvh; padding: 20px 16px 28px; grid-template-rows: auto auto auto; background: linear-gradient(to bottom, #e0f1ff 0 48%, #c9e59d 48% 94%, #a9cd7c 94%); }
-  .tetrisModeHeader { grid-template-columns: 43px minmax(0, 1fr); }
-  .modeUserBadge { display: none; }
-  .arcadeBackdrop { display: none; }
-  .modeArena { grid-template-columns: 1fr; gap: 22px; padding: 10px; }
-  .modeChoiceCard { min-height: 430px; }
-  .modeArenaHud { display: none; }
-  .modeTip { align-items: flex-start; padding-block: 12px; }
+.module :global(.solo-title-group) { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.module :global(.solo-back-button) { display: grid; flex: 0 0 auto; width: 36px; height: 36px; padding: 0; place-items: center; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 4px 0 #b6cf8d, 0 7px 14px rgba(63,108,126,.14); color: #597044; cursor: pointer; }
+.module :global(.solo-back-button:hover) { transform: translateY(-1px); }
+
+/* Solo uses the same fixed 16:9 canvas as the selection screens. */
+.module:has(> :global(.solo-game-page)) > :global(.solo-game-page) {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  display: grid !important;
+  width: 1680px !important;
+  height: 945px !important;
+  min-width: 1680px !important;
+  min-height: 945px !important;
+  margin: 0 !important;
+  grid-template-rows: 115px minmax(0, 1fr) !important;
+  transform-origin: center !important;
+}
+
+.module:has(> :global(.solo-game-page)) > :global(.solo-game-page) > :global(.solo-game-header) {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.module:has(> :global(.solo-game-page)) :global(.solo-title-group) {
+  width: auto !important;
+  flex: 0 1 auto !important;
+}
+
+.module:has(> :global(.solo-game-page)) :global(.solo-controls) {
+  width: auto !important;
+  flex: 0 0 auto !important;
+}
+
+.module:has(> :global(.solo-game-page)) :global(.solo-controls button:not(.icon)) {
+  flex: 0 0 auto !important;
+}
+.module:has(> :global(.solo-game-page)) > :global(.solo-game-page) > :global(.solo-workspace) {
+  display: grid !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  grid-template-columns: minmax(0, 3fr) minmax(350px, 1fr) !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+  align-items: stretch !important;
+  gap: 7px 9px !important;
+  padding-top: 0 !important;
+}
+
+.module:has(> :global(.solo-game-page)) > :global(.solo-game-page) > :global(.solo-workspace) > :global(.solo-stage-column) {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  width: auto !important;
+  max-width: none !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.module:has(> :global(.solo-game-page)) > :global(.solo-game-page) > :global(.solo-workspace) > :global(.solo-sidebar) {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  width: auto !important;
+  max-width: none !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.module:has(> :global(.solo-game-page)) > :global(.solo-game-page) > :global(.solo-workspace) :global(.solo-board-wrap) {
+  width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+  max-height: none !important;
+  justify-self: stretch !important;
+  align-self: stretch !important;
+  aspect-ratio: auto !important;
 }

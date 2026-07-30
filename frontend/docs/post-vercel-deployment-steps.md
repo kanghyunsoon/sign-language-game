@@ -70,3 +70,13 @@ PROD_CORS_ALLOWED_ORIGINS=https://<signmaster-production-domain>,https://<fixed-
 ## 운영 기록
 
 배포마다 Vercel URL, Git commit SHA, 테스트 계정 역할, 방 ID, 결과·재대결 여부, TURN relay 사용 여부, 실패 로그와 rollback 여부를 트러블슈팅 문서 및 Jira에 남긴다.
+
+---
+
+## 2026-07-27 solo game deployment check
+
+- Production 401 on POST /api/game/solo/sessions was traced to an unsupported legacy solo-session backend contract, not to Vercel or CORS.
+- Frontend now keeps solo play available and stores only aggregate score data locally by default.
+- Keep VITE_ENABLE_REMOTE_SOLO_GAME_API unset/false until backend publishes the authorized endpoint.
+- GitLab pipeline #157088 deployed commit 4b10374 successfully; production retest started the game with no error alert.
+

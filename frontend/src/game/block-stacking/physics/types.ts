@@ -29,7 +29,7 @@ export const DEFAULT_PHYSICS_CONFIG: PhysicsConfig = {
   wallThickness: 48,
   letterWidth: 140,
   letterHeight: 140,
-  letterColliderPadding: 2,
+  letterColliderPadding: 1,
   friction: 0.34,
   frictionAir: 0.014,
   restitution: 0.02,
@@ -48,6 +48,8 @@ export interface LetterBodySpec {
   readonly y: number;
   readonly angle?: number;
   readonly angularVelocity?: number;
+  /** A gentle launch impulse for letters released from the otter's paper. */
+  readonly velocityY?: number;
 }
 
 export interface PhysicsLetterState {
@@ -68,6 +70,7 @@ export type PhysicsEvent =
 
 export interface PhysicsWorld {
   createLetter(spec: LetterBodySpec): PhysicsLetterState;
+  restoreLetter?(state: PhysicsLetterState): PhysicsLetterState;
   resize(width: number, height: number): void;
   update(deltaMs: number): readonly PhysicsEvent[];
   getLetterState(id: string): PhysicsLetterState | undefined;

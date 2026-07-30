@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
 
-import { HttpSoloGameApi } from "../block-stacking/solo/api";
+import { HttpSoloGameApi, LocalSoloGameApi } from "../block-stacking/solo/api";
 import { DevBattleRoomGateway, SwaggerBattleRoomGateway } from "../block-stacking/battle/room";
 import type { BattleRoomSession } from "../block-stacking/battle/room";
 import type {
@@ -53,8 +53,18 @@ export function GameServiceProvider({ children, user, accessToken, config, onExi
       },
     });
   });
-  const [battleRoomSession, setBattleRoomSession] = useState<BattleRoomSession | null>(null);
+  const [battleRoomSession, setBattleRoomSessionState] = useState<BattleRoomSession | null>(() => readBattleRoomSession(user.userId));
+  const setBattleRoomSession = useCallback((session: BattleRoomSession | null) => {
+    setBattleRoomSessionState(session);
+    persistBattleRoomSession(user.userId, session);
+  }, [user.userId]);
   const [turnBattleRoomSession, setTurnBattleRoomSession] = useState<BattleRoomSession | null>(null);
+  useEffect(() => {
+    // Auth hydration can replace the initial user object after this provider
+    // has mounted. Re-read the room bookmark for that authenticated identity
+    // instead of leaving a refreshed /play route with an empty session.
+    setBattleRoomSessionState((current) => current && String(current.currentUser.userId) === String(user.userId) ? current : readBattleRoomSession(user.userId));
+  }, [user.userId]);
   const services = useMemo(
     () => ({ ...createDefaultServices(user, accessToken, config, () => battleMediaSession.getGameDataChannel()), ...serviceOverrides }),
     [accessToken, config, serviceOverrides, user],
@@ -92,6 +102,40 @@ export function GameServiceProvider({ children, user, accessToken, config, onExi
   );
 }
 
+const BATTLE_ROOM_SESSION_KEY_PREFIX = "sudal:block-battle:room:";
+
+function readBattleRoomSession(userId: string): BattleRoomSession | null {
+  try {
+    if (typeof window === "undefined") return null;
+    const key = BATTLE_ROOM_SESSION_KEY_PREFIX + userId;
+    const raw = window.sessionStorage.getItem(key) ?? window.localStorage.getItem(key);
+    if (!raw) return null;
+    const session = JSON.parse(raw) as BattleRoomSession;
+    // Earlier builds persisted a numeric user id. Keep its room recovery
+    // entry when it still belongs to this authenticated browser user.
+    return session?.roomId && String(session.currentUser?.userId) === String(userId) ? session : null;
+  } catch {
+    return null;
+  }
+}
+
+function persistBattleRoomSession(userId: string, session: BattleRoomSession | null): void {
+  try {
+    if (typeof window === "undefined") return;
+    const key = BATTLE_ROOM_SESSION_KEY_PREFIX + userId;
+    if (session) {
+      const serialized = JSON.stringify(session);
+      window.sessionStorage.setItem(key, serialized);
+      window.localStorage.setItem(key, serialized);
+    } else {
+      window.sessionStorage.removeItem(key);
+      window.localStorage.removeItem(key);
+    }
+  } catch {
+    // Browser privacy settings can disable session storage; gameplay still works.
+  }
+}
+
 function createDefaultServices(user: GameModuleUser, accessToken: string | undefined, config: GameModuleConfig, getGameDataChannel: () => import("../media/core/GameDataChannel").GameDataChannel | null): GameModuleServices {
   // 운영 빌드에서는 dev 폴백(DevBattleRoomGateway + X-Dev-User 헤더)을 차단한다.
   // /game 진입은 ProtectedRoute가 accessToken을 보장하므로 여기서는 방어적 처리다.
@@ -104,7 +148,11 @@ function createDefaultServices(user: GameModuleUser, accessToken: string | undef
   const useSwaggerContract =
     Boolean(accessToken) || import.meta.env.VITE_P2P_E2E === "true" || isProduction;
   return {
-    soloGameApi: new HttpSoloGameApi({ baseUrl: config.soloApiBaseUrl, credentials: "include", headers }),
+    // Swagger exposes roomless solo result reporting. The play session itself
+    // stays client-side; production reports the elapsed-second score directly.
+    soloGameApi: useSwaggerContract
+      ? new HttpSoloGameApi({ baseUrl: config.soloApiBaseUrl, userId: user.userId, credentials: "include", headers })
+      : new LocalSoloGameApi({ userId: user.userId }),
     battleRoomGateway: useSwaggerContract
       ? new SwaggerBattleRoomGateway({ baseUrl: config.roomApiBaseUrl, currentUser: user, credentials: "include", headers, gameType: "TETRIS_DUEL" })
       : new DevBattleRoomGateway({ baseUrl: config.roomApiBaseUrl, currentUser: user, credentials: "include", headers }),

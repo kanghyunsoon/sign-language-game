@@ -43,4 +43,13 @@ export class MockSoloGameApi implements SoloGameApi {
   async getResults(): Promise<readonly SoloGameResult[]> {
     return [...this.results];
   }
+
+  async getRank(): Promise<number | null> {
+    if (this.results.length === 0) return null;
+    const latest = this.results[this.results.length - 1];
+    const rank = [...this.results]
+      .sort((left, right) => left.finalScore - right.finalScore || left.endedAt - right.endedAt)
+      .findIndex((result) => result.soloSessionId === latest.soloSessionId);
+    return rank < 0 ? null : rank + 1;
+  }
 }

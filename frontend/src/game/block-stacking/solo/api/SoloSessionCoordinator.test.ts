@@ -67,5 +67,6 @@ function fakeApi(): SoloGameApi {
     startSession: vi.fn(async () => session),
     completeSession: vi.fn(async () => result),
     getResults: vi.fn(async () => [result]),
+    getRank: vi.fn(async () => 1),
   };
 }

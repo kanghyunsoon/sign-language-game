@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Flower2, Layers3, Sparkles, Swords, X } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import otterCharacter from "../assets/game-menu-otter.png";
 import { useGameModuleContext } from "../../app/GameModuleContext";
@@ -43,20 +43,41 @@ const CATEGORIES: readonly GameSelectionCard[] = [
   },
 ];
 
+const CATEGORY_CANVAS_WIDTH = 1280;
+const CATEGORY_CANVAS_HEIGHT = 720;
+
 export function GameCategoryPage() {
   const { user, onExit } = useGameModuleContext();
+  const navigate = useNavigate();
   const [showComingSoon, setShowComingSoon] = useState(false);
+  const [pageScale, setPageScale] = useState(1);
+
+  useEffect(() => {
+    const updatePageScale = () => {
+      setPageScale(Math.min(
+        window.innerWidth / CATEGORY_CANVAS_WIDTH,
+        window.innerHeight / CATEGORY_CANVAS_HEIGHT,
+      ));
+    };
+
+    updatePageScale();
+    window.addEventListener("resize", updatePageScale);
+    return () => window.removeEventListener("resize", updatePageScale);
+  }, []);
+
   return (
-    <main className={styles.categoryPage}>
+    <main
+      className={styles.categoryPage}
+      data-fixed-game-canvas="true"
+      style={{ transform: `translate(-50%, -50%) scale(${pageScale})` }}
+    >
       <div className={`${styles.skyCloud} ${styles.cloudLeft}`} aria-hidden="true" />
       <div className={`${styles.skyCloud} ${styles.cloudRight}`} aria-hidden="true" />
 
       <header className={styles.categoryTopBar}>
-        {onExit ? (
-          <button type="button" className={styles.categoryUtilityButton} onClick={onExit} aria-label="게임에서 나가기">
-            <ArrowLeft aria-hidden="true" size={18} />
-          </button>
-        ) : <span />}
+        <button type="button" className={styles.categoryUtilityButton} onClick={() => { if (onExit) onExit(); else navigate("/main"); }} aria-label="이전 화면으로 돌아가기">
+          <ArrowLeft aria-hidden="true" size={18} />
+        </button>
         <span className={styles.categoryUser}>{user.displayName}</span>
       </header>
 

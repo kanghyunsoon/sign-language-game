@@ -147,15 +147,22 @@ export class RecognitionGameController {
 
   syncTargetToBoard(): void {
     const targetSymbol = this.gameInput.getPreferredTargetSymbol(this.state.playableSymbols);
-    if (targetSymbol === null || targetSymbol === this.state.targetSymbol) return;
+    if (targetSymbol === this.state.targetSymbol) return;
 
+    // A removed/otter-carried target may change while the player still holds
+    // the previous sign.  Release the old input lock immediately so a correct
+    // next sign is never discarded after the board changes.
+    this.gameInput.releaseInput();
+    this.awaitingReleaseSymbol = null;
+    this.resetRecognitionGate();
     this.state = {
       ...this.state,
       targetSymbol,
       answer: "IDLE",
+      awaitingHandRelease: false,
       message: `Guide target: ${targetSymbol}. It is the oldest letter on the board.`,
     };
-    if (this.state.mode === "PYTHON_AI") this.recordTarget(targetSymbol);
+    if (this.state.mode === "PYTHON_AI" && targetSymbol !== null) this.recordTarget(targetSymbol);
     this.emit();
   }
 
@@ -215,13 +222,17 @@ export class RecognitionGameController {
 
   private handleConfirmedSymbol(symbol: string, confidence: number): void {
     if (this.state.mode !== "PYTHON_AI") return;
+    if (this.state.targetSymbol === null) {
+      this.resetRecognitionGate();
+      return;
+    }
+    if (this.state.awaitingHandRelease && this.awaitingReleaseSymbol === symbol) return;
+    if (this.state.awaitingHandRelease && this.awaitingReleaseSymbol !== symbol) {
+      this.gameInput.releaseInput();
+      this.awaitingReleaseSymbol = null;
+      this.state = { ...this.state, awaitingHandRelease: false, answer: "IDLE" };
+    }
     if (this.recognizer?.getConfirmationAuthority?.() !== "TEMPORAL_DECODER") {
-      if (this.state.awaitingHandRelease && this.awaitingReleaseSymbol === symbol) return;
-      if (this.state.awaitingHandRelease && this.awaitingReleaseSymbol !== symbol) {
-        this.gameInput.releaseInput();
-        this.awaitingReleaseSymbol = null;
-        this.state = { ...this.state, awaitingHandRelease: false, answer: "IDLE" };
-      }
       const prediction = this.state.prediction;
       if (confidence < this.config.minimumConfidence || !prediction || !prediction.isStable || prediction.symbol !== symbol || prediction.confidence < this.config.minimumConfidence) {
         this.state = { ...this.state, message: `Ignored ${symbol}: legacy recognizer confirmation was not stable.` };
@@ -235,11 +246,15 @@ export class RecognitionGameController {
         this.statistics.recordConfirmation(this.state.targetSymbol, false, confidence);
       }
       this.gameInput.recordIncorrectInput();
-      this.awaitingReleaseSymbol = symbol;
+      // A wrong sign is feedback, not a requirement to open the hand and
+      // perform the registration/release gesture again. Start a fresh
+      // candidate window so the player can retry immediately.
+      this.awaitingReleaseSymbol = null;
+      this.resetRecognitionGate();
       this.state = this.withStatistics({
         ...this.state,
         answer: "INCORRECT",
-        awaitingHandRelease: true,
+        awaitingHandRelease: false,
         message: `${symbol}로 인식했습니다. 목표 ${this.state.targetSymbol ?? "-"}와 달라 글자를 제거하지 않습니다.`,
       });
       this.emit();
@@ -247,19 +262,26 @@ export class RecognitionGameController {
     }
     const hasTargetOnBoard = this.gameInput.hasAvailableSymbol(symbol);
     if (hasTargetOnBoard) this.gameInput.submitSymbol(symbol);
-    this.awaitingReleaseSymbol = symbol;
+    this.awaitingReleaseSymbol = hasTargetOnBoard ? symbol : null;
     if (this.state.targetSymbol) {
       this.statistics.recordConfirmation(this.state.targetSymbol, symbol === this.state.targetSymbol, confidence);
     }
     this.state = this.withStatistics({
       ...this.state,
       answer: hasTargetOnBoard ? "CORRECT" : "NO_TARGET_ON_BOARD",
-      awaitingHandRelease: true,
+      awaitingHandRelease: hasTargetOnBoard,
       message: hasTargetOnBoard
         ? `${symbol} confirmed. Removing the guide letter.`
         : `No ${symbol} letter is currently on the board.`,
     });
+    if (!hasTargetOnBoard) this.resetRecognitionGate();
     this.emit();
+  }
+
+  private resetRecognitionGate(): void {
+    const decoder = (this.recognizer as (SignRecognizer & { getTemporalDecoder?: () => { beginInputSession?: () => void } }) | null)
+      ?.getTemporalDecoder?.();
+    decoder?.beginInputSession?.();
   }
 
   private symbolsForMode(mode: GameInputMode, supportedSymbols: readonly string[]): readonly string[] {

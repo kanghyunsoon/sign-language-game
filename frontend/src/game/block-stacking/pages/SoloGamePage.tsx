@@ -1,15 +1,19 @@
-import { Pause, Play, RotateCcw } from "lucide-react";
+import { ArrowLeft, Pause, Play, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { useGameModuleContext } from "../../app/GameModuleContext";
 import { GameCanvas } from "../components/GameCanvas";
+import { TowerHeightGauge } from "../components/TowerHeightGauge";
+import { GlyphCollisionAudit } from "../components/GlyphCollisionAudit";
 import { DEFAULT_GAME_CONFIG } from "../core/types";
-import { primeGlyphCollisionCache } from "../glyphs/glyphRaster";
+import { getGlyphCollisionRects, primeGlyphCollisionCache } from "../glyphs/glyphRaster";
 import { MatterPhysicsWorld } from "../physics/MatterPhysicsWorld";
 import { DEFAULT_PHYSICS_CONFIG } from "../physics/types";
 import { GameRuntime, type GameRuntimeSnapshot } from "../runtime";
 import {
   SoloSessionCoordinator,
+  TetrisWeightApi,
   toCompleteSoloSessionRequest,
   type SoloGameApi,
   type SoloGameResult,
@@ -21,22 +25,56 @@ import {
   RecognitionGameController,
   type RecognitionGameState,
 } from "../../recognition";
-import { SignGuideImage } from "../../recognition/components/SignGuideImage";
 import { GAME_SYMBOLS } from "../../recognition/core/symbols";
+import { RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG } from "../../recognition/runtime";
+import { RESPONSIVE_GAMEPLAY_SIGN_DECODER_CONFIG } from "../../recognition/temporal";
+import { SignGuideImage } from "../../recognition/components/SignGuideImage";
 import { useSharedCameraOwnerCleanup } from "../../media/camera/useSharedCameraOwnerCleanup";
-import otterWalkFrame0 from "../assets/solo-walking-otter-frame-0.png";
-import otterWalkFrame1 from "../assets/solo-walking-otter-frame-1.png";
-import otterWalkFrame2 from "../assets/solo-walking-otter-frame-2.png";
-import otterWalkFrame3 from "../assets/solo-walking-otter-frame-3.png";
-import otterWalkFrame4 from "../assets/solo-walking-otter-frame-4.png";
+import resultOtter from "../assets/game-menu-otter.png";
+import letterOtter from "../assets/solo-letter-otter.png";
+import hintCarryFrame0 from "../assets/solo-paper-carry-frame-0.png";
+import hintCarryFrame1 from "../assets/solo-paper-carry-frame-1.png";
+import hintCarryFrame2 from "../assets/solo-paper-carry-frame-2.png";
+import hintCelebrateFrame0 from "../assets/solo-paper-celebrate-frame-0.png";
+import hintCelebrateFrame1 from "../assets/solo-paper-celebrate-frame-1.png";
+import hintCelebrateFrame2 from "../assets/solo-paper-celebrate-frame-2.png";
+import hintCelebrateFrame3 from "../assets/solo-paper-celebrate-frame-3.png";
+import hintPaperThrow from "../assets/solo-paper-throw.png";
 
-const OTTER_WALK_FRAMES = [
-  otterWalkFrame0,
-  otterWalkFrame1,
-  otterWalkFrame2,
-  otterWalkFrame3,
-  otterWalkFrame4,
-] as const;
+// Gameplay prioritises prompt feedback. Frames are still latest-only, so a
+// busy AI connection drops stale work instead of making the hand overlay lag.
+const SOLO_RECOGNITION_RATE_CONFIG = RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG;
+const SOLO_DECODER_CONFIG = RESPONSIVE_GAMEPLAY_SIGN_DECODER_CONFIG;
+const SOLO_CANVAS_WIDTH = 1680;
+const SOLO_CANVAS_HEIGHT = 945;
+// Large solo blocks shorten the round and make each successful sign visually
+// consequential. Renderer, physics, and game-over geometry must always share
+// this exact value.
+const SOLO_LETTER_SIZE = 220;
+const HINT_DELAY_MS = 7_000;
+const HINT_WALK_FULL_PATH_MS = 6_600;
+const HINT_THROW_DURATION_MS = 1_520;
+// The two celebration frames need enough travel time for each planted foot to
+// read as a stride. Faster movement makes the sprite look as if it is sliding
+// while its feet flicker in place.
+const HINT_RUN_FULL_PATH_MS = 1_900;
+
+type HintOtterPhase = "HIDDEN" | "WALKING" | "THROWING" | "RUNNING";
+type HintOtterDirection = "LEFT_TO_RIGHT" | "RIGHT_TO_LEFT";
+
+interface HintOtterState {
+  readonly phase: HintOtterPhase;
+  readonly direction: HintOtterDirection;
+  readonly symbol: string | null;
+  readonly cycle: number;
+}
+
+const INITIAL_HINT_OTTER_STATE: HintOtterState = {
+  phase: "HIDDEN",
+  direction: "LEFT_TO_RIGHT",
+  symbol: null,
+  cycle: 0,
+};
 
 const INITIAL_SNAPSHOT: GameRuntimeSnapshot = {
   runState: "IDLE",
@@ -46,7 +84,11 @@ const INITIAL_SNAPSHOT: GameRuntimeSnapshot = {
   removedCount: 0,
   playTimeMs: 0,
   activeLetterCount: 0,
+  towerHeightRatio: 0,
   lockedSymbol: null,
+  queuedSymbol: null,
+  paperBurstVersion: 0,
+  paperBurstSymbol: null,
   lastMessage: "Preparing the game board.",
 };
 
@@ -74,13 +116,23 @@ export function SoloGamePage({
   soloGameApiFactory,
   signRecognizerFactory,
 }: SoloGamePageProps = {}) {
-  const { config, services, sharedCameraSession, activePlayerSession } = useGameModuleContext();
+  const navigate = useNavigate();
+  const { accessToken, config, services, sharedCameraSession } = useGameModuleContext();
+  const tetrisWeightApi = useMemo(() => new TetrisWeightApi({
+    baseUrl: config.soloApiBaseUrl,
+    credentials: "include",
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+  }), [accessToken, config.soloApiBaseUrl]);
   const resolvedSoloGameApiFactory = useMemo(
     () => soloGameApiFactory ?? (() => services.soloGameApi),
     [services.soloGameApi, soloGameApiFactory],
   );
   const resolvedSignRecognizerFactory = useMemo(
-    () => signRecognizerFactory ?? (() => new PythonWebSocketSignRecognizer({ url: config.aiWebSocketUrl })),
+    () => signRecognizerFactory ?? (() => new PythonWebSocketSignRecognizer({
+      url: config.aiWebSocketUrl,
+      aiInferenceFps: SOLO_RECOGNITION_RATE_CONFIG.aiInferenceFps,
+      decoderConfig: SOLO_DECODER_CONFIG,
+    })),
     [config.aiWebSocketUrl, signRecognizerFactory],
   );
   const runtimeRef = useRef<GameRuntime | null>(null);
@@ -88,16 +140,58 @@ export function SoloGamePage({
   const controllerRef = useRef<RecognitionGameController | null>(null);
   const sessionCoordinatorRef = useRef<SoloSessionCoordinator | null>(null);
   const savedGameOverRef = useRef(false);
+  const hintOtterElementRef = useRef<HTMLDivElement | null>(null);
+  const hintOtterStateRef = useRef<HintOtterState>(INITIAL_HINT_OTTER_STATE);
+  const hintTargetRef = useRef<string | null>(null);
+  const hintDelayRemainingRef = useRef(HINT_DELAY_MS);
+  const hintTravelProgressRef = useRef(0);
+  const hintPhaseElapsedRef = useRef(0);
+  const hintRunStateRef = useRef<GameRuntimeSnapshot["runState"]>("IDLE");
+  const lastHintTargetRef = useRef<string | null>(null);
+  const lastPaperBurstVersionRef = useRef(0);
   const [snapshot, setSnapshot] = useState<GameRuntimeSnapshot>(INITIAL_SNAPSHOT);
   const [recognition, setRecognition] = useState<RecognitionGameState>(INITIAL_RECOGNITION_STATE);
+  const [hintOtter, setHintOtter] = useState<HintOtterState>(INITIAL_HINT_OTTER_STATE);
   const [sessionStarting, setSessionStarting] = useState(false);
   const [completionError, setCompletionError] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [savedResult, setSavedResult] = useState<SoloGameResult | null>(null);
-  const [otterWalking, setOtterWalking] = useState(false);
+  const [soloRank, setSoloRank] = useState<number | null>(null);
   const [cameraStream,setCameraStream]=useState(()=>sharedCameraSession.getStream());
-  const rendererConfig = useMemo(() => ({ dangerLineY: 160, dangerLineRatio: 1 / 6, letterWidth: 140, letterHeight: 140 }), []);
-  useSharedCameraOwnerCleanup(sharedCameraSession,()=>activePlayerSession?.clearRegistration());
+  const [pageScale, setPageScale] = useState(1);
+  const rendererConfig = useMemo(() => ({
+    dangerLineY: 160,
+    dangerLineRatio: 1 / 6,
+    letterWidth: SOLO_LETTER_SIZE,
+    letterHeight: SOLO_LETTER_SIZE,
+    showScenery: false,
+  }), []);
+  useSharedCameraOwnerCleanup(sharedCameraSession);
+
+  useEffect(() => {
+    const updatePageScale = () => {
+      setPageScale(Math.min(
+        window.innerWidth / SOLO_CANVAS_WIDTH,
+        window.innerHeight / SOLO_CANVAS_HEIGHT,
+      ));
+    };
+
+    updatePageScale();
+    window.addEventListener("resize", updatePageScale);
+    return () => window.removeEventListener("resize", updatePageScale);
+  }, []);
+
+  // Runtime snapshots are normally published for gameplay events. Poll the
+  // runtime clock separately while playing so the visible timer advances even
+  // when no letter or recognition event is produced.
+  useEffect(() => {
+    if (snapshot.runState !== "RUNNING") return undefined;
+    const timer = window.setInterval(() => {
+      const runtime = runtimeRef.current;
+      if (runtime !== null) setSnapshot(runtime.snapshot());
+    }, 100);
+    return () => window.clearInterval(timer);
+  }, [snapshot.runState]);
 
   if (controllerRef.current === null) {
     controllerRef.current = new RecognitionGameController({
@@ -110,6 +204,25 @@ export function SoloGamePage({
     });
   }
   const recognitionController = controllerRef.current;
+  // The paper owns only the queued/manual target. Once that exact glyph is
+  // released into physics the paper must stay empty; falling back to the
+  // board's preferred target rendered a second copy behind the falling one.
+  const paperTargetSymbol = snapshot.queuedSymbol;
+
+  const updateHintOtterState = useCallback((next: HintOtterState) => {
+    hintOtterStateRef.current = next;
+    setHintOtter(next);
+  }, []);
+
+  const hideHintOtter = useCallback(() => {
+    hintTravelProgressRef.current = 0;
+    hintPhaseElapsedRef.current = 0;
+    hintDelayRemainingRef.current = HINT_DELAY_MS;
+    updateHintOtterState({
+      ...INITIAL_HINT_OTTER_STATE,
+      cycle: hintOtterStateRef.current.cycle,
+    });
+  }, [updateHintOtterState]);
 
   if (sessionCoordinatorRef.current === null) {
     sessionCoordinatorRef.current = new SoloSessionCoordinator(resolvedSoloGameApiFactory());
@@ -130,14 +243,29 @@ export function SoloGamePage({
         ...DEFAULT_PHYSICS_CONFIG,
         width: viewport.width,
         height: viewport.height,
-        letterWidth: 140,
-        letterHeight: 140,
+        letterWidth: SOLO_LETTER_SIZE,
+        letterHeight: SOLO_LETTER_SIZE,
+        // Keep some natural movement, but prevent the pile from spreading across
+        // the whole floor before it can build toward the finish line.
+        gravityY: 0.32,
+        maxFallSpeed: 4.1,
+        friction: 0.14,
+        frictionAir: 0.0045,
+        restitution: 0.035,
+        // A letter still reactivates on the next collision, but should count
+        // as settled as soon as it visually comes to rest so the tower gauge
+        // responds without a multi-second pause.
+        settleDurationMs: 550,
+        linearVelocityThreshold: 0.045,
+        angularVelocityThreshold: 0.006,
+        freezeSettledBodies: false,
       }),
       soloConfig: {
         boardWidth: viewport.width,
         boardHeight: viewport.height,
+        autoDropEnabled: false,
         dangerLineY: 160,
-        letterHeight: 140,
+        letterHeight: SOLO_LETTER_SIZE,
       },
     });
     runtimeRef.current = runtime;
@@ -159,20 +287,117 @@ export function SoloGamePage({
   useEffect(() => recognitionController.subscribe(setRecognition), [recognitionController]);
 
   useEffect(() => {
-    let finishTimer: number | undefined;
-    const triggerWalk = () => {
-      setOtterWalking(true);
-      window.clearTimeout(finishTimer);
-      finishTimer = window.setTimeout(() => setOtterWalking(false), 12_000);
+    hintRunStateRef.current = snapshot.runState;
+    if (
+      (snapshot.runState === "IDLE" || snapshot.runState === "GAME_OVER")
+      && hintOtterStateRef.current.phase !== "HIDDEN"
+    ) {
+      hideHintOtter();
+    }
+  }, [hideHintOtter, snapshot.runState]);
+
+  useEffect(() => {
+    hintTargetRef.current = paperTargetSymbol;
+    if (lastHintTargetRef.current === paperTargetSymbol) return;
+    lastHintTargetRef.current = paperTargetSymbol;
+    if (paperTargetSymbol !== null) {
+      hintDelayRemainingRef.current = HINT_DELAY_MS;
+    }
+  }, [paperTargetSymbol]);
+
+  useEffect(() => {
+    if (lastPaperBurstVersionRef.current === snapshot.paperBurstVersion) return;
+    lastPaperBurstVersionRef.current = snapshot.paperBurstVersion;
+    hintDelayRemainingRef.current = HINT_DELAY_MS;
+
+    const currentHint = hintOtterStateRef.current;
+    if (
+      currentHint.phase !== "WALKING"
+      || currentHint.symbol === null
+      || snapshot.paperBurstSymbol !== currentHint.symbol
+    ) return;
+
+    hintPhaseElapsedRef.current = 0;
+    updateHintOtterState({
+      ...currentHint,
+      phase: "THROWING",
+    });
+  }, [snapshot.paperBurstSymbol, snapshot.paperBurstVersion, updateHintOtterState]);
+
+  useEffect(() => {
+    let animationFrame = 0;
+    let previousFrameAt = performance.now();
+
+    const positionHintOtter = () => {
+      const element = hintOtterElementRef.current;
+      const state = hintOtterStateRef.current;
+      if (!element || state.phase === "HIDDEN") return;
+
+      const parentWidth = element.parentElement?.clientWidth ?? 0;
+      const otterWidth = element.offsetWidth || 190;
+      const startX = -otterWidth * 1.08;
+      const endX = parentWidth + otterWidth * 0.08;
+      const directedProgress = state.direction === "LEFT_TO_RIGHT"
+        ? hintTravelProgressRef.current
+        : 1 - hintTravelProgressRef.current;
+      const x = startX + (endX - startX) * directedProgress;
+      element.style.transform = `translate3d(${x}px, 0, 0)`;
     };
-    const previewTimer = window.setTimeout(triggerWalk, 3_000);
-    const interval = window.setInterval(triggerWalk, 60_000);
-    return () => {
-      window.clearTimeout(previewTimer);
-      window.clearTimeout(finishTimer);
-      window.clearInterval(interval);
+
+    const startHintWalk = (symbol: string) => {
+      hintTravelProgressRef.current = 0;
+      hintPhaseElapsedRef.current = 0;
+      updateHintOtterState({
+        phase: "WALKING",
+        direction: Math.random() < 0.5 ? "LEFT_TO_RIGHT" : "RIGHT_TO_LEFT",
+        symbol,
+        cycle: hintOtterStateRef.current.cycle + 1,
+      });
     };
-  }, []);
+
+    const step = (frameAt: number) => {
+      const deltaMs = Math.min(50, Math.max(0, frameAt - previousFrameAt));
+      previousFrameAt = frameAt;
+      const state = hintOtterStateRef.current;
+
+      if (hintRunStateRef.current === "RUNNING") {
+        if (state.phase === "HIDDEN") {
+          const target = hintTargetRef.current;
+          if (target !== null) {
+            hintDelayRemainingRef.current = Math.max(0, hintDelayRemainingRef.current - deltaMs);
+            if (hintDelayRemainingRef.current === 0) startHintWalk(target);
+          }
+        } else if (state.phase === "WALKING") {
+          hintTravelProgressRef.current = Math.min(
+            1,
+            hintTravelProgressRef.current + deltaMs / HINT_WALK_FULL_PATH_MS,
+          );
+          if (hintTravelProgressRef.current >= 1) hideHintOtter();
+        } else if (state.phase === "THROWING") {
+          hintPhaseElapsedRef.current += deltaMs;
+          if (hintPhaseElapsedRef.current >= HINT_THROW_DURATION_MS) {
+            hintPhaseElapsedRef.current = 0;
+            updateHintOtterState({
+              ...state,
+              phase: "RUNNING",
+            });
+          }
+        } else if (state.phase === "RUNNING") {
+          hintTravelProgressRef.current = Math.min(
+            1,
+            hintTravelProgressRef.current + deltaMs / HINT_RUN_FULL_PATH_MS,
+          );
+          if (hintTravelProgressRef.current >= 1) hideHintOtter();
+        }
+      }
+
+      positionHintOtter();
+      animationFrame = window.requestAnimationFrame(step);
+    };
+
+    animationFrame = window.requestAnimationFrame(step);
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [hideHintOtter, updateHintOtterState]);
 
   useEffect(() => {
     if (snapshot.runState !== "GAME_OVER" || savedGameOverRef.current) return;
@@ -181,7 +406,12 @@ export function SoloGamePage({
     if (coordinator === null) return;
     setCompletionError(null);
     void coordinator.complete(toCompleteSoloSessionRequest(snapshot, recognition.learningStats, Date.now()))
-      .then((result) => setSavedResult(result))
+      .then((result) => {
+        setSavedResult(result);
+        void coordinator.getRank()
+          .then(setSoloRank)
+          .catch(() => setSoloRank(null));
+      })
       .catch((error: unknown) => {
         setCompletionError(error instanceof Error ? error.message : "Failed to save the solo result.");
       });
@@ -205,7 +435,7 @@ export function SoloGamePage({
     const start=async()=>{try{let stream:MediaStream;try{stream=await sharedCameraSession.start();}catch(cause){if(!active||!(cause instanceof Error)||cause.message!=="Camera start was cancelled.")throw cause;await Promise.resolve();stream=await sharedCameraSession.start();}if(active){setCameraStream(stream);setCameraError(null);}}catch(cause){if(active)setCameraError(cause instanceof Error?cause.message:"카메라를 시작하지 못했습니다.");}};
     void start();
     return()=>{active=false;};
-  },[activePlayerSession,sharedCameraSession]);
+  },[sharedCameraSession]);
 
   const startOrResume = useCallback(async () => {
     const runtime = runtimeRef.current;
@@ -223,28 +453,54 @@ export function SoloGamePage({
       }
       savedGameOverRef.current = false;
       recognitionController.resetSessionStatistics();
+      recognizerRef.current?.resetRecognitionSession();
       runtime.restart();
     }
-    if (recognition.playableSymbols.length === 0) {
+    // Local UI work must remain playable while the optional Python AI service
+    // is offline. Production still requires the capability contract.
+    const sessionSymbols = recognition.playableSymbols.length > 0
+      ? recognition.playableSymbols
+      : import.meta.env.DEV
+        ? SOLO_GAME_SYMBOLS
+        : [];
+    if (sessionSymbols.length === 0) {
       setCompletionError("AI capabilities must load before a solo session can start.");
       return;
     }
+    runtime.setSpawnSymbols(sessionSymbols);
     setCompletionError(null);
     setSavedResult(null);
+    // The play clock belongs to the local game runtime, not to the optional
+    // session/weight requests.  Start it immediately when the player presses
+    // the button so a slow network response cannot delay the visible timer.
+    runtime.start();
+    setSessionStarting(true);
+    const symbolWeightsPromise = accessToken
+      ? tetrisWeightApi.getSymbolWeights()
+      : Promise.resolve({});
     if (coordinator.getActiveSession() === null) {
-      setSessionStarting(true);
       try {
-        await coordinator.start({ difficulty: "BEGINNER", symbolRange: recognition.playableSymbols, playMode: "AI" });
+        const [, symbolWeights] = await Promise.all([
+          coordinator.start({ difficulty: "BEGINNER", symbolRange: sessionSymbols, playMode: "AI" }),
+          symbolWeightsPromise,
+        ]);
+        runtime.setSymbolWeights(symbolWeights);
       } catch (error) {
         setCompletionError(error instanceof Error ? error.message : "Failed to start the solo session.");
         return;
       } finally {
         setSessionStarting(false);
       }
+    } else {
+      runtime.setSymbolWeights(await symbolWeightsPromise);
+      setSessionStarting(false);
     }
-    runtime.start();
-  }, [recognition.playableSymbols, recognitionController, sessionStarting]);
+  }, [accessToken, recognition.playableSymbols, recognitionController, sessionStarting, tetrisWeightApi]);
   const pause = useCallback(() => runtimeRef.current?.pause(), []);
+  const leaveGame = useCallback(() => {
+    runtimeRef.current?.pause();
+    navigate("/game/block");
+  }, [navigate]);
   const restart = useCallback(() => {
     if (sessionCoordinatorRef.current?.hasPendingCompletion()) {
       setCompletionError("Retry result saving before restarting.");
@@ -252,6 +508,7 @@ export function SoloGamePage({
     }
     savedGameOverRef.current = false;
     recognitionController.resetSessionStatistics();
+    recognizerRef.current?.resetRecognitionSession();
     runtimeRef.current?.restart();
   }, [recognitionController]);
   const retryCompletion = useCallback(() => {
@@ -271,20 +528,38 @@ export function SoloGamePage({
   const resizeRuntime = useCallback((viewport: { readonly width: number; readonly height: number }) => {
     runtimeRef.current?.resizeViewport(viewport.width, viewport.height);
   }, []);
-  const displayedTargetSymbol = recognition.targetSymbol ?? recognition.playableSymbols[0] ?? SOLO_GAME_SYMBOLS[0] ?? "ㄱ";
 
   return (
-    <div className="solo-game-page">
+    <div
+      className="solo-game-page"
+      data-fixed-solo-canvas="true"
+      style={{ transform: `translate(-50%, -50%) scale(${pageScale})` }}
+    >
+      {import.meta.env.DEV && new URLSearchParams(window.location.search).has("collisionAudit") && (
+        <GlyphCollisionAudit symbols={SOLO_GAME_SYMBOLS} />
+      )}
+      {import.meta.env.DEV && (
+        <output
+          hidden
+          data-testid="glyph-collider-audit"
+          data-audit={JSON.stringify(SOLO_GAME_SYMBOLS.map((symbol) => ({
+            symbol,
+            parts: getGlyphCollisionRects(symbol).length,
+            rectangles: getGlyphCollisionRects(symbol),
+          })))}
+        />
+      )}
       <header className="app-header solo-game-header">
-        <div>
+        <div className="solo-title-group">
+          <button type="button" className="solo-back-button" onClick={leaveGame} aria-label="게임 모드 선택으로 돌아가기">
+            <ArrowLeft aria-hidden="true" size={18} />
+          </button>
+          <div>
           <p className="eyebrow">SOLO · BLOCK STACK</p>
           <h1 aria-label="지문자 테트리수">지문자 테트리<span aria-hidden="true">수</span></h1>
         </div>
+        </div>
         <div className="solo-controls">
-          <button type="button" onClick={startOrResume} disabled={snapshot.runState === "RUNNING" || sessionStarting}>
-            <Play aria-hidden="true" size={17} />
-            {snapshot.runState === "PAUSED" ? "계속하기" : "게임 시작"}
-          </button>
           <button type="button" className="secondary" onClick={pause} disabled={snapshot.runState !== "RUNNING"}>
             <Pause aria-hidden="true" size={17} /> 일시정지
           </button>
@@ -304,32 +579,21 @@ export function SoloGamePage({
       )}
 
       <section className="solo-workspace" aria-label="Solo physics game">
-        <section className="solo-hud" aria-label="게임 현황">
-          <Metric label="점수" value={String(snapshot.score)} />
-          <Metric label="콤보" value={String(snapshot.combo)} />
-          <Metric label="최고 콤보" value={String(snapshot.bestCombo)} />
-          <Metric label="제거" value={String(snapshot.removedCount)} />
-          <Metric label="시간" value={formatPlayTime(snapshot.playTimeMs)} />
-          <p className="solo-message" aria-live="polite">{snapshot.lastMessage}</p>
-          <p
-            className={`solo-lock solo-lock-slot${snapshot.lockedSymbol === null ? " is-empty" : ""}`}
-            aria-live="polite"
-            aria-hidden={snapshot.lockedSymbol === null}
-          >
-            {snapshot.lockedSymbol === null
-              ? "입력 잠금 안내 공간"
-              : `같은 글자를 다시 입력하려면 손을 풀어주세요: ${snapshot.lockedSymbol}`}
-          </p>
-        </section>
-
-        <div className="solo-stage-column">
+        <div className={`solo-stage-column${snapshot.runState === "GAME_OVER" ? " is-game-over" : ""}`}>
           <div className="solo-board-wrap">
           <div className="solo-sky-decor" aria-hidden="true">
+            <div className="solo-night-sky" />
+            <i className="solo-celestial solo-sun" />
+            <i className="solo-celestial solo-moon" />
+            <i className="solo-shooting-star" />
             <i className="cloud cloud-one" />
             <i className="cloud cloud-two" />
             <i className="cloud cloud-three" />
             <i className="cloud cloud-four" />
             <div className="stage-hills" />
+            <div className="solo-fireflies">
+              <i /><i /><i /><i /><i />
+            </div>
             <div className="stage-glyphs">
               <b>ㄱ</b><b>ㅜ</b><b>ㅎ</b><b>ㄷ</b><b>ㅅ</b>
             </div>
@@ -341,50 +605,87 @@ export function SoloGamePage({
             onViewportResize={resizeRuntime}
             onRendererDisposed={disposeRuntime}
           />
-          {otterWalking && (
-            <div className="solo-otter-walk" aria-hidden="true">
-              <span className="solo-otter-body">
-                <span className="otter-walk-cycle">
-                  {OTTER_WALK_FRAMES.map((src, index) => (
-                    <img
-                      key={src}
-                      className={`otter-walk-frame otter-walk-frame-${index}`}
-                      src={src}
-                      alt=""
-                      draggable={false}
-                    />
-                  ))}
-                </span>
-                <span className="otter-front-pose" />
-              </span>
+          <TowerHeightGauge ratio={snapshot.towerHeightRatio} className="solo-tower-height-gauge" label="STACK" />
+          <div className="solo-board-time" aria-label={`경과 시간 ${formatPlayTime(snapshot.playTimeMs)}`}>
+            <span>TIME</span>
+            <strong>{formatPlayTime(snapshot.playTimeMs)}</strong>
+          </div>
+          {(snapshot.runState === "IDLE" || snapshot.runState === "PAUSED") && (
+            <div className="solo-start-overlay" aria-label="게임 시작">
+              <div>
+                <p>SKY LETTER STAGE</p>
+                <strong>{snapshot.runState === "PAUSED" ? "계속하기" : "지문자 테트리수"}</strong>
+                <span>손모양을 맞춰 떨어지는 지문자 블록을 제거하세요.</span>
+                <button type="button" onClick={startOrResume} disabled={sessionStarting}>
+                  <Play aria-hidden="true" size={28} />
+                  {sessionStarting ? "준비 중" : snapshot.runState === "PAUSED" ? "게임 계속하기" : "게임 시작"}
+                </button>
+              </div>
             </div>
           )}
           {snapshot.runState === "GAME_OVER" && (
             <div className="game-over-overlay" role="dialog" aria-modal="true" aria-label="Game over results">
-              <p className="eyebrow">Game over</p>
-              <strong>{snapshot.score}</strong>
-              <span>Best combo {snapshot.bestCombo} · removed {snapshot.removedCount} · {formatPlayTime(snapshot.playTimeMs)}</span>
-              <ResultStatistics statistics={recognition.learningStats} />
-              <button type="button" onClick={restart}>Restart</button>
+              <section className="solo-result-card">
+                <img src={resultOtter} alt="수어 연습 수달" />
+                <div>
+                  <p className="eyebrow">SOLO RESULT</p>
+                  <h2>수어 연습 완료!</h2>
+                  <strong>{formatPlayTime(snapshot.playTimeMs)}</strong>
+                  <b>{soloRank ? `현재 솔로 랭킹 ${soloRank}위` : savedResult ? "기록 저장 완료" : "기록 저장 중..."}</b>
+                </div>
+                <div className="solo-result-actions">
+                  <button type="button" onClick={restart}>다시 하기</button>
+                  <button type="button" className="is-home" onClick={() => navigate("/game")}>홈으로</button>
+                </div>
+              </section>
             </div>
           )}
           </div>
+          {hintOtter.phase !== "HIDDEN" && hintOtter.symbol !== null && (
+            <div
+              ref={hintOtterElementRef}
+              key={hintOtter.cycle}
+              className={`solo-hint-otter is-${hintOtter.phase.toLowerCase()}${snapshot.runState === "PAUSED" ? " is-paused" : ""}`}
+              data-direction={hintOtter.direction}
+              aria-hidden="true"
+            >
+              <div className="solo-hint-otter-sprite">
+                {hintOtter.phase === "WALKING" && <><img className="solo-hint-frame hint-carry-frame hint-carry-frame-0" src={hintCarryFrame0} alt="" draggable={false} /><img className="solo-hint-frame hint-carry-frame hint-carry-frame-1" src={hintCarryFrame1} alt="" draggable={false} /><div className="solo-hint-paper-guide"><SignGuideImage symbol={hintOtter.symbol} size={58} /></div></>}
+                {hintOtter.phase === "THROWING" && <><img className="solo-hint-frame hint-throw-frame hint-throw-carry" src={hintCarryFrame2} alt="" draggable={false} /><img className="solo-hint-frame hint-throw-frame hint-throw-celebrate-0" src={hintCelebrateFrame0} alt="" draggable={false} /><img className="solo-hint-frame hint-throw-frame hint-throw-celebrate-1" src={hintCelebrateFrame1} alt="" draggable={false} /><div className="solo-hint-paper-guide hint-throw-guide"><SignGuideImage symbol={hintOtter.symbol} size={58} /></div><div className="solo-hint-thrown-paper"><img src={hintPaperThrow} alt="" draggable={false} /><span><SignGuideImage symbol={hintOtter.symbol} size={32} /></span></div></>}
+                {hintOtter.phase === "RUNNING" && <><img className="solo-hint-frame hint-run-frame hint-run-frame-0" src={hintCelebrateFrame2} alt="" draggable={false} /><img className="solo-hint-frame hint-run-frame hint-run-frame-1" src={hintCelebrateFrame3} alt="" draggable={false} /></>}
+              </div>
+            </div>
+          )}
+          {snapshot.runState === "RUNNING" && (
+            <div className="solo-letter-otter" aria-hidden="true">
+              <img src={letterOtter} alt="" draggable={false} />
+              <strong
+                key={snapshot.paperBurstVersion}
+                className={snapshot.paperBurstSymbol === null ? undefined : "is-releasing"}
+              >
+                {snapshot.paperBurstSymbol ?? paperTargetSymbol ?? ""}
+              </strong>
+            </div>
+          )}
         </div>
 
         <aside className="solo-sidebar">
           <section className="solo-camera-cell" aria-label="플레이어 카메라">
             <header className="solo-panel-heading">
-              <span><b>PLAYER CAM</b><small>손을 화면 중앙에 보여주세요</small></span>
+              <span><b>PLAYER CAM</b></span>
               <em className={`solo-ai-chip is-${recognition.connectionState.toLowerCase()}`}>AI · {recognition.connectionState}</em>
             </header>
             <div className="solo-camera-viewport">
               {cameraStream ? <HandCamera
                 sharedStream={cameraStream}
                 compact
+                showNoHandPrompt
+                hideCompactStatus
+                showCompactRecognition
                 autoStart
+                rateConfig={SOLO_RECOGNITION_RATE_CONFIG}
                 performanceMonitor={recognizerRef.current?.getPerformanceMonitor()}
                 temporalDecoder={recognizerRef.current?.getTemporalDecoder()}
-                activePlayerSession={activePlayerSession}
                 onLandmarkFrame={sendLandmarkFrame}
                 onHandNotDetected={handNotDetected}
                 targetSymbol={recognition.targetSymbol}
@@ -397,27 +698,6 @@ export function SoloGamePage({
                 <strong>CAMERA OFFLINE</strong>
                 <span>{cameraError??"공유 카메라를 준비하고 있습니다."}</span>
               </div>}
-            </div>
-          </section>
-
-          <section className={`solo-guide-cell${otterWalking ? " is-otter-passing" : ""}`} aria-label="현재 목표 지문자 안내">
-            <header className="solo-panel-heading">
-              <span><b>MISSION SIGN</b><small>목표 손모양을 따라 해보세요</small></span>
-              <em>GUIDE</em>
-            </header>
-            <div className="solo-guide-values">
-              <article>
-                <span>{recognition.targetSymbol ? "목표 지문자" : "연습 미리보기"}</span>
-                <strong>{displayedTargetSymbol}</strong>
-              </article>
-              <article><span>현재 인식</span><strong>{recognition.prediction?.symbol ?? "-"}</strong><small>{recognition.prediction ? `${(recognition.prediction.confidence * 100).toFixed(0)}%` : "인식 대기"}</small></article>
-            </div>
-            <div className="solo-guide-figure">
-              <SignGuideImage symbol={displayedTargetSymbol} responsive />
-              {otterWalking && <div className="solo-hint-break"><strong>수달 통과 중!</strong><small>그림 힌트가 잠시 숨겨졌어요</small></div>}
-            </div>
-            <div className="solo-guide-confidence" aria-label={`인식 신뢰도 ${recognition.prediction ? `${(recognition.prediction.confidence * 100).toFixed(0)}%` : "없음"}`}>
-              <span style={{ width: `${Math.max(0, Math.min(1, recognition.prediction?.confidence ?? 0)) * 100}%` }} />
             </div>
           </section>
 
@@ -461,7 +741,4 @@ function formatPlayTime(playTimeMs: number): string {
   return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
 }
 
-function Metric({ label, value }: { readonly label: string; readonly value: string }) {
-  return <div className="solo-metric"><span>{label}</span><strong>{value}</strong></div>;
-}
 const SOLO_GAME_SYMBOLS = GAME_SYMBOLS.filter((symbol) => !/^\d+$/.test(symbol));

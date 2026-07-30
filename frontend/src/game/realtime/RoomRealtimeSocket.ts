@@ -1,9 +1,11 @@
-import type { RealtimeTicketClient } from "./RealtimeTicketClient";
+import { RealtimeTicketRequestError, type RealtimeTicketClient } from "./RealtimeTicketClient";
 
 export type RoomServerMessageType =
+  | "PEER_JOINED"
   | "PEER_DISCONNECTED"
   | "PEER_RECONNECTED"
   | "PEER_LEFT"
+  | "PEER_READY_CHANGED"
   | "GAME_STARTED"
   | "SIGNAL"
   | "ERROR";
@@ -33,8 +35,12 @@ export interface RoomRealtimeSocketOptions {
 
 const OPEN = 1;
 const CLOSED = 3;
+// A refreshed browser can race the server's cleanup of its previous signaling
+// socket. Keep issuing one-time tickets throughout the room's 10-second rejoin
+// grace period instead of giving up after roughly two seconds.
+const RETRY_DELAYS_MS = [0, 350, 700, 1_200, 1_700, 2_200, 2_700] as const;
 const MESSAGE_TYPES = new Set<RoomServerMessageType>([
-  "PEER_DISCONNECTED", "PEER_RECONNECTED", "PEER_LEFT",
+  "PEER_JOINED", "PEER_DISCONNECTED", "PEER_RECONNECTED", "PEER_LEFT", "PEER_READY_CHANGED",
   "GAME_STARTED", "SIGNAL", "ERROR",
 ]);
 
@@ -45,6 +51,7 @@ export class RoomRealtimeSocket {
   private readonly errorListeners = new Set<(error: Error) => void>();
   private readonly baseUrl: string;
   private readonly createWebSocket: (url: string) => RoomWebSocketLike;
+  private connectionGeneration = 0;
 
   constructor(private readonly options: RoomRealtimeSocketOptions) {
     this.baseUrl = options.webSocketBaseUrl.replace(/\/$/, "");
@@ -55,7 +62,8 @@ export class RoomRealtimeSocket {
   async connect(): Promise<void> {
     if (this.socket?.readyState === OPEN) return;
     if (this.pending) return this.pending;
-    this.pending = this.openWithFreshTicket();
+    const generation = ++this.connectionGeneration;
+    this.pending = this.openWithFreshTicket(generation);
     try {
       await this.pending;
     } finally {
@@ -83,6 +91,9 @@ export class RoomRealtimeSocket {
 
   /** Called only after RTCPeerConnection and its DataChannel are both ready. */
   disconnectForWebRtcHandoff(): void {
+    if (this.socket?.readyState === OPEN) {
+      this.socket.send(JSON.stringify({ type: "WEBRTC_CONNECTED" }));
+    }
     this.close(1000, "WEBRTC_ESTABLISHED");
   }
 
@@ -90,7 +101,29 @@ export class RoomRealtimeSocket {
     this.close(1000, "CLIENT_CLOSED");
   }
 
-  private async openWithFreshTicket(): Promise<void> {
+  private async openWithFreshTicket(generation: number): Promise<void> {
+    let lastError: Error | null = null;
+    for (let attempt = 0; attempt < RETRY_DELAYS_MS.length; attempt += 1) {
+      if (generation !== this.connectionGeneration) throw new Error("Room WebSocket connection was cancelled.");
+      const delay = RETRY_DELAYS_MS[attempt] ?? RETRY_DELAYS_MS.at(-1) ?? 0;
+      if (delay > 0) await wait(delay);
+      if (generation !== this.connectionGeneration) throw new Error("Room WebSocket connection was cancelled.");
+      try {
+        await this.openOnce();
+        return;
+      } catch (cause) {
+        lastError = cause instanceof Error ? cause : new Error(String(cause));
+        // Retrying a rejected identity or an unusable one-time ticket only
+        // burns tickets and obscures the actual stale-room condition.
+        if (isTerminalAuthenticationFailure(cause)) break;
+      }
+    }
+    const error = lastError ?? new Error("Room WebSocket connection failed.");
+    this.emitError(error);
+    throw error;
+  }
+
+  private async openOnce(): Promise<void> {
     const { ticket } = await this.options.ticketClient.issue();
     const socket = this.createWebSocket(
       `${this.baseUrl}/${encodeURIComponent(this.options.roomId)}?ticket=${encodeURIComponent(ticket)}`,
@@ -101,9 +134,13 @@ export class RoomRealtimeSocket {
       socket.onopen = () => { settled = true; resolve(); };
       socket.onmessage = (event) => this.receive(event.data);
       socket.onerror = () => {
+        // Browser WebSocket errors do not carry a useful cause.  Once the
+        // handshake has completed, surfacing one as a connection failure
+        // leaves the lobby showing a stale red error despite being connected.
+        if (settled) return;
         const error = new Error("Room WebSocket connection failed.");
-        this.emitError(error);
-        if (!settled) { settled = true; reject(error); }
+        settled = true;
+        reject(error);
       };
       socket.onclose = () => {
         if (this.socket === socket) this.socket = null;
@@ -122,6 +159,7 @@ export class RoomRealtimeSocket {
   }
 
   private close(code: number, reason: string): void {
+    this.connectionGeneration += 1;
     const socket = this.socket;
     this.socket = null;
     if (socket && socket.readyState !== CLOSED) socket.close(code, reason);
@@ -129,6 +167,14 @@ export class RoomRealtimeSocket {
 
   private emitError(error: Error): void { for (const listener of this.errorListeners) listener(error); }
 }
+
+function isTerminalAuthenticationFailure(cause: unknown): boolean {
+  return cause instanceof RealtimeTicketRequestError
+    ? cause.status === 401 || cause.status === 403
+    : cause instanceof Error && /(?:ticket request failed \((?:401|403)\)|invalid.?ticket)/i.test(cause.message);
+}
+
+function wait(delayMs: number): Promise<void> { return new Promise((resolve) => window.setTimeout(resolve, delayMs)); }
 
 export function parseRoomServerMessage(raw: string): RoomServerMessage {
   const value: unknown = JSON.parse(raw);

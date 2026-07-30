@@ -56,7 +56,7 @@ describe("GameModule", () => {
     renderGameModule({ serviceOverrides: { battleRoomGateway: fakeBattleRoomGateway({ getRooms }) } });
     fireEvent.click(screen.getByRole("link", { name: "지문자 테트리스 선택" }));
     fireEvent.click(screen.getByRole("link", { name: "실시간 1대1 게임 찾기" }));
-    expect(screen.getByRole("heading", { name: "대전방" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "게임방 찾기" })).toBeTruthy();
     await waitFor(() => expect(getRooms).toHaveBeenCalledTimes(1));
   });
 
@@ -82,7 +82,7 @@ describe("GameModule", () => {
   it("supports direct entry to the existing battle route", async () => {
     const getRooms = vi.fn(async () => []);
     renderGameModule({ serviceOverrides: { battleRoomGateway: fakeBattleRoomGateway({ getRooms }) } }, "/game/battle");
-    expect(screen.getByRole("heading", { name: "대전방" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "게임방 찾기" })).toBeTruthy();
     await waitFor(() => expect(getRooms).toHaveBeenCalledTimes(1));
   });
 
@@ -94,7 +94,7 @@ describe("GameModule", () => {
   it("calls the host onExit callback", () => {
     const onExit = vi.fn();
     renderGameModule({ onExit });
-    fireEvent.click(screen.getByRole("button", { name: /나가기/ }));
+    fireEvent.click(screen.getByRole("button", { name: "이전 화면으로 돌아가기" }));
     expect(onExit).toHaveBeenCalledTimes(1);
   });
 
@@ -128,13 +128,17 @@ describe("GameModule", () => {
     expect(screen.getByRole("heading", { name: "수어의 달인" })).toBeTruthy();
     expect(screen.getByText("개발 사용자")).toBeTruthy();
   });
-  it("prevents browser zoom shortcuts while the game module is mounted", () => {
+  it("keeps the game category canvas at a fixed 16:9 ratio across browser zoom", () => {
     renderGameModule();
     const wheel = new WheelEvent("wheel", { ctrlKey: true, deltaY: -100, cancelable: true });
     const keyboard = new KeyboardEvent("keydown", { ctrlKey: true, key: "+", cancelable: true });
     window.dispatchEvent(wheel); window.dispatchEvent(keyboard);
-    expect(wheel.defaultPrevented).toBe(true);
-    expect(keyboard.defaultPrevented).toBe(true);
+    expect(wheel.defaultPrevented).toBe(false);
+    expect(keyboard.defaultPrevented).toBe(false);
+    const canvas = document.querySelector<HTMLElement>("[data-fixed-game-canvas='true']");
+    expect(canvas).not.toBeNull();
+    expect(canvas?.style.transform).toContain("translate(-50%, -50%) scale(");
+    expect(document.querySelector("[data-game-module='true']")?.children).toHaveLength(1);
   });
 });
 
@@ -175,5 +179,6 @@ function fakeSoloGameApi(): SoloGameApi {
     startSession: vi.fn(async (request) => ({ ...request, soloSessionId: "session-1", userId: "user-1", startedAt: 1 })),
     completeSession: vi.fn(async (soloSessionId, request) => ({ ...request, soloSessionId, userId: "user-1", playMode: "AI", difficulty: "BEGINNER", startedAt: 1 })),
     getResults: vi.fn(async () => []),
+    getRank: vi.fn(async () => null),
   };
 }

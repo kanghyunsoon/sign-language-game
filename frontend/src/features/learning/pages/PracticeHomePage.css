@@ -1,37 +1,47 @@
 .practice-page {
-  width: min(100%, 1920px);
-  min-height: 100vh;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
   overflow: hidden;
   color: #3f2b20;
   background: #faf7f1;
 }
 
-.header {
+.practice-canvas {
+  position: relative;
+  width: min(100vw, 160vh);
+  aspect-ratio: 8 / 5;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #faf7f1;
+}
+
+.practice-home-header {
   position: relative;
   z-index: 5;
-  height: 86px;
-  flex: 0 0 86px;
+  height: min(4.479167vw, 7.166667vh);
+  flex: 0 0 min(4.479167vw, 7.166667vh);
   display: flex;
   align-items: center;
   justify-content: center;
-  border-bottom: 1px solid #e7d9c7;
+  border-bottom: min(0.052083vw, 0.083333vh) solid #e7d9c7;
   background: rgba(255, 250, 242, 0.94);
-  box-shadow: 0 4px 18px rgba(85, 57, 37, 0.05);
+  box-shadow: 0 min(0.208333vw, 0.333333vh) min(0.9375vw, 1.5vh) rgba(85, 57, 37, 0.05);
 }
 
-.nav {
+.practice-home-nav {
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 58px;
+  gap: min(3.020833vw, 4.833333vh);
 }
 
-.nav a,
-.nav button {
+.practice-home-nav a,
+.practice-home-nav button {
   position: relative;
   height: 100%;
   display: flex;
@@ -41,54 +51,41 @@
   background: transparent;
   color: #7d6d61;
   font-family: inherit;
-  font-size: 17px;
+  font-size: min(1.25vw, 2vh);
   font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
 }
 
-.nav a.active {
+.practice-home-nav a.active {
   color: #3f2b20;
 }
 
-.practice-home-coming-soon-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(72,56,45,.28); backdrop-filter: blur(5px); }
-.practice-home-coming-soon-dialog { position: relative; display: grid; width: min(390px, 100%); justify-items: center; padding: 30px 30px 27px; border: 4px solid #8fa071; border-radius: 28px; background: #fffdf5; box-shadow: 0 12px 0 #6f8052, 0 24px 50px rgba(82,54,35,.28); text-align: center; animation: practiceHomeComingSoonPop .25s cubic-bezier(.2,.9,.3,1.2); }
-.practice-home-coming-soon-dialog::before, .practice-home-coming-soon-dialog::after { position: absolute; color: #f0c84d; content: "✦"; font-size: 22px; }
-.practice-home-coming-soon-dialog::before { top: 26px; left: 32px; transform: rotate(-14deg); }
-.practice-home-coming-soon-dialog::after { top: 76px; right: 28px; transform: rotate(13deg); }
-.practice-home-coming-soon-dialog img { width: 148px; height: 148px; object-fit: contain; }
-.practice-home-coming-soon-dialog h2 { margin: 7px 0 8px; color: #5f402b; font-size: 30px; letter-spacing: -.05em; }
-.practice-home-coming-soon-dialog p { margin: 0; color: #827368; font-size: 14px; line-height: 1.6; }
-.practice-home-coming-soon-close { position: absolute; top: 14px; right: 14px; display: grid; width: 36px; height: 36px; place-items: center; border: 0; border-radius: 50%; background: #f1ede8; color: #74675e; cursor: pointer; }
-.practice-home-coming-soon-sparkle { position: absolute; top: 65px; left: 37px; color: #e8b938; transform: rotate(-10deg); }
-.practice-home-coming-soon-confirm { min-width: 142px; min-height: 45px; margin-top: 20px; border: 0; border-radius: 15px; background: #8fa071; box-shadow: 0 5px 0 #6f8052; color: #fff; font: inherit; font-weight: 900; cursor: pointer; }
-.practice-home-coming-soon-confirm:active { transform: translateY(3px); box-shadow: 0 2px 0 #6f8052; }
-@keyframes practiceHomeComingSoonPop { from { opacity: 0; transform: translateY(18px) scale(.92); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
-.nav a.active::after {
+.practice-home-nav a.active::after {
   position: absolute;
   right: 0;
-  bottom: 17px;
+  bottom: min(0.885417vw, 1.416667vh);
   left: 0;
-  height: 4px;
-  border-radius: 999px;
+  height: min(0.208333vw, 0.333333vh);
+  border-radius: min(52.03125vw, 83.25vh);
   background: #9B6B43;
   content: "";
 }
 
-.mypage-button {
+.practice-home-mypage-button {
   position: absolute;
-  top: 20px;
-  right: 58px;
-  width: 155px;
-  height: 44px;
+  top: min(1.041667vw, 1.666667vh);
+  right: min(3.020833vw, 4.833333vh);
+  width: min(8.072917vw, 12.916667vh);
+  height: min(2.291667vw, 3.666667vh);
   display: grid;
   place-items: center;
-  border: 1px solid #dbc8b1;
-  border-radius: 999px;
+  border: min(0.052083vw, 0.083333vh) solid #dbc8b1;
+  border-radius: min(52.03125vw, 83.25vh);
   color: #5f402b;
-  font-size: 16px;
+  font-size: min(1.09375vw, 1.75vh);
   font-weight: 800;
   text-decoration: none;
   background: #fffaf2;
@@ -100,8 +97,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 86px);
-  padding: 50px 40px;
+  min-height: 0;
+  padding: min(2.604167vw, 4.166667vh) min(2.083333vw, 3.333333vh);
   background:
     linear-gradient(
       180deg,
@@ -115,73 +112,73 @@
 .practice-panel {
   position: relative;
   z-index: 1;
-  width: min(1040px, 90vw);
-  min-height: 730px;
+  width: min(54.166667vw, 86.666667vh);
+  min-height: min(38.020833vw, 60.833333vh);
   display: flex;
   align-items: center;
   flex-direction: column;
-  padding: 52px 110px 58px;
-  border-radius: 34px;
+  padding: min(2.708333vw, 4.333333vh) min(5.729167vw, 9.166667vh) min(3.020833vw, 4.833333vh);
+  border-radius: min(1.770833vw, 2.833333vh);
   background: #ffffff;
-  box-shadow: 0 24px 50px rgba(59, 42, 35, 0.14);
+  box-shadow: 0 min(1.25vw, 2vh) min(2.604167vw, 4.166667vh) rgba(59, 42, 35, 0.14);
 }
 
 .practice-mode-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 18px;
-  border-radius: 999px;
+  padding: min(0.416667vw, 0.666667vh) min(0.9375vw, 1.5vh);
+  border-radius: min(52.03125vw, 83.25vh);
   color: #ffffff;
-  font-size: 12px;
+  font-size: min(0.833333vw, 1.333333vh);
   font-weight: 800;
   background: #8f8274;
 }
 
 .practice-character-circle {
-  width: 180px;
-  height: 180px;
-  margin-top: 22px;
+  width: min(9.375vw, 15vh);
+  height: min(9.375vw, 15vh);
+  margin-top: min(1.145833vw, 1.833333vh);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 11px solid #b9afa3;
+  border: min(0.572917vw, 0.916667vh) solid #b9afa3;
   border-radius: 50%;
   background: #ffffff;
 }
 
 .practice-character {
-  width: 180px;
-  height: 180px;
+  width: min(9.375vw, 15vh);
+  height: min(9.375vw, 15vh);
   object-fit: contain;
   transform: translateY(5%);
 }
 
 .practice-title {
-  margin: 24px 0 34px;
+  margin: min(1.25vw, 2vh) 0 min(1.770833vw, 2.833333vh);
   color: #3f2b20;
-  font-size: 42px;
+  font-size: min(2.1875vw, 3.5vh);
   line-height: 1;
-  letter-spacing: -1.5px;
+  letter-spacing: max(-0.078125vw, -0.125vh);
 }
 
 .practice-category-list {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  width: 90%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: min(0.625vw, 1vh);
 }
 
 .practice-category {
   width: 100%;
-  min-height: 82px;
+  min-height: min(3.645833vw, 5.833333vh);
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 14px 20px;
-  border: 2px solid transparent;
-  border-radius: 19px;
+  gap: min(1.041667vw, 1.666667vh);
+  padding: min(0.416667vw, 0.666667vh) min(1.041667vw, 1.666667vh);
+  border: min(0.104167vw, 0.166667vh) solid transparent;
+  border-radius: min(0.989583vw, 1.583333vh);
   color: #3f2b20;
   text-align: left;
   background: #f3f0ea;
@@ -196,30 +193,30 @@
 .practice-category:hover {
   border-color: #b7aa8c;
   background-color: #d8cfba;
-  box-shadow: 0 10px 20px rgba(78, 64, 50, 0.12);
-  transform: translateY(-4px);
+  box-shadow: 0 min(0.520833vw, 0.833333vh) min(1.041667vw, 1.666667vh) rgba(78, 64, 50, 0.12);
+  transform: translateY(max(-0.208333vw, -0.333333vh));
 }
 
 .practice-category-selected {
   border-color: #b7aa8c;
   background-color: #d8cfba;
-  box-shadow: 0 8px 18px rgba(78, 64, 50, 0.1);
+  box-shadow: 0 min(0.416667vw, 0.666667vh) min(0.9375vw, 1.5vh) rgba(78, 64, 50, 0.1);
 }
 
 .practice-category-selected:hover {
-  transform: translateY(-2px);
+  transform: translateY(max(-0.104167vw, -0.166667vh));
 }
 
 .practice-category-symbol {
-  width: 52px;
-  height: 52px;
-  flex: 0 0 52px;
+  width: min(3.59375vw, 5.75vh);
+  height: min(3.59375vw, 5.75vh);
+  flex: 0 0 min(3.59375vw, 5.75vh);
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 13px;
+  border-radius: min(0.677083vw, 1.083333vh);
   color: #3f2b20;
-  font-size: 25px;
+  font-size: min(1.71875vw, 2.75vh);
   font-weight: 900;
   background: #ffffff;
 }
@@ -229,48 +226,49 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: min(0.364583vw, 0.583333vh);
 }
 
 .practice-category-content strong {
-  font-size: 18px;
+  font-size: min(1.25vw, 2vh);
 }
 
 .practice-category-content > span {
   color: #93867c;
-  font-size: 13px;
+  font-size: min(0.885417vw, 1.416667vh);
 }
 
 .practice-category-count {
   flex-shrink: 0;
-  padding: 8px 13px;
-  border-radius: 999px;
+  padding: min(0.416667vw, 0.666667vh) min(0.677083vw, 1.083333vh);
+  border-radius: min(52.03125vw, 83.25vh);
   color: #ffffff;
-  font-size: 12px;
+  font-size: min(0.833333vw, 1.333333vh);
   font-weight: 800;
   background: #8f8274;
 }
 
 .practice-action-area {
-  width: 100%;
-  margin-top: 28px;
-  display: flex;
-  gap: 16px;
+  width: 70%;
+  margin-top: min(1.458333vw, 2.333333vh);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  justify-content: space-between;
+  gap: min(0.833333vw, 1.333333vh);
 }
 
-.practice-previous-button,
 .practice-start-button,
 .practice-guide-button {
   min-width: 0;
-  height: 58px;
+  height: min(3.020833vw, 4.833333vh);
   flex: 1;
   border: 0;
-  border-radius: 16px;
+  border-radius: min(0.833333vw, 1.333333vh);
   color: #51483f;
-  font-size: 17px;
+  font-size: min(1.197917vw, 1.916667vh);
   font-weight: 800;
   background-color: #ffffff;
-  box-shadow: 0 8px 16px rgba(78, 64, 50, 0.1);
+  box-shadow: 0 min(0.416667vw, 0.666667vh) min(0.833333vw, 1.333333vh) rgba(78, 64, 50, 0.1);
   cursor: pointer;
   transition:
     color 0.2s ease,
@@ -278,107 +276,118 @@
     transform 0.2s ease;
 }
 
-.practice-previous-button:hover,
 .practice-start-button:hover,
+.practice-guide-button:hover {
+  transform: translateY(max(-0.104167vw, -0.166667vh));
+}
+
 .practice-guide-button:hover {
   color: #ffffff;
   background: #5f402b;
-  transform: translateY(-2px);
 }
 
-@media (max-width: 1180px) {
-  .practice-main {
-    padding-right: 28px;
-    padding-left: 28px;
-  }
-
-  .practice-panel {
-    padding-right: 70px;
-    padding-left: 70px;
-  }
-
-  .practice-leaf {
-    left: -70px;
-  }
+.practice-start-button:hover {
+  color: #ffffff;
+  background: #5f402b;
 }
 
-@media (max-width: 760px) {
-  .header {
-    height: auto;
-    min-height: 72px;
-    padding: 0 16px;
-  }
+.practice-start-button:disabled,
+.practice-category:disabled {
+  color: #aaa39b;
+  background: #eeeae3;
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
 
-  .nav {
-    width: 100%;
-    justify-content: flex-start;
-    gap: 24px;
-    overflow-x: auto;
-    padding-right: 110px;
-  }
+.practice-start-button:disabled:hover,
+.practice-category:disabled:hover {
+  color: #aaa39b;
+  border-color: transparent;
+  background: #eeeae3;
+  box-shadow: none;
+  transform: none;
+}
 
-  .nav a {
-    font-size: 14px;
-  }
+/*
+ * [연습 시작하기]만 배경색을 따로 쓴다. [연습 방법 보기]는 흰 배경 그대로 두고,
+ * 마우스를 올렸을 때 색(#5f402b)은 두 버튼 모두 기존 값을 유지한다.
+ * 지정색을 그대로 보여주려고 비활성 상태의 opacity는 되돌린다.
+ */
+.practice-start-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 min(0.833333vw, 1.333333vh);
+  box-sizing: border-box;
+  line-height: 1;
+  white-space: nowrap;
+  word-break: keep-all;
+  background-color: #d5cfbc;
+}
 
-  .mypage-button {
-    right: 14px;
-    width: 94px;
-    height: 38px;
-    font-size: 13px;
-  }
+.practice-start-button:disabled,
+.practice-start-button:disabled:hover {
+  background: #ebe9e6;
+  opacity: 1;
+}
 
-  .practice-main {
-    min-height: calc(100vh - 72px);
-    padding: 30px 16px;
-  }
+.practice-guide-overlay {
+  position: absolute;
+  z-index: 10;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: min(2.083333vw, 3.333333vh);
+  background: rgba(63, 43, 32, 0.42);
+}
 
-  .practice-panel {
-    width: 100%;
-    min-height: auto;
-    padding: 38px 22px;
-    border-radius: 25px;
-  }
+.practice-guide-modal {
+  width: min(34.375vw, 55vh);
+  box-sizing: border-box;
+  padding: min(2.083333vw, 3.333333vh);
+  border-radius: min(1.25vw, 2vh);
+  background: #ffffff;
+  box-shadow: 0 min(1.25vw, 2vh) min(2.604167vw, 4.166667vh)
+    rgba(59, 42, 35, 0.24);
+}
 
-  .practice-leaf {
-    display: none;
-  }
+.practice-guide-modal h2 {
+  margin: 0;
+  color: #3f2b20;
+  font-size: min(1.770833vw, 2.833333vh);
+}
 
-  .practice-character-circle {
-    width: 150px;
-    height: 150px;
-  }
+.practice-guide-intro {
+  margin: min(0.833333vw, 1.333333vh) 0
+    min(1.25vw, 2vh);
+  color: #7d6d61;
+  font-size: min(1.145833vw, 1.833333vh);
+}
 
-  .practice-character {
-    width: 105px;
-    height: 105px;
-  }
+.practice-guide-steps {
+  margin: 0;
+  padding-left: min(1.5625vw, 2.5vh);
+  color: #51483f;
+  font-size: min(1.145833vw, 1.833333vh);
+  line-height: 2;
+}
 
-  .practice-title {
-    font-size: 34px;
-  }
+.practice-guide-close-button {
+  width: 100%;
+  height: min(3.75vw, 6vh);
+  margin-top: min(1.458333vw, 2.333333vh);
+  border: 0;
+  border-radius: min(0.833333vw, 1.333333vh);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: min(1.302083vw, 2.083333vh);
+  font-weight: 800;
+  background: #5f402b;
+  cursor: pointer;
+}
 
-  .practice-category {
-    gap: 14px;
-    padding: 13px 15px;
-  }
-
-  .practice-category-content > span {
-    line-height: 1.5;
-  }
-
-  .practice-category-count {
-    display: none;
-  }
-
-  .practice-action-area {
-    gap: 8px;
-  }
-
-  .practice-previous-button,
-  .practice-start-button,
-  .practice-guide-button {
-    padding: 0 8px;
-    font-size: 13px;
-  }
+.practice-guide-close-button:hover {
+  background: #3f2b20;
 }

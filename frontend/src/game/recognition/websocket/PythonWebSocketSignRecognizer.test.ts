@@ -80,6 +80,17 @@ describe("PythonWebSocketSignRecognizer latest-only adapter", () => {
     recognizer.disconnect();
   });
 
+  it("clears frontend inference state and resets the Python sequence", async () => {
+    const socket = new FakeSocket();
+    const recognizer = new PythonWebSocketSignRecognizer({ url: "ws://test", createWebSocket: () => socket });
+    const connected = recognizer.connect();
+    socket.onopen?.(new Event("open"));
+    await connected;
+    recognizer.resetRecognitionSession();
+    expect(socket.send).toHaveBeenCalledWith(JSON.stringify({ type: "RESET_SEQUENCE" }));
+    recognizer.disconnect();
+  });
+
   it("uses frontend temporal confirmation and ignores Python confirmation messages", async () => {
     const socket = new FakeSocket();
     const recognizer = new PythonWebSocketSignRecognizer({

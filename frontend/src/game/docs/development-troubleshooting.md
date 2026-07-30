@@ -930,3 +930,65 @@ Gradle 전체 `check`는 로컬 캐시에 Spring Boot Gradle plugin marker가 �
 ### P2P 몰수패 경계
 
 순수 DataChannel/PeerConnection 상태만으로 자동 몰수패를 결정하면 네트워크 분할 시 양쪽이 모두 자신을 생존자로 판단할 수 있다. 따라서 백엔드를 변경하지 않는 현재 범위에서는 정상 종료 결과 저장과 짧은 ICE 재연결을 지원하고, 10초 이후 자동 몰수패는 서버가 인증된 `PEER_DISCONNECTED`/`PEER_RECONNECTED`를 권위 근거로 제공하는 정책이 확정되기 전까지 활성화하지 않는다.
+
+---
+
+## 2026-07-27 ??Production solo game start returned HTTP 401
+
+### Symptom
+
+On `https://sudal-play.vercel.app/game/solo`, pressing **게임 ?�작** displayed `Solo game API returned 401.` and did not start the game.
+
+### Investigation
+
+- The production bundle uses `https://i15a405.p.ssafy.io/api` for both auth and game REST calls.
+- The failing request is `POST /api/game/solo/sessions`.
+- The route reaches the backend and returns `401`; it is not a Vercel deployment, CORS, or WebSocket failure.
+- The current backend/Swagger integration does not publish the legacy solo-session start/complete contract used by this frontend. The authenticated room and result contracts must not be inferred to include it.
+
+### Resolution
+
+- Do not block solo gameplay on the unsupported remote session endpoint.
+- `LocalSoloGameApi` now creates the session and stores the completed aggregate score in browser local storage, scoped by user ID.
+- No camera frames, landmarks, or images are saved.
+- Remote solo persistence remains opt-in through `VITE_ENABLE_REMOTE_SOLO_GAME_API=true`, and must only be enabled after the backend formally provides and authorizes the start/complete session contract.
+
+### Verification
+
+- Local unit test for session creation and persisted score: passed.
+- TypeScript/Vite production build: passed.
+- GitLab pipeline `#157088` and its Vercel production deploy: passed.
+- Production browser retest: **게임 ?�작** changes the game to running state and no alert is rendered.
+
+### Backend follow-up
+
+If cross-device solo score history or a server-side solo ranking is required, backend needs to publish the request/response DTO and authorization policy for a solo score endpoint. Until then, local browser storage is the only supported persistence path.
+
+
+---
+
+## 2026-07-30: preventing duplicate letters in a shared-target P2P duel
+
+### Symptom
+
+When each peer treated recognition as an immediate local spawn, simultaneous recognition could create two letters or leave the two boards out of sync.
+
+### Cause
+
+The shared target is a single competitive resource. Local recognition results can arrive at different times, so each browser cannot independently decide whether it won the target.
+
+### Resolution
+
+- Added `SHARED_TARGET`, `CLAIM_SHARED_TARGET`, and `SHARED_TARGET_CLAIMED` DataChannel messages.
+- Kept the host authoritative: it accepts the first valid claim, publishes the result, and emits one centered spawn command for the winning board only.
+- Disabled local optimistic spawns while shared-target mode is active.
+- Published the next target only after the resolved claim, avoiding overlap between target generations.
+
+### Why this is lighter than streaming the board
+
+The peers exchange a small target/claim/spawn event stream instead of video or a second physics simulation. Each board still renders locally, but only the authoritative spawn commands decide gameplay state.
+
+### Verification
+
+- `BattleController`, P2P transport, and message-parser targeted tests: 21 passed.
+- Vite production build: passed.

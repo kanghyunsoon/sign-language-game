@@ -21,7 +21,7 @@
   width: min(100vw, 162.6667vh);
   aspect-ratio: 122 / 75;
   overflow: hidden;
-  font-size: min(.8333vw, 1.3333vh);
+  font-size: min(1.09375vw, 1.75vh);
   background: #fbf8f0;
 }
 
@@ -58,35 +58,53 @@
   right: 0;
   left: 0;
   z-index: 5;
-  height: 8.55%;
-  border-bottom: 1px solid rgba(116,93,76,.09);
+  height: min(4.479167vw, 7.166667vh);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: min(0.052083vw, 0.083333vh) solid #e7d9c7;
+  background: rgba(255, 250, 242, 0.94);
+  box-shadow: 0 min(0.208333vw, 0.333333vh) min(0.9375vw, 1.5vh) rgba(85, 57, 37, 0.05);
 }
 
-.profile-home-button {
+.profile-nav {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: min(3.020833vw, 4.833333vh);
+}
+
+.profile-nav a {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  color: #7d6d61;
+  font-family: inherit;
+  font-size: min(1.25vw, 2vh);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.profile-mypage-button {
   position: absolute;
-  top: 22%;
-  left: 2.8%;
-  min-width: min(5.2083vw, 8.3333vh);
-  min-height: min(2.0833vw, 3.3333vh);
+  top: min(1.041667vw, 1.666667vh);
+  right: min(3.020833vw, 4.833333vh);
+  width: min(8.072917vw, 12.916667vh);
+  height: min(2.291667vw, 3.666667vh);
   display: grid;
   place-items: center;
-  padding: 0 min(.8333vw, 1.3333vh);
-  border: min(.0521vw, .0833vh) solid rgba(104,79,62,.12);
-  border-radius: 999px;
-  color: #705f52;
-  text-decoration: none;
-  background: rgba(255,255,255,.9);
-  box-shadow:
-    0 min(.2083vw, .3333vh)
-    min(.6771vw, 1.0833vh)
-    rgba(92,72,58,.1);
-  cursor: pointer;
-}
-
-.profile-home-button span {
-  font-size: min(.625vw, 1vh);
+  border: min(0.104167vw, 0.166667vh) solid #9b6b43;
+  border-radius: min(52.03125vw, 83.25vh);
+  color: #3f2b20;
+  font-size: min(1.09375vw, 1.75vh);
   font-weight: 800;
-  white-space: nowrap;
+  text-decoration: none;
+  background: #fffaf2;
+  box-shadow: 0 min(0.15625vw, 0.25vh) min(0.520833vw, 0.833333vh) rgba(85, 57, 37, 0.09);
 }
 
 .profile-header-summary {
@@ -107,7 +125,7 @@
   border: 1px solid rgba(104,79,62,.08);
   border-radius: 999px;
   color: #705f52;
-  font-size: min(.625vw, 1vh);
+  font-size: min(0.833333vw, 1.333333vh);
   background: rgba(255,255,255,.78);
   box-shadow: 0 4px 12px rgba(81,62,49,.06);
 }
@@ -166,7 +184,7 @@
 
 .profile-achievement h1 {
   margin: 0;
-  font-size: min(1.5625vw, 2.5vh);
+  font-size: min(2.083333vw, 3.333333vh);
   font-weight: 900;
   letter-spacing: -.06em;
   white-space: nowrap;
@@ -211,6 +229,9 @@
   border-radius: 50%;
   background: transparent;
   box-shadow: none;
+  /* 오답 노트 항목은 링크(a)라서 밑줄·기본 색을 지운다. */
+  color: inherit;
+  text-decoration: none;
   cursor: pointer;
 }
 
@@ -231,7 +252,7 @@
   left: 50%;
   padding: min(.2604vw, .4167vh) min(.6771vw, 1.0833vh);
   border-radius: min(.3125vw, .5vh);
-  font-size: min(.9896vw, 1.5833vh);
+  font-size: min(1.302083vw, 2.083333vh);
   font-weight: 800;
   white-space: nowrap;
   background: #fffdf8;
@@ -286,12 +307,12 @@
 .profile-level-card > div:first-child span,
 .profile-total-xp span {
   color: #8b7b6e;
-  font-size: min(.625vw, 1vh);
+  font-size: min(0.833333vw, 1.333333vh);
   font-weight: 800;
 }
 
 .profile-level-card > div:first-child strong {
-  font-size: min(1.3021vw, 2.0833vh);
+  font-size: min(1.71875vw, 2.75vh);
 }
 
 .profile-level-progress {
@@ -319,7 +340,7 @@
 
 .profile-level-progress small {
   color: #8a7d70;
-  font-size: min(.5208vw, .8333vh);
+  font-size: min(0.677083vw, 1.083333vh);
 }
 
 .profile-level-goal {
@@ -332,18 +353,18 @@
 }
 
 .profile-reward-icon {
-  font-size: min(1.25vw, 2vh);
+  font-size: min(1.666667vw, 2.666667vh);
 }
 
 .profile-level-goal span {
   display: grid;
   color: #8a7a6e;
-  font-size: min(.5208vw, .8333vh);
+  font-size: min(0.677083vw, 1.083333vh);
 }
 
 .profile-level-goal strong {
   color: #5b493d;
-  font-size: min(.625vw, 1vh);
+  font-size: min(0.833333vw, 1.333333vh);
 }
 
 .profile-sidebar {
@@ -385,7 +406,7 @@
 }
 
 .profile-name strong {
-  font-size: min(1.5625vw, 2.5vh);
+  font-size: min(2.083333vw, 3.333333vh);
   white-space: nowrap;
 }
 
@@ -404,6 +425,75 @@
   height: min(1.5625vw, 2.5vh);
 }
 
+.profile-nickname-editor {
+  position: absolute;
+  top: 12%;
+  left: 31%;
+  right: min(1.0417vw, 1.6667vh);
+  display: grid;
+  gap: min(.4167vw, .6667vh);
+}
+
+.profile-nickname-editor input {
+  width: 100%;
+  min-width: 0;
+  height: min(2.0833vw, 3.3333vh);
+  box-sizing: border-box;
+  padding: 0 min(.5208vw, .8333vh);
+  border: min(.0521vw, .0833vh) solid #bca995;
+  border-radius: min(.3125vw, .5vh);
+  color: #493a32;
+  font-size: min(0.989583vw, 1.583333vh);
+  font-weight: 700;
+  background: #fff;
+  outline: none;
+}
+
+.profile-nickname-editor input:focus {
+  border-color: #765b48;
+}
+
+.profile-nickname-editor-actions {
+  display: flex;
+  gap: min(.3125vw, .5vh);
+}
+
+.profile-nickname-editor-actions button {
+  min-height: min(1.5625vw, 2.5vh);
+  padding: 0 min(.5208vw, .8333vh);
+  border: 0;
+  border-radius: min(.3125vw, .5vh);
+  color: #fff;
+  font-size: min(0.677083vw, 1.083333vh);
+  font-weight: 800;
+  background: #765b48;
+  cursor: pointer;
+}
+
+.profile-nickname-editor-actions button:last-child {
+  color: #6d5c50;
+  background: #eee8df;
+}
+
+.profile-nickname-editor-actions button:disabled {
+  cursor: default;
+  opacity: .6;
+}
+
+.profile-user-error {
+  position: absolute;
+  right: min(1.0417vw, 1.6667vh);
+  bottom: 3%;
+  max-width: 62%;
+  margin: 0;
+  overflow: hidden;
+  color: #b44949;
+  font-size: min(0.677083vw, 1.083333vh);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .profile-image-change {
   position: absolute;
   bottom: 15%;
@@ -413,7 +503,7 @@
   border: 0;
   border-radius: min(.3125vw, .5vh);
   color: #6d5c50;
-  font-size: min(.5208vw, .8333vh);
+  font-size: min(0.677083vw, 1.083333vh);
   font-weight: 800;
   background: #eee8df;
   cursor: pointer;
@@ -440,12 +530,12 @@
 }
 
 .profile-stat-row > span {
-  font-size: min(.625vw, 1vh);
+  font-size: min(0.833333vw, 1.333333vh);
   font-weight: 900;
 }
 
 .profile-stat-row > strong {
-  font-size: min(.7292vw, 1.1667vh);
+  font-size: min(0.989583vw, 1.583333vh);
 }
 
 .profile-stat-track {
@@ -468,7 +558,7 @@
   top: 50%;
   right: min(.4167vw, .6667vh);
   color: rgba(255,255,255,.92);
-  font-size: min(.4688vw, .75vh);
+  font-size: min(0.625vw, 1vh);
   transform: translateY(-50%);
 }
 
@@ -488,14 +578,13 @@
 }
 
 .profile-total-xp strong {
-  font-size: min(.8333vw, 1.3333vh);
+  font-size: min(1.09375vw, 1.75vh);
 }
 
 .profile-quick-actions {
   display: grid;
-  grid-template-columns:
-    repeat(2, min(10.4167vw, 16.6667vh));
-  justify-content: center;
+  width: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: min(.8333vw, 1.3333vh);
   margin-top: min(1.0417vw, 1.6667vh);
 }
@@ -506,7 +595,7 @@
   border: min(.0521vw, .0833vh) solid rgba(102,78,61,.12);
   border-radius: min(.625vw, 1vh);
   color: #5a493d;
-  font-size: min(1.0417vw, 1.6667vh);
+  font-size: min(1.40625vw, 2.25vh);
   font-weight: 900;
   white-space: nowrap;
   background: rgba(255,255,255,.88);
@@ -518,10 +607,12 @@
 }
 
 .profile-quick-actions button {
-  width: min(10.4167vw, 16.6667vh);
+  width: 100%;
+  min-width: 0;
   height: min(2.7083vw, 4.3333vh);
   min-height: 0;
   padding: 0;
+  box-sizing: border-box;
 }
 
 .profile-quick-actions button:first-child {
@@ -532,12 +623,23 @@
 }
 
 .profile-page .profile-main-button {
+  display: block;
   width: 100%;
+  box-sizing: border-box;
   min-height: min(2.7083vw, 4.3333vh);
   margin-top: min(.8333vw, 1.3333vh);
   border-color: #765b48;
   color: #fff;
-  font-size: min(1.0417vw, 1.6667vh);
+  font-size: min(1.40625vw, 2.25vh);
   background: #765b48;
 }
 
+
+/* 마이페이지 캔버스는 자식을 절대 배치하므로 하단 바도 아래에 고정한다. */
+.profile-canvas .site-footer {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 5;
+}

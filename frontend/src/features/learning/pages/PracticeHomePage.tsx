@@ -1,20 +1,23 @@
 import "./PracticeHomePage.css";
-import { useState } from "react";
-import { Sparkles, X } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { SiteFooter } from "../../../shared/components/SiteFooter";
 import otterImage from "../assets/otter.png";
-import otterCharacter from "../../../game/block-stacking/assets/game-menu-otter.png";
 import type { FingerspellingCategoryId } from "../data/fingerspelling";
+import { SYMBOLS_PARAM, parseSymbolSelection } from "../data/symbolSelection";
 import { PracticeSessionPage } from "./PracticeSessionPage";
+import { WordPracticeSessionPage } from "./WordPracticeSessionPage";
 
 type PracticeCategoryId = FingerspellingCategoryId;
+type PracticeHomeCategoryId = PracticeCategoryId | "word";
 
 interface PracticeCategory {
-  id: PracticeCategoryId;
+  id: PracticeHomeCategoryId;
   symbol: string;
   title: string;
   description: string;
-  count: number;
+  count?: number;
+  disabled?: boolean;
 }
 
 const practiceCategories: PracticeCategory[] = [
@@ -39,25 +42,37 @@ const practiceCategories: PracticeCategory[] = [
     description: "1부터 10까지 기본 숫자 10개를 연습합니다.",
     count: 10,
   },
+  {
+    id: "word",
+    symbol: "별",
+    title: "단어 연습",
+    description: "기본 단어 13개를 연습합니다.",
+    count: 13,
+  },
 ];
 
 export function PracticeHomePage() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [selectedCategory, setSelectedCategory] =
-    useState<PracticeCategoryId | null>(null);
+    useState<PracticeHomeCategoryId | null>(null);
   const [activeCategory, setActiveCategory] =
-    useState<PracticeCategoryId | null>(null);
-  const [comingSoonMenu, setComingSoonMenu] = useState<"테스트" | null>(null);
+    useState<PracticeHomeCategoryId | null>(null);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
+
+  // 오답노트에서 넘어온 글자 묶음. 있으면 분류 선택을 건너뛰고 바로 연습한다.
+  const symbolsParam = searchParams.get(SYMBOLS_PARAM);
+  const selectedItems = useMemo(
+    () => parseSymbolSelection(symbolsParam),
+    [symbolsParam],
+  );
 
   const selectedPracticeCategory = practiceCategories.find(
     (category) => category.id === selectedCategory,
   );
 
-  const handleCategoryClick = (categoryId: PracticeCategoryId) => {
+  const handleCategoryClick = (categoryId: PracticeHomeCategoryId) => {
     setSelectedCategory(categoryId);
-  };
-
-  const handlePreviousClick = () => {
-    setSelectedCategory(null);
   };
 
   const handlePracticeStart = () => {
@@ -69,7 +84,7 @@ export function PracticeHomePage() {
   };
 
   const handlePracticeGuideOpen = () => {
-    alert("연습 방법을 확인합니다.");
+    setIsGuideOpen(true);
   };
 
   const handlePracticeExit = () => {
@@ -77,7 +92,25 @@ export function PracticeHomePage() {
     setSelectedCategory(null);
   };
 
+  /** 오답노트에서 들어온 연습은 오답노트로 되돌린다(들어온 곳으로 나간다). */
+  const handleSelectionExit = () => {
+    navigate("/review-notes");
+  };
+
+  if (selectedItems.length > 0) {
+    return (
+      <PracticeSessionPage
+        items={selectedItems}
+        onExit={handleSelectionExit}
+      />
+    );
+  }
+
   if (activeCategory) {
+    if (activeCategory === "word") {
+      return <WordPracticeSessionPage onExit={handlePracticeExit} />;
+    }
+
     return (
       <PracticeSessionPage
         category={activeCategory}
@@ -88,16 +121,18 @@ export function PracticeHomePage() {
 
   return (
     <div className="practice-page">
-      <header className="header">
-        <nav className="nav" aria-label="주요 메뉴">
+      <div className="practice-canvas">
+      <header className="practice-home-header">
+        <nav className="practice-home-nav" aria-label="주요 메뉴">
           <Link to="/main">메인페이지</Link>
           <Link className="active" to="/practice">연습</Link>
-          <button type="button" onClick={() => setComingSoonMenu("테스트")}>테스트</button>
+          <Link to="/test">테스트</Link>
+          <Link to="/review-notes">오답노트</Link>
           <Link to="/dictionary">사전</Link>
           <Link to="/game">게임</Link>
         </nav>
 
-        <Link className="mypage-button" to="/profile">
+        <Link className="practice-home-mypage-button" to="/profile">
           마이페이지
         </Link>
       </header>
@@ -114,16 +149,10 @@ export function PracticeHomePage() {
             />
           </div>
 
-          <h1 className="practice-title">연습 모드</h1>
+          <h1 className="practice-title">연습 수달</h1>
 
           <div className="practice-category-list">
-            {practiceCategories
-              .filter(
-                (category) =>
-                  selectedCategory === null ||
-                  category.id === selectedCategory,
-              )
-              .map((category) => {
+            {practiceCategories.map((category) => {
                 const isSelected = selectedCategory === category.id;
 
                 return (
@@ -133,6 +162,7 @@ export function PracticeHomePage() {
                     }`}
                     type="button"
                     key={category.id}
+                    disabled={category.disabled}
                     onClick={() => handleCategoryClick(category.id)}
                   >
                     <span className="practice-category-symbol">
@@ -144,56 +174,70 @@ export function PracticeHomePage() {
                       <span>{category.description}</span>
                     </span>
 
-                    <span className="practice-category-count">
-                      총 {category.count}문제
-                    </span>
+                    {category.count !== undefined && (
+                      <span className="practice-category-count">
+                        {category.count}{category.id === "word" ? "개" : "자"}
+                      </span>
+                    )}
                   </button>
                 );
               })}
           </div>
 
-          {selectedPracticeCategory && (
-            <div className="practice-action-area">
-              <button
-                className="practice-previous-button"
-                type="button"
-                onClick={handlePreviousClick}
-              >
-                이전
-              </button>
+          <div className="practice-action-area">
+            <button
+              className="practice-guide-button"
+              type="button"
+              onClick={handlePracticeGuideOpen}
+            >
+              연습 방법 보기
+            </button>
 
-              <button
-                className="practice-start-button"
-                type="button"
-                onClick={handlePracticeStart}
-              >
-                ▶ 연습 시작하기
-              </button>
-
-              <button
-                className="practice-guide-button"
-                type="button"
-                onClick={handlePracticeGuideOpen}
-              >
-                연습 방법 보기
-              </button>
-            </div>
-          )}
+            <button
+              className="practice-start-button"
+              type="button"
+              disabled={!selectedPracticeCategory}
+              onClick={handlePracticeStart}
+            >
+              ▶ 연습 시작하기
+            </button>
+          </div>
         </section>
       </main>
 
-      {comingSoonMenu ? (
-        <div className="practice-home-coming-soon-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setComingSoonMenu(null); }}>
-          <section className="practice-home-coming-soon-dialog" data-theme="test" role="dialog" aria-modal="true" aria-labelledby="practice-home-coming-soon-title">
-            <button type="button" className="practice-home-coming-soon-close" aria-label="팝업 닫기" onClick={() => setComingSoonMenu(null)}><X aria-hidden="true" size={20} /></button>
-            <Sparkles className="practice-home-coming-soon-sparkle" aria-hidden="true" size={30} />
-            <img src={otterCharacter} alt="" />
-            <h2 id="practice-home-coming-soon-title">수달이 개발중..</h2>
-            <p>조금만 기다려 주세요!<br />{comingSoonMenu} 기능을 만들고 있어요.</p>
-            <button type="button" className="practice-home-coming-soon-confirm" onClick={() => setComingSoonMenu(null)}>기다릴게!</button>
+      <SiteFooter />
+
+      {isGuideOpen && (
+        <div
+          className="practice-guide-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="practice-guide-title"
+        >
+          <section className="practice-guide-modal">
+            <h2 id="practice-guide-title">연습 방법 보기</h2>
+            <p className="practice-guide-intro">
+              수달과 함께 천천히 따라 해볼까요?
+            </p>
+
+            <ol className="practice-guide-steps">
+              <li>정답 동작을 확인해요.</li>
+              <li>카메라에 손 전체가 보이도록 준비해요.</li>
+              <li>카메라 시작 버튼을 누르고 동작을 따라 해요.</li>
+              <li>연습이 끝나면 다음 문제로 이동해요.</li>
+            </ol>
+
+            <button
+              className="practice-guide-close-button"
+              type="button"
+              onClick={() => setIsGuideOpen(false)}
+            >
+              연습하러 가기
+            </button>
           </section>
         </div>
-      ) : null}
+      )}
+      </div>
     </div>
   );
 }

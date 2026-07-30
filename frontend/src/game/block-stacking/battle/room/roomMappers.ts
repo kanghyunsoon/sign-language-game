@@ -25,6 +25,7 @@ export function mapRoomDetail(payload: unknown, currentUser: GameModuleUser): Ba
   const maxPlayers = readNumber(record, "maxPlayers");
   const status = readStatus(record.status);
   const participants = mapParticipants(record, currentUser, hostUserId);
+  const isCurrentUserParticipant = participants.some((participant) => participant.userId === currentUser.userId);
   const playerCount = readOptionalNumber(record, "playerCount") ?? participants.length;
   const readyForGame = readOptionalBoolean(record, "readyForGame") ?? playerCount === maxPlayers;
   const serverCanStart = readOptionalBoolean(record, "canStart");
@@ -42,7 +43,10 @@ export function mapRoomDetail(payload: unknown, currentUser: GameModuleUser): Ba
     difficulty: readString(record, "difficulty"),
     symbolRange: readStringArray(record, "symbolRange"),
     createdAt: readTimestamp(record.createdAt),
-    canJoin: status === "WAITING" && playerCount < maxPlayers,
+    // A player who was already in a running room must be able to return to it
+    // after a transient browser/WebRTC disconnect, even though new players may not join.
+    canJoin: (status === "WAITING" && playerCount < maxPlayers)
+      || (isCurrentUserParticipant && (status === "PLAYING" || status === "FINISHED")),
     gameType: (readOptionalString(record, "gameType") ?? "BLOCK_BATTLE") as BattleRoomSummary["gameType"],
     visibility: (readOptionalString(record, "visibility") ?? "PUBLIC") as BattleRoomSummary["visibility"],
     roomCode: readNullableString(record, "roomCode"),

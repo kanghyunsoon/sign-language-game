@@ -16,15 +16,16 @@ import type { GameModuleConfig } from "../app/GameModule";
 const wsProtocol =
   typeof window !== "undefined" && window.location.protocol === "https:" ? "wss:" : "ws:";
 const host = typeof window !== "undefined" ? window.location.host : "localhost:5173";
+const roomApiBaseUrl = import.meta.env.VITE_GAME_ROOM_API_BASE_URL?.trim() || "/api";
 
 export const PROD_GAME_CONFIG: GameModuleConfig = {
   soloApiBaseUrl: import.meta.env.VITE_API_BASE_URL?.trim() || "/api",
-  roomApiBaseUrl: import.meta.env.VITE_GAME_ROOM_API_BASE_URL?.trim() || "/api",
+  roomApiBaseUrl,
   gameWebSocketUrl:
     import.meta.env.VITE_GAME_WEBSOCKET_URL?.trim() || `${wsProtocol}//${host}/api/ws/game-rooms`,
   roomWebSocketBaseUrl:
     import.meta.env.VITE_GAME_WEBSOCKET_URL?.trim() || `${wsProtocol}//${host}/api/ws/game-rooms`,
-  rtcConfigApiBaseUrl: "/api/webrtc/ice-servers",
+  rtcConfigApiBaseUrl: import.meta.env.VITE_RTC_CONFIG_API_BASE_URL?.trim() || `${roomApiBaseUrl}/webrtc/ice-servers`,
   // 배포 AI 인식 WebSocket 값은 확정 계약에 없어 env 로 주입한다(미설정 시 현재 host 기준 상대값).
   aiWebSocketUrl: import.meta.env.VITE_AI_WEBSOCKET_URL?.trim() || `${wsProtocol}//${host}/ai/ws`,
 };

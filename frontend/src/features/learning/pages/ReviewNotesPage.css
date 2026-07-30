@@ -1,0 +1,586 @@
+/* 사전 페이지(DictionaryPage.css)의 캔버스·패널 토큰을 그대로 따른다. */
+.review-notes-page {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  color: #3f2b20;
+  background: #faf7f1;
+}
+
+.review-notes-canvas {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1920px;
+  height: 1200px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: #3f2b20;
+  /* /review-notes로 바로 진입하면 MainPage.css의 body 규칙이 없으므로 여기서 지정한다. */
+  font-family:
+    "Pretendard",
+    "Noto Sans KR",
+    "Apple SD Gothic Neo",
+    Arial,
+    sans-serif;
+  background: #faf7f1;
+  transform-origin: center center;
+}
+
+/* 메인페이지와 동일한 네비게이션바 */
+.review-notes-header {
+  position: relative;
+  z-index: 5;
+  height: 86px;
+  flex: 0 0 86px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #e7d9c7;
+  background: rgba(255, 250, 242, 0.94);
+  box-shadow: 0 4px 18px rgba(85, 57, 37, 0.05);
+}
+
+.review-notes-nav {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 58px;
+}
+
+.review-notes-nav a {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  color: #7d6d61;
+  font-size: 24px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.review-notes-nav a.active {
+  color: #3f2b20;
+}
+
+.review-notes-nav a.active::after {
+  position: absolute;
+  right: 0;
+  bottom: 17px;
+  left: 0;
+  height: 4px;
+  border-radius: 999px;
+  background: #9b6b43;
+  content: "";
+}
+
+.review-notes-mypage-button {
+  position: absolute;
+  top: 20px;
+  right: 58px;
+  width: 155px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #dbc8b1;
+  border-radius: 999px;
+  color: #5f402b;
+  font-size: 21px;
+  font-weight: 800;
+  text-decoration: none;
+  background: #fffaf2;
+}
+
+/* 아래 padding은 테스트 결과 화면과 같은 48px. 두 화면의 카드 하단 지점이
+   같은 높이에서 끝나도록 맞춘 값이다. */
+.review-notes-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 34px 62px 48px;
+  overflow-y: auto;
+  background: #faf7f1;
+}
+
+/* 타이틀 영역은 사전 페이지와 100% 동일한 규격 */
+.review-notes-heading {
+  width: min(1440px, 100%);
+  margin: 0 auto 22px;
+}
+
+.review-notes-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #eef2e3;
+  color: #5f724a;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.review-notes-heading h1 {
+  margin: 12px 0 6px;
+  color: #3f2b20;
+  font-size: 40px;
+  letter-spacing: -0.03em;
+}
+
+.review-notes-heading p {
+  margin: 0;
+  color: #827368;
+  font-size: 20px;
+}
+
+.review-notes-layout {
+  width: min(1440px, 100%);
+  margin: 0 auto;
+  display: grid;
+  /* 목록과 상세를 같은 너비로 나눈다. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 26px;
+  /* 남은 높이를 채우고 두 카드를 같은 높이로 늘린다. 화면 스크롤이 생기지
+     않도록 넘치는 내용은 카드 안에서 처리한다. */
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
+}
+
+/* 메인페이지 .panel과 동일한 패널 토큰 */
+/* 높이는 레이아웃 stretch가 정한다(오른쪽 카드와 동일). 오답 글자가 많아도
+   페이지가 늘어나지 않고 카드 그리드 안에서만 스크롤한다. */
+.review-notes-list-panel {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 26px;
+  border: 1px solid #e7d9c7;
+  border-radius: 30px;
+  background: rgba(255, 250, 242, 0.94);
+  box-shadow: 0 18px 38px rgba(82, 54, 35, 0.1);
+}
+
+.review-notes-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.review-notes-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.review-notes-filter {
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid #e7d9c7;
+  border-radius: 999px;
+  background: #fffdf8;
+  color: #7d6d61;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.review-notes-filter:hover {
+  background: #f3f6ea;
+}
+
+/* 선택 표시는 사전 칩과 같은 그린 + 입체 그림자 */
+.review-notes-filter-active,
+.review-notes-filter-active:hover {
+  border-color: #8fa071;
+  background: #8fa071;
+  color: #ffffff;
+  box-shadow: 0 4px 0 #6f8052;
+}
+
+/* [전체 선택]과 [취소]를 오른쪽에 묶어 둔다. margin은 이 묶음이 맡는다. */
+.review-notes-select-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.review-notes-select-all {
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid #dfe6d2;
+  border-radius: 999px;
+  background: #eef2e3;
+  color: #4d5c39;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.review-notes-select-all:hover:not(:disabled) {
+  background: #e5ecd4;
+}
+
+.review-notes-select-all:disabled {
+  color: #b6a89c;
+  cursor: not-allowed;
+}
+
+.review-notes-select-toggle {
+  min-height: 40px;
+  padding: 0 22px;
+  border: 1px solid #dbc8b1;
+  border-radius: 999px;
+  background: #fffaf2;
+  color: #5f402b;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.review-notes-select-toggle:hover:not(:disabled) {
+  background: #f7f1e7;
+}
+
+.review-notes-select-toggle:disabled {
+  color: #b6a89c;
+  cursor: not-allowed;
+}
+
+.review-notes-select-toggle-active,
+.review-notes-select-toggle-active:hover:not(:disabled) {
+  border-color: #9b6b43;
+  background: #9b6b43;
+  color: #ffffff;
+  box-shadow: 0 4px 0 #7c5433;
+}
+
+/* 바둑판 카드 그리드. 폭이 좁아지면 열 수가 자동으로 줄어든다. */
+/* 스크롤 대상은 카드 그리드뿐이다. 위쪽 필터·[선택]과 아래쪽 액션 바는
+   패널의 flex 형제라 스크롤 범위에 들어가지 않는다. */
+.review-notes-grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+  align-content: start;
+  gap: 14px;
+  margin: 0;
+  /* 스크롤바와 카드가 붙지 않도록 */
+  padding: 0 4px 0 0;
+  list-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: #979797 transparent;
+}
+
+.review-notes-grid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.review-notes-grid::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #979797;
+}
+
+.review-notes-card {
+  position: relative;
+  width: 100%;
+  min-height: 138px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 30px 10px 14px;
+  border: 1px solid #e7d9c7;
+  border-radius: 20px;
+  background: #fffaf3;
+  color: #3f2b20;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.review-notes-card:hover {
+  background: #f3f6ea;
+  transform: translateY(-2px);
+}
+
+.review-notes-card-tag {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #f1ece4;
+  color: #8a7c70;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.review-notes-card-symbol {
+  font-size: 46px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.review-notes-card-name {
+  color: #a99a8e;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.review-notes-card-active,
+.review-notes-card-active:hover {
+  border-color: #8fa071;
+  background: #8fa071;
+  color: #ffffff;
+  box-shadow: 0 4px 0 #6f8052;
+}
+
+.review-notes-card-active .review-notes-card-tag {
+  background: rgba(255, 255, 255, 0.24);
+  color: #ffffff;
+}
+
+.review-notes-card-active .review-notes-card-name {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.review-notes-empty {
+  margin: 60px 0;
+  color: #a99a8e;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* 다중 선택 액션 바 */
+.review-notes-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 18px;
+  border-top: 1px solid #e7d9c7;
+}
+
+.review-notes-action-count {
+  margin-right: auto;
+  color: #8a7c70;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.review-notes-action {
+  min-height: 46px;
+  padding: 0 24px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.review-notes-action:active {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+.review-notes-action-practice {
+  background: #f6ecd3;
+  border-color: #e6d3a8;
+  color: #8a6512;
+  box-shadow: 0 4px 0 #e0c992;
+}
+
+.review-notes-action-test {
+  background: #8fa071;
+  border-color: #8fa071;
+  color: #ffffff;
+  box-shadow: 0 4px 0 #6f8052;
+}
+
+/* 삭제는 테스트 결과 화면과 같은 옅은 로즈 계열 */
+.review-notes-action-delete {
+  background: #fbeee8;
+  border-color: #e8b8a4;
+  color: #b4523a;
+  box-shadow: 0 4px 0 #e8c4b6;
+}
+
+/*
+ * 상세 패널 — 높이는 레이아웃 stretch가 정한다(왼쪽 목록 카드와 동일).
+ * 카드 안에 다 들어가도록 손그림과 설명 여백을 조금 줄였고, 그래도 넘치는
+ * 경우에는 카드 밖으로 흘리지 않고 안에서 스크롤한다.
+ */
+.review-notes-detail {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #979797 transparent;
+}
+
+.review-notes-detail::-webkit-scrollbar {
+  width: 8px;
+}
+
+.review-notes-detail::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #979797;
+}
+
+.review-notes-detail .fingerspelling-detail-image {
+  width: 270px;
+  height: 270px;
+  flex: 0 0 270px;
+}
+
+/*
+ * 설명 상자를 사전 페이지와 같은 크기로 고정한다. 문장 수가 2개인 글자와
+ * 3개인 글자를 번갈아 보면 상자 높이가 들쭉날쭉했다. 높이를 고정하고 내용을
+ * 가운데 두면 글자를 바꿔도 상자가 흔들리지 않는다.
+ */
+/*
+ * flex-shrink: 0이 핵심이다. 카드가 flex column이라 내용이 카드 높이를 넘기면
+ * flex가 자식을 압축하는데, 2줄 박스는 압축을 그대로 흡수하고 3줄 박스는
+ * 글자가 차지하는 최소 높이에 걸려 덜 줄어든다. 그래서 줄 수에 따라 높이가
+ * 달라졌다(측정값 146px vs 154px). 압축을 막아 지정 높이를 그대로 지킨다.
+ */
+.review-notes-detail .fingerspelling-detail-description {
+  width: 480px;
+  height: 160px;
+  flex-shrink: 0;
+  margin: 16px 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.review-notes-detail-delete {
+  min-height: 52px;
+  padding: 0 34px;
+  border: 1px solid #e8b8a4;
+  border-radius: 999px;
+  background: #fbeee8;
+  color: #b4523a;
+  font: inherit;
+  font-size: 21px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #e8c4b6;
+}
+
+.review-notes-detail-delete:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #e8c4b6;
+}
+
+.review-notes-detail-empty {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 34px 40px 40px;
+  border: 1px solid #e7d9c7;
+  border-radius: 30px;
+  background: rgba(255, 250, 242, 0.94);
+  box-shadow: 0 18px 38px rgba(82, 54, 35, 0.1);
+  text-align: center;
+}
+
+.review-notes-detail-empty-face {
+  color: #b6a89c;
+  font-size: 42px;
+  letter-spacing: -0.04em;
+}
+
+.review-notes-detail-empty p {
+  margin: 0;
+  color: #5f402b;
+  font-size: 29px;
+  font-weight: 800;
+}
+
+.review-notes-detail-empty span:last-child {
+  color: #a99a8e;
+  font-size: 20px;
+}
+
+/* 삭제 알림 — 테스트 결과 화면의 .test-toast와 같은 결 */
+.review-notes-toast {
+  position: fixed;
+  bottom: 46px;
+  left: 50%;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  border: 3px solid #e8b8a4;
+  border-radius: 999px;
+  background: #fffdf5;
+  box-shadow:
+    0 6px 0 #d8a48e,
+    0 16px 32px rgba(82, 54, 35, 0.22);
+  color: #b4523a;
+  font-size: 21px;
+  font-weight: 800;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  animation: notesToastPop 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+.review-notes-toast-face {
+  font-size: 23px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.review-notes-toast-sparkle {
+  color: #e0917a;
+}
+
+@keyframes notesToastPop {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(14px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+/* 캔버스 스케일이 크게 줄어드는 좁은 화면에서는 상세를 아래로 내린다. */
+@media (max-width: 1100px) {
+  .review-notes-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .review-notes-detail,
+  .review-notes-detail-empty {
+    min-height: 0;
+  }
+}

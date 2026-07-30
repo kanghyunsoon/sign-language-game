@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { RoomRealtimeSocket, type RoomWebSocketLike } from "./RoomRealtimeSocket";
+import { RealtimeTicketRequestError } from "./RealtimeTicketClient";
 
 class FakeSocket implements RoomWebSocketLike {
   readyState = 0;
@@ -53,7 +54,27 @@ describe("RoomRealtimeSocket", () => {
     socket.open();
     await connecting;
     client.disconnectForWebRtcHandoff();
+    expect(socket.send).toHaveBeenCalledWith(JSON.stringify({ type: "WEBRTC_CONNECTED" }));
     expect(socket.close).toHaveBeenCalledWith(1000, "WEBRTC_ESTABLISHED");
+  });
+
+  it("does not report a stale connection error after the handshake succeeds", async () => {
+    const socket = new FakeSocket();
+    const client = new RoomRealtimeSocket({
+      webSocketBaseUrl: "ws://host/ws/game-rooms", roomId: "7", localUserId: "42",
+      ticketClient: { issue: async () => ({ ticket: "a", expiresInSeconds: 30 }) },
+      createWebSocket: () => socket,
+    });
+    const reportError = vi.fn();
+    client.subscribeError(reportError);
+
+    const connecting = client.connect();
+    await vi.waitFor(() => expect(socket.onopen).not.toBeNull());
+    socket.open();
+    await connecting;
+    socket.onerror?.();
+
+    expect(reportError).not.toHaveBeenCalled();
   });
 
   it("requires a new ticket for a signaling reconnect", async () => {
@@ -74,5 +95,33 @@ describe("RoomRealtimeSocket", () => {
     client.disconnectForWebRtcHandoff();
     const second = client.connect(); await vi.waitFor(() => expect(created).toHaveLength(2)); created[1]!.open(); await second;
     expect(issue).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry a rejected identity or one-time ticket", async () => {
+    const issue = vi.fn(async () => { throw new RealtimeTicketRequestError(401); });
+    const client = new RoomRealtimeSocket({
+      webSocketBaseUrl: "ws://host/ws/game-rooms", roomId: "7", localUserId: "42",
+      ticketClient: { issue }, createWebSocket: vi.fn(),
+    });
+
+    await expect(client.connect()).rejects.toThrow("Realtime ticket request failed (401).");
+    expect(issue).toHaveBeenCalledOnce();
+  });
+
+  it.each(["PEER_JOINED", "PEER_READY_CHANGED"] as const)("accepts the backend %s event", async (type) => {
+    const socket = new FakeSocket();
+    const client = new RoomRealtimeSocket({
+      webSocketBaseUrl: "ws://host/ws/game-rooms", roomId: "7", localUserId: "42",
+      ticketClient: { issue: async () => ({ ticket: "a", expiresInSeconds: 30 }) },
+      createWebSocket: () => socket,
+    });
+    const received = vi.fn();
+    client.subscribe(received);
+    const connecting = client.connect();
+    await vi.waitFor(() => expect(socket.onopen).not.toBeNull());
+    socket.open();
+    await connecting;
+    socket.onmessage?.({ data: JSON.stringify({ type, payload: { userId: 84, isReady: true } }) });
+    expect(received).toHaveBeenCalledWith({ type, payload: { userId: 84, isReady: true } });
   });
 });

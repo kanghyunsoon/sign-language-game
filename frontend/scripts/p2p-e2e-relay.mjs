@@ -60,6 +60,9 @@ const server = http.createServer(async (req, res) => {
       const { roomCode } = await readJson(req);
       const room = [...rooms.values()].find((item) => item.roomCode === String(roomCode));
       if (!room) return json(res, 404, { message: "room not found" });
+      if (room.hostUserId === userId || room.guestUserId === userId) {
+        return json(res, 200, { ...room, realtimeTicket: issueTicket(String(userId)) });
+      }
       if (room.status !== "WAITING" || (room.guestUserId !== null && room.guestUserId !== userId)) return json(res, 409, { message: "room is full" });
       room.guestUserId = userId;
       room.participantCount = 2;
@@ -76,6 +79,7 @@ const server = http.createServer(async (req, res) => {
         if (userId === room.hostUserId) room.hostReady = Boolean(isReady);
         else if (userId === room.guestUserId) room.guestReady = Boolean(isReady);
         else return json(res, 403, { message: "not a participant" });
+        broadcastRoom(room.id, { type: "PEER_READY_CHANGED", payload: { userId, isReady: Boolean(isReady) } });
         broadcastLobby();
         return json(res, 200, room);
       }

@@ -193,6 +193,20 @@ export class PythonWebSocketSignRecognizer implements SignRecognizer, LandmarkFr
   getTemporalDecoder(): ContinuousSignRecognizer & Pick<DefaultContinuousSignDecoder, "getConfig" | "updateConfig"> { return this.decoder; }
   configureHardening(options:{readonly latestOnlyInferenceEnabled:boolean;readonly continuousSignDecoderEnabled:boolean}):void{this.latestOnlyInferenceEnabled=options.latestOnlyInferenceEnabled;this.continuousSignDecoderEnabled=options.continuousSignDecoderEnabled;this.legacyFrames.clear();this.legacyPredictionSequence=0;}
 
+  resetRecognitionSession(): void {
+    this.inference.invalidateSession();
+    this.legacyFrames.clear();
+    this.legacyPredictionSequence = 0;
+    this.directInferenceFrameId = null;
+    this.pendingDirectFrame = null;
+    this.lastLandmarkSentAt = Number.NEGATIVE_INFINITY;
+    this.lastMissingSentAt = Number.NEGATIVE_INFINITY;
+    this.activeHandSessionId = undefined;
+    this.decoderContextRevision = undefined;
+    this.decoder.beginInputSession();
+    this.sendMessage({ type: "RESET_SEQUENCE" });
+  }
+
   sendLandmarkFrame(frame: HandLandmarkFrame): void {
     if (!isValidHandLandmarks(frame.landmarks)) {
       this.emit({ type: "ERROR", code: "INVALID_LANDMARK_COUNT", message: "Expected 21 finite landmarks" });

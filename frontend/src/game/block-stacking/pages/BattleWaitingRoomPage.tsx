@@ -51,32 +51,62 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   const [startingGame, setStartingGame] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rejoinPromptOpen, setRejoinPromptOpen] = useState(() => mode === "BLOCK" && room?.status === "PLAYING");
+  const [disconnectDefeatOpen, setDisconnectDefeatOpen] = useState(() => mode === "BLOCK" && room?.status === "FINISHED");
   const roomSocketRef = useRef<RoomRealtimeSocket | null>(null);
+  const roomRef = useRef<BattleRoomDetail | null>(room);
+  const rememberRoomRef = useRef<(next: BattleRoomDetail) => void>(() => undefined);
   const enteringGameRef = useRef(false);
+  const startRtcAndEnterRef = useRef<() => Promise<void>>(async () => undefined);
 
   const rememberRoom = useCallback((next: BattleRoomDetail) => {
+    roomRef.current = next;
     setRoom(next);
     rememberSession({ ...next, currentUser: user });
   }, [rememberSession, user]);
 
+  useEffect(() => {
+    rememberRoomRef.current = rememberRoom;
+  }, [rememberRoom]);
+
+  useEffect(() => {
+    roomRef.current = room;
+  }, [room]);
+
+  useEffect(() => {
+    if (mode !== "BLOCK") return;
+    if (room?.status === "PLAYING" && !enteringGameRef.current) setRejoinPromptOpen(true);
+    if (room?.status === "FINISHED") {
+      setRejoinPromptOpen(false);
+      setDisconnectDefeatOpen(true);
+    }
+  }, [mode, room?.status]);
+
   const startRtcAndEnter = useCallback(async () => {
-    if (!roomId || !room || enteringGameRef.current) return;
+    // Realtime GAME_STARTED and the REST start response can arrive in either
+    // order. Read the ref here so this path always uses the latest
+    // authoritative room rather than the render that created the callback.
+    const currentRoom = roomRef.current;
+    if (!roomId || !currentRoom || currentRoom.status !== "PLAYING" || enteringGameRef.current) return;
     enteringGameRef.current = true;
     setStartingGame(true);
     setError(null);
-    roomSocketRef.current?.disconnect();
     try {
       const stream = await sharedCameraSession.start();
       setLocalStream(stream);
       setCameraEnabled(sharedCameraSession.getVideoTrack()?.enabled ?? true);
-      await battleMediaSession.connect(room, stream);
+      await battleMediaSession.connect(currentRoom, stream);
       navigate(`${lobbyPath}/${roomId}/play`, { replace: true });
     } catch (cause) {
       enteringGameRef.current = false;
       setStartingGame(false);
       setError(errorMessage(cause, "WebRTC 연결을 시작하지 못했습니다."));
     }
-  }, [battleMediaSession, navigate, room, roomId, sharedCameraSession]);
+  }, [battleMediaSession, lobbyPath, navigate, roomId, sharedCameraSession]);
+
+  useEffect(() => {
+    startRtcAndEnterRef.current = startRtcAndEnter;
+  }, [startRtcAndEnter]);
 
   useEffect(() => {
     if (!roomId || room || !roomSession) return;
@@ -84,18 +114,159 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   }, [roomSession, rememberRoom, room, roomId]);
 
   useEffect(() => {
+    const roomCode = roomRef.current?.roomCode;
+    if (!roomId || !roomCode) return;
+    let cancelled = false;
+    void gateway.joinRoom(roomCode)
+      .then((authoritative) => {
+        if (cancelled || authoritative.roomId !== roomId) return;
+        rememberRoomRef.current(authoritative);
+      })
+      .catch((cause) => {
+        if (cancelled) return;
+        rememberSession(null);
+        setError(errorMessage(cause, "방 상태를 확인하지 못했습니다. 방 목록에서 다시 입장해 주세요."));
+        navigate(lobbyPath, { replace: true });
+      });
+    return () => { cancelled = true; };
+  }, [gateway, lobbyPath, navigate, rememberSession, roomId, room?.roomCode]);
+
+  useEffect(() => {
+    if (!roomId || !gateway.subscribeRooms) return;
+    return gateway.subscribeRooms((rooms) => {
+      const current = roomRef.current;
+      if (!current) return;
+      const summary = rooms.find((candidate) => candidate.roomId === current.roomId || candidate.roomCode === current.roomCode);
+      if (!summary) return;
+      if (summary.status === "PLAYING") {
+        // A fresh GAME_STARTED event enters immediately. A player who returns
+        // to an already-playing room must choose whether to resume instead.
+        if (current.status === "PLAYING" && mode === "BLOCK") setRejoinPromptOpen(true);
+        else void startRtcAndEnterRef.current();
+        return;
+      }
+
+      if (summary.status === "FINISHED" && mode === "BLOCK") {
+        rememberRoom({ ...current, status: "FINISHED", canJoin: summary.canJoin });
+        setRejoinPromptOpen(false);
+        setDisconnectDefeatOpen(true);
+        return;
+      }
+
+      const playerCount = Math.min(summary.playerCount, current.maxPlayers);
+      if (playerCount === current.playerCount && summary.status === current.status) return;
+
+      const guest = current.participants.find((participant) => !participant.isHost);
+      const participants = playerCount > 1
+        ? [
+          ...current.participants.filter((participant) => participant.isHost),
+          guest ?? { userId: "pending-guest", displayName: "\uC0C1\uB300\uBC29", isHost: false, ready: current.guestReady ?? false },
+        ]
+        : current.participants.filter((participant) => participant.isHost);
+
+      rememberRoom({
+        ...current,
+        status: summary.status,
+        playerCount,
+        canJoin: summary.canJoin,
+        participants,
+      });
+    }, (cause) => setError(errorMessage(cause, "?湲곗떎 ?ㅼ떆媛??곹깭瑜?媛깆떊?섏? 紐삵뻽?듬땲??")));
+  }, [gateway, mode, roomId, rememberRoom]);
+  useEffect(() => {
     if (!roomId || !services.roomRealtimeSocketFactory) return;
     const socket = services.roomRealtimeSocketFactory.create(roomId);
     roomSocketRef.current = socket;
     const unsubscribe = socket.subscribe((message) => {
-      if (message.type === "GAME_STARTED") void startRtcAndEnter();
-      if (message.type === "PEER_LEFT") setError("상대방이 방을 나갔습니다.");
-      if (message.type === "ERROR") setError("방 실시간 연결에서 오류가 발생했습니다.");
+      if (message.type === "GAME_STARTED") {
+        // The event can arrive before the REST start request resolves (and
+        // before a failed start has been rolled back). Rejoin first and only
+        // enter the play page from the backend's authoritative PLAYING state.
+        void (async () => {
+          const current = roomRef.current;
+          if (!current?.roomCode) return;
+          try {
+            const authoritative = await gateway.joinRoom(current.roomCode);
+            if (authoritative.status !== "PLAYING") return;
+            rememberRoomRef.current(authoritative);
+            await startRtcAndEnterRef.current();
+          } catch (cause) {
+            setError(errorMessage(cause, "게임 시작 상태를 확인하지 못했습니다."));
+          }
+        })();
+      }
+      if (message.type === "PEER_JOINED") {
+        const current = roomRef.current;
+        const joinedUserId = payloadUserId(message.payload);
+        if (current && joinedUserId && !current.participants.some((participant) => participant.userId === joinedUserId)) {
+          rememberRoomRef.current({
+            ...current,
+            status: "FULL",
+            playerCount: Math.min(current.maxPlayers, current.playerCount + 1),
+            canJoin: false,
+            guestReady: false,
+            participants: [...current.participants, { userId: joinedUserId, displayName: "상대방", isHost: false, ready: false }],
+          });
+        }
+      }
+      if (message.type === "PEER_READY_CHANGED") {
+        const current = roomRef.current;
+        const changedUserId = payloadUserId(message.payload);
+        const isReady = payloadBoolean(message.payload, "isReady");
+        if (current && changedUserId && isReady !== null) {
+          const hostReady = changedUserId === current.hostUserId ? isReady : Boolean(current.hostReady);
+          const guestReady = changedUserId === current.hostUserId ? Boolean(current.guestReady) : isReady;
+          rememberRoomRef.current({
+            ...current,
+            hostReady,
+            guestReady,
+            canStart: current.hostUserId === user.userId && current.playerCount >= current.maxPlayers && hostReady && guestReady,
+            participants: current.participants.map((participant) => participant.userId === changedUserId ? { ...participant, ready: isReady } : participant),
+          });
+        }
+      }
+      if (message.type === "PEER_LEFT") {
+        const current = roomRef.current;
+        if (current) {
+          const leftUserId = payloadUserId(message.payload);
+          const newHostUserId = payloadUserId(message.payload, "newHostUserId");
+          const remaining = current.participants
+            .filter((participant) => !leftUserId || participant.userId !== leftUserId)
+            .map((participant) => ({ ...participant, isHost: participant.userId === newHostUserId }));
+          const hostUserId = newHostUserId ?? remaining.find((participant) => participant.isHost)?.userId ?? current.hostUserId;
+          rememberRoomRef.current({
+            ...current,
+            status: "WAITING",
+            hostUserId,
+            playerCount: remaining.length,
+            canJoin: true,
+            hostReady: remaining.find((participant) => participant.userId === hostUserId)?.ready ?? false,
+            guestReady: false,
+            currentUserReady: remaining.find((participant) => participant.userId === user.userId)?.ready ?? false,
+            canStart: false,
+            participants: remaining,
+          });
+        }
+        setError("?곷?諛⑹씠 諛⑹쓣 ?섍컮?듬땲??");
+      }
+      if (message.type === "ERROR") {
+        const code = payloadString(message.payload, "code");
+        if (code === "NOT_ROOM_PARTICIPANT" || code === "ROOM_NOT_FOUND") {
+          rememberSession(null);
+          void battleMediaSession.disconnect().finally(() => sharedCameraSession.stop());
+          navigate(lobbyPath, { replace: true });
+          return;
+        }
+        setError(payloadString(message.payload, "message") ?? "방 실시간 연결에서 오류가 발생했습니다.");
+      }
     });
     const unsubscribeError = socket.subscribeError(() => setRealtimeState("ERROR"));
     setRealtimeState("CONNECTING");
     void socket.connect()
-      .then(() => setRealtimeState("CONNECTED"))
+      .then(() => {
+        setRealtimeState("CONNECTED");
+        setError(null);
+      })
       .catch((cause) => {
         setRealtimeState("ERROR");
         setError(errorMessage(cause, "방 실시간 연결에 실패했습니다."));
@@ -106,7 +277,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
       if (roomSocketRef.current === socket) roomSocketRef.current = null;
       socket.disconnect();
     };
-  }, [roomId, services.roomRealtimeSocketFactory, startRtcAndEnter]);
+  }, [gateway, roomId, services.roomRealtimeSocketFactory]);
 
   const startCameraPreview = async () => {
     try {
@@ -127,10 +298,11 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
 
   const toggleReady = async () => {
     if (!roomId || !room || !gateway.setReady || readyBusy) return;
+    const nextReady = !room.currentUserReady;
     setReadyBusy(true);
     setError(null);
     try {
-      const next = await gateway.setReady(roomId, !room.currentUserReady);
+      const next = await gateway.setReady(roomId, nextReady);
       rememberRoom(next);
     } catch (cause) {
       setError(errorMessage(cause, "준비 상태를 변경하지 못했습니다."));
@@ -140,15 +312,32 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   };
 
   const startGame = async () => {
-    if (!roomId || !room || startingGame) return;
+    if (!roomId || !room || !room.roomCode || startingGame || !room.hostReady || !room.guestReady || room.playerCount < room.maxPlayers) return;
     setStartingGame(true);
     setError(null);
     try {
       await gateway.startGame(roomId);
+      // The play page may mount before the WebRTC data channel finishes opening.
+      // Persist the server transition now so that page can keep waiting for it.
+      rememberRoom({ ...room, status: "PLAYING", canStart: false });
       // The backend also broadcasts GAME_STARTED. Calling this here covers the host
       // immediately; the ref prevents the broadcast from starting a second session.
       await startRtcAndEnter();
     } catch (cause) {
+      // The room state is committed before the backend broadcasts
+      // GAME_STARTED. A post-commit broadcast failure can therefore surface
+      // as HTTP 500 even though this match is already IN_PROGRESS. Rejoining
+      // is idempotent and gives us the authoritative room state.
+      try {
+        const authoritative = await gateway.joinRoom(room.roomCode);
+        if (authoritative.status === "PLAYING") {
+          rememberRoom(authoritative);
+          await startRtcAndEnterRef.current();
+          return;
+        }
+      } catch {
+        // Preserve the original start failure when state recovery is unavailable.
+      }
       setStartingGame(false);
       setError(errorMessage(cause, "두 참가자가 모두 준비됐는지 확인해 주세요."));
     }
@@ -171,13 +360,19 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
     }
   };
 
+  useEffect(() => {
+    const handleBrowserBack = () => { void leaveRoom(); };
+    window.addEventListener("popstate", handleBrowserBack);
+    return () => window.removeEventListener("popstate", handleBrowserBack);
+  });
+
   const isHost = room?.hostUserId === user.userId;
   const full = room ? room.playerCount >= room.maxPlayers : false;
-  const canRequestStart = Boolean(isHost && room?.currentUserReady);
+  const canRequestStart = Boolean(isHost && full && room?.hostReady && room?.guestReady);
 
   return (
-    <main className={styles.page}>
-      <header className={styles.pageHeader}>
+    <main className={[styles.page, styles.waitingLobby].join(" ")}>
+      <header className={[styles.pageHeader, styles.waitingRoomHero].join(" ")}>
         <div>
           <span className={styles.eyebrow}>1:1 지문자 대전 대기실</span>
           <h1>{room?.title ?? "대기실 불러오는 중"}</h1>
@@ -196,7 +391,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
         <span>연결 유예<strong>10초</strong></span>
       </div>
       <div className={styles.waitingLayout}>
-        <aside className={styles.waitingSidebar}>
+        <aside className={[styles.waitingSidebar, styles.waitingSettings].join(" ")}>
           {room
             ? <ParticipantList participants={room.participants} currentUserId={user.userId} maxPlayers={room.maxPlayers} />
             : <div className={styles.emptyState}>방 정보를 확인하는 중입니다.</div>}
@@ -209,7 +404,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
             </dl>
           </section>
         </aside>
-        <section className={styles.videoArea} aria-label="내 카메라 미리보기">
+        <section className={[styles.videoArea, styles.waitingStage].join(" ")} aria-label="내 카메라 미리보기">
           <div className={styles.videoPair}>
             {localStream
               ? (
@@ -267,10 +462,30 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
           </p>
         </section>
       </div>
+      {rejoinPromptOpen ? <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-labelledby="battle-rejoin-title"><section className={styles.modal}><header><div><span>진행 중인 게임</span><h2 id="battle-rejoin-title">아직 진행 중인 게임이 있습니다.</h2></div></header><form onSubmit={(event) => { event.preventDefault(); setRejoinPromptOpen(false); void startRtcAndEnter(); }}><p>재입장 하시겠습니까?</p><div className={styles.modalActions}><button type="button" onClick={() => setRejoinPromptOpen(false)}>나중에</button><button type="submit" className={styles.primaryButton} disabled={startingGame}>재입장</button></div></form></section></div> : null}
+      {disconnectDefeatOpen ? <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-labelledby="battle-disconnect-title"><section className={styles.modal}><header><div><span>게임 종료</span><h2 id="battle-disconnect-title">연결이 되지 않아 패배 처리되었습니다 ㅠㅠ</h2></div></header><form onSubmit={(event) => { event.preventDefault(); setDisconnectDefeatOpen(false); rememberSession(null); navigate(lobbyPath, { replace: true }); }}><p>상대가 10초 안에 재접속하지 않아 게임이 종료되었습니다.</p><div className={styles.modalActions}><button type="submit" className={styles.primaryButton}>확인</button></div></form></section></div> : null}
     </main>
   );
 }
 
 function errorMessage(cause: unknown, fallback: string): string {
   return cause instanceof Error && cause.message ? cause.message : fallback;
+}
+
+function payloadString(payload: unknown, key: string): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const value = (payload as Record<string, unknown>)[key];
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function payloadUserId(payload: unknown, key = "userId"): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const value = (payload as Record<string, unknown>)[key];
+  return typeof value === "string" || typeof value === "number" ? String(value) : null;
+}
+
+function payloadBoolean(payload: unknown, key: string): boolean | null {
+  if (!payload || typeof payload !== "object") return null;
+  const value = (payload as Record<string, unknown>)[key];
+  return typeof value === "boolean" ? value : null;
 }

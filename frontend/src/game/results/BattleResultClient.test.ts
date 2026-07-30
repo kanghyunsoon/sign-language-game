@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { BattleResultClient } from "./BattleResultClient";
+import { BattleResultClient, BattleResultRequestError } from "./BattleResultClient";
 
 describe("BattleResultClient", () => {
   it.each(["42", 84, null] as const)("reports the authoritative winner user ID %s", async (winnerUserId) => {
@@ -23,14 +23,16 @@ describe("BattleResultClient", () => {
     });
   });
 
-  it("treats an already-recorded result as an idempotent success", async () => {
+  it("preserves a 409 as a room-lifecycle conflict", async () => {
     const client = new BattleResultClient({
       apiBaseUrl: "/api",
       userId: "42",
       fetcher: vi.fn(async () => new Response(null, { status: 409 })),
     });
 
-    await expect(client.reportResult(7, "42")).resolves.toBeNull();
+    await expect(client.reportResult(7, "42")).rejects.toMatchObject({
+      name: "BattleResultRequestError", status: 409, responseBody: null,
+    } satisfies Partial<BattleResultRequestError>);
   });
 
   it("still rejects non-idempotent server failures", async () => {
