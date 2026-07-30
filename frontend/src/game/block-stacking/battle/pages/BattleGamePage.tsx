@@ -112,12 +112,20 @@ export function BattleGamePage() {
     navigate(`/game/battle/${roomId}`, { replace: true });
   } catch (cause) { setResultError(cause instanceof Error ? cause.message : "대기방으로 돌아가지 못했습니다."); setResultBusy(false); } };
   const leaveBattle = async (destination: string) => { if (!roomId || resultBusy) return; setResultBusy(true); setResultError(null); try { await exitCoordinator.leaveRoom(roomId, destination); activePlayerSession?.clearRegistration(); } catch (cause) { setResultError(cause instanceof Error ? cause.message : "방을 나가지 못했습니다."); setResultBusy(false); } };
+  const forfeitAndLeave = async () => {
+    const forfeited = controllerRef.current?.forfeit() ?? false;
+    // Give the P2P data channel one short turn to deliver MATCH_FINISHED
+    // before this browser releases the game and media connections.
+    if (forfeited) await new Promise<void>((resolve) => window.setTimeout(resolve, 80));
+    await leaveBattle("/game/battle");
+  };
   const localIsHost = battleRoomSession?.hostUserId === user.userId;
   const localPlayerLabel = localIsHost ? "PLAYER 1" : "PLAYER 2";
   const remotePlayerLabel = localIsHost ? "PLAYER 2" : "PLAYER 1";
   const showSharedTarget = snapshot.state === "COUNTDOWN" || snapshot.state === "PLAYING" || snapshot.state === "RECONNECTING";
   return <main className={`${styles.page} ${styles.battleFixedPage}`}>
     <header className={styles.topbar}><div><h1>1:1 지문자 대전</h1><p>방 {roomId || "-"}</p></div><BattleConnectionPanel game={snapshot.gameConnectionState} rtc={rtcState} ai={snapshot.aiConnectionState} camera={cameraState} /></header>
+    <button type="button" className={styles.battleLeaveButton} onClick={() => void forfeitAndLeave()} disabled={resultBusy}>나가기</button>
     <div className={styles.duelLayout}>
       <section className={styles.duelStage} aria-label="공유 목표 1대1 게임판">
         <div className={styles.duelBoards}>

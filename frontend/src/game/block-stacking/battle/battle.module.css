@@ -658,6 +658,9 @@
 
 /* Production 1:1 stage: use the same sky-field scene as solo mode. */
 .battleFixedPage .connections { justify-content:flex-end; }
+.battleFixedPage .connections { margin-right:72px; }
+.battleFixedPage .battleLeaveButton { position:absolute; z-index:15; top:12px; right:16px; border:1px solid #e8b6c2; border-radius:999px; background:#fff8f9; color:#b55068; padding:5px 11px; font:inherit; font-size:.72rem; font-weight:900; white-space:nowrap; cursor:pointer; box-shadow:0 2px 0 rgba(186,83,111,.14); }
+.battleFixedPage .battleLeaveButton:disabled { cursor:wait; opacity:.55; }
 .battleFixedPage .connections span { border:1px solid #c9dac4; border-radius:999px; background:#fffef8; color:#69818c; box-shadow:0 2px 0 rgba(139,174,172,.18); }
 .battleFixedPage .connections span[data-state="CONNECTED"] { border-color:#b8d99b; background:#f3fae7; color:#527944; }
 .battleFixedPage .connections span[data-state="ERROR"],

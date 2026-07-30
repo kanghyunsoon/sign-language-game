@@ -46,6 +46,12 @@ export class BattleController {
     }
     this.prediction = { symbol, confidence }; this.message = `${symbol} 확인 중입니다.`; this.publish(); return true;
   }
+  /** Sends an authoritative forfeit before the player closes the battle screen. */
+  forfeit(): boolean {
+    if (!this.matchId || this.machine.getState() !== "PLAYING") return false;
+    this.options.transport.send({ type: "PLAYER_FORFEIT_COMMAND", commandId: this.createCommandId(), matchId: this.matchId, occurredAt: this.now() });
+    return true;
+  }
   handleRecognition(event: SignRecognitionEvent): void { if (event.type === "CONNECTION_STATE") { this.aiConnectionState = event.state; this.publish(); } else if (event.type === "PREDICTION") { this.prediction = { symbol: event.symbol, confidence: event.confidence }; this.publish(); } else if (event.type === "SIGN_CONFIRMED") this.submitRecognizedSymbol(event.symbol, event.confidence); }
   snapshot(): BattleControllerSnapshot { return { state: this.machine.getState(), gameConnectionState: this.gameConnectionState, aiConnectionState: this.aiConnectionState, countdownMs: this.countdownMs, reconnectDeadlineAt: this.reconnectDeadlineAt, score: this.score, combo: this.combo, maxCombo: this.maxCombo, removedCount: this.removedCount, targetSymbol: this.options.sharedTargetMode ? this.sharedTargetSymbol : this.options.localBoard.getTargetSymbol(), prediction: this.prediction, message: this.message, result: this.result }; }
   dispose(): void { if (this.disposed) return; this.disposed = true; this.clearReconnectTimers(); this.clearStartTimer(); this.transportUnsubscribe?.(); this.transportStateUnsubscribe?.(); this.recognizerUnsubscribe?.(); this.options.transport.disconnect(); this.options.recognizer?.disconnect(); this.options.localBoard.dispose(); this.options.remoteBoard.clear(); this.options.attackEffect.dispose(); this.listeners.clear(); }

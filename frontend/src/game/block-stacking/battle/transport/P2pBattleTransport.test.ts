@@ -58,6 +58,21 @@ describe("P2pBattleTransport 1:1", () => {
     host.disconnect();
     guest.disconnect();
   });
+
+  it("awards an immediate win when a player forfeits", async () => {
+    const [hostChannel, guestChannel] = pairedChannels("host", "guest");
+    const host = new P2pBattleTransport(() => hostChannel, "host");
+    const guest = new P2pBattleTransport(() => guestChannel, "guest");
+    const hostEvents: ServerBattleMessage[] = [];
+    host.subscribe((event) => hostEvents.push(event));
+    const common = { url: "webrtc", roomId: "room-2", hostPlayerId: "host", playerIds: ["host", "guest"] } as const;
+    await host.connect({ ...common, playerId: "host" });
+    await guest.connect({ ...common, playerId: "guest" });
+    guest.send({ type: "PLAYER_FORFEIT_COMMAND", commandId: "leave-1", matchId: "room-2", occurredAt: 3 });
+    expect(hostEvents.find((event) => event.type === "MATCH_FINISHED")).toMatchObject({ winnerPlayerId: "host", loserPlayerId: "guest", reason: "FORFEIT" });
+    host.disconnect();
+    guest.disconnect();
+  });
 });
 
 function pairedChannels(hostId: string, guestId: string): [GameDataChannel, GameDataChannel] {

@@ -107,7 +107,8 @@ export class P2pBattleTransport implements BattleGameTransport {
     if (message.type === "BOARD_SNAPSHOT") { if (message.playerId !== playerId) return; this.boards.set(playerId, message.bodies); this.delegate.publishSnapshot({ ...message, sequence: ++this.sequence }); return; }
     if (message.type === "CLAIM_SHARED_TARGET") { this.claimTarget(message, playerId); return; }
     if (message.type === "REMOVE_LETTER_COMMAND") { this.remove(message, playerId); return; }
-    if (message.type === "PLAYER_GAME_OVER_COMMAND") this.finish(playerId);
+    if (message.type === "PLAYER_GAME_OVER_COMMAND") this.finish(playerId, "DANGER_LINE");
+    if (message.type === "PLAYER_FORFEIT_COMMAND") this.finish(playerId, "FORFEIT");
   }
   private remove(message: Extract<ClientBattleMessage, { type: "REMOVE_LETTER_COMMAND" }>, playerId: string): void {
     const letter = this.letters.get(message.letterId);
@@ -120,11 +121,11 @@ export class P2pBattleTransport implements BattleGameTransport {
     state.combo += 1; state.maxCombo = Math.max(state.maxCombo, state.combo); state.removedCount += 1; state.score += 100 + state.combo * 10;
     this.delegate.publishEvent({ type: "REMOVE_LETTER_ACCEPTED", sequence: ++this.sequence, commandId: message.commandId, playerId, letterId: message.letterId, symbol: message.symbol, score: state.score, combo: state.combo, maxCombo: state.maxCombo, removedCount: state.removedCount, acceptedAt: Date.now() });
   }
-  private finish(loserPlayerId: string): void {
+  private finish(loserPlayerId: string, reason: "DANGER_LINE" | "FORFEIT"): void {
     const loser = this.players.get(loserPlayerId); if (!loser || loser.gameOver) return; loser.gameOver = true;
     if (this.targetTimer) clearTimeout(this.targetTimer); this.targetTimer = null; this.sharedTarget = null;
     const winnerPlayerId = this.playerIds.find((id) => id !== loserPlayerId) ?? null;
-    this.delegate.publishEvent({ type: "MATCH_FINISHED", sequence: ++this.sequence, matchId: this.matchId, winnerPlayerId, loserPlayerId, reason: "DANGER_LINE", finishedAt: Date.now(), results: this.playerIds.map((id) => { const state = this.players.get(id)!; return { playerId: id, score: state.score, maxCombo: state.maxCombo, removedCount: state.removedCount, attackCount: 0 }; }) });
+    this.delegate.publishEvent({ type: "MATCH_FINISHED", sequence: ++this.sequence, matchId: this.matchId, winnerPlayerId, loserPlayerId, reason, finishedAt: Date.now(), results: this.playerIds.map((id) => { const state = this.players.get(id)!; return { playerId: id, score: state.score, maxCombo: state.maxCombo, removedCount: state.removedCount, attackCount: 0 }; }) });
   }
 }
 function freshPlayer(): PlayerState { return { score: 0, combo: 0, maxCombo: 0, removedCount: 0, gameOver: false }; }

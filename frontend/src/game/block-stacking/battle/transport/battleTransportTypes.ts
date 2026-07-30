@@ -24,6 +24,7 @@ export type ClientBattleMessage =
   | (ClientEnvelope & { readonly type: "CLAIM_SHARED_TARGET"; readonly targetId: string; readonly symbol: string; readonly occurredAt: number })
   | (ClientEnvelope & { readonly type: "REMOVE_LETTER_COMMAND"; readonly letterId: string; readonly symbol: string; readonly occurredAt: number })
   | (ClientEnvelope & { readonly type: "PLAYER_GAME_OVER_COMMAND"; readonly occurredAt: number })
+  | (ClientEnvelope & { readonly type: "PLAYER_FORFEIT_COMMAND"; readonly occurredAt: number })
   | (ClientEnvelope & { readonly type: "PLAYER_RECONNECTED"; readonly occurredAt: number })
   | (ClientEnvelope & { readonly type: "REQUEST_MATCH_STATE"; readonly occurredAt: number })
   | { readonly type: "BODY_TRANSFORM_BATCH"; readonly matchId: string; readonly playerId: string; readonly sequence: number; readonly sentAt: number; readonly bodies: readonly BattleBodyTransform[] }
