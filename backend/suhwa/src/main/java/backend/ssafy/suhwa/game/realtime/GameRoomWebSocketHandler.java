@@ -62,27 +62,19 @@ public class GameRoomWebSocketHandler extends TextWebSocketHandler {
         RoomLiveState room = registry.getOrCreateRoom(roomId);
         ParticipantLiveState participant = room.getOrCreateParticipant(userId);
 
-        // pendingTask는 최초 확인 대기 타이머와 재접속 유예 타이머가 공유하는 필드다(research.md
-        // #12). confirmed였다가(=이미 한 번 연결에 성공한 뒤) 지금 pendingTask가 있다는 것만
-        // "재접속"을 의미한다 — 최초 연결도 join()이 걸어둔 확인 대기 타이머 때문에 pendingTask가
-        // 항상 있으므로, pendingTask 존재 여부만으로 판단하면 최초 연결까지 재접속으로 오인한다.
-        boolean reconnect = participant.isConfirmed() && participant.getPendingTask() != null;
-        // 아직 한 번도 확정된 적 없는 참가자의 연결만 "최초 입장"이다(spec 004 FR-016). 이미
-        // 확정된 세션이 살아있는 상태에서 들어오는 추가 연결(멀티탭)은 재접속도 입장도 아니므로
-        // 어느 쪽 신호도 보내지 않는다.
-        boolean firstConfirmation = !participant.isConfirmed();
-        participant.cancelPending();
-        participant.setConfirmed(true);
+        // 판정과 전이를 한 임계구역에서 처리한다 — 개별 getter/setter만 동기화하면 종료 처리와
+        // 겹칠 때 방금 등록한 세션 참조가 null로 덮인다. 전이 규칙 자체는 ParticipantLiveState가
+        // 갖고, 여기서는 결과만 소비한다.
+        ParticipantLiveState.AttachResult attached = participant.attachSession(session);
 
-        WebSocketSession previous = participant.getSession();
+        WebSocketSession previous = attached.previousSession();
         if (previous != null && previous.isOpen() && !previous.getId().equals(session.getId())) {
             closeQuietly(previous);
         }
-        participant.setSession(session);
 
-        if (reconnect) {
+        if (attached.reconnect()) {
             notifier.notifyPeerReconnected(roomId, userId);
-        } else if (firstConfirmation) {
+        } else if (attached.firstConfirmation()) {
             notifier.notifyPeerJoined(roomId, userId);
         }
     }
@@ -97,17 +89,16 @@ public class GameRoomWebSocketHandler extends TextWebSocketHandler {
             return;
         }
         ParticipantLiveState participant = room.getParticipant(userId);
-        if (participant == null || participant.getSession() != session) {
-            // 이미 명시적 나가기로 제거됐거나(레지스트리에서 삭제됨) 다른 세션으로 교체된 이후(멀티탭)라
-            // 이 세션의 종료는 더 이상 의미가 없다.
+        if (participant == null) {
+            // 이미 명시적 나가기로 레지스트리에서 제거된 참가자다.
             return;
         }
 
-        participant.setSession(null);
-
-        // 영상 통화 전환 신호(WEBRTC_CONNECTED)를 받은 직후의 종료는 의도된 정리다 — 유예 타이머를
-        // 걸지 않고 참가자를 그대로 정상 상태로 유지하며, PEER_DISCONNECTED도 보내지 않는다(FR-004).
-        if (participant.isExpectingIntentionalClose()) {
+        // 현재 세션 여부 확인, 세션 분리, 의도된 종료 판정을 한 임계구역에서 처리한다. 세 단계를
+        // 나누면 그 사이에 새 연결이 끼어들어 방금 등록된 세션이 null로 덮인다.
+        // NOT_CURRENT: 다른 세션으로 교체된 이후(멀티탭)라 이 종료는 의미가 없다.
+        // INTENTIONAL_CLOSE: 영상 통화 전환에 따른 의도된 정리 — 유예 타이머도 이탈 알림도 없다(FR-004).
+        if (participant.detachSessionIfCurrent(session) != ParticipantLiveState.DetachOutcome.GRACE_REQUIRED) {
             return;
         }
 
