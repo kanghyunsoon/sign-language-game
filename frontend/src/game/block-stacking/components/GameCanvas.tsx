@@ -79,9 +79,31 @@ export const GameCanvas = memo(function GameCanvas({
     });
     resizeObserver.observe(mount);
 
+    // The solo page is fitted with a CSS transform. Browser zoom changes the
+    // visual rectangle but not the element's ResizeObserver size, so refresh
+    // the renderer once the new scale has been applied. This keeps the DOM
+    // foreground glyph layer aligned with the canvas at every zoom level.
+    let visualSyncFrame: number | undefined;
+    const syncVisualBounds = () => {
+      if (visualSyncFrame !== undefined) window.cancelAnimationFrame(visualSyncFrame);
+      visualSyncFrame = window.requestAnimationFrame(() => {
+        visualSyncFrame = undefined;
+        if (!renderer) return;
+        renderer.resize(
+          Math.max(1, Math.round(mount.clientWidth)),
+          Math.max(1, Math.round(mount.clientHeight)),
+        );
+      });
+    };
+    window.addEventListener("resize", syncVisualBounds);
+    window.visualViewport?.addEventListener("resize", syncVisualBounds);
+
     return () => {
       disposed = true;
       resizeObserver.disconnect();
+      window.removeEventListener("resize", syncVisualBounds);
+      window.visualViewport?.removeEventListener("resize", syncVisualBounds);
+      if (visualSyncFrame !== undefined) window.cancelAnimationFrame(visualSyncFrame);
       renderer?.destroy();
       if (rendererHost.parentElement === mount) rendererHost.remove();
       callbacksRef.current.onRendererDisposed?.();
