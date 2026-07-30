@@ -8,3 +8,7 @@ ai/data/processed/
 ai/data/rejected/
 *.jsonl
 *.npz
+
+word-model/models/word-13-v1/*
+!word-model/models/word-13-v1/.gitkeep
+!word-model/models/word-13-v1/manifest.json
