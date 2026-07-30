@@ -31,7 +31,10 @@ export class NativeRoomWebRtcSignalingTransport implements WebRtcSignalingTransp
   }
 
   suspend(): void {
-    this.roomSocket.disconnectForWebRtcHandoff();
+    // The room WebSocket is also the backend's participant-presence channel.
+    // Keep it open after WebRTC is established so a browser refresh produces
+    // the documented PEER_DISCONNECTED -> PEER_RECONNECTED lifecycle and so
+    // either peer can signal a replacement RTCPeerConnection.
   }
 
   disconnect(): void {

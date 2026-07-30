@@ -41,6 +41,9 @@ describe("P2pBattleTransport 1:1", () => {
     const spawns = guestEvents.filter((event) => event.type === "SPAWN_LETTER");
     expect(spawns).toHaveLength(1);
     expect(spawns[0]).toMatchObject({ playerId: "guest", symbol: guestTarget.symbol, normalizedX: 0.5 });
+    const claimed = guestEvents.find((event) => event.type === "SHARED_TARGET_CLAIMED");
+    if (!claimed || claimed.type !== "SHARED_TARGET_CLAIMED" || !spawns[0] || spawns[0].type !== "SPAWN_LETTER") throw new Error("claim sequence missing");
+    expect(spawns[0].spawnAt - claimed.acceptedAt).toBe(1_150);
 
     host.send({
       type: "CLAIM_SHARED_TARGET",

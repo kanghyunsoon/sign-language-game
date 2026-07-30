@@ -33,8 +33,10 @@ export interface RoomRealtimeSocketOptions {
 
 const OPEN = 1;
 const CLOSED = 3;
-const MAX_CONNECT_ATTEMPTS = 4;
-const RETRY_DELAYS_MS = [0, 300, 700, 1_400] as const;
+// A refreshed browser can race the server's cleanup of its previous signaling
+// socket. Keep issuing one-time tickets throughout the room's 10-second rejoin
+// grace period instead of giving up after roughly two seconds.
+const RETRY_DELAYS_MS = [0, 350, 700, 1_200, 1_700, 2_200, 2_700] as const;
 const MESSAGE_TYPES = new Set<RoomServerMessageType>([
   "PEER_DISCONNECTED", "PEER_RECONNECTED", "PEER_LEFT",
   "GAME_STARTED", "SIGNAL", "ERROR",
@@ -96,7 +98,7 @@ export class RoomRealtimeSocket {
 
   private async openWithFreshTicket(generation: number): Promise<void> {
     let lastError: Error | null = null;
-    for (let attempt = 0; attempt < MAX_CONNECT_ATTEMPTS; attempt += 1) {
+    for (let attempt = 0; attempt < RETRY_DELAYS_MS.length; attempt += 1) {
       if (generation !== this.connectionGeneration) throw new Error("Room WebSocket connection was cancelled.");
       const delay = RETRY_DELAYS_MS[attempt] ?? RETRY_DELAYS_MS.at(-1) ?? 0;
       if (delay > 0) await wait(delay);

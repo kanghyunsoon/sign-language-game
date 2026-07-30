@@ -5,6 +5,8 @@ import type { BattleBodyTransform, BattleConnectionOptions, BattleConnectionStat
 
 type PeerCommand = ClientBattleMessage;
 interface PlayerState { score: number; combo: number; maxCombo: number; removedCount: number; gameOver: boolean; }
+const CLAIM_EFFECT_DURATION_MS = 1_150;
+const NEXT_TARGET_DELAY_MS = 2_300;
 
 /** Browser-hosted authority carried only by the room WebRTC DataChannel. */
 export class P2pBattleTransport implements BattleGameTransport {
@@ -91,8 +93,8 @@ export class P2pBattleTransport implements BattleGameTransport {
     this.delegate.publishEvent({ type: "SHARED_TARGET_CLAIMED", sequence: ++this.sequence, matchId: this.matchId, targetId: target.id, winnerPlayerId: playerId, symbol: target.symbol, score: state.score, combo: state.combo, maxCombo: state.maxCombo, removedCount: state.removedCount, acceptedAt });
     const letterId = `${this.matchId}-${playerId}-${this.spawnIndex}`;
     this.letters.set(letterId, { playerId, symbol: target.symbol });
-    this.delegate.publishEvent({ type: "SPAWN_LETTER", sequence: ++this.sequence, matchId: this.matchId, playerId, letterId, spawnIndex: this.spawnIndex++, symbol: target.symbol, spawnAt: acceptedAt, normalizedX: .5, initialAngle: 0 });
-    this.scheduleNextTarget();
+    this.delegate.publishEvent({ type: "SPAWN_LETTER", sequence: ++this.sequence, matchId: this.matchId, playerId, letterId, spawnIndex: this.spawnIndex++, symbol: target.symbol, spawnAt: acceptedAt + CLAIM_EFFECT_DURATION_MS, normalizedX: .5, initialAngle: 0 });
+    this.scheduleNextTarget(NEXT_TARGET_DELAY_MS);
   }
   private handle(message: ClientBattleMessage, playerId: string): void {
     if (!this.isHost() || !(this.playerIds as readonly string[]).includes(playerId) || ("matchId" in message && message.matchId !== this.matchId)) return;

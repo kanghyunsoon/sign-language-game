@@ -45,6 +45,18 @@ describe("BattleController", () => {
     vi.advanceTimersByTime(50); expect(c.snapshot().state).toBe("PLAYING"); expect(c.snapshot().countdownMs).toBe(0); expect(b.starts).toBe(1); c.dispose();
   });
   it("spawns only server-issued local letters", async () => { const t = new MockBattleTransport(); const b = new FakeBoard(); const c = await connected(t, b); t.emit(spawn("other")); t.emit(spawn("me")); expect(b.spawns.map((e) => e.playerId)).toEqual(["me"]); c.dispose(); });
+  it("waits for the shared claim effect before spawning the winner letter", async () => {
+    const t = new MockBattleTransport(); const b = new FakeBoard();
+    const c = new BattleController({ playerId: "me", roomId: "r", transport: t, localBoard: b, remoteBoard: new RemoteBoardReplica(DEFAULT_BATTLE_SYNC_CONFIG), attackEffect: attack(), now: () => 1_000 });
+    await c.connect({ url: "ws://x", roomId: "r", playerId: "me" });
+    t.emit({ ...spawn("me"), spawnAt: 2_150 });
+    expect(b.spawns).toHaveLength(0);
+    vi.advanceTimersByTime(1_149);
+    expect(b.spawns).toHaveLength(0);
+    vi.advanceTimersByTime(1);
+    expect(b.spawns).toHaveLength(1);
+    c.dispose();
+  });
   it("claims the shared target without spawning optimistically", async () => { const t = new MockBattleTransport(); const b = new FakeBoard(); const c = await playing(t, b); expect(c.submitRecognizedSymbol("ㄱ", .9)).toBe(true); expect(t.sent.at(-1)?.type).toBe("CLAIM_SHARED_TARGET"); expect(b.spawns).toHaveLength(0); c.dispose(); });
   it("removes only after server acceptance and uses official score", async () => { const t = new MockBattleTransport(); const b = new FakeBoard(); const c = await playing(t, b); c.submitRecognizedSymbol("ㄱ"); t.emit({ type: "REMOVE_LETTER_ACCEPTED", sequence: 3, playerId: "me", letterId: "letter-1", symbol: "ㄱ", score: 300, combo: 2, maxCombo: 4, removedCount: 3, acceptedAt: Date.now() }); expect(b.accepted).toEqual(["letter-1"]); expect(c.snapshot()).toMatchObject({ score: 300, combo: 2, maxCombo: 4, removedCount: 3 }); c.dispose(); });
   it("releases a pending target after rejection", async () => { const t = new MockBattleTransport(); const b = new FakeBoard(); const c = await playing(t, b); t.emit({ type: "REMOVE_LETTER_REJECTED", sequence: 4, letterId: "letter-1", code: "MISMATCH", message: "symbol mismatch", rejectedAt: Date.now() }); expect(b.rejected).toEqual(["letter-1"]); expect(c.snapshot().message).toBe("symbol mismatch"); c.dispose(); });

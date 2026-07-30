@@ -41,7 +41,7 @@ export function BattleGamePage() {
   const exitCoordinator = useMemo(() => new BattleExitCoordinator({ roomGateway: services.battleRoomGateway, mediaSession: battleMediaSession, cameraSession: sharedCameraSession, clearRoomSession: () => setBattleRoomSession(null), navigate: (destination) => navigate(destination, { replace: true }) }), [battleMediaSession, navigate, services.battleRoomGateway, setBattleRoomSession, sharedCameraSession]);
   const [snapshot, setSnapshot] = useState(INITIAL); const [participants, setParticipants] = useState<readonly RemoteGameParticipant[]>(() => battleMediaSession.getRemoteParticipants());
   const [resultBusy, setResultBusy] = useState(false); const [resultError, setResultError] = useState<string | null>(null);
-  const [claimedSymbol, setClaimedSymbol] = useState<{ readonly id: number; readonly symbol: string } | null>(null);
+  const [claimedSymbol, setClaimedSymbol] = useState<{ readonly id: number; readonly symbol: string; readonly winnerPlayerId: string } | null>(null);
   const claimEffectTimerRef = useRef<number | null>(null);
   const [mediaReady, setMediaReady] = useState(() => battleMediaSession.getConnectionState() === "CONNECTED");
   const [cameraState, setCameraState] = useState<"CONNECTED" | "DISCONNECTED">(() => sharedCameraSession.getVideoTrack()?.readyState === "live" ? "CONNECTED" : "DISCONNECTED");
@@ -101,11 +101,10 @@ export function BattleGamePage() {
     const physics = new MatterPhysicsWorld({ ...DEFAULT_PHYSICS_CONFIG, width: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, height: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight, letterWidth: BATTLE_LETTER_SIZE, letterHeight: BATTLE_LETTER_SIZE, letterColliderPadding: 7, rotationInertiaScale: 1.15, restitution: 0 });
     const runtime = new BattleLocalBoardRuntime(physics, localRenderer, DEFAULT_BATTLE_RUNTIME_CONFIG); runtime.resize(localViewportRef.current.width, localViewportRef.current.height); const attack = new DefaultBattleAttackEffect();
     const controller = new BattleController({ playerId: user.userId, roomId, initialMatchId: battleRoomSession?.activeMatchId ?? undefined, transport, localBoard: runtime, remoteBoard: replica, attackEffect: attack, recognizer, sharedTargetMode: true, onMatchStarted: (matchId) => runtime.setPublisher(new LocalBoardPublisher(transport, DEFAULT_BATTLE_RUNTIME_CONFIG.sync, matchId, user.userId)), onSharedTargetClaimed: (event) => {
-      if (event.winnerPlayerId !== user.userId) return;
-      const effect = { id: event.acceptedAt, symbol: event.symbol };
+      const effect = { id: event.acceptedAt, symbol: event.symbol, winnerPlayerId: event.winnerPlayerId };
       setClaimedSymbol(effect);
       if (claimEffectTimerRef.current !== null) window.clearTimeout(claimEffectTimerRef.current);
-      claimEffectTimerRef.current = window.setTimeout(() => { claimEffectTimerRef.current = null; setClaimedSymbol(null); }, 1_650);
+      claimEffectTimerRef.current = window.setTimeout(() => { claimEffectTimerRef.current = null; setClaimedSymbol(null); }, 2_300);
     } });
     localRuntimeRef.current = runtime; controllerRef.current = controller; const unsubscribe = controller.subscribe(setSnapshot);
     void controller.connect({ url: config.gameWebSocketUrl, roomId, playerId: user.userId, accessToken, headers: accessToken ? undefined : createDevAuthHeaders(user), hostPlayerId: battleRoomSession?.hostUserId, playerIds: [...new Set(battleRoomSession?.participants.map((participant) => participant.userId) ?? [user.userId])] });
@@ -186,18 +185,19 @@ export function BattleGamePage() {
     <div className={styles.duelLayout}>
       <section className={styles.duelStage} aria-label="공유 목표 1대1 게임판">
         <div className={styles.duelBoards}>
-          <BattleBoardPanel title={user.userId || localPlayerLabel} dropBurst={claimedSymbol} targetDrain={claimedSymbol} towerHeightRatio={towerHeights.local} toolbar={<div className={styles.boardStats}><span>콤보 <strong>{snapshot.combo}</strong></span></div>} rendererConfig={{ dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO, showScenery: false }} onRendererReady={(renderer, viewport) => { localViewportRef.current = viewport; setLocalRenderer(renderer); localRuntimeRef.current?.resize(viewport.width, viewport.height); }} onViewportResize={(viewport) => { localViewportRef.current = viewport; localRuntimeRef.current?.resize(viewport.width, viewport.height); }} />
-          <BattleBoardPanel className={styles.remoteBoardPanel} title={opponent?.displayName ?? remotePlayerLabel} targetDrain={claimedSymbol} towerHeightRatio={towerHeights.remote} rendererConfig={{ dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO, showScenery: false }} onRendererReady={(renderer, viewport) => { remoteViewportRef.current = viewport; setRemoteRenderer(renderer); replica.resize(viewport.width, viewport.height); }} onViewportResize={(viewport) => { remoteViewportRef.current = viewport; replica.resize(viewport.width, viewport.height); }} />
+          <BattleBoardPanel title={user.userId || localPlayerLabel} dropBurst={claimedSymbol?.winnerPlayerId === user.userId ? claimedSymbol : null} towerHeightRatio={towerHeights.local} toolbar={<div className={styles.boardStats}><span>콤보 <strong>{snapshot.combo}</strong></span></div>} rendererConfig={{ dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO, showScenery: false }} onRendererReady={(renderer, viewport) => { localViewportRef.current = viewport; setLocalRenderer(renderer); localRuntimeRef.current?.resize(viewport.width, viewport.height); }} onViewportResize={(viewport) => { localViewportRef.current = viewport; localRuntimeRef.current?.resize(viewport.width, viewport.height); }} />
+          <BattleBoardPanel className={styles.remoteBoardPanel} title={opponent?.displayName ?? remotePlayerLabel} dropBurst={claimedSymbol && claimedSymbol.winnerPlayerId !== user.userId ? claimedSymbol : null} towerHeightRatio={towerHeights.remote} rendererConfig={{ dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO, showScenery: false }} onRendererReady={(renderer, viewport) => { remoteViewportRef.current = viewport; setRemoteRenderer(renderer); replica.resize(viewport.width, viewport.height); }} onViewportResize={(viewport) => { remoteViewportRef.current = viewport; replica.resize(viewport.width, viewport.height); }} />
         </div>
         <div className={styles.sharedBattleSky} aria-hidden="true">
           <i className={styles.sharedNightSky}/><i className={[styles.sharedCelestial, styles.sharedSun].join(" ")}/><i className={[styles.sharedCelestial, styles.sharedMoon].join(" ")}/><i className={styles.sharedShootingStar}/>
           <i className={[styles.sharedCloud, styles.sharedCloudOne].join(" ")}/><i className={[styles.sharedCloud, styles.sharedCloudTwo].join(" ")}/><i className={[styles.sharedCloud, styles.sharedCloudThree].join(" ")}/>
           <i className={styles.sharedHills}/><span className={styles.sharedFireflies}><i/><i/><i/><i/><i/></span>
         </div>
-        {showSharedTarget ? <div className={styles.sharedTargetOtter} aria-label={`공유 목표 ${snapshot.targetSymbol ?? "대기 중"}`}>
+        {showSharedTarget ? <div className={[styles.sharedTargetOtter, claimedSymbol ? styles.isDraining : ""].filter(Boolean).join(" ")} aria-label={`공유 목표 ${claimedSymbol?.symbol ?? snapshot.targetSymbol ?? "대기 중"}`}>
           <img src={letterOtter} alt="" draggable={false} />
-          <strong key={snapshot.targetSymbol ?? "waiting"}>{snapshot.targetSymbol ?? "·"}</strong>
-          <span>먼저 맞히면 내 보드에 떨어져요!</span>
+          <strong key={claimedSymbol?.id ?? snapshot.targetSymbol ?? "waiting"}>{claimedSymbol?.symbol ?? snapshot.targetSymbol ?? "·"}</strong>
+          {claimedSymbol ? <span key={`portal-${claimedSymbol.id}`} className={styles.paperBlackHole} aria-hidden="true"><i/><i/></span> : null}
+          <span className={styles.sharedTargetHint}>먼저 맞히면 내 보드에 떨어져요!</span>
         </div> : null}
       </section>
       <aside className={styles.duelCameraRail} aria-label="플레이어 카메라">
