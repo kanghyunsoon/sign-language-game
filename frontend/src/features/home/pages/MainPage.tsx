@@ -3,9 +3,10 @@ import { Link } from "react-router-dom";
 
 import { SiteFooter } from "../../../shared/components/SiteFooter";
 import { AttendanceCard } from "../components/AttendanceCard";
-import otterInRock from "../assets/otter_in_rock.png";
-import rocksLeft from "../assets/rocks_left.png";
-import rocksRight from "../assets/rocks_right.png";
+import otterInCave from "../assets/otter_in_cave.webp";
+import otterInRock from "../assets/otter_in_rock.webp";
+import rocksLeft from "../assets/rocks_left.webp";
+import rocksRight from "../assets/rocks_right.webp";
 import "./MainPage.css";
 
 interface LearningMenu {
@@ -25,13 +26,6 @@ const learningMenus: LearningMenu[] = [
     path: "/practice",
   },
   {
-    title: "게임",
-    description: "간단한 게임을 통해 수어를 즐겁게 연습해요.",
-    icon: "◆",
-    tone: "game",
-    path: "/game",
-  },
-  {
     title: "테스트",
     description: "배운 내용을 퀴즈 형식으로 확인하고 점수를 기록해요.",
     icon: "✓",
@@ -39,11 +33,11 @@ const learningMenus: LearningMenu[] = [
     path: "/test",
   },
   {
-    title: "사전",
-    description: "자음, 모음, 숫자와 자주 쓰는 표현을 찾아봐요.",
-    icon: "A",
-    tone: "dictionary",
-    path: "/dictionary",
+    title: "게임",
+    description: "간단한 게임을 통해 수어를 즐겁게 연습해요.",
+    icon: "◆",
+    tone: "game",
+    path: "/game",
   },
   {
     title: "오답노트",
@@ -52,9 +46,29 @@ const learningMenus: LearningMenu[] = [
     tone: "review",
     path: "/review-notes",
   },
+  {
+    title: "사전",
+    description: "자음, 모음, 숫자와 자주 쓰는 표현을 찾아봐요.",
+    icon: "A",
+    tone: "dictionary",
+    path: "/dictionary",
+  },
 ];
 
 const VISIBLE_MENU_COUNT = 3;
+
+/**
+ * 화살표를 누르면 보이는 만큼(3칸) 한 번에 옮긴다.
+ * 5개를 3칸씩 보면 두 번째 묶음이 넘치므로, 마지막 묶음은 끝에 붙여 자른다.
+ * (연습·테스트·게임 / 게임·오답노트·사전)
+ */
+const MAX_MENU_START = Math.max(0, learningMenus.length - VISIBLE_MENU_COUNT);
+
+/** 히어로에 보여줄 수달의 집. [이사하기]를 누르면 순서대로 돌아간다. */
+const otterHabitats = [
+  { id: "rock", image: otterInRock, alt: "바위 안에서 쉬고 있는 수달" },
+  { id: "cave", image: otterInCave, alt: "굴 안에서 쉬고 있는 수달" },
+] as const;
 
 const learningGuideSteps = [
   {
@@ -84,6 +98,14 @@ export function MainPage() {
   const [pageScale, setPageScale] = useState(1);
   const [isLearningGuideOpen, setIsLearningGuideOpen] = useState(false);
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
+  const [habitatIndex, setHabitatIndex] = useState(0);
+
+  const habitat = otterHabitats[habitatIndex];
+
+  /** 다음 집으로 옮긴다. 마지막이면 처음으로 돌아가 그림이 계속 바뀐다. */
+  const moveHabitat = () => {
+    setHabitatIndex((previous) => (previous + 1) % otterHabitats.length);
+  };
 
   useEffect(() => {
     const updatePageScale = () => {
@@ -97,15 +119,12 @@ export function MainPage() {
     return () => window.removeEventListener("resize", updatePageScale);
   }, []);
 
-  const visibleMenus = Array.from(
-    { length: VISIBLE_MENU_COUNT },
-    (_, offset) => learningMenus[(menuStartIndex + offset) % learningMenus.length],
-  );
-
   const moveMenu = (direction: -1 | 1) => {
-    setMenuStartIndex(
-      (currentIndex) =>
-        (currentIndex + direction + learningMenus.length) % learningMenus.length,
+    setMenuStartIndex((currentIndex) =>
+      Math.min(
+        MAX_MENU_START,
+        Math.max(0, currentIndex + direction * VISIBLE_MENU_COUNT),
+      ),
     );
   };
 
@@ -120,8 +139,8 @@ export function MainPage() {
             <Link className="active" to="/main">메인페이지</Link>
             <Link to="/practice">연습</Link>
             <Link to="/test">테스트</Link>
-            <Link to="/dictionary">사전</Link>
             <Link to="/review-notes">오답노트</Link>
+            <Link to="/dictionary">사전</Link>
             <Link to="/game">게임</Link>
           </nav>
 
@@ -140,13 +159,20 @@ export function MainPage() {
               <p>손 모양을 보고 따라 하며 차근차근 익혀보세요.</p>
             </div>
 
-            <img
-              className="main-otter"
-              src={otterInRock}
-              alt="바위 안에서 쉬고 있는 수달"
-            />
+            {/* 프레임이 위치를 맡아, [이사하기]를 수달 왼쪽 위에 붙일 수 있다. */}
+            <div className="main-otter-frame">
+              <button
+                className="main-habitat-button"
+                type="button"
+                onClick={moveHabitat}
+              >
+                이사하기
+              </button>
 
-            <img
+              <img className="main-otter" src={habitat.image} alt={habitat.alt} />
+            </div>
+
+            {/* <img
               className="main-rocks main-rocks-left"
               src={rocksLeft}
               alt=""
@@ -157,7 +183,7 @@ export function MainPage() {
               src={rocksRight}
               alt=""
               aria-hidden="true"
-            />
+            /> */}
 
             <div className="main-hero-actions">
               <button
@@ -189,33 +215,44 @@ export function MainPage() {
                 className="carousel-button carousel-button-prev"
                 type="button"
                 aria-label="이전 학습 메뉴 보기"
+                disabled={menuStartIndex === 0}
                 onClick={() => moveMenu(-1)}
               >
                 ‹
               </button>
 
-              <div className="learning-menu-cards" aria-live="polite">
-                {visibleMenus.map((menu, index) => (
-                  <Link
-                    className="learning-menu-card"
-                    to={menu.path}
-                    key={`${menu.title}-${menuStartIndex}-${index}`}
-                  >
-                    <span className={`learning-menu-icon ${menu.tone}`}>
-                      {menu.icon}
-                    </span>
-                    <span className="learning-menu-copy">
-                      <strong>{menu.title}</strong>
-                      <span>{menu.description}</span>
-                    </span>
-                  </Link>
-                ))}
+              {/* 카드를 모두 그려 두고 트랙을 밀어 옮긴다. 그래야 끊기지 않고
+                  미끄러지듯 움직인다. */}
+              <div className="learning-menu-viewport">
+                <div
+                  className="learning-menu-track"
+                  style={{
+                    transform: `translateX(calc(${-menuStartIndex} * (100% + var(--menu-card-gap)) / ${VISIBLE_MENU_COUNT}))`,
+                  }}
+                >
+                  {learningMenus.map((menu) => (
+                    <Link
+                      className="learning-menu-card"
+                      to={menu.path}
+                      key={menu.title}
+                    >
+                      <span className={`learning-menu-icon ${menu.tone}`}>
+                        {menu.icon}
+                      </span>
+                      <span className="learning-menu-copy">
+                        <strong>{menu.title}</strong>
+                        <span>{menu.description}</span>
+                      </span>
+                    </Link>
+                  ))}
+                </div>
               </div>
 
               <button
                 className="carousel-button carousel-button-next"
                 type="button"
                 aria-label="다음 학습 메뉴 보기"
+                disabled={menuStartIndex === MAX_MENU_START}
                 onClick={() => moveMenu(1)}
               >
                 ›
