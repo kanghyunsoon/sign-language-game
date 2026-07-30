@@ -5,7 +5,7 @@ import type { BattleBodyTransform, BattleConnectionOptions, BattleConnectionStat
 
 type PeerCommand = ClientBattleMessage;
 interface PlayerState { score: number; combo: number; maxCombo: number; removedCount: number; gameOver: boolean; }
-interface PersistedAuthority { readonly roomId: string; readonly hostPlayerId: string; readonly playerIds: readonly string[]; readonly sequence: number; readonly spawnIndex: number; readonly targetIndex: number; readonly sharedTarget: { readonly id: string; readonly symbol: string } | null; readonly players: readonly [string, PlayerState][]; readonly letters: readonly [string, { readonly playerId: string; readonly symbol: string }][]; readonly boards: readonly [string, readonly BattleBodyTransform[]][]; }
+interface PersistedAuthority { readonly roomId: string; readonly hostPlayerId: string; readonly playerIds: readonly string[]; readonly sequence: number; readonly startAt?: number; readonly spawnIndex: number; readonly targetIndex: number; readonly sharedTarget: { readonly id: string; readonly symbol: string } | null; readonly players: readonly [string, PlayerState][]; readonly letters: readonly [string, { readonly playerId: string; readonly symbol: string }][]; readonly boards: readonly [string, readonly BattleBodyTransform[]][]; }
 const CLAIM_EFFECT_DURATION_MS = 1_150;
 const NEXT_TARGET_DELAY_MS = 2_300;
 const AUTHORITY_STORAGE_PREFIX = "sudal:block-battle:authority:";
@@ -22,12 +22,14 @@ export class P2pBattleTransport implements BattleGameTransport {
   private matchId = "";
   private roomId = "";
   private sequence = 0;
+  private startAt = 0;
   private spawnIndex = 0;
   private targetIndex = 0;
   private sharedTarget: { readonly id: string; readonly symbol: string } | null = null;
   private targetTimer: ReturnType<typeof setTimeout> | null = null;
   private unsubscribeCommands: (() => void) | null = null;
   private connectGeneration = 0;
+  private restoredAuthority = false;
 
   constructor(getChannel: () => GameDataChannel | null, private readonly localPlayerId: string) {
     this.delegate = new WebRtcDataChannelTransport(getChannel, isBattleEvent);
@@ -58,13 +60,21 @@ export class P2pBattleTransport implements BattleGameTransport {
 
   private isHost(): boolean { return this.localPlayerId === this.hostPlayerId; }
   private startAuthority(): void {
-    this.publishStart();
+    if (this.restoredAuthority) this.publishMatchState();
+    else this.publishStart();
     if (this.sharedTarget || this.targetTimer) return;
     this.scheduleNextTarget(800);
   }
   private publishStart(): void {
     const now = Date.now();
-    this.delegate.publishEvent({ type: "MATCH_STARTED", sequence: ++this.sequence, matchId: this.matchId, roomId: this.roomId, playerIds: this.playerIds, startAt: now + 800, serverTime: now });
+    if (!this.startAt) this.startAt = now + 800;
+    this.delegate.publishEvent({ type: "MATCH_STARTED", sequence: ++this.sequence, matchId: this.matchId, roomId: this.roomId, playerIds: this.playerIds, startAt: this.startAt, serverTime: now });
+    for (const [playerId, bodies] of this.boards) this.delegate.publishSnapshot({ type: "BOARD_SNAPSHOT", sequence: ++this.sequence, matchId: this.matchId, playerId, sentAt: now, bodies });
+  }
+  private publishMatchState(): void {
+    const now = Date.now();
+    if (this.startAt > now && !this.sharedTarget) { this.publishStart(); return; }
+    this.delegate.publishEvent({ type: "MATCH_STARTED", sequence: ++this.sequence, matchId: this.matchId, roomId: this.roomId, playerIds: this.playerIds, startAt: now, serverTime: now, resume: true, playerStates: [...this.players.entries()].map(([playerId, state]) => ({ playerId, ...state })) });
     for (const [playerId, bodies] of this.boards) this.delegate.publishSnapshot({ type: "BOARD_SNAPSHOT", sequence: ++this.sequence, matchId: this.matchId, playerId, sentAt: now, bodies });
   }
   private scheduleNextTarget(delay = 320): void {
@@ -105,7 +115,7 @@ export class P2pBattleTransport implements BattleGameTransport {
     if (!this.isHost() || !(this.playerIds as readonly string[]).includes(playerId) || ("matchId" in message && message.matchId !== this.matchId)) return;
     if ("commandId" in message) { if (this.processed.has(message.commandId)) return; this.processed.add(message.commandId); }
     if (message.type === "REQUEST_MATCH_STATE" || message.type === "PLAYER_RECONNECTED") {
-      this.publishStart();
+      this.publishMatchState();
       if (this.sharedTarget) this.delegate.publishEvent({ type: "SHARED_TARGET", sequence: ++this.sequence, matchId: this.matchId, targetId: this.sharedTarget.id, symbol: this.sharedTarget.symbol, presentedAt: Date.now() });
       else this.scheduleNextTarget();
       return;
@@ -144,7 +154,7 @@ export class P2pBattleTransport implements BattleGameTransport {
   private storageKey(): string { return `${AUTHORITY_STORAGE_PREFIX}${this.localPlayerId}:${this.roomId}`; }
   private persistAuthority(): void {
     if (!this.isHost() || !this.roomId || typeof window === "undefined") return;
-    const value: PersistedAuthority = { roomId: this.roomId, hostPlayerId: this.hostPlayerId, playerIds: this.playerIds, sequence: this.sequence, spawnIndex: this.spawnIndex, targetIndex: this.targetIndex, sharedTarget: this.sharedTarget, players: [...this.players.entries()], letters: [...this.letters.entries()], boards: [...this.boards.entries()] };
+    const value: PersistedAuthority = { roomId: this.roomId, hostPlayerId: this.hostPlayerId, playerIds: this.playerIds, sequence: this.sequence, startAt: this.startAt, spawnIndex: this.spawnIndex, targetIndex: this.targetIndex, sharedTarget: this.sharedTarget, players: [...this.players.entries()], letters: [...this.letters.entries()], boards: [...this.boards.entries()] };
     try { window.sessionStorage.setItem(this.storageKey(), JSON.stringify(value)); } catch { /* Storage is optional; a connected peer can still resync. */ }
   }
   private restoreAuthority(): void {
@@ -153,10 +163,11 @@ export class P2pBattleTransport implements BattleGameTransport {
       const raw = window.sessionStorage.getItem(this.storageKey()); if (!raw) return;
       const saved = JSON.parse(raw) as PersistedAuthority;
       if (saved.roomId !== this.roomId || saved.hostPlayerId !== this.hostPlayerId || saved.playerIds.length !== this.playerIds.length || saved.playerIds.some((id) => !this.playerIds.includes(id))) return;
-      this.sequence = saved.sequence; this.spawnIndex = saved.spawnIndex; this.targetIndex = saved.targetIndex; this.sharedTarget = saved.sharedTarget;
+      this.sequence = saved.sequence; this.startAt = saved.startAt ?? Date.now(); this.spawnIndex = saved.spawnIndex; this.targetIndex = saved.targetIndex; this.sharedTarget = saved.sharedTarget;
       this.players.clear(); for (const [id, state] of saved.players) this.players.set(id, state);
       this.letters.clear(); for (const [id, letter] of saved.letters) this.letters.set(id, letter);
       this.boards.clear(); for (const [id, bodies] of saved.boards) this.boards.set(id, bodies);
+      this.restoredAuthority = true;
     } catch { this.clearPersistedAuthority(); }
   }
   private clearPersistedAuthority(): void { try { if (typeof window !== "undefined") window.sessionStorage.removeItem(this.storageKey()); } catch { /* no-op */ } }

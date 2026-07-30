@@ -77,6 +77,25 @@ describe("P2pBattleTransport 1:1", () => {
     guest.disconnect();
   });
 
+  it("returns a running match snapshot without restarting its countdown", async () => {
+    const [hostChannel, guestChannel] = pairedChannels("host", "guest");
+    const host = new P2pBattleTransport(() => hostChannel, "host");
+    const guest = new P2pBattleTransport(() => guestChannel, "guest");
+    const guestEvents: ServerBattleMessage[] = [];
+    guest.subscribe((event) => guestEvents.push(event));
+    const common = { url: "webrtc", roomId: "room-resume", hostPlayerId: "host", playerIds: ["host", "guest"] } as const;
+    await host.connect({ ...common, playerId: "host" });
+    await guest.connect({ ...common, playerId: "guest" });
+    await vi.advanceTimersByTimeAsync(800);
+    guestEvents.length = 0;
+
+    guest.send({ type: "REQUEST_MATCH_STATE", commandId: "resume-1", matchId: "room-resume", occurredAt: 1 });
+
+    expect(guestEvents.find((event) => event.type === "MATCH_STARTED")).toMatchObject({ resume: true, startAt: expect.any(Number) });
+    host.disconnect();
+    guest.disconnect();
+  });
+
   it("publishes the host result-recorded acknowledgement to both peers", async () => {
     const [hostChannel, guestChannel] = pairedChannels("host", "guest");
     const host = new P2pBattleTransport(() => hostChannel, "host");

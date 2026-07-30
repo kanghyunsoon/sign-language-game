@@ -59,7 +59,7 @@ export class BattleController {
     if (message.type === "START_MATCH" || message.type === "MATCH_STARTED" || message.type === "GAME_START") {
       this.opponentPlayerId = message.playerIds.find((playerId) => playerId !== this.options.playerId) ?? null;
     }
-    if (message.type === "START_MATCH" || message.type === "MATCH_STARTED" || message.type === "GAME_START") { const currentState = this.machine.getState(); if (this.matchId === message.matchId && (currentState === "COUNTDOWN" || currentState === "PLAYING")) return; this.matchId = message.matchId; this.gameOverReported = false; this.sharedTargetId = null; this.sharedTargetSymbol = null; this.pendingTargetId = null; this.pendingLetterId = null; this.options.recognizer?.resetRecognitionSession?.(); this.options.onMatchStarted?.(message.matchId); const startAt = message.startAt; const serverNow = message.serverTime ?? this.now(); const delay = Math.max(0, startAt - serverNow); this.countdownMs = delay; this.message = "Match countdown started."; this.transition("COUNTDOWN"); this.startDeadlineAt = this.now() + delay; this.scheduleStartTick(); return; }
+    if (message.type === "START_MATCH" || message.type === "MATCH_STARTED" || message.type === "GAME_START") { const currentState = this.machine.getState(); if (this.matchId === message.matchId && (currentState === "COUNTDOWN" || currentState === "PLAYING")) return; this.matchId = message.matchId; this.gameOverReported = false; this.sharedTargetId = null; this.sharedTargetSymbol = null; this.pendingTargetId = null; this.pendingLetterId = null; const ownState = message.playerStates?.find((state) => state.playerId === this.options.playerId); if (ownState) { this.score = ownState.score; this.combo = ownState.combo; this.maxCombo = ownState.maxCombo; this.removedCount = ownState.removedCount; } if (message.resume) { this.clearStartTimer(); this.countdownMs = 0; this.message = "Match state restored."; try { this.options.localBoard.start(); this.transition("PLAYING"); } catch (cause) { this.message = cause instanceof Error ? `Board start failed: ${cause.message}` : "Board start failed."; this.transition("ERROR"); } return; } this.options.recognizer?.resetRecognitionSession?.(); this.options.onMatchStarted?.(message.matchId); const startAt = message.startAt; const serverNow = message.serverTime ?? this.now(); const delay = Math.max(0, startAt - serverNow); this.countdownMs = delay; this.message = "Match countdown started."; this.transition("COUNTDOWN"); this.startDeadlineAt = this.now() + delay; this.scheduleStartTick(); return; }
     if (message.type === "SHARED_TARGET") { this.sharedTargetId = message.targetId; this.sharedTargetSymbol = message.symbol; this.pendingTargetId = null; this.message = `${message.symbol}를 먼저 맞혀보세요.`; this.publish(); return; }
     if (message.type === "SHARED_TARGET_CLAIMED") { if (message.targetId !== this.sharedTargetId) return; this.options.onSharedTargetClaimed?.(message); this.sharedTargetId = null; this.sharedTargetSymbol = null; this.pendingTargetId = null; if (message.winnerPlayerId === this.options.playerId) { this.score = message.score; this.combo = message.combo; this.maxCombo = message.maxCombo; this.removedCount = message.removedCount; this.message = `${message.symbol} 선점 성공!`; } else this.message = `상대가 ${message.symbol}를 먼저 맞혔습니다.`; this.publish(); return; }
     if (message.type === "SPAWN_LETTER") { this.scheduleSpawn(message); return; }
@@ -69,7 +69,7 @@ export class BattleController {
     if (message.type === "COMBO_UPDATED") { if (message.playerId === this.options.playerId) { this.combo = message.combo; this.maxCombo = message.maxCombo; this.publish(); } return; }
     if (message.type === "ATTACK_CREATED" || message.type === "ATTACK_APPLIED") { if (message.targetPlayerId === this.options.playerId) this.options.attackEffect.apply(message as AttackCreatedEvent); return; }
     if (message.type === "MATCH_FINISHED") { this.result = message; this.options.localBoard.stop(); this.message = "Match finished."; this.transition("FINISHED"); return; }
-    if (message.type === "PLAYER_DISCONNECTED") { if (message.playerId !== this.options.playerId) this.beginReconnect(); return; }
+    if (message.type === "PLAYER_DISCONNECTED") { if (message.playerId !== this.options.playerId) this.continueDuringPeerReconnect(); return; }
     if (message.type === "PLAYER_RECONNECTED") { this.message = "Opponent reconnected."; if (this.machine.getState() === "RECONNECTING") this.transition("PLAYING"); return; }
     if (message.type === "BOARD_SNAPSHOT" && message.playerId === this.options.playerId) {
       this.options.localBoard.restore?.(message.bodies);
@@ -83,7 +83,7 @@ export class BattleController {
   private handleTransportState(state: BattleConnectionState): void {
     this.gameConnectionState = state;
     const matchState = this.machine.getState();
-    if ((state === "DISCONNECTED" || state === "ERROR") && (matchState === "PLAYING" || matchState === "COUNTDOWN" || matchState === "RECONNECTING")) this.beginReconnect();
+    if ((state === "DISCONNECTED" || state === "ERROR") && (matchState === "PLAYING" || matchState === "COUNTDOWN" || matchState === "RECONNECTING")) this.continueDuringPeerReconnect();
     this.publish();
   }
   private scheduleSpawn(message: Extract<ServerBattleMessage, { type: "SPAWN_LETTER" }>): void {
@@ -132,17 +132,26 @@ export class BattleController {
     this.message = "Game server disconnected. Reconnecting...";
     this.scheduleReconnect();
   }
+  private continueDuringPeerReconnect(): void {
+    if (this.disposed || !this.connectionOptions || !this.matchId) return;
+    // The player who remains must keep their local physics board and input
+    // active. Only the returning browser restores a snapshot; the active
+    // browser retries the channel in the background without a countdown.
+    this.message = "Opponent reconnecting. Game continues.";
+    this.scheduleReconnect();
+    this.publish();
+  }
   private scheduleReconnect(): void {
     if (this.reconnectTimer || this.disposed) return;
     this.reconnectTimer = this.setTimer(() => { this.reconnectTimer = null; void this.attemptReconnect(); }, this.options.reconnectIntervalMs ?? 1_000);
   }
   private async attemptReconnect(): Promise<void> {
-    if (this.disposed || !this.connectionOptions || !this.matchId || this.machine.getState() !== "RECONNECTING") return;
+    if (this.disposed || !this.connectionOptions || !this.matchId || (this.machine.getState() !== "RECONNECTING" && this.machine.getState() !== "PLAYING")) return;
     try {
       await this.options.transport.connect(this.connectionOptions);
       this.options.transport.send({ type: "PLAYER_RECONNECTED", commandId: this.createCommandId(), matchId: this.matchId, occurredAt: this.now() });
       this.requestMatchState();
-      this.message = "Connected. Restoring the latest board snapshot...";
+      this.message = this.machine.getState() === "PLAYING" ? "Opponent reconnecting. Game continues." : "Connected. Restoring the latest board snapshot...";
       this.publish();
     } catch { this.message = "Reconnect attempt failed. Retrying..."; this.publish(); this.scheduleReconnect(); }
   }
