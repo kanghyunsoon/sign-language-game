@@ -74,19 +74,17 @@ BattleController ── 게임 상태/physics/AI 인식 연결
 | 참가자만 새로고침 | 방장은 블록/목표/낙하 유지, 참가자는 join 후 snapshot 복구 | 코드 보강 완료, 실제 두 PC smoke test 필요 |
 | 방장만 새로고침 | 참가자는 보드 유지, 방장은 동일 match resume | 코드 보강 완료, 실제 두 PC smoke test 필요 |
 | 새로고침 뒤 나가기 | stale session이면 leave 403 없이 로컬 정리·로비 이동 | 코드/단위 테스트 완료, 배포 smoke test 필요 |
-| 방장 영구 이탈 | 참가자가 새 shared target까지 계속 진행 | **프론트만으로 보장 불가**; host가 P2P 권위자 |
+| 방장 영구 이탈 | 10초 재접속 유예 후 방 종료, 남은 참가자 승리 | `RECONNECT_TIMEOUT` 승리 처리 |
 | 보드 배경 | 두 보드에는 투명 영역, 부모 레이어의 sky/hills만 보임 | `a815e23` 이후 재확인 필요 |
 
-## 중요한 한계: 영구 이탈과 권위 이전
+## 영구 이탈 정책
 
-현재 “상대가 잠시 새로고침”은 지원 대상이지만, “방장이 돌아오지 않아도 참가자가 무기한 대전을 계속”은 프론트만으로 완결할 수 없다. 이유는 `P2pBattleTransport`에서 shared target의 첫 claim 판정과 다음 target 발행을 방장 브라우저가 수행하기 때문이다.
+방장이 영구 이탈했을 때 권위를 guest로 이전하지 않는다. shared target 권위가 방장 브라우저에 있으므로, 남은 참가자가 새 target을 임의로 만들면 split-brain이 생길 수 있다.
 
-백엔드에 요청할 수 있는 최소 계약은 둘 중 하나다.
-
-1. 매치 상태(shared target, score, spawn index, board snapshots)를 서버 권위로 보관하고 reconnect 시 제공
-2. `PEER_LEFT` 이후 남은 참가자에게 host 권위를 위임하는 이벤트와, 새 host가 신뢰할 수 있는 최신 match snapshot
-
-이 계약 없이 프론트가 임의로 guest를 host로 승격하면 양쪽이 잠시 살아 있는 네트워크 분할 상황에서 target이 두 번 생성될 수 있으므로 구현하면 안 된다.
+- peer 단절 직후에도 남은 보드는 유지하고 재접속을 10초 기다린다.
+- 유예 안에 `MATCH_STARTED { resume: true }`, `PLAYER_RECONNECTED`, 또는 상대 board snapshot이 오면 timeout을 해제하고 같은 매치를 계속한다.
+- 유예가 끝나면 남은 참가자를 승자로, 단절된 참가자를 패자로 한 `MATCH_FINISHED`를 로컬에 확정하고 보드를 중지한다.
+- 명시적인 방장 나가기는 기존 forfeit/leave 경로로 방을 닫는다. 백엔드의 방 종료 상태가 최종 방 정리를 담당한다.
 
 ## 배포 검증 절차
 
@@ -100,7 +98,8 @@ BattleController ── 게임 상태/physics/AI 인식 연결
 6. 이번에는 A만 새로고침해 3~5를 반복한다.
 7. 새로고침 후 play 화면에서 나가기를 누르고 Network/Console에 `leave ... 403`이 새로 발생하지 않는지 확인한다.
 8. 브라우저 뒤로가기도 같은 cleanup 결과인지 확인한다.
-9. 80%, 100%, 125%, 150% 줌에서 배경이 두 보드에 공유되고 흰 사각형/가로 overflow가 없는지 확인한다.
+9. 한쪽을 10초 넘게 복귀시키지 않아 남은 쪽에 승리 결과와 `재접속 시간 초과` 사유가 표시되는지 확인한다.
+10. 80%, 100%, 125%, 150% 줌에서 배경이 두 보드에 공유되고 흰 사각형/가로 overflow가 없는지 확인한다.
 
 ### 실패 시 반드시 남길 증거
 

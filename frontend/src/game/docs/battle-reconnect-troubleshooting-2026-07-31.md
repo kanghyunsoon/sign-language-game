@@ -41,12 +41,17 @@
 5. `BattleController.ts`: `MATCH_STARTED.resume`이 새 countdown이 아니라 `PLAYING`과 local board start로 처리되는지 확인한다.
 6. `BattleExitCoordinator.ts`: 현재 세션이 없는 경우 API leave가 호출되지 않는지 확인한다.
 
-## 프론트만으로 해결할 수 없는 경우
+## 방장 영구 이탈 정책
 
-방장 브라우저가 영구 이탈하면 P2P host authority가 사라진다. 남은 참가자가 다음 shared target을 독자 생성하게 하면 split-brain이 생길 수 있다. 이 경우 backend가 authoritative match snapshot 또는 host handoff 이벤트를 제공해야 한다. backend/AI 소스는 이 작업 범위에서 수정하지 않는다.
+방장 브라우저가 영구 이탈하면 host authority를 다른 브라우저에 이전하지 않는다. 남은 참가자가 다음 shared target을 독자 생성하면 split-brain이 생길 수 있기 때문이다.
+
+- 상대 단절 직후에는 현재 board를 유지하며 10초 재접속 유예를 시작한다.
+- 상대 board snapshot 또는 resume 이벤트가 유예 안에 도착하면 timeout을 취소하고 계속 진행한다.
+- 유예가 끝나면 남은 참가자는 `RECONNECT_TIMEOUT` 사유의 승자가 되고 board는 중지된다.
+- 명시적 나가기는 기존 forfeit/leave로 즉시 방을 닫고, 남은 참가자는 승리 결과를 받는다.
 
 ## 검증 기록
 
-- `npm test -- --run src/game/block-stacking/battle/core/BattleExitCoordinator.test.ts src/game/block-stacking/battle/core/BattleController.test.ts`: 25 passed
+- `npm test -- --run src/game/block-stacking/battle/core/BattleController.test.ts src/game/block-stacking/battle/transport/P2pBattleTransport.test.ts`: 25 passed
 - `npm run build`: passed
 - 실제 배포 두 PC smoke test: 최신 커밋 배포 후 수행 필요
