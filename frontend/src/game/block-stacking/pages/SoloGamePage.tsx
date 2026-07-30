@@ -447,6 +447,7 @@ export function SoloGamePage({
       }
       savedGameOverRef.current = false;
       recognitionController.resetSessionStatistics();
+      recognizerRef.current?.resetRecognitionSession();
       runtime.restart();
     }
     // Local UI work must remain playable while the optional Python AI service
@@ -501,6 +502,7 @@ export function SoloGamePage({
     }
     savedGameOverRef.current = false;
     recognitionController.resetSessionStatistics();
+    recognizerRef.current?.resetRecognitionSession();
     runtimeRef.current?.restart();
   }, [recognitionController]);
   const retryCompletion = useCallback(() => {

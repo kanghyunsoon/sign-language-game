@@ -41,6 +41,7 @@ export function BattleGamePage() {
   const exitCoordinator = useMemo(() => new BattleExitCoordinator({ roomGateway: services.battleRoomGateway, mediaSession: battleMediaSession, cameraSession: sharedCameraSession, clearRoomSession: () => setBattleRoomSession(null), navigate: (destination) => navigate(destination, { replace: true }) }), [battleMediaSession, navigate, services.battleRoomGateway, setBattleRoomSession, sharedCameraSession]);
   const [snapshot, setSnapshot] = useState(INITIAL); const [participants, setParticipants] = useState<readonly RemoteGameParticipant[]>(() => battleMediaSession.getRemoteParticipants());
   const [resultBusy, setResultBusy] = useState(false); const [resultError, setResultError] = useState<string | null>(null);
+  const [resultRecorded, setResultRecorded] = useState(false);
   const [claimedSymbol, setClaimedSymbol] = useState<{ readonly id: number; readonly symbol: string; readonly winnerPlayerId: string } | null>(null);
   const claimEffectTimerRef = useRef<number | null>(null);
   const [mediaReady, setMediaReady] = useState(() => battleMediaSession.getConnectionState() === "CONNECTED");
@@ -52,6 +53,18 @@ export function BattleGamePage() {
   const settledTowerHeightsRef = useRef({ local: 0, remote: 0 });
   const [towerHeights, setTowerHeights] = useState({ local: 0, remote: 0 });
   const localIsHost = battleRoomSession?.hostUserId === user.userId;
+  const markRoomWaiting = useCallback(() => {
+    if (!battleRoomSession) return;
+    setBattleRoomSession({
+      ...battleRoomSession,
+      status: battleRoomSession.playerCount >= battleRoomSession.maxPlayers ? "FULL" : "WAITING",
+      hostReady: false,
+      guestReady: false,
+      currentUserReady: false,
+      canStart: false,
+      activeMatchId: null,
+    });
+  }, [battleRoomSession, setBattleRoomSession]);
   const reportMatchResult = useCallback((result: MatchFinishedEvent): Promise<void> => {
     if (!Number.isSafeInteger(Number(roomId))) return Promise.resolve();
     // The result endpoint transitions the room out of IN_PROGRESS. Having both
@@ -65,15 +78,14 @@ export function BattleGamePage() {
         // Swagger guarantees a 201 result returns the room to WAITING. Update
         // the persisted copy at the same time so it cannot issue a stale
         // ready/start request before the user presses the rematch button.
-        if (battleRoomSession) setBattleRoomSession({
-          ...battleRoomSession,
-          status: battleRoomSession.playerCount >= battleRoomSession.maxPlayers ? "FULL" : "WAITING",
-          hostReady: false,
-          guestReady: false,
-          currentUserReady: false,
-          canStart: false,
-          activeMatchId: null,
-        });
+        markRoomWaiting();
+        setResultRecorded(true);
+        try {
+          transport.send({ type: "RESULT_RECORDED_COMMAND", commandId: crypto.randomUUID(), matchId: result.matchId, recordedAt: Date.now() });
+        } catch {
+          // The backend write already succeeded. A closed peer channel must not
+          // turn the completed result into a false HTTP failure for the host.
+        }
       })
       .catch((cause) => {
         resultReportPromiseRef.current = null;
@@ -90,7 +102,7 @@ export function BattleGamePage() {
       .finally(() => setResultBusy(false));
     resultReportPromiseRef.current = request;
     return request;
-  }, [battleMediaSession, battleRoomSession, localIsHost, resultClient, roomId, setBattleRoomSession, sharedCameraSession]);
+  }, [battleMediaSession, localIsHost, markRoomWaiting, resultClient, roomId, setBattleRoomSession, sharedCameraSession, transport]);
   const refreshMedia = useCallback(() => {
     const nextState = battleMediaSession.getConnectionState();
     setParticipants(battleMediaSession.getRemoteParticipants());
@@ -105,18 +117,32 @@ export function BattleGamePage() {
       return;
     }
     if (!battleRoomSession || battleRoomSession.status !== "PLAYING") return;
+    const authoritativeRoomCode = battleRoomSession.roomCode;
+    if (!authoritativeRoomCode) {
+      setBattleRoomSession(null);
+      navigate("/game/battle", { replace: true });
+      return;
+    }
     let cancelled = false;
     void (async () => {
       try {
+        const authoritative = await services.battleRoomGateway.joinRoom(authoritativeRoomCode);
+        if (authoritative.status !== "PLAYING") {
+          if (!cancelled) {
+            setBattleRoomSession(authoritative.status === "FINISHED" ? null : authoritative);
+            navigate(authoritative.status === "FINISHED" ? "/game/battle" : `/game/battle/${roomId}`, { replace: true });
+          }
+          return;
+        }
         const stream = await sharedCameraSession.start();
-        await battleMediaSession.connect(battleRoomSession, stream);
+        await battleMediaSession.connect(authoritative, stream);
         if (!cancelled) setMediaReady(true);
       } catch (cause) {
         if (!cancelled) setResultError(cause instanceof Error ? `게임 재연결에 실패했습니다: ${cause.message}` : "게임 재연결에 실패했습니다.");
       }
     })();
     return () => { cancelled = true; };
-  }, [battleMediaSession, battleRoomSession, sharedCameraSession]);
+  }, [battleMediaSession, battleRoomSession, navigate, roomId, services.battleRoomGateway, setBattleRoomSession, sharedCameraSession]);
 
   useEffect(() => { const track = sharedCameraSession.getVideoTrack(); const update = () => setCameraState(track?.readyState === "live" && track.enabled ? "CONNECTED" : "DISCONNECTED"); update(); if (!track) return; track.addEventListener("ended", update); track.addEventListener("mute", update); track.addEventListener("unmute", update); return () => { track.removeEventListener("ended", update); track.removeEventListener("mute", update); track.removeEventListener("unmute", update); }; }, [sharedCameraSession]);
 
@@ -167,6 +193,14 @@ export function BattleGamePage() {
     void reportMatchResult(result).catch(() => { resultReportedRef.current = false; });
   }, [reportMatchResult, snapshot.result]);
 
+  useEffect(() => transport.subscribe((message) => {
+    if (message.type !== "RESULT_RECORDED") return;
+    const result = controllerRef.current?.snapshot().result;
+    if (result && result.matchId !== message.matchId) return;
+    markRoomWaiting();
+    setResultRecorded(true);
+  }), [markRoomWaiting, transport]);
+
   const localStream = sharedCameraSession.getStream(); const opponent = participants[0] ?? null;
   const returnToWaiting = async () => { if (!roomId || resultBusy) return; setResultBusy(true); setResultError(null); try {
     await services.battleRoomGateway.returnToWaiting(roomId);
@@ -199,6 +233,11 @@ export function BattleGamePage() {
     }
     await leaveBattle("/game/battle");
   };
+  useEffect(() => {
+    const handleBrowserBack = () => { void forfeitAndLeave(); };
+    window.addEventListener("popstate", handleBrowserBack);
+    return () => window.removeEventListener("popstate", handleBrowserBack);
+  });
   const localPlayerLabel = localIsHost ? "PLAYER 1" : "PLAYER 2";
   const remotePlayerLabel = localIsHost ? "PLAYER 2" : "PLAYER 1";
   const showSharedTarget = snapshot.state === "COUNTDOWN" || snapshot.state === "PLAYING" || snapshot.state === "RECONNECTING";
@@ -237,6 +276,6 @@ export function BattleGamePage() {
       </aside>
     </div>
     {snapshot.state === "COUNTDOWN" ? <div className={styles.countdown}>{Math.max(1, Math.ceil(snapshot.countdownMs / 1000))}</div> : null}
-    <BattleResultModal result={snapshot.result} playerId={user.userId} busy={resultBusy} error={resultError} onReturnToWaiting={() => void returnToWaiting()} onRoomList={() => void leaveBattle("/game/battle")} onModeSelect={() => void leaveBattle("/game")} />
+    <BattleResultModal result={snapshot.result} playerId={user.userId} busy={resultBusy} readyForRematch={resultRecorded} error={resultError} onReturnToWaiting={() => void returnToWaiting()} onRoomList={() => void leaveBattle("/game/battle")} onModeSelect={() => void leaveBattle("/game")} />
   </main>;
 }

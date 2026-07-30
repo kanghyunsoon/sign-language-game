@@ -92,16 +92,9 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   }
 
   async joinRoom(roomCode: string): Promise<BattleRoomSession> {
-    try {
-      return this.remember(await this.client.join(roomCode));
-    } catch (cause) {
-      // A double click can reach the backend after its first join response has
-      // already filled this adapter cache. The server correctly rejects the
-      // second participant insert with 409; reuse the successful first result.
-      const cached = [...this.roomCache.values()].find((room) => room.roomCode === roomCode.trim());
-      if (isConflict(cause) && cached) return this.remember(cached);
-      throw cause;
-    }
+    // The current backend contract makes join idempotent for an existing
+    // participant and returns the authoritative room state plus a fresh ticket.
+    return this.remember(await this.client.join(roomCode));
   }
 
   async getRoom(roomId: string): Promise<BattleRoomDetail> {
@@ -249,8 +242,4 @@ function parseRoomId(value: string): number {
   const id = Number(value);
   if (!Number.isSafeInteger(id) || id <= 0) throw new Error("올바르지 않은 방 ID입니다.");
   return id;
-}
-
-function isConflict(cause: unknown): boolean {
-  return cause instanceof Error && /Game room request failed \(409\)/.test(cause.message);
 }

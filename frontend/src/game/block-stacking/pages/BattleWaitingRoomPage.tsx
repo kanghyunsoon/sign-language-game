@@ -110,6 +110,24 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   }, [roomSession, rememberRoom, room, roomId]);
 
   useEffect(() => {
+    const roomCode = roomRef.current?.roomCode;
+    if (!roomId || !roomCode) return;
+    let cancelled = false;
+    void gateway.joinRoom(roomCode)
+      .then((authoritative) => {
+        if (cancelled || authoritative.roomId !== roomId) return;
+        rememberRoomRef.current(authoritative);
+      })
+      .catch((cause) => {
+        if (cancelled) return;
+        rememberSession(null);
+        setError(errorMessage(cause, "방 상태를 확인하지 못했습니다. 방 목록에서 다시 입장해 주세요."));
+        navigate(lobbyPath, { replace: true });
+      });
+    return () => { cancelled = true; };
+  }, [gateway, lobbyPath, navigate, rememberSession, roomId, room?.roomCode]);
+
+  useEffect(() => {
     if (!roomId || !gateway.subscribeRooms) return;
     return gateway.subscribeRooms((rooms) => {
       const current = roomRef.current;
@@ -157,21 +175,70 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
     roomSocketRef.current = socket;
     const unsubscribe = socket.subscribe((message) => {
       if (message.type === "GAME_STARTED") void startRtcAndEnterRef.current();
+      if (message.type === "PEER_JOINED") {
+        const current = roomRef.current;
+        const joinedUserId = payloadUserId(message.payload);
+        if (current && joinedUserId && !current.participants.some((participant) => participant.userId === joinedUserId)) {
+          rememberRoomRef.current({
+            ...current,
+            status: "FULL",
+            playerCount: Math.min(current.maxPlayers, current.playerCount + 1),
+            canJoin: false,
+            guestReady: false,
+            participants: [...current.participants, { userId: joinedUserId, displayName: "상대방", isHost: false, ready: false }],
+          });
+        }
+      }
+      if (message.type === "PEER_READY_CHANGED") {
+        const current = roomRef.current;
+        const changedUserId = payloadUserId(message.payload);
+        const isReady = payloadBoolean(message.payload, "isReady");
+        if (current && changedUserId && isReady !== null) {
+          const hostReady = changedUserId === current.hostUserId ? isReady : Boolean(current.hostReady);
+          const guestReady = changedUserId === current.hostUserId ? Boolean(current.guestReady) : isReady;
+          rememberRoomRef.current({
+            ...current,
+            hostReady,
+            guestReady,
+            canStart: current.hostUserId === user.userId && current.playerCount >= current.maxPlayers && hostReady && guestReady,
+            participants: current.participants.map((participant) => participant.userId === changedUserId ? { ...participant, ready: isReady } : participant),
+          });
+        }
+      }
       if (message.type === "PEER_LEFT") {
         const current = roomRef.current;
         if (current) {
+          const leftUserId = payloadUserId(message.payload);
+          const newHostUserId = payloadUserId(message.payload, "newHostUserId");
+          const remaining = current.participants
+            .filter((participant) => !leftUserId || participant.userId !== leftUserId)
+            .map((participant) => ({ ...participant, isHost: participant.userId === newHostUserId }));
+          const hostUserId = newHostUserId ?? remaining.find((participant) => participant.isHost)?.userId ?? current.hostUserId;
           rememberRoomRef.current({
             ...current,
             status: "WAITING",
-            playerCount: 1,
+            hostUserId,
+            playerCount: remaining.length,
             canJoin: true,
+            hostReady: remaining.find((participant) => participant.userId === hostUserId)?.ready ?? false,
             guestReady: false,
-            participants: current.participants.filter((participant) => participant.isHost),
+            currentUserReady: remaining.find((participant) => participant.userId === user.userId)?.ready ?? false,
+            canStart: false,
+            participants: remaining,
           });
         }
         setError("?곷?諛⑹씠 諛⑹쓣 ?섍컮?듬땲??");
       }
-      if (message.type === "ERROR") setError("방 실시간 연결에서 오류가 발생했습니다.");
+      if (message.type === "ERROR") {
+        const code = payloadString(message.payload, "code");
+        if (code === "NOT_ROOM_PARTICIPANT" || code === "ROOM_NOT_FOUND") {
+          rememberSession(null);
+          void battleMediaSession.disconnect().finally(() => sharedCameraSession.stop());
+          navigate(lobbyPath, { replace: true });
+          return;
+        }
+        setError(payloadString(message.payload, "message") ?? "방 실시간 연결에서 오류가 발생했습니다.");
+      }
     });
     const unsubscribeError = socket.subscribeError(() => setRealtimeState("ERROR"));
     setRealtimeState("CONNECTING");
@@ -258,6 +325,12 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
       setLeaving(false);
     }
   };
+
+  useEffect(() => {
+    const handleBrowserBack = () => { void leaveRoom(); };
+    window.addEventListener("popstate", handleBrowserBack);
+    return () => window.removeEventListener("popstate", handleBrowserBack);
+  });
 
   const isHost = room?.hostUserId === user.userId;
   const full = room ? room.playerCount >= room.maxPlayers : false;
@@ -363,4 +436,22 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
 
 function errorMessage(cause: unknown, fallback: string): string {
   return cause instanceof Error && cause.message ? cause.message : fallback;
+}
+
+function payloadString(payload: unknown, key: string): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const value = (payload as Record<string, unknown>)[key];
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function payloadUserId(payload: unknown, key = "userId"): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const value = (payload as Record<string, unknown>)[key];
+  return typeof value === "string" || typeof value === "number" ? String(value) : null;
+}
+
+function payloadBoolean(payload: unknown, key: string): boolean | null {
+  if (!payload || typeof payload !== "object") return null;
+  const value = (payload as Record<string, unknown>)[key];
+  return typeof value === "boolean" ? value : null;
 }

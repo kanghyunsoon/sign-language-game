@@ -76,6 +76,24 @@ describe("P2pBattleTransport 1:1", () => {
     host.disconnect();
     guest.disconnect();
   });
+
+  it("publishes the host result-recorded acknowledgement to both peers", async () => {
+    const [hostChannel, guestChannel] = pairedChannels("host", "guest");
+    const host = new P2pBattleTransport(() => hostChannel, "host");
+    const guest = new P2pBattleTransport(() => guestChannel, "guest");
+    const hostEvents: ServerBattleMessage[] = [];
+    const guestEvents: ServerBattleMessage[] = [];
+    host.subscribe((event) => hostEvents.push(event));
+    guest.subscribe((event) => guestEvents.push(event));
+    const common = { url: "webrtc", roomId: "room-3", hostPlayerId: "host", playerIds: ["host", "guest"] } as const;
+    await host.connect({ ...common, playerId: "host" });
+    await guest.connect({ ...common, playerId: "guest" });
+    host.send({ type: "RESULT_RECORDED_COMMAND", commandId: "result-1", matchId: "room-3", recordedAt: 100 });
+    expect(hostEvents.find((event) => event.type === "RESULT_RECORDED")).toMatchObject({ matchId: "room-3", recordedAt: 100 });
+    expect(guestEvents.find((event) => event.type === "RESULT_RECORDED")).toMatchObject({ matchId: "room-3", recordedAt: 100 });
+    host.disconnect();
+    guest.disconnect();
+  });
 });
 
 function pairedChannels(hostId: string, guestId: string): [GameDataChannel, GameDataChannel] {

@@ -27,6 +27,7 @@ export type ClientBattleMessage =
   | (ClientEnvelope & { readonly type: "PLAYER_FORFEIT_COMMAND"; readonly occurredAt: number })
   | (ClientEnvelope & { readonly type: "PLAYER_RECONNECTED"; readonly occurredAt: number })
   | (ClientEnvelope & { readonly type: "REQUEST_MATCH_STATE"; readonly occurredAt: number })
+  | (ClientEnvelope & { readonly type: "RESULT_RECORDED_COMMAND"; readonly recordedAt: number })
   | { readonly type: "BODY_TRANSFORM_BATCH"; readonly matchId: string; readonly playerId: string; readonly sequence: number; readonly sentAt: number; readonly bodies: readonly BattleBodyTransform[] }
   | { readonly type: "BOARD_SNAPSHOT"; readonly matchId: string; readonly playerId: string; readonly sequence: number; readonly sentAt: number; readonly bodies: readonly BattleBodyTransform[] };
 
@@ -43,6 +44,7 @@ export interface ComboUpdatedEvent extends ServerEnvelope { readonly type: "COMB
 export interface AttackCreatedEvent extends ServerEnvelope { readonly type: "ATTACK_CREATED" | "ATTACK_APPLIED"; readonly attackId: string; readonly attackerPlayerId: string; readonly targetPlayerId: string; readonly attackType: string; readonly amount: number; readonly sourceCombo: number; readonly createdAt: number; }
 export interface OtterTransferEvent extends ServerEnvelope { readonly type: "OTTER_TRANSFER"; readonly matchId: string; readonly sourcePlayerId: string; readonly targetPlayerId: string; readonly sourceLetterId: string; readonly sourceNormalizedX: number; readonly symbol: string; readonly direction: "left-to-right" | "right-to-left"; readonly pickupAt: number; readonly throwAt: number; }
 export interface MatchFinishedEvent extends ServerEnvelope { readonly type: "MATCH_FINISHED"; readonly matchId: string; readonly winnerPlayerId: string | null; readonly loserPlayerId: string | null; readonly reason: string; readonly finishedAt: number; readonly results?: readonly { readonly playerId: string; readonly score: number; readonly maxCombo: number; readonly removedCount: number; readonly attackCount?: number }[]; }
+export interface ResultRecordedEvent extends ServerEnvelope { readonly type: "RESULT_RECORDED"; readonly matchId: string; readonly recordedAt: number; }
 export interface PlayerConnectionEvent extends ServerEnvelope { readonly type: "PLAYER_DISCONNECTED" | "PLAYER_RECONNECTED"; readonly playerId: string; }
 export interface TransformBatchEvent extends ServerEnvelope { readonly type: "BODY_TRANSFORM_BATCH"; readonly matchId: string; readonly playerId: string; readonly sentAt: number; readonly bodies: readonly BattleBodyTransform[]; }
 export interface BoardSnapshotEvent extends ServerEnvelope { readonly type: "BOARD_SNAPSHOT"; readonly matchId: string; readonly playerId: string; readonly sentAt: number; readonly bodies: readonly BattleBodyTransform[]; }
@@ -52,4 +54,4 @@ export interface LetterRemovedSyncEvent extends ServerEnvelope { readonly type: 
 
 export type ServerBattleMessage = MatchStartedEvent | SpawnLetterEvent | SharedTargetEvent | SharedTargetClaimedEvent | RemoveAcceptedEvent | RemoveRejectedEvent
   | ScoreUpdatedEvent | ComboUpdatedEvent | AttackCreatedEvent | OtterTransferEvent | MatchFinishedEvent | PlayerConnectionEvent
-  | TransformBatchEvent | BoardSnapshotEvent | LetterSpawnedSyncEvent | LetterStateSyncEvent | LetterRemovedSyncEvent;
+  | TransformBatchEvent | BoardSnapshotEvent | LetterSpawnedSyncEvent | LetterStateSyncEvent | LetterRemovedSyncEvent | ResultRecordedEvent;

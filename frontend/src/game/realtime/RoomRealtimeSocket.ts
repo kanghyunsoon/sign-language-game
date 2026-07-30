@@ -1,9 +1,11 @@
 import { RealtimeTicketRequestError, type RealtimeTicketClient } from "./RealtimeTicketClient";
 
 export type RoomServerMessageType =
+  | "PEER_JOINED"
   | "PEER_DISCONNECTED"
   | "PEER_RECONNECTED"
   | "PEER_LEFT"
+  | "PEER_READY_CHANGED"
   | "GAME_STARTED"
   | "SIGNAL"
   | "ERROR";
@@ -38,7 +40,7 @@ const CLOSED = 3;
 // grace period instead of giving up after roughly two seconds.
 const RETRY_DELAYS_MS = [0, 350, 700, 1_200, 1_700, 2_200, 2_700] as const;
 const MESSAGE_TYPES = new Set<RoomServerMessageType>([
-  "PEER_DISCONNECTED", "PEER_RECONNECTED", "PEER_LEFT",
+  "PEER_JOINED", "PEER_DISCONNECTED", "PEER_RECONNECTED", "PEER_LEFT", "PEER_READY_CHANGED",
   "GAME_STARTED", "SIGNAL", "ERROR",
 ]);
 
@@ -89,6 +91,9 @@ export class RoomRealtimeSocket {
 
   /** Called only after RTCPeerConnection and its DataChannel are both ready. */
   disconnectForWebRtcHandoff(): void {
+    if (this.socket?.readyState === OPEN) {
+      this.socket.send(JSON.stringify({ type: "WEBRTC_CONNECTED" }));
+    }
     this.close(1000, "WEBRTC_ESTABLISHED");
   }
 

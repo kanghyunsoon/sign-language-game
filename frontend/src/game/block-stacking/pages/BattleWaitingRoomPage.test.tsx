@@ -86,6 +86,29 @@ describe("BattleWaitingRoomPage backend flow", () => {
     expect(connect).toHaveBeenCalledTimes(1);
   });
 
+  it("applies the backend PEER_READY_CHANGED event before start", async () => {
+    const socket = new FakeRoomSocket();
+    renderPage({
+      detail: room({ full: true, hostReady: true, guestReady: false, currentUserReady: true }),
+      socket,
+    });
+    expect((screen.getByRole("button", { name: /게임 시작/ }) as HTMLButtonElement).disabled).toBe(true);
+    socket.emit({ type: "PEER_READY_CHANGED", payload: { userId: 2, isReady: true } });
+    await waitFor(() => expect((screen.getByRole("button", { name: /게임 시작/ }) as HTMLButtonElement).disabled).toBe(false));
+  });
+
+  it("delegates host state when the backend reports the host left", async () => {
+    const socket = new FakeRoomSocket();
+    renderPage({
+      currentUserId: "2",
+      detail: room({ full: true, hostReady: false, guestReady: false, currentUserReady: false }),
+      socket,
+    });
+    socket.emit({ type: "PEER_LEFT", payload: { userId: 1, newHostUserId: 2 } });
+    expect(await screen.findByRole("button", { name: /게임 시작/ })).toBeTruthy();
+    expect((await screen.findAllByText("1/2")).length).toBeGreaterThan(0);
+  });
+
   it("asks a returning player before resuming an active game", async () => {
     const { camera } = cameraFixture();
     renderPage({ detail: room({ full: true, status: "PLAYING", activeMatchId: "match-1" }), camera, media: new MockBattleMediaSession() });
@@ -108,6 +131,22 @@ describe("BattleWaitingRoomPage backend flow", () => {
     const disconnect = vi.spyOn(media, "disconnect");
     renderPage({ gateway: gateway({ leaveRoom }), camera, media });
     fireEvent.click(await screen.findByRole("button", { name: "방 나가기" }));
+    await waitFor(() => expect(leaveRoom).toHaveBeenCalledWith("1"));
+    expect(disconnect).toHaveBeenCalledTimes(1);
+    expect(camera.stop).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText("LIST_ROUTE")).toBeTruthy();
+  });
+
+  it("leaves and releases media when browser history moves back", async () => {
+    const leaveRoom = vi.fn(async () => undefined);
+    const camera = emptyCamera();
+    const media = new MockBattleMediaSession();
+    const disconnect = vi.spyOn(media, "disconnect");
+    renderPage({ gateway: gateway({ leaveRoom }), camera, media });
+
+    await screen.findByText("Room WebSocket");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+
     await waitFor(() => expect(leaveRoom).toHaveBeenCalledWith("1"));
     expect(disconnect).toHaveBeenCalledTimes(1);
     expect(camera.stop).toHaveBeenCalledTimes(1);
@@ -179,7 +218,7 @@ function gateway(overrides: Partial<BattleRoomGateway> = {}): BattleRoomGateway 
   return {
     getRooms: vi.fn(async () => []),
     createRoom: vi.fn(),
-    joinRoom: vi.fn(),
+    joinRoom: vi.fn(() => new Promise<BattleRoomSession>(() => undefined)),
     getRoom: vi.fn(async () => room()),
     setReady: vi.fn(async () => session()),
     leaveRoom: vi.fn(async () => undefined),

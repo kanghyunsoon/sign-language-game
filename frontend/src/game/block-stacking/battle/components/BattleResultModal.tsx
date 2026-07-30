@@ -8,6 +8,7 @@ interface BattleResultModalProps {
   readonly result: MatchFinishedEvent | null;
   readonly playerId: string;
   readonly busy?: boolean;
+  readonly readyForRematch?: boolean;
   readonly error?: string | null;
   readonly onReturnToWaiting: () => void;
   readonly onRoomList: () => void;
@@ -18,6 +19,7 @@ export function BattleResultModal({
   result,
   playerId,
   busy = false,
+  readyForRematch = true,
   error,
   onReturnToWaiting,
   onRoomList,
@@ -65,9 +67,10 @@ export function BattleResultModal({
         </div>
 
         {error ? <p className={resultStyles.error} role="alert">{error}</p> : null}
+        {!readyForRematch && !error ? <p role="status">결과 저장 확인 중입니다.</p> : null}
 
         <footer className={resultStyles.actions}>
-          <button type="button" disabled={busy} onClick={onReturnToWaiting}>다시 하기</button>
+          <button type="button" disabled={busy || !readyForRematch} onClick={onReturnToWaiting}>다시 하기</button>
           <button type="button" disabled={busy} onClick={onRoomList}>같은 방으로</button>
           <button type="button" disabled={busy} onClick={onModeSelect}>게임방 목록</button>
         </footer>
