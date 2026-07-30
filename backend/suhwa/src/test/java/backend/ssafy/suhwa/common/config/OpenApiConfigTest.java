@@ -1,6 +1,6 @@
 package backend.ssafy.suhwa.common.config;
 
-import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasItems;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -24,8 +24,9 @@ class OpenApiConfigTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type").value("http"))
                 .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"))
-                .andExpect(jsonPath("$.tags[*].name", containsInAnyOrder(
-                        "Auth", "Users", "Learning", "GameRooms", "Ranking", "GameRooms-WebSocket")));
+                .andExpect(jsonPath("$.tags[*].name", hasItems(
+                        "Auth", "Users", "Learning", "Growth", "SoloSessions",
+                        "GameRooms", "Ranking", "GameRooms-WebSocket")));
     }
 
     @Test
