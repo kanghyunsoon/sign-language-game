@@ -152,7 +152,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
     const socket = services.roomRealtimeSocketFactory.create(roomId);
     roomSocketRef.current = socket;
     const unsubscribe = socket.subscribe((message) => {
-      if (message.type === "GAME_STARTED") void startRtcAndEnter();
+      if (message.type === "GAME_STARTED") void startRtcAndEnterRef.current();
       if (message.type === "PEER_LEFT") {
         const current = roomRef.current;
         if (current) {
@@ -186,7 +186,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
       if (roomSocketRef.current === socket) roomSocketRef.current = null;
       socket.disconnect();
     };
-  }, [roomId, services.roomRealtimeSocketFactory, startRtcAndEnter, rememberRoom]);
+  }, [roomId, services.roomRealtimeSocketFactory, rememberRoom]);
 
   const startCameraPreview = async () => {
     try {
@@ -229,24 +229,6 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
     }
   };
 
-  useEffect(() => {
-    if (!roomId || room?.status !== "FULL" || !room.hostReady || room.playerCount < room.maxPlayers || room.hostUserId !== user.userId || !gateway.setReady) return;
-    let active = true;
-    const syncReadyState = async () => {
-      try {
-        const next = await gateway.setReady!(roomId, true);
-        if (active) rememberRoom(next);
-      } catch {
-        // The next interval retries. The start button remains safely disabled.
-      }
-    };
-    const timer = window.setInterval(() => void syncReadyState(), 250);
-    void syncReadyState();
-    return () => {
-      active = false;
-      window.clearInterval(timer);
-    };
-  }, [gateway, rememberRoom, room?.guestReady, room?.hostReady, room?.hostUserId, room?.maxPlayers, room?.playerCount, roomId, user.userId]);
   const startGame = async () => {
     if (!roomId || !room || startingGame || !room.hostReady || !room.guestReady || room.playerCount < room.maxPlayers) return;
     setStartingGame(true);
