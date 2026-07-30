@@ -1014,10 +1014,3 @@
   .battleFixedPage .duelLayout { grid-template-columns: 1fr; grid-template-rows: minmax(460px, 1fr) 300px; }
   .battleFixedPage .duelCameraRail { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: 1fr; }
 }
-
-/* The battle page is rendered inside a fixed 1280×720 canvas. Browser zoom
-   can satisfy mobile media queries even on a desktop, so retain the two-board
-   desktop composition whenever that fixed canvas is active. */
-:global([data-fixed-game-canvas="true"]) .battleFixedPage { height:100% !important; min-height:0 !important; overflow:hidden !important; }
-:global([data-fixed-game-canvas="true"]) .battleFixedPage .duelLayout { grid-template-columns:minmax(0,3.35fr) minmax(250px,1fr); grid-template-rows:none; }
-:global([data-fixed-game-canvas="true"]) .battleFixedPage .duelCameraRail { grid-template-columns:none; grid-template-rows:repeat(2,minmax(0,1fr)); }

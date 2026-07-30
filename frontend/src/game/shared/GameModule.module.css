@@ -1,9 +1,5 @@
 .module { flex: 1 1 auto; width: 100%; min-width: 0; min-height: 0; color: #17324d; font-family: "Noto Sans KR", "Malgun Gothic", sans-serif; }
 .module { overflow: auto; }
-.fixedViewportModule { position: relative; display: grid; flex: none; width: 100vw; height: 100dvh; min-height: 0; place-items: center; overflow: hidden; background: #e0f1ff; }
-.gameViewportCanvas { --game-viewport-scale: 1; --game-viewport-width: 1920px; --game-viewport-height: 1080px; position: absolute; top: 50%; left: 50%; width: var(--game-viewport-width); height: var(--game-viewport-height); min-width: var(--game-viewport-width); min-height: var(--game-viewport-height); overflow: hidden; transform: translate(-50%, -50%) scale(var(--game-viewport-scale)); transform-origin: center; }
-.gameViewportCanvas > * { width: 100%; height: 100%; min-height: 0; }
-.gameViewportCanvas > .tetrisModePage { width: 100%; height: 100%; }
 .module *, .module *::before, .module *::after { box-sizing: border-box; }
 .modePage, .categoryPage, .placeholder { width: min(960px, 100%); margin: 0 auto; padding: 32px 20px; }
 .modeHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding-bottom: 20px; border-bottom: 2px solid #245a8d; }
@@ -30,7 +26,7 @@
 .disabled:hover { border-color: #9abbd4; background: #f7fbfe; }
 .placeholder a { display: inline-flex; align-items: center; gap: 7px; margin-top: 18px; color: #245a8d; font-weight: 800; }
 .placeholderIcon { display: inline-grid; place-items: center; width: 62px; height: 62px; border-radius: 50%; background: #eef7fd; color: #245a8d; }
-@media (max-width: 720px) { .module:not(.fixedViewportModule) .modeGrid, .module:not(.fixedViewportModule) .categoryGrid { grid-template-columns: 1fr; } .module:not(.fixedViewportModule) .modeHeader { flex-direction: column; } .module:not(.fixedViewportModule) .categoryCard { min-height: 270px; } }
+@media (max-width: 720px) { .module .modeGrid, .module .categoryGrid { grid-template-columns: 1fr; } .module .modeHeader { flex-direction: column; } .module .categoryCard { min-height: 270px; } }
 
 /* Legacy solo class names are scoped below the module root during staged extraction. */
 .module :global(.solo-game-page) { position: relative; display: grid; height: calc(100dvh - 28px); min-height: 0; grid-template-rows: auto minmax(0, 1fr); gap: 8px; padding: 14px; background: #dceefa; }
@@ -180,8 +176,8 @@
 .module :global(.crowd-dashboard dt) { color:#627087; }
 .module :global(.crowd-dashboard dd) { margin:0; overflow-wrap:anywhere; font-weight:700; }
 @media (max-width:900px) { .module :global(.crowd-runtime) { grid-template-columns:1fr; } .module :global(.crowd-dashboard) { position:static; max-height:none; } }
-.module:has(> :global(.solo-game-page)) { position: relative; display: grid; width: 100vw; height: 100dvh; min-height: 0; place-items: center; overflow: hidden; background: #e0f1ff; }
-.module :global(.solo-game-page) { --solo-canvas-scale: 1; position: absolute; top: 50%; left: 50%; display: grid; width: 2048px; height: 1092px; min-width: 2048px; min-height: 1092px; grid-template-rows: 115px minmax(0, 1fr); gap: 7px; margin: 0; padding: 7px 9px 9px; overflow: hidden; border: 1px solid #c8dfe9; border-radius: 4px; background: linear-gradient(to bottom, #e0f1ff 0 84%, #c9e59d 84% 95%, #a9cd7c 95%); box-shadow: 0 12px 34px rgba(44,84,103,.14); isolation: isolate; transform: translate(-50%, -50%) scale(var(--solo-canvas-scale)); transform-origin: center; }
+.module:has(> :global(.solo-game-page)) { position: relative; display: grid; width: 100%; min-height: 100dvh; overflow: auto; background: #e0f1ff; }
+.module :global(.solo-game-page) { position: relative; display: grid; width: 100%; height: 100dvh; min-width: 0; min-height: 720px; grid-template-rows: 115px minmax(0, 1fr); gap: 7px; margin: 0; padding: 7px 9px 9px; overflow: hidden; border: 1px solid #c8dfe9; border-radius: 4px; background: linear-gradient(to bottom, #e0f1ff 0 84%, #c9e59d 84% 95%, #a9cd7c 95%); box-shadow: 0 12px 34px rgba(44,84,103,.14); isolation: isolate; }
 .module :global(.solo-game-page::before) { position: absolute; z-index: -1; inset: 0; background-image: linear-gradient(rgba(99,165,201,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(99,165,201,.07) 1px, transparent 1px); background-size: 42px 42px; content: ""; mask-image: linear-gradient(to bottom, #000 0 76%, transparent 94%); }
 .module :global(.solo-game-header) { position: relative; min-height: 0; padding: 8px 12px 8px 15px; overflow: hidden; border: 2px solid rgba(255,255,255,.92); border-radius: 15px !important; background: rgba(255,255,255,.92); box-shadow: 0 5px 0 rgba(70,119,139,.12), 0 10px 24px rgba(49,92,111,.09) !important; color: #2d3d44; }
 .module :global(.solo-game-header::before), .module :global(.solo-game-header::after) { content: none; }
@@ -656,15 +652,15 @@
 .comingSoonConfirm:active { transform: translateY(3px); box-shadow: 0 2px 0 #8fa833; }
 @keyframes comingSoonPop { from { opacity: 0; transform: translateY(18px) scale(.92); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @media (max-width: 760px) {
-  .module:not(.fixedViewportModule):has(> .categoryPage) { overflow: auto; }
-  .module:not(.fixedViewportModule) .categoryPage { width: 100%; height: auto; min-height: 100dvh; margin: 0; padding: 18px; grid-template-rows: auto auto auto auto; border: 0; background: linear-gradient(to bottom, #e0f1ff 0 48%, #c9e59d 48% 94%, #a9cd7c 94%); }
-  .module:not(.fixedViewportModule) .categoryHero { margin: 12px 0 28px; }
-  .module:not(.fixedViewportModule) .otterLogo { font-size: clamp(38px, 13vw, 58px); }
-  .module:not(.fixedViewportModule) .categoryOtter { width: 185px; height: 185px; }
-  .module:not(.fixedViewportModule) .skyCloud { opacity: .58; }
-  .module:not(.fixedViewportModule) .categoryGrid { grid-template-columns: 1fr; align-items: stretch; gap: 16px; width: min(420px, 100%); }
-  .module:not(.fixedViewportModule) .categoryCard, .module:not(.fixedViewportModule) .categoryCardFeatured { min-height: 142px; transform: none; }
-  .module:not(.fixedViewportModule) .categoryCardFeatured[href]:hover, .module:not(.fixedViewportModule) .categoryCard[href]:hover { transform: translateY(-7px); }
+  .module:has(> .categoryPage) { overflow: auto; }
+  .module .categoryPage { width: 100%; height: auto; min-height: 100dvh; margin: 0; padding: 18px; grid-template-rows: auto auto auto auto; border: 0; background: linear-gradient(to bottom, #e0f1ff 0 48%, #c9e59d 48% 94%, #a9cd7c 94%); }
+  .module .categoryHero { margin: 12px 0 28px; }
+  .module .otterLogo { font-size: clamp(38px, 13vw, 58px); }
+  .module .categoryOtter { width: 185px; height: 185px; }
+  .module .skyCloud { opacity: .58; }
+  .module .categoryGrid { grid-template-columns: 1fr; align-items: stretch; gap: 16px; width: min(420px, 100%); }
+  .module .categoryCard, .module .categoryCardFeatured { min-height: 142px; transform: none; }
+  .module .categoryCardFeatured[href]:hover, .module .categoryCard[href]:hover { transform: translateY(-7px); }
 }
 
 /* Tetris mode selection: same mascot palette, with a stronger arcade presentation. */
@@ -828,17 +824,13 @@
 .module :global(.solo-back-button) { display: grid; flex: 0 0 auto; width: 36px; height: 36px; padding: 0; place-items: center; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 4px 0 #b6cf8d, 0 7px 14px rgba(63,108,126,.14); color: #597044; cursor: pointer; }
 .module :global(.solo-back-button:hover) { transform: translateY(-1px); }
 
-/*
- * The Solo page is a fixed 2048×1092 game canvas. Browser zoom changes the
- * CSS viewport width and can activate the legacy mobile rules in styles.css.
- * Keep those rules from collapsing the board to 620px inside this canvas.
- */
+/* Solo uses normal document sizing so browser zoom can reflow the workspace. */
 .module:has(> :global(.solo-game-page)) > :global(.solo-game-page) {
   display: grid !important;
-  width: 2048px !important;
-  height: 1092px !important;
-  min-width: 2048px !important;
-  min-height: 1092px !important;
+  width: 100% !important;
+  height: 100dvh !important;
+  min-width: 0 !important;
+  min-height: 720px !important;
   grid-template-rows: 115px minmax(0, 1fr) !important;
 }
 
@@ -884,4 +876,25 @@
   justify-self: stretch !important;
   align-self: stretch !important;
   aspect-ratio: auto !important;
+}
+
+@media (max-width: 820px) {
+  .module:has(> :global(.solo-game-page)) > :global(.solo-game-page) {
+    height: auto !important;
+    min-height: 100dvh !important;
+    overflow: visible;
+  }
+  .module:has(> :global(.solo-game-page)) > :global(.solo-game-page) > :global(.solo-workspace) {
+    height: auto !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: minmax(620px, 75dvh) minmax(620px, 75dvh) !important;
+  }
+  .module:has(> :global(.solo-game-page)) > :global(.solo-game-page) > :global(.solo-workspace) > :global(.solo-stage-column) {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+  .module:has(> :global(.solo-game-page)) > :global(.solo-game-page) > :global(.solo-workspace) > :global(.solo-sidebar) {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+  }
 }
