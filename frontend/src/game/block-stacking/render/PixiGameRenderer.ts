@@ -99,6 +99,15 @@ export class PixiGameRenderer implements GameRenderer {
     // Solo mode supplies its animated scenery from the DOM layer below Pixi.
     // Other modes keep the renderer-owned static scenery by default.
     app.renderer.background.alpha = resolvedConfig.showScenery ? 1 : 0;
+    // In battle mode the shared DOM backdrop is the only scenery source and
+    // glyphs are rendered in the front DOM layer below. Some WebGL drivers
+    // still present a transparent Pixi clear buffer as white, despite
+    // backgroundAlpha: 0. Hide just that canvas so it cannot mask the shared
+    // backdrop while keeping the renderer alive for state and effects.
+    if (!resolvedConfig.showScenery) {
+      app.canvas.style.visibility = "hidden";
+      app.canvas.style.pointerEvents = "none";
+    }
     const renderer = new PixiGameRenderer(app, resolvedConfig, mount);
     app.stop();
     return renderer;
