@@ -8,8 +8,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import backend.ssafy.suhwa.common.security.JwtTokenProvider;
 import backend.ssafy.suhwa.learning.domain.Sign;
 import backend.ssafy.suhwa.learning.domain.SignCategory;
+import backend.ssafy.suhwa.learning.domain.TestSession;
 import backend.ssafy.suhwa.learning.dto.WrongAnswerRequest;
 import backend.ssafy.suhwa.learning.repository.SignRepository;
+import backend.ssafy.suhwa.learning.repository.TestSessionRepository;
 import backend.ssafy.suhwa.user.domain.User;
 import backend.ssafy.suhwa.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -35,6 +37,9 @@ class LearningIntegrationTest {
     private SignRepository signRepository;
 
     @Autowired
+    private TestSessionRepository testSessionRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -51,12 +56,15 @@ class LearningIntegrationTest {
                 .passwordHash("hash")
                 .nickname("테스터")
                 .build());
+        TestSession testSession = testSessionRepository.save(
+                TestSession.builder().userId(user.getId()).build());
         String token = jwtTokenProvider.createAccessToken(user.getId());
 
         mockMvc.perform(post("/wrong-answers")
                         .header("Authorization", "Bearer " + token)
                         .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(new WrongAnswerRequest(sign.getId()))))
+                        .content(objectMapper.writeValueAsString(
+                                new WrongAnswerRequest(testSession.getId(), sign.getId()))))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(get("/wrong-answers")

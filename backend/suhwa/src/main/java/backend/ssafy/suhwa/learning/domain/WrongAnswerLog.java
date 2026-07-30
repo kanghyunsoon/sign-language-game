@@ -29,13 +29,17 @@ public class WrongAnswerLog {
     @Column(name = "sign_id", nullable = false)
     private Long signId;
 
+    @Column(name = "test_session_id")
+    private Long testSessionId;
+
     @CreationTimestamp
     @Column(name = "wrong_at", nullable = false, updatable = false)
     private LocalDateTime wrongAt;
 
     @Builder
-    public WrongAnswerLog(Long userId, Long signId) {
+    public WrongAnswerLog(Long userId, Long signId, Long testSessionId) {
         this.userId = userId;
         this.signId = signId;
+        this.testSessionId = testSessionId;
     }
 }

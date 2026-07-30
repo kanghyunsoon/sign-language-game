@@ -36,6 +36,7 @@ public class RankingService {
         boolean solo = gameType == GameResultType.TETRIS_SOLO;
 
         Map<Long, List<GameResult>> byUser = gameResultService.findByGameType(gameType).stream()
+                .filter(result -> !solo || result.getPlayDurationMs() != null)
                 .collect(Collectors.groupingBy(GameResult::getUserId));
 
         // 탈퇴 회원은 User의 @SQLRestriction로 조회 결과에서 이미 제외된다(FR-007).
@@ -47,7 +48,8 @@ public class RankingService {
                 .filter(e -> activeUsers.containsKey(e.getKey()))
                 .map(e -> toScored(activeUsers.get(e.getKey()), e.getValue(), solo))
                 .sorted(solo
-                        ? Comparator.comparingInt(Scored::score).reversed()
+                        ? Comparator.comparingLong(Scored::playDurationMs)
+                                .thenComparing(Scored::userId)
                         : Comparator.comparingInt(Scored::score).reversed()
                                 .thenComparing(Comparator.comparingInt(Scored::tieBreak)))
                 .toList();
@@ -55,7 +57,8 @@ public class RankingService {
         List<RankingEntry> top = new ArrayList<>();
         for (int i = 0; i < Math.min(TOP_N, scored.size()); i++) {
             Scored s = scored.get(i);
-            top.add(new RankingEntry(i + 1, s.userId(), s.nickname(), s.score()));
+            top.add(new RankingEntry(
+                    i + 1, s.userId(), s.nickname(), s.score(), s.playDurationMs()));
         }
 
         return new RankingResponse(top, findMe(scored, requesterId, solo));
@@ -63,12 +66,20 @@ public class RankingService {
 
     private Scored toScored(User user, List<GameResult> rows, boolean solo) {
         if (solo) {
-            int best = rows.stream().mapToInt(GameResult::getScore).max().orElse(0);
-            return new Scored(user.getId(), user.getNickname(), best, 0);
+            GameResult fastest = rows.stream()
+                    .min(Comparator.comparingLong(GameResult::getPlayDurationMs)
+                            .thenComparing(GameResult::getId))
+                    .orElseThrow();
+            return new Scored(
+                    user.getId(),
+                    user.getNickname(),
+                    fastest.getScore(),
+                    0,
+                    fastest.getPlayDurationMs());
         }
         int winCount = rows.stream().mapToInt(GameResult::getScore).sum();
         int lossCount = rows.size() - winCount;
-        return new Scored(user.getId(), user.getNickname(), winCount, lossCount);
+        return new Scored(user.getId(), user.getNickname(), winCount, lossCount, null);
     }
 
     /** 요청자가 이 게임 종류를 한 번도 플레이하지 않았으면 null(US9 AC4) — 001과 달리 항상 존재하지 않는다. */
@@ -81,9 +92,16 @@ public class RankingService {
         // 번호와는 별개로, "나보다 확실히 나은" 기록 수 + 1로 계산한다.
         long betterCount = scored.stream()
                 .filter(s -> !s.userId().equals(requesterId))
-                .filter(s -> solo ? s.score() > mine.score() : outranksInDuel(s, mine))
+                .filter(s -> solo
+                        ? s.playDurationMs() < mine.playDurationMs()
+                        : outranksInDuel(s, mine))
                 .count();
-        return new RankingEntry((int) betterCount + 1, mine.userId(), mine.nickname(), mine.score());
+        return new RankingEntry(
+                (int) betterCount + 1,
+                mine.userId(),
+                mine.nickname(),
+                mine.score(),
+                mine.playDurationMs());
     }
 
     private boolean outranksInDuel(Scored candidate, Scored mine) {
@@ -91,6 +109,7 @@ public class RankingService {
                 || (candidate.score() == mine.score() && candidate.tieBreak() < mine.tieBreak());
     }
 
-    private record Scored(Long userId, String nickname, int score, int tieBreak) {
+    private record Scored(
+            Long userId, String nickname, int score, int tieBreak, Long playDurationMs) {
     }
 }

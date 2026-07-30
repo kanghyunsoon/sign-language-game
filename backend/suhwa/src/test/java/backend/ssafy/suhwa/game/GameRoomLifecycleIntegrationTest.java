@@ -10,6 +10,8 @@ import backend.ssafy.suhwa.game.dto.JoinRoomRequest;
 import backend.ssafy.suhwa.game.dto.ReadyRequest;
 import backend.ssafy.suhwa.user.domain.User;
 import backend.ssafy.suhwa.user.repository.UserRepository;
+import backend.ssafy.suhwa.growth.domain.UserPet;
+import backend.ssafy.suhwa.growth.repository.UserPetRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -35,6 +37,9 @@ class GameRoomLifecycleIntegrationTest {
     private UserRepository userRepository;
 
     @Autowired
+    private UserPetRepository userPetRepository;
+
+    @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
     @Test
@@ -43,6 +48,8 @@ class GameRoomLifecycleIntegrationTest {
                 .email("host-" + System.nanoTime() + "@test.com").passwordHash("h").nickname("host").build());
         User guest = userRepository.save(User.builder()
                 .email("guest-" + System.nanoTime() + "@test.com").passwordHash("h").nickname("guest").build());
+        userPetRepository.save(UserPet.builder().userId(host.getId()).build());
+        userPetRepository.save(UserPet.builder().userId(guest.getId()).build());
         String hostToken = "Bearer " + jwtTokenProvider.createAccessToken(host.getId());
         String guestToken = "Bearer " + jwtTokenProvider.createAccessToken(guest.getId());
 

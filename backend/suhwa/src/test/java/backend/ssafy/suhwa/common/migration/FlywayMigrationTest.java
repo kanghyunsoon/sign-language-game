@@ -59,16 +59,18 @@ class FlywayMigrationTest {
         assertThat(result.success).isTrue();
         assertThat(result.migrationsExecuted)
                 .as("신규 DB에서는 V1부터 전부 실행돼야 한다")
-                .isGreaterThanOrEqualTo(4);
+                .isGreaterThanOrEqualTo(5);
         assertThat(appliedVersions(schema))
                 .as("버전이 빠짐없이 성공으로 기록돼야 한다")
                 .containsEntry("1", true)
                 .containsEntry("2", true)
                 .containsEntry("3", true)
-                .containsEntry("4", true);
+                .containsEntry("4", true)
+                .containsEntry("5", true);
         assertGameRoomIndexReplaced(schema);
         assertTestSessionSchemaCreated(schema);
         assertGrowthSchemaMigrated(schema);
+        assertActivityRewardSchemaMigrated(schema);
     }
 
     @Test
@@ -85,13 +87,63 @@ class FlywayMigrationTest {
                 .containsEntry("1", true)
                 .containsEntry("2", true)
                 .containsEntry("3", true)
-                .containsEntry("4", true);
+                .containsEntry("4", true)
+                .containsEntry("5", true);
         assertThat(baselineRowExists(schema))
                 .as("baseline-on-migrate가 동작했다면 BASELINE 타입 행이 있어야 한다")
                 .isTrue();
         assertGameRoomIndexReplaced(schema);
         assertTestSessionSchemaCreated(schema);
         assertGrowthSchemaMigrated(schema);
+        assertActivityRewardSchemaMigrated(schema);
+    }
+
+    @Test
+    void existingCompletedTestSessionsAreBackfilledWithoutRetroactiveReward() throws Exception {
+        String schema = resetDatabase();
+        flyway(schema, "3").migrate();
+        try (Connection connection = connect(schema);
+                Statement statement = connection.createStatement()) {
+            statement.executeUpdate(
+                    "INSERT INTO users (email, password_hash, nickname) "
+                            + "VALUES ('legacy@test.com', 'hash', 'legacy')");
+            statement.executeUpdate(
+                    "INSERT INTO test_sessions (user_id, completed_at) "
+                            + "VALUES (1, CURRENT_TIMESTAMP)");
+        }
+
+        flyway(schema).migrate();
+
+        assertThat(count(schema,
+                "SELECT COUNT(*) FROM test_sessions "
+                        + "WHERE completed_at IS NOT NULL "
+                        + "AND correct_count = 0 AND total_count = 1"))
+                .as("legacy completion stays completed but is not made reward-eligible")
+                .isEqualTo(1);
+    }
+
+    private void assertActivityRewardSchemaMigrated(String schema) throws SQLException {
+        assertThat(count(schema,
+                "SELECT COUNT(*) FROM information_schema.TABLES "
+                        + "WHERE TABLE_SCHEMA = '" + schema + "' "
+                        + "AND TABLE_NAME IN ('practice_sessions', 'solo_sessions', "
+                        + "'solo_session_symbols', 'solo_symbol_statistics')"))
+                .as("V5 creates activity idempotency tables")
+                .isEqualTo(4);
+        assertThat(count(schema,
+                "SELECT COUNT(*) FROM information_schema.COLUMNS "
+                        + "WHERE TABLE_SCHEMA = '" + schema + "' "
+                        + "AND TABLE_NAME = 'test_sessions' "
+                        + "AND COLUMN_NAME IN ('correct_count', 'total_count')"))
+                .as("V5 stores the authoritative test completion result")
+                .isEqualTo(2);
+        assertThat(count(schema,
+                "SELECT COUNT(*) FROM information_schema.COLUMNS "
+                        + "WHERE TABLE_SCHEMA = '" + schema + "' "
+                        + "AND TABLE_NAME = 'game_results' "
+                        + "AND COLUMN_NAME IN ('solo_session_id', 'play_duration_ms')"))
+                .as("V5 links solo results and completion time")
+                .isEqualTo(2);
     }
 
     private void assertGrowthSchemaMigrated(String schema) throws SQLException {
@@ -152,6 +204,16 @@ class FlywayMigrationTest {
                 // application.yaml과 같은 설정으로 맞춘다 — 운영과 다른 조건으로 검증하면 의미가 없다.
                 .baselineOnMigrate(true)
                 .baselineVersion("1")
+                .load();
+    }
+
+    private Flyway flyway(String schema, String targetVersion) {
+        return Flyway.configure()
+                .dataSource(jdbcUrl(schema), MYSQL.getUsername(), MYSQL.getPassword())
+                .locations(MIGRATION_LOCATION)
+                .baselineOnMigrate(true)
+                .baselineVersion("1")
+                .target(targetVersion)
                 .load();
     }
 

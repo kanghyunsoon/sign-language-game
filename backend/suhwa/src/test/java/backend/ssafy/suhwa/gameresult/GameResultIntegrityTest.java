@@ -15,6 +15,9 @@ import backend.ssafy.suhwa.gameresult.domain.GameResult;
 import backend.ssafy.suhwa.gameresult.domain.GameResultType;
 import backend.ssafy.suhwa.gameresult.repository.GameResultRepository;
 import backend.ssafy.suhwa.gameresult.service.GameResultService;
+import backend.ssafy.suhwa.growth.config.GrowthPolicyProperties;
+import backend.ssafy.suhwa.growth.domain.UserPet;
+import backend.ssafy.suhwa.growth.service.GrowthRewardService;
 import backend.ssafy.suhwa.user.domain.User;
 import backend.ssafy.suhwa.user.repository.UserRepository;
 import java.util.List;
@@ -55,8 +58,13 @@ class GameResultIntegrityTest {
 
     @BeforeEach
     void setUp() {
+        GrowthRewardService growthRewardService = Mockito.mock(GrowthRewardService.class);
+        Mockito.when(growthRewardService.lockPet(Mockito.anyLong()))
+                .thenReturn(Mockito.mock(UserPet.class));
         gameRoomService = new GameRoomService(
-                gameRoomRepository, new GameResultService(gameResultRepository),
+                gameRoomRepository,
+                new GameResultService(
+                        gameResultRepository, growthRewardService, new GrowthPolicyProperties()),
                 Mockito.mock(RoomRealtimeNotifier.class), Mockito.mock(LobbyBroadcastService.class),
                 new RoomParticipantRegistry(), new RealtimeTicketService(60L),
                 Mockito.mock(TaskScheduler.class), 15L,

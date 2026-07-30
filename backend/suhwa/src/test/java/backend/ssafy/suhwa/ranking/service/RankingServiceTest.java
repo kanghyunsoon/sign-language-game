@@ -9,6 +9,8 @@ import backend.ssafy.suhwa.gameresult.domain.GameResultType;
 import backend.ssafy.suhwa.gameresult.repository.GameResultRepository;
 import backend.ssafy.suhwa.gameresult.service.GameResultService;
 import backend.ssafy.suhwa.growth.service.PetGrowthService;
+import backend.ssafy.suhwa.growth.service.GrowthRewardService;
+import backend.ssafy.suhwa.growth.config.GrowthPolicyProperties;
 import backend.ssafy.suhwa.ranking.dto.RankingResponse;
 import backend.ssafy.suhwa.user.domain.User;
 import backend.ssafy.suhwa.user.repository.UserRepository;
@@ -47,7 +49,12 @@ class RankingServiceTest {
                 Mockito.mock(PasswordEncoder.class),
                 Mockito.mock(PetGrowthService.class),
                 Mockito.mock(PlatformTransactionManager.class));
-        rankingService = new RankingService(new GameResultService(gameResultRepository), userService);
+        rankingService = new RankingService(
+                new GameResultService(
+                        gameResultRepository,
+                        Mockito.mock(GrowthRewardService.class),
+                        new GrowthPolicyProperties()),
+                userService);
     }
 
     private Long createUser(String label) {
@@ -59,6 +66,16 @@ class RankingServiceTest {
 
     private void record(Long userId, GameResultType gameType, int score) {
         gameResultRepository.save(GameResult.builder().userId(userId).gameType(gameType).score(score).build());
+    }
+
+    private void recordSolo(Long userId, int score, long duration, String sessionId) {
+        gameResultRepository.save(GameResult.builder()
+                .userId(userId)
+                .gameType(GameResultType.TETRIS_SOLO)
+                .score(score)
+                .soloSessionId(sessionId)
+                .playDurationMs(duration)
+                .build());
     }
 
     @Test
@@ -93,15 +110,30 @@ class RankingServiceTest {
     }
 
     @Test
-    void soloRanking_ordersByMaxScore() {
-        Long userId = createUser("soloplayer");
-        record(userId, GameResultType.TETRIS_SOLO, 500);
-        record(userId, GameResultType.TETRIS_SOLO, 900);
-        record(userId, GameResultType.TETRIS_SOLO, 300);
+    void soloRanking_ordersByEachUsersFastestCompletionTime() {
+        Long fastUser = createUser("fast");
+        Long slowUser = createUser("slow");
+        recordSolo(fastUser, 500, 100_000, "fast-1");
+        recordSolo(fastUser, 900, 90_000, "fast-2");
+        recordSolo(slowUser, 2_000, 110_000, "slow-1");
+
+        RankingResponse response = rankingService.getRankings(fastUser, GameResultType.TETRIS_SOLO);
+
+        assertThat(response.top()).extracting(entry -> entry.userId())
+                .containsExactly(fastUser, slowUser);
+        assertThat(response.me().playDurationMs()).isEqualTo(90_000);
+        assertThat(response.me().score()).isEqualTo(900);
+    }
+
+    @Test
+    void legacySoloResultsWithoutDurationAreExcluded() {
+        Long userId = createUser("legacy");
+        record(userId, GameResultType.TETRIS_SOLO, 9999);
 
         RankingResponse response = rankingService.getRankings(userId, GameResultType.TETRIS_SOLO);
 
-        assertThat(response.me().score()).isEqualTo(900);
+        assertThat(response.top()).isEmpty();
+        assertThat(response.me()).isNull();
     }
 
     @Test

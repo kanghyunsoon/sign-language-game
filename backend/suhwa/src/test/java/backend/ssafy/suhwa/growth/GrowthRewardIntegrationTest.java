@@ -1,19 +1,20 @@
 package backend.ssafy.suhwa.growth;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import backend.ssafy.suhwa.common.exception.BusinessException;
 import backend.ssafy.suhwa.growth.config.GrowthPolicyProperties;
 import backend.ssafy.suhwa.growth.domain.UserPet;
-import backend.ssafy.suhwa.growth.dto.AttendanceCompletionResponse;
-import backend.ssafy.suhwa.growth.repository.AttendanceRepository;
 import backend.ssafy.suhwa.growth.repository.UserPetRepository;
-import backend.ssafy.suhwa.growth.service.AttendanceService;
 import backend.ssafy.suhwa.growth.service.GrowthRewardService;
 import backend.ssafy.suhwa.growth.service.PetGrowthService;
+import backend.ssafy.suhwa.learning.dto.ActivityCompletionResponse;
+import backend.ssafy.suhwa.learning.repository.PracticeSessionRepository;
+import backend.ssafy.suhwa.learning.service.PracticeSessionService;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -35,19 +36,19 @@ import backend.ssafy.suhwa.user.service.UserService;
 @DataJpaTest
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 @Import({
-        AttendanceService.class,
+        PracticeSessionService.class,
         GrowthRewardService.class,
         PetGrowthService.class,
-        AttendanceIntegrationTest.Config.class
+        GrowthRewardIntegrationTest.Config.class
 })
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
-class AttendanceIntegrationTest {
+class GrowthRewardIntegrationTest {
 
     @Autowired
-    private AttendanceService attendanceService;
+    private PracticeSessionService practiceSessionService;
 
     @Autowired
-    private AttendanceRepository attendanceRepository;
+    private PracticeSessionRepository practiceSessionRepository;
 
     @Autowired
     private UserPetRepository userPetRepository;
@@ -57,42 +58,50 @@ class AttendanceIntegrationTest {
 
     @AfterEach
     void cleanUp() {
-        attendanceRepository.deleteAll();
+        practiceSessionRepository.deleteAll();
         userPetRepository.deleteAll();
     }
 
     @Test
-    void concurrentCheckInsCreateOneAttendanceAndOneReward() throws Exception {
+    void concurrentCompletionRewardsExactlyOnce() throws Exception {
         userPetRepository.save(UserPet.builder().userId(1L).build());
-        int requestCount = 6;
-        ExecutorService executor = Executors.newFixedThreadPool(requestCount);
-        CountDownLatch ready = new CountDownLatch(requestCount);
+        Long sessionId = practiceSessionService.start(1L).getId();
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch ready = new CountDownLatch(2);
         CountDownLatch start = new CountDownLatch(1);
-        List<Future<AttendanceCompletionResponse>> futures = new ArrayList<>();
         try {
-            for (int i = 0; i < requestCount; i++) {
-                futures.add(executor.submit(() -> {
-                    ready.countDown();
-                    start.await();
-                    return attendanceService.checkIn(1L);
-                }));
-            }
+            List<Future<ActivityCompletionResponse>> futures = List.of(
+                    executor.submit(() -> completeAtOnce(sessionId, ready, start)),
+                    executor.submit(() -> completeAtOnce(sessionId, ready, start)));
             ready.await();
             start.countDown();
 
-            List<AttendanceCompletionResponse> responses = new ArrayList<>();
-            for (Future<AttendanceCompletionResponse> future : futures) {
-                responses.add(future.get());
-            }
-
-            assertThat(responses).filteredOn(AttendanceCompletionResponse::newlyAttended).hasSize(1);
-            assertThat(attendanceRepository.count()).isEqualTo(1);
-            UserPet pet = userPetRepository.findByUserId(1L).orElseThrow();
-            assertThat(pet.getLevel()).isEqualTo(1);
-            assertThat(pet.getExp()).isEqualTo(3);
+            List<Integer> rewards = List.of(
+                    futures.get(0).get().awardedExp(),
+                    futures.get(1).get().awardedExp());
+            assertThat(rewards).containsExactlyInAnyOrder(10, 0);
+            assertThat(userPetRepository.findByUserId(1L).orElseThrow().getExp()).isEqualTo(10);
         } finally {
             executor.shutdownNow();
         }
+    }
+
+    @Test
+    void missingPetRollsBackActivityCompletion() {
+        Long sessionId = practiceSessionService.start(2L).getId();
+
+        assertThatThrownBy(() -> practiceSessionService.complete(2L, sessionId))
+                .isInstanceOf(BusinessException.class);
+
+        assertThat(practiceSessionRepository.findById(sessionId).orElseThrow().isCompleted())
+                .isFalse();
+    }
+
+    private ActivityCompletionResponse completeAtOnce(
+            Long sessionId, CountDownLatch ready, CountDownLatch start) throws Exception {
+        ready.countDown();
+        start.await();
+        return practiceSessionService.complete(1L, sessionId);
     }
 
     @TestConfiguration
@@ -106,7 +115,7 @@ class AttendanceIntegrationTest {
         @Bean
         Clock growthClock() {
             return Clock.fixed(
-                    Instant.parse("2026-07-29T15:00:00Z"),
+                    Instant.parse("2026-07-30T03:00:00Z"),
                     ZoneId.of("Asia/Seoul"));
         }
     }

@@ -39,14 +39,27 @@ public class GameResult {
     @Column(nullable = false)
     private int score;
 
+    @Column(name = "solo_session_id", unique = true, length = 36)
+    private String soloSessionId;
+
+    @Column(name = "play_duration_ms")
+    private Long playDurationMs;
+
     @Column(name = "recorded_at", nullable = false)
     private LocalDateTime recordedAt;
 
     @Builder
-    public GameResult(Long userId, GameResultType gameType, int score) {
+    public GameResult(
+            Long userId,
+            GameResultType gameType,
+            int score,
+            String soloSessionId,
+            Long playDurationMs) {
         this.userId = userId;
         this.gameType = gameType;
         this.score = score;
+        this.soloSessionId = soloSessionId;
+        this.playDurationMs = playDurationMs;
         this.recordedAt = LocalDateTime.now();
     }
 }

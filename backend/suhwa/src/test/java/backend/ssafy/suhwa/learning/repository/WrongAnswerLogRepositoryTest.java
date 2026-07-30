@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import backend.ssafy.suhwa.learning.domain.Sign;
 import backend.ssafy.suhwa.learning.domain.SignCategory;
 import backend.ssafy.suhwa.learning.domain.WrongAnswerLog;
+import backend.ssafy.suhwa.learning.dto.WrongAnswerCount;
 import backend.ssafy.suhwa.learning.dto.WrongAnswerResponse;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -60,5 +61,56 @@ class WrongAnswerLogRepositoryTest {
                 3L, SignCategory.NUMBER, PageRequest.of(0, 5));
 
         assertThat(result).hasSize(5);
+    }
+
+    @Test
+    void save_preservesOptionalTestSessionId() {
+        WrongAnswerLog withSession = wrongAnswerLogRepository.saveAndFlush(
+                WrongAnswerLog.builder()
+                        .userId(4L)
+                        .signId(10L)
+                        .testSessionId(20L)
+                        .build());
+        WrongAnswerLog legacy = wrongAnswerLogRepository.saveAndFlush(
+                WrongAnswerLog.builder()
+                        .userId(4L)
+                        .signId(11L)
+                        .build());
+
+        assertThat(withSession.getTestSessionId()).isEqualTo(20L);
+        assertThat(legacy.getTestSessionId()).isNull();
+    }
+
+    @Test
+    void countByTestSessions_groupsOnlyUsersConsonantsAndVowels() {
+        Sign consonant = signRepository.save(
+                Sign.builder().category(SignCategory.CONSONANT).label("consonant").build());
+        Sign vowel = signRepository.save(
+                Sign.builder().category(SignCategory.VOWEL).label("vowel").build());
+        Sign number = signRepository.save(
+                Sign.builder().category(SignCategory.NUMBER).label("number").build());
+
+        wrongAnswerLogRepository.save(
+                WrongAnswerLog.builder().userId(1L).signId(consonant.getId()).testSessionId(10L).build());
+        wrongAnswerLogRepository.save(
+                WrongAnswerLog.builder().userId(1L).signId(consonant.getId()).testSessionId(11L).build());
+        wrongAnswerLogRepository.save(
+                WrongAnswerLog.builder().userId(1L).signId(vowel.getId()).testSessionId(10L).build());
+        wrongAnswerLogRepository.save(
+                WrongAnswerLog.builder().userId(1L).signId(consonant.getId()).testSessionId(9L).build());
+        wrongAnswerLogRepository.save(
+                WrongAnswerLog.builder().userId(1L).signId(number.getId()).testSessionId(10L).build());
+        wrongAnswerLogRepository.save(
+                WrongAnswerLog.builder().userId(2L).signId(consonant.getId()).testSessionId(10L).build());
+
+        List<WrongAnswerCount> result =
+                wrongAnswerLogRepository.countByUserIdAndTestSessionIdsAndCategories(
+                        1L,
+                        List.of(10L, 11L),
+                        List.of(SignCategory.CONSONANT, SignCategory.VOWEL));
+
+        assertThat(result).containsExactly(
+                new WrongAnswerCount(consonant.getId(), 2L),
+                new WrongAnswerCount(vowel.getId(), 1L));
     }
 }

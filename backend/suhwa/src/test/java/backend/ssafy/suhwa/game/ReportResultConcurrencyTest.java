@@ -7,6 +7,8 @@ import backend.ssafy.suhwa.game.dto.GameRoomResponse;
 import backend.ssafy.suhwa.game.repository.GameRoomRepository;
 import backend.ssafy.suhwa.game.service.GameRoomService;
 import backend.ssafy.suhwa.gameresult.repository.GameResultRepository;
+import backend.ssafy.suhwa.growth.domain.UserPet;
+import backend.ssafy.suhwa.growth.repository.UserPetRepository;
 import backend.ssafy.suhwa.user.domain.User;
 import backend.ssafy.suhwa.user.repository.UserRepository;
 import java.util.ArrayList;
@@ -48,6 +50,9 @@ class ReportResultConcurrencyTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private UserPetRepository userPetRepository;
+
     private final List<Long> createdUserIds = new ArrayList<>();
     private Long createdRoomId;
 
@@ -58,6 +63,8 @@ class ReportResultConcurrencyTest {
         if (createdRoomId != null) {
             gameRoomRepository.deleteById(createdRoomId);
         }
+        createdUserIds.forEach(id -> userPetRepository.findByUserId(id)
+                .ifPresent(userPetRepository::delete));
         createdUserIds.forEach(userRepository::deleteById);
     }
 
@@ -117,6 +124,7 @@ class ReportResultConcurrencyTest {
                         .passwordHash("h").nickname(prefix).build())
                 .getId();
         createdUserIds.add(id);
+        userPetRepository.save(UserPet.builder().userId(id).build());
         return id;
     }
 }

@@ -1,80 +1,95 @@
 package backend.ssafy.suhwa.ranking;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import backend.ssafy.suhwa.common.security.JwtTokenProvider;
+import backend.ssafy.suhwa.auth.service.RefreshTokenService;
 import backend.ssafy.suhwa.gameresult.domain.GameResult;
 import backend.ssafy.suhwa.gameresult.domain.GameResultType;
 import backend.ssafy.suhwa.gameresult.repository.GameResultRepository;
+import backend.ssafy.suhwa.gameresult.service.GameResultService;
+import backend.ssafy.suhwa.growth.config.GrowthPolicyProperties;
+import backend.ssafy.suhwa.growth.service.GrowthRewardService;
+import backend.ssafy.suhwa.growth.service.PetGrowthService;
+import backend.ssafy.suhwa.ranking.dto.RankingResponse;
+import backend.ssafy.suhwa.ranking.service.RankingService;
 import backend.ssafy.suhwa.user.domain.User;
 import backend.ssafy.suhwa.user.repository.UserRepository;
+import backend.ssafy.suhwa.user.service.UserService;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.transaction.PlatformTransactionManager;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@Transactional
+@DataJpaTest
+@TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 class RankingIntegrationTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private UserRepository userRepository;
 
     @Autowired
     private GameResultRepository gameResultRepository;
 
     @Autowired
-    private JwtTokenProvider jwtTokenProvider;
+    private UserRepository userRepository;
 
-    private User createUserWithRecord(int win, int loss) {
-        User user = userRepository.save(User.builder()
-                .email("rank-" + System.nanoTime() + "@test.com")
-                .passwordHash("h")
-                .nickname("랭킹테스터")
+    @Autowired
+    private PlatformTransactionManager transactionManager;
+
+    @Test
+    void ranksEachUsersFastestTimedRunAndExcludesLegacyRows() {
+        Long first = createUser("first");
+        Long second = createUser("second");
+        Long legacy = createUser("legacy");
+        saveTimed(first, 100, 95_000, "first-1");
+        saveTimed(first, 200, 90_000, "first-2");
+        saveTimed(second, 999, 100_000, "second-1");
+        gameResultRepository.save(GameResult.builder()
+                .userId(legacy)
+                .gameType(GameResultType.TETRIS_SOLO)
+                .score(10_000)
                 .build());
-        for (int i = 0; i < win; i++) {
-            gameResultRepository.save(GameResult.builder()
-                    .userId(user.getId()).gameType(GameResultType.SIGN_DUEL).score(1).build());
-        }
-        for (int i = 0; i < loss; i++) {
-            gameResultRepository.save(GameResult.builder()
-                    .userId(user.getId()).gameType(GameResultType.SIGN_DUEL).score(0).build());
-        }
-        return user;
+
+        RankingResponse response = rankingService().getRankings(first, GameResultType.TETRIS_SOLO);
+
+        assertThat(response.top()).extracting(entry -> entry.userId())
+                .containsExactly(first, second);
+        assertThat(response.top()).extracting(entry -> entry.playDurationMs())
+                .containsExactly(90_000L, 100_000L);
+        assertThat(response.me().rank()).isEqualTo(1);
+        assertThat(response.me().score()).isEqualTo(200);
     }
 
-    @Test
-    void topFiveAndOwnRank_excludeWithdrawnUsers() throws Exception {
-        User top1 = createUserWithRecord(20, 0);
-        createUserWithRecord(15, 1);
-        User me = createUserWithRecord(10, 2);
-
-        User withdrawn = createUserWithRecord(100, 0);
-        withdrawn.withdraw();
-        userRepository.save(withdrawn);
-
-        String token = "Bearer " + jwtTokenProvider.createAccessToken(me.getId());
-
-        mockMvc.perform(get("/rankings").header("Authorization", token).param("gameType", "SIGN_DUEL"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.top[0].userId").value(top1.getId()))
-                .andExpect(jsonPath("$.me.userId").value(me.getId()));
+    private RankingService rankingService() {
+        UserService userService = new UserService(
+                userRepository,
+                Mockito.mock(RefreshTokenService.class),
+                Mockito.mock(PasswordEncoder.class),
+                Mockito.mock(PetGrowthService.class),
+                transactionManager);
+        GameResultService gameResultService = new GameResultService(
+                gameResultRepository,
+                Mockito.mock(GrowthRewardService.class),
+                new GrowthPolicyProperties());
+        return new RankingService(gameResultService, userService);
     }
 
-    @Test
-    void missingGameType_returns400() throws Exception {
-        User me = createUserWithRecord(1, 0);
-        String token = "Bearer " + jwtTokenProvider.createAccessToken(me.getId());
+    private Long createUser(String nickname) {
+        return userRepository.save(User.builder()
+                        .email(nickname + "-" + System.nanoTime() + "@test.com")
+                        .passwordHash("h")
+                        .nickname(nickname)
+                        .build())
+                .getId();
+    }
 
-        mockMvc.perform(get("/rankings").header("Authorization", token))
-                .andExpect(status().isBadRequest());
+    private void saveTimed(Long userId, int score, long duration, String sessionId) {
+        gameResultRepository.save(GameResult.builder()
+                .userId(userId)
+                .gameType(GameResultType.TETRIS_SOLO)
+                .score(score)
+                .soloSessionId(sessionId)
+                .playDurationMs(duration)
+                .build());
     }
 }
