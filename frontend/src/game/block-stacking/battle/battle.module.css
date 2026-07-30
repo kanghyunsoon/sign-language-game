@@ -684,7 +684,8 @@
 .battleFixedPage .boardPlayArea .boardCanvas::before,
 .battleFixedPage .boardPlayArea .boardCanvas::after { content:none; }
 .battleFixedPage .boardPlayArea .boardCanvas canvas { position:relative; z-index:1; background:transparent; }
-.boardTowerHeightGauge { position:absolute; z-index:8; right:clamp(2px,.6vw,10px); bottom:17%; }
+.boardTowerHeightGauge { position:absolute; z-index:8; top:22%; right:clamp(2px,.6vw,10px); bottom:16%; }
+.boardTowerHeightGauge :global(.tower-height-gauge__track) { height:100%; }
 .battleFixedPage .videos { gap:clamp(9px,1vw,16px); }
 .battleFixedPage .videoCell { border-color:#fff; border-radius:18px; box-shadow:0 6px 0 rgba(139,174,172,.34),0 12px 22px rgba(76,112,126,.14); }
 .battleFixedPage .videoCell video {

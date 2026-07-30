@@ -44,8 +44,8 @@ export function GameModule(props: GameModuleProps) {
   // zoom levels.
   const usesModeSelectionCanvas = location.pathname === "/game" || location.pathname === "/game/block";
   const usesRoomFinderCanvas =
-    location.pathname === "/game/battle" ||
-    location.pathname === "/game/turn-battle";
+    location.pathname === "/game/battle" || location.pathname.startsWith("/game/battle/") ||
+    location.pathname === "/game/turn-battle" || location.pathname.startsWith("/game/turn-battle/");
   const useFixedGameCanvas = !usesOwnSoloCanvas && !isRecognitionTool;
   const usesCompactCanvas = usesModeSelectionCanvas || usesRoomFinderCanvas;
   const viewportWidth = usesCompactCanvas ? MODE_VIEWPORT_WIDTH : GAME_VIEWPORT_WIDTH;
