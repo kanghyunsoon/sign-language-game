@@ -136,13 +136,21 @@ export function BattleGamePage() {
         }
         const stream = await sharedCameraSession.start();
         await battleMediaSession.connect(authoritative, stream);
-        if (!cancelled) setMediaReady(true);
+        // `connect` finishes after signaling and peer setup, not after the
+        // RTCPeerConnection/DataChannel is open. Starting the game here races
+        // the channel handshake and leaves the controller stuck CONNECTING.
+        // The media-session subscription above is the single authority that
+        // enables the board once it reports CONNECTED.
+        if (!cancelled) refreshMedia();
       } catch (cause) {
         if (!cancelled) setResultError(cause instanceof Error ? `게임 재연결에 실패했습니다: ${cause.message}` : "게임 재연결에 실패했습니다.");
       }
     })();
     return () => { cancelled = true; };
-  }, [battleMediaSession, battleRoomSession, navigate, roomId, services.battleRoomGateway, setBattleRoomSession, sharedCameraSession]);
+  // Re-run only when media changes state: a FAILED mesh session must be
+  // recreated from the authoritative PLAYING room rather than leaving this
+  // page permanently gated after a transient ICE/DataChannel failure.
+  }, [battleMediaSession, battleRoomSession, navigate, refreshMedia, roomId, rtcState, services.battleRoomGateway, setBattleRoomSession, sharedCameraSession]);
 
   useEffect(() => { const track = sharedCameraSession.getVideoTrack(); const update = () => setCameraState(track?.readyState === "live" && track.enabled ? "CONNECTED" : "DISCONNECTED"); update(); if (!track) return; track.addEventListener("ended", update); track.addEventListener("mute", update); track.addEventListener("unmute", update); return () => { track.removeEventListener("ended", update); track.removeEventListener("mute", update); track.removeEventListener("unmute", update); }; }, [sharedCameraSession]);
 
