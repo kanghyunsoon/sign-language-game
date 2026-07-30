@@ -49,14 +49,8 @@ export const TEST_TIME_LIMIT_SECONDS = 10;
 /** 설정 화면에서 사용할 분류 목록. 지문자 분류와 동일하다. */
 export const testCategories = fingerspellingCategories;
 
-/**
- * AI 인식 모델이 아직 지원하지 않아 테스트를 막아 둔 분류.
- * 현재 모델(jamo-31-v1)은 자음 14자와 모음 17자만 학습되어 있고 숫자는 없다.
- * 모델에 숫자가 추가되면 이 목록만 비우면 된다.
- */
-export const UNSUPPORTED_TEST_CATEGORIES: readonly TestCategoryId[] = [
-  "number",
-];
+/** AI 인식 모델이 아직 지원하지 않아 테스트를 막아 둔 분류. */
+export const UNSUPPORTED_TEST_CATEGORIES: readonly TestCategoryId[] = [];
 
 /** 지금 테스트할 수 있는 분류인지 확인한다. */
 export function isTestCategoryAvailable(categoryId: TestCategoryId): boolean {
