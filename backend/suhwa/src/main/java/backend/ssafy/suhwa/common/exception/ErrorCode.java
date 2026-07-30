@@ -21,6 +21,15 @@ public enum ErrorCode {
     // Learning
     SIGN_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 콘텐츠입니다."),
 
+    TEST_SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 테스트 세션입니다."),
+    TEST_SESSION_ALREADY_COMPLETED(HttpStatus.CONFLICT, "이미 완료된 테스트 세션입니다."),
+
+    // Growth
+    PET_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "펫 정보를 찾을 수 없습니다. 잠시 후 다시 시도해주세요."),
+    ACTIVITY_SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 활동 세션입니다."),
+    ACTIVITY_SESSION_ACCESS_DENIED(HttpStatus.FORBIDDEN, "다른 사용자의 활동 세션에는 접근할 수 없습니다."),
+    ACTIVITY_COMPLETION_CONFLICT(HttpStatus.CONFLICT, "이미 다른 결과로 완료된 활동 세션입니다."),
+
     // Game Rooms
     ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 게임방입니다."),
     ROOM_CODE_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "방 코드 생성에 반복적으로 실패했습니다. 잠시 후 다시 시도해주세요."),

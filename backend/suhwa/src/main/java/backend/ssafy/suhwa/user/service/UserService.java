@@ -3,6 +3,7 @@ package backend.ssafy.suhwa.user.service;
 import backend.ssafy.suhwa.auth.service.RefreshTokenService;
 import backend.ssafy.suhwa.common.exception.BusinessException;
 import backend.ssafy.suhwa.common.exception.ErrorCode;
+import backend.ssafy.suhwa.growth.service.PetGrowthService;
 import backend.ssafy.suhwa.user.domain.User;
 import backend.ssafy.suhwa.user.repository.UserRepository;
 import java.util.Collection;
@@ -10,6 +11,8 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -19,6 +22,8 @@ public class UserService {
     private final UserRepository userRepository;
     private final RefreshTokenService refreshTokenService;
     private final PasswordEncoder passwordEncoder;
+    private final PetGrowthService petGrowthService;
+    private final PlatformTransactionManager transactionManager;
 
     /**
      * 회원 가입. BCrypt 해싱(FR-003)은 CPU 바운드라 DB 트랜잭션 밖에서 수행하고, 저장만
@@ -34,7 +39,15 @@ public class UserService {
                 .passwordHash(passwordHash)
                 .nickname(nickname)
                 .build();
-        return userRepository.save(user);
+        User saved = new TransactionTemplate(transactionManager).execute(status -> {
+            User persisted = userRepository.save(user);
+            petGrowthService.createInitialPet(persisted.getId());
+            return persisted;
+        });
+        if (saved == null) {
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR);
+        }
+        return saved;
     }
 
     /**
