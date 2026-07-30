@@ -5,7 +5,18 @@ import { RemoteTransformBuffer } from "./RemoteTransformBuffer";
 
 export type RemoteSyncMessage = TransformBatchEvent | BoardSnapshotEvent | LetterSpawnedSyncEvent | LetterStateSyncEvent | LetterRemovedSyncEvent;
 
-export class RemoteBoardReplica {
+/** Common remote-board surface used by both network replay and local physics displays. */
+export interface RemoteBoard {
+  resize(width: number, height: number): void;
+  apply(message: RemoteSyncMessage, receivedAt: number): boolean;
+  spawn(event: SpawnLetterEvent, receivedAt: number): boolean;
+  renderStates(now: number): readonly PhysicsLetterState[];
+  targetId(): string | null;
+  targetSymbol(): string | null;
+  clear(): void;
+}
+
+export class RemoteBoardReplica implements RemoteBoard {
   private readonly buffer: RemoteTransformBuffer; private readonly states = new Map<string, string>(); private readonly symbols = new Map<string, string>(); private lastSequence = -1; private senderClockOffsetMs: number | null = null; private hasAuthoritativeSnapshot = false;
   constructor(config: BattleSyncConfig, private width = 720, private height = 960) { this.buffer = new RemoteTransformBuffer(config); }
   resize(width: number, height: number): void { this.width = width; this.height = height; }

@@ -16,7 +16,7 @@ import { BattleExitCoordinator } from "../core/BattleExitCoordinator";
 import { BattleLocalBoardRuntime } from "../core/BattleLocalBoardRuntime";
 import { BATTLE_DANGER_LINE_RATIO, BATTLE_DANGER_LINE_Y, BATTLE_LETTER_SIZE, DEFAULT_BATTLE_RUNTIME_CONFIG } from "../core/BattleRuntimeConfig";
 import { DefaultBattleAttackEffect } from "../attack/DefaultBattleAttackEffect";
-import { RemoteBoardReplica } from "../sync/RemoteBoardReplica";
+import { RemotePhysicsBoard } from "../sync/RemotePhysicsBoard";
 import { RemoteBoardRenderer } from "../render/RemoteBoardRenderer";
 import { LocalBoardPublisher } from "../sync/LocalBoardPublisher";
 import { BattleBoardPanel } from "../components/BattleBoardPanel";
@@ -36,7 +36,7 @@ export function BattleGamePage() {
   const transport = useMemo(() => services.battleGameTransportFactory.create(roomId), [roomId, services]);
   const resultClient = useMemo(() => new BattleResultClient({ apiBaseUrl: config.roomApiBaseUrl, userId: user.userId, headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : createDevAuthHeaders(user) }), [accessToken, config.roomApiBaseUrl, user]);
   const recognizer = useMemo(() => new PythonWebSocketSignRecognizer({ url: config.aiWebSocketUrl, aiInferenceFps: RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG.aiInferenceFps, decoderConfig: RESPONSIVE_GAMEPLAY_SIGN_DECODER_CONFIG }), [config.aiWebSocketUrl]);
-  const replica = useMemo(() => new RemoteBoardReplica(DEFAULT_BATTLE_RUNTIME_CONFIG.sync), []);
+  const replica = useMemo(() => new RemotePhysicsBoard(), []);
   const exitCoordinator = useMemo(() => new BattleExitCoordinator({ roomGateway: services.battleRoomGateway, mediaSession: battleMediaSession, cameraSession: sharedCameraSession, clearRoomSession: () => setBattleRoomSession(null), navigate: (destination) => navigate(destination, { replace: true }) }), [battleMediaSession, navigate, services.battleRoomGateway, setBattleRoomSession, sharedCameraSession]);
   const [snapshot, setSnapshot] = useState(INITIAL); const [participants, setParticipants] = useState<readonly RemoteGameParticipant[]>(() => battleMediaSession.getRemoteParticipants());
   const [resultBusy, setResultBusy] = useState(false); const [resultError, setResultError] = useState<string | null>(null);
@@ -58,9 +58,8 @@ export function BattleGamePage() {
     const controller = new BattleController({ playerId: user.userId, roomId, initialMatchId: battleRoomSession?.activeMatchId ?? undefined, transport, localBoard: runtime, remoteBoard: replica, attackEffect: attack, recognizer, sharedTargetMode: true, onMatchStarted: (matchId) => runtime.setPublisher(new LocalBoardPublisher(transport, DEFAULT_BATTLE_RUNTIME_CONFIG.sync, matchId, user.userId)) });
     localRuntimeRef.current = runtime; controllerRef.current = controller; const unsubscribe = controller.subscribe(setSnapshot);
     void controller.connect({ url: config.gameWebSocketUrl, roomId, playerId: user.userId, accessToken, headers: accessToken ? undefined : createDevAuthHeaders(user), hostPlayerId: battleRoomSession?.hostUserId, playerIds: [...new Set(battleRoomSession?.participants.map((participant) => participant.userId) ?? [user.userId])] });
-    // The remote board only consumes authoritative transforms; it never runs
-    // Matter.js locally. Rendering every display frame keeps interpolation
-    // smooth without adding a second physics simulation.
+    // Opponent blocks are spawned locally after the server confirms them.
+    // Their motion is independent of remote transform packet timing.
     const remote = new RemoteBoardRenderer(remoteRenderer, replica);
     const renderRemote = (at: number) => {
       remote.render(at);

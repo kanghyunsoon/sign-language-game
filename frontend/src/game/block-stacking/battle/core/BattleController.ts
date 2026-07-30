@@ -1,14 +1,14 @@
 import type { SignRecognizer } from "../../../recognition/core/SignRecognizer";
 import type { SignRecognitionEvent } from "../../../recognition/types/events";
 import type { BattleAttackEffect } from "../attack/BattleAttackEffect";
-import type { RemoteBoardReplica, RemoteSyncMessage } from "../sync/RemoteBoardReplica";
+import type { RemoteBoard, RemoteSyncMessage } from "../sync/RemoteBoardReplica";
 import type { BattleGameTransport } from "../transport/BattleGameTransport";
 import type { AttackCreatedEvent, BattleConnectionOptions, BattleConnectionState, MatchFinishedEvent, ServerBattleMessage } from "../transport/battleTransportTypes";
 import type { BattleLocalBoard } from "./BattleLocalBoardRuntime";
 import { BattleStateMachine, type BattlePageState } from "./BattleStateMachine";
 
 export interface BattleControllerSnapshot { readonly state: BattlePageState; readonly gameConnectionState: BattleConnectionState; readonly aiConnectionState: string; readonly countdownMs: number; readonly reconnectDeadlineAt: number | null; readonly score: number; readonly combo: number; readonly maxCombo: number; readonly removedCount: number; readonly targetSymbol: string | null; readonly prediction: { readonly symbol: string; readonly confidence: number } | null; readonly message: string; readonly result: MatchFinishedEvent | null; }
-export interface BattleControllerOptions { readonly playerId: string; readonly roomId: string; readonly initialMatchId?: string; readonly transport: BattleGameTransport; readonly localBoard: BattleLocalBoard; readonly remoteBoard: RemoteBoardReplica; readonly attackEffect: BattleAttackEffect; readonly recognizer?: SignRecognizer; readonly sharedTargetMode?: boolean; readonly reconnectIntervalMs?: number; readonly reconnectGraceMs?: number; readonly onMatchStarted?: (matchId: string) => void; readonly now?: () => number; readonly setTimer?: (callback: () => void, delay: number) => ReturnType<typeof setTimeout>; readonly clearTimer?: (timer: ReturnType<typeof setTimeout>) => void; readonly createCommandId?: () => string; }
+export interface BattleControllerOptions { readonly playerId: string; readonly roomId: string; readonly initialMatchId?: string; readonly transport: BattleGameTransport; readonly localBoard: BattleLocalBoard; readonly remoteBoard: RemoteBoard; readonly attackEffect: BattleAttackEffect; readonly recognizer?: SignRecognizer; readonly sharedTargetMode?: boolean; readonly reconnectIntervalMs?: number; readonly reconnectGraceMs?: number; readonly onMatchStarted?: (matchId: string) => void; readonly now?: () => number; readonly setTimer?: (callback: () => void, delay: number) => ReturnType<typeof setTimeout>; readonly clearTimer?: (timer: ReturnType<typeof setTimeout>) => void; readonly createCommandId?: () => string; }
 
 export class BattleController {
   private readonly machine = new BattleStateMachine(); private readonly listeners = new Set<(snapshot: BattleControllerSnapshot) => void>();
