@@ -28,6 +28,7 @@ export interface MeshWebRtcMediaSessionOptions {
 export class MeshWebRtcMediaSession implements GameMediaSession {
   private readonly registry = new PeerConnectionRegistry();
   private readonly gameDataListeners = new Set<(payload: string, remoteUserId: string) => void>();
+  private readonly gameDataStateListeners = new Set<(open: boolean) => void>();
   private readonly listeners = new Set<GameMediaEventListener>();
   private readonly createPeerConnection: (configuration: RTCConfiguration) => RTCPeerConnection;
   private readonly createMediaStream: () => MediaStream;
@@ -139,7 +140,12 @@ export class MeshWebRtcMediaSession implements GameMediaSession {
         this.gameDataListeners.add(listener);
         return () => this.gameDataListeners.delete(listener);
       },
-      isOpen: () => this.registry.values().some((slot) => slot.dataChannel?.readyState === "open"),
+      subscribeState: (listener) => {
+        this.gameDataStateListeners.add(listener);
+        listener(this.isGameDataChannelOpen());
+        return () => this.gameDataStateListeners.delete(listener);
+      },
+      isOpen: () => this.isGameDataChannelOpen(),
     };
   }
   getConnectionState(): GameMediaSessionState { return this.state; }
@@ -159,6 +165,7 @@ export class MeshWebRtcMediaSession implements GameMediaSession {
     this.options = null;
     this.controlConnectionId = "";
     this.gameDataListeners.clear();
+    this.gameDataStateListeners.clear();
     this.controlSequence = 0;
     this.signalingSuspended = false;
     this.setState("CLOSED");
@@ -376,9 +383,27 @@ export class MeshWebRtcMediaSession implements GameMediaSession {
       if (typeof event.data !== "string") return;
       for (const listener of this.gameDataListeners) listener(event.data, slot.remoteUserId);
     };
-    channel.onopen = () => this.refreshSessionState();
-    channel.onclose = () => this.refreshSessionState();
+    channel.onopen = () => {
+      if (slot.dataChannel !== channel) return;
+      this.notifyGameDataChannelState();
+      this.refreshSessionState();
+    };
+    channel.onclose = () => {
+      if (slot.dataChannel !== channel || slot.cleanedUp) return;
+      this.notifyGameDataChannelState();
+      this.refreshSessionState();
+      void this.recoverPeer(slot);
+    };
     channel.onerror = () => this.emitError("PEER_CONNECTION_ERROR", new Error("WebRTC game data channel failed."), slot.remoteUserId);
+  }
+
+  private isGameDataChannelOpen(): boolean {
+    return this.registry.values().some((slot) => slot.dataChannel?.readyState === "open");
+  }
+
+  private notifyGameDataChannelState(): void {
+    const open = this.isGameDataChannelOpen();
+    for (const listener of this.gameDataStateListeners) listener(open);
   }
 
 

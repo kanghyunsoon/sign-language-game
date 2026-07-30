@@ -20,6 +20,7 @@ export class WebRtcDataChannelTransport<TCommand, TEvent>
   private readonly commandListeners = new Set<(command: TCommand, remoteUserId: string) => void>();
   private readonly stateListeners = new Set<(state: WebRtcGameTransportState) => void>();
   private unsubscribeChannel: (() => void) | null = null;
+  private unsubscribeChannelState: (() => void) | null = null;
   private state: WebRtcGameTransportState = "DISCONNECTED";
   private roomId: string | null = null;
   private connectionAttempt = 0;
@@ -47,6 +48,9 @@ export class WebRtcDataChannelTransport<TCommand, TEvent>
       throw new Error("WebRTC game channel is not ready.");
     }
     this.unsubscribeChannel = channel.subscribe((raw, remoteUserId) => this.receive(raw, remoteUserId));
+    this.unsubscribeChannelState = channel.subscribeState?.((open) => {
+      if (!open && this.state === "CONNECTED") this.setState("DISCONNECTED");
+    }) ?? null;
     this.setState("CONNECTED");
   }
 
@@ -54,6 +58,8 @@ export class WebRtcDataChannelTransport<TCommand, TEvent>
     this.connectionAttempt += 1;
     this.unsubscribeChannel?.();
     this.unsubscribeChannel = null;
+    this.unsubscribeChannelState?.();
+    this.unsubscribeChannelState = null;
     this.roomId = null;
     this.setState("DISCONNECTED");
   }
