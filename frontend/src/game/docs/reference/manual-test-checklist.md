@@ -193,3 +193,18 @@ cd C:\Users\SSAFY\Desktop\Sign_Language_Translation\game-ai-dev-server
 - [ ] The same symbol can be confirmed again after hand release.
 - [ ] Select `연결 해제` and navigate away: the socket closes and camera tracks are stopped.
 - [ ] With the Python server stopped, a connection attempt surfaces an error or disconnected state without freezing the UI.
+
+## 1:1 Room Lifecycle Regression — 2026-07-30
+
+- [ ] 두 실제 계정으로 방 생성 → 참가 → 양쪽 ready → 방장 start가 한 번씩 성공한다.
+- [ ] 대기방을 새로고침해 상대 ready와 방장 위임 상태가 서버 상태와 일치한다.
+- [ ] 진행 중 게임을 새로고침해 10초 안에 fresh ticket, WebRTC, DataChannel이 복구된다.
+- [ ] 대기방에서 브라우저 뒤로가기를 누르면 REST leave 후 카메라와 media가 종료된다.
+- [ ] 진행 중 브라우저 뒤로가기를 누르면 forfeit/result/leave 순서로 정리되고 상대에게 stale peer가 남지 않는다.
+- [ ] 정상 종료에서 결과 POST는 방장 요청 한 번만 201이고 참가자는 `RESULT_RECORDED` ACK를 받는다.
+- [ ] 결과 ACK 전 참가자의 재대결 버튼이 비활성화되고 ACK 뒤 활성화된다.
+- [ ] 종료 뒤 같은 방에서 ready false로 초기화되고 두 번째 매치를 시작할 수 있다.
+- [ ] 만료·소비된 ticket 403에서 무한 retry하지 않고 안전하게 방 목록으로 복귀한다.
+- [ ] 80%, 100%, 125%, 150% browser zoom에서 게임 선택, 모드 선택, 로비, 대기방, 플레이, 솔로 화면이 메인·학습과 같은 방향으로 확대·재배치된다.
+- [ ] 확대 상태에서 가로 scrollbar, 잘린 나가기 버튼, 겹친 카메라/게임판이 없다.
+- [ ] 서로 다른 NAT에서 `/webrtc/ice-servers`의 relay candidate가 실제로 선택된다.

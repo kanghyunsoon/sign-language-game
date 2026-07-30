@@ -60,3 +60,16 @@
 - 결과 뒤 동일 방 재대결이 가능하다.
 - 서로 다른 NAT에서 TURN relay가 동작한다.
 - 백엔드 소스 변경은 없다.
+
+## 2026-07-30 결과·재접속 계약 보정
+
+- join은 기존 참가자에게 멱등이며 권위 room state와 fresh ticket을 반환한다.
+- 결과 제출자는 방장 한 명이다. 참가자는 P2P `RESULT_RECORDED` ACK로 저장 완료를 확인한다.
+- 결과 201만 방 `WAITING` 전환의 성공 근거로 사용한다.
+- 409 전체를 성공으로 흡수하지 않는다. stale 또는 무효 상태이면 저장 세션과 media를 정리한다.
+- create/join 뒤 Room WebSocket 확인 제한은 15초, 비정상 종료 재접속 유예는 10초다.
+- WebRTC 연결 뒤 signaling socket handoff 전 `WEBRTC_CONNECTED`를 보낸다.
+- 대기방 권위 이벤트는 `PEER_JOINED`, `PEER_READY_CHANGED`, `PEER_LEFT`, `GAME_STARTED`, `ERROR`다.
+- 새로고침 복구는 `join(roomCode)` 응답이 `PLAYING`인 경우에만 수행한다.
+
+자동 테스트와 build 범위는 완료됐고, TURN/WSS/실제 계정 DB 반영은 배포 smoke test에서 확인한다.

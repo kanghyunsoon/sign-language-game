@@ -64,3 +64,15 @@
 ## 알려진 운영 경계
 
 순수 P2P 연결 상태만으로는 네트워크 분할 상황에서 실제 이탈자를 신뢰성 있게 판정할 수 없다. 양쪽이 동시에 상대를 이탈자로 볼 수 있기 때문이다. 자동 몰수패는 서버가 알려주는 인증된 peer presence를 권위 근거로 삼는 방식이 확정돼야 한다. 정상 종료와 결과 저장은 이 제한과 무관하게 배포 가능한 상태다.
+
+## 2026-07-30 후속 보정
+
+- 결과 저장은 양쪽 제출 방식에서 방장 단일 제출 + `RESULT_RECORDED` ACK 방식으로 변경됐다.
+- 모든 409를 멱등 성공으로 처리하던 설명은 폐기한다. 201 성공만 저장 완료로 사용하고 stale/invalid 403·409는 방 세션과 media 정리 대상으로 본다.
+- 대기방과 진행 중 게임은 새로고침 시 멱등 join으로 권위 room state와 fresh ticket을 다시 받는다.
+- Room WebSocket을 WebRTC handoff 시 닫기 전 `WEBRTC_CONNECTED`를 전송한다.
+- 뒤로가기도 화면 버튼과 동일한 leave/forfeit cleanup 경로를 사용한다.
+- 새 매치 전에 AI `RESET_SEQUENCE`와 로컬 decoder reset을 수행한다.
+- 게임 화면의 고정 캔버스를 제거해 메인·학습 화면과 같은 브라우저 zoom 동작을 사용한다.
+
+세부 상태와 운영 검증 체크리스트는 `codex-handoff-room-lifecycle-2026-07-30.md`를 기준으로 한다.
