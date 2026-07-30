@@ -138,6 +138,82 @@ describe("AttendanceCard 헤더", () => {
   });
 });
 
+describe("AttendanceCard 스탬프", () => {
+  /** 그 날 칸에 찍힌 그림의 종류. 아무것도 없으면 null. */
+  const stampKind = (day: number) => {
+    // 6/30과 7/30이 모두 "30"이므로 이번 달 칸만 고른다.
+    const cell = cells().find(
+      (item) =>
+        !item.classList.contains("attendance-day-outside") &&
+        item.querySelector(".attendance-day-label")?.textContent ===
+          String(day),
+    );
+    const image = cell?.querySelector("img");
+    if (!image) return null;
+
+    return image.getAttribute("src")?.includes("seashell")
+      ? "조개"
+      : "수달";
+  };
+
+  it("연속 구간의 마지막 날만 수달 스탬프에 연속 일수를 얹는다", () => {
+    // 26~29일 출석, 오늘(30일)은 아직 누르지 않은 상태.
+    [26, 27, 28, 29].forEach((day) => markAttendance(at(day)));
+    renderCard();
+
+    expect(stampKind(26)).toBe("조개");
+    expect(stampKind(28)).toBe("조개");
+    expect(stampKind(29)).toBe("수달");
+
+    // 숫자는 구간의 끝에만 하나 붙는다.
+    const numbers = Array.from(
+      grid().querySelectorAll(".attendance-stamp-streak"),
+      (item) => item.textContent,
+    );
+
+    expect(numbers).toEqual(["4"]);
+  });
+
+  it("오늘 출석하면 어제 스탬프가 조개로 바뀐다", () => {
+    [28, 29].forEach((day) => markAttendance(at(day)));
+    renderCard();
+
+    expect(stampKind(29)).toBe("수달");
+
+    fireEvent.click(screen.getByRole("button", { name: "출석하기" }));
+
+    expect(stampKind(29)).toBe("조개");
+    expect(stampKind(30)).toBe("수달");
+  });
+
+  it("빈 날에는 아무 스탬프도 찍지 않는다", () => {
+    markAttendance(at(29));
+    renderCard();
+
+    expect(stampKind(27)).toBeNull();
+  });
+
+  it("조개는 구간 안에서 네 종류를 돌려 쓴다", () => {
+    // 24~29일 여섯 날이면 앞의 다섯 날이 조개로 채워진다.
+    [24, 25, 26, 27, 28, 29].forEach((day) => markAttendance(at(day)));
+    renderCard();
+
+    const seashells = [24, 25, 26, 27, 28].map((day) => {
+      const cell = cells().find(
+        (item) =>
+          item.querySelector(".attendance-day-label")?.textContent ===
+          String(day),
+      );
+
+      return cell?.querySelector("img")?.getAttribute("src");
+    });
+
+    // 다섯 번째에서 처음 그림으로 돌아온다.
+    expect(new Set(seashells).size).toBe(4);
+    expect(seashells[4]).toBe(seashells[0]);
+  });
+});
+
 describe("AttendanceCard 미래 날짜", () => {
   it("오늘 이후 칸에는 출석 버튼이 없다", () => {
     renderCard();

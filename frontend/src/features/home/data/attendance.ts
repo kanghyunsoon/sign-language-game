@@ -108,6 +108,11 @@ export interface AttendanceDay {
   readonly isAttended: boolean;
   /** 출석한 날이면 그 날 기준 연속 일수, 아니면 0. */
   readonly streak: number;
+  /**
+   * 연속 구간의 마지막 출석일인지(다음 날은 출석하지 않았다).
+   * 이 날에만 수달 스탬프와 연속 일수를 찍고, 나머지는 조개로 채운다.
+   */
+  readonly isRunEnd: boolean;
 }
 
 /** 격자 한 행(월~일)의 칸 수. */
@@ -178,6 +183,10 @@ export function buildMonthCalendar(
       isFuture: key > todayKey,
       isAttended,
       streak: isAttended ? streakEndingAt(attendedDates, date) : 0,
+      // 다음 날이 비어 있으면 이 날이 연속 구간의 끝이다. 보고 있는 달 밖도
+      // 같은 기준으로 판정해야 달을 넘길 때 스탬프가 달라지지 않는다.
+      isRunEnd:
+        isAttended && !attendedDates.includes(toDateKey(addDays(date, 1))),
     };
   });
 }

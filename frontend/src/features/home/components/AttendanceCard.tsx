@@ -1,6 +1,10 @@
 import { useState } from "react";
 
 import stampImage from "../../../shared/assets/stamp.webp";
+import seashell01 from "../assets/seashell_01.webp";
+import seashell02 from "../assets/seashell_02.webp";
+import seashell03 from "../assets/seashell_03.webp";
+import seashell04 from "../assets/seashell_04.webp";
 import {
   WEEKDAY_LABELS,
   buildMonthCalendar,
@@ -12,6 +16,17 @@ import {
   useAttendance,
   useMarkAttendance,
 } from "../data/attendance";
+
+/**
+ * 연속 구간을 채우는 조개. 구간 안에서 순서대로 돌려 쓰므로 같은 그림이
+ * 나란히 붙지 않고, 연속이 길어져도 네 종류가 반복된다.
+ */
+const seashellImages = [seashell01, seashell02, seashell03, seashell04];
+
+/** 연속 구간의 n번째 날(streak)에 놓을 조개 그림. */
+function seashellFor(streak: number) {
+  return seashellImages[(streak - 1) % seashellImages.length];
+}
 
 interface AttendanceCardProps {
   /** 기준일. 테스트에서 시점을 고정하려고 주입할 수 있다. */
@@ -85,12 +100,28 @@ export function AttendanceCard({ today = new Date() }: AttendanceCardProps) {
           >
             <span className="attendance-day-label">{day.label}</span>
 
+            {/*
+              연속 구간의 마지막 날만 수달 스탬프에 연속 일수를 얹고,
+              그 앞의 날들은 조개로 채운다. 오늘 출석을 누르면 어제가
+              구간의 끝이 아니게 되므로 어제 칸은 자동으로 조개로 바뀐다.
+            */}
             {day.isAttended && (
-              <span className="attendance-stamp">
-                <img src={stampImage} alt="" aria-hidden="true" />
+              <span
+                className={
+                  day.isRunEnd
+                    ? "attendance-stamp"
+                    : "attendance-stamp attendance-stamp-seashell"
+                }
+              >
+                <img
+                  src={day.isRunEnd ? stampImage : seashellFor(day.streak)}
+                  alt=""
+                  aria-hidden="true"
+                />
 
-                {/* 스탬프 위에 그 날 기준 연속 일수를 얹는다. */}
-                <span className="attendance-stamp-streak">{day.streak}</span>
+                {day.isRunEnd && (
+                  <span className="attendance-stamp-streak">{day.streak}</span>
+                )}
 
                 <span className="attendance-day-reader">
                   {day.key} 출석 완료, {day.streak}일째

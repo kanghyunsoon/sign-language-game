@@ -215,6 +215,63 @@ describe("buildMonthCalendar", () => {
     expect(byKey.get("2026-07-27")?.streak).toBe(0);
   });
 
+  it("연속 구간의 마지막 날만 isRunEnd로 표시한다", () => {
+    // 1~4일, 6~10일 출석하고 오늘(11일)은 아직 누르지 않은 상태.
+    const attended = [
+      "2026-07-01",
+      "2026-07-02",
+      "2026-07-03",
+      "2026-07-04",
+      "2026-07-06",
+      "2026-07-07",
+      "2026-07-08",
+      "2026-07-09",
+      "2026-07-10",
+    ];
+    const days = buildMonthCalendar(attended, july, at(2026, 7, 11));
+    const byKey = new Map(days.map((day) => [day.key, day]));
+    const runEnds = days
+      .filter((day) => day.isRunEnd)
+      .map((day) => `${day.key}:${day.streak}`);
+
+    // 구간의 끝인 4일·10일에만 수달 스탬프와 연속 일수가 찍힌다.
+    expect(runEnds).toEqual(["2026-07-04:4", "2026-07-10:5"]);
+    // 구간 안쪽은 조개로 채우고, 빈 날은 아무것도 없다.
+    expect(byKey.get("2026-07-03")?.isRunEnd).toBe(false);
+    expect(byKey.get("2026-07-05")?.isAttended).toBe(false);
+  });
+
+  it("오늘 출석하면 구간의 끝이 오늘로 넘어온다", () => {
+    const attended = [
+      "2026-07-06",
+      "2026-07-07",
+      "2026-07-08",
+      "2026-07-09",
+      "2026-07-10",
+      "2026-07-11",
+    ];
+    const days = buildMonthCalendar(attended, july, at(2026, 7, 11));
+    const byKey = new Map(days.map((day) => [day.key, day]));
+
+    // 10일은 조개로 바뀌고, 11일이 6일 연속 스탬프가 된다.
+    expect(byKey.get("2026-07-10")?.isRunEnd).toBe(false);
+    expect(byKey.get("2026-07-11")?.isRunEnd).toBe(true);
+    expect(byKey.get("2026-07-11")?.streak).toBe(6);
+  });
+
+  it("보고 있는 달을 넘어 이어진 출석은 구간의 끝으로 보지 않는다", () => {
+    // 7/31과 8/1이 이어지면 7월 달력에서 31일은 아직 끝이 아니다.
+    const days = buildMonthCalendar(
+      ["2026-07-31", "2026-08-01"],
+      july,
+      at(2026, 8, 5),
+    );
+    const byKey = new Map(days.map((day) => [day.key, day]));
+
+    expect(byKey.get("2026-07-31")?.isRunEnd).toBe(false);
+    expect(byKey.get("2026-08-01")?.isRunEnd).toBe(true);
+  });
+
   it("2월처럼 짧은 달도 주 단위로 맞춘다", () => {
     const days = buildMonthCalendar([], { year: 2027, month: 2 }, today);
 

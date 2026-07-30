@@ -891,6 +891,16 @@ a {
   /* text-shadow: 0 2px 4px rgba(63, 43, 32, 0.45); */
 }
 
+/*
+ * 연속 구간을 채우는 조개. 수달 스탬프와 같은 자리에 놓아 구간이 한 줄로
+ * 이어져 보이게 한다. 숫자를 얹지 않으므로 위치만 맞추면 된다.
+ */
+.attendance-stamp-seashell {
+  width: 70%;
+  height: 70%;
+  margin-top: 16%;
+}
+
 /* 스탬프만으로는 보조기기가 내용을 알 수 없어 텍스트를 숨겨 둔다. */
 .attendance-day-reader {
   position: absolute;
