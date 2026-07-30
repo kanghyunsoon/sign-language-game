@@ -20,3 +20,19 @@ export function getAiWebSocketUrl(useNumberEndpoint = false): string {
 
   return numberUrl.toString();
 }
+
+/** 단어 수어 인식 전용 WebSocket 주소를 구한다. */
+export function getWordAiWebSocketUrl(): string {
+  const configuredUrl = (
+    import.meta.env as ImportMetaEnv & {
+      readonly VITE_WORD_AI_WEBSOCKET_URL?: string;
+    }
+  ).VITE_WORD_AI_WEBSOCKET_URL?.trim();
+
+  if (configuredUrl) {
+    return configuredUrl;
+  }
+
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//${window.location.host}/word`;
+}

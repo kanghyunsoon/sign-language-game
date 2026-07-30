@@ -6,6 +6,7 @@ import otterImage from "../assets/otter.png";
 import type { FingerspellingCategoryId } from "../data/fingerspelling";
 import { SYMBOLS_PARAM, parseSymbolSelection } from "../data/symbolSelection";
 import { PracticeSessionPage } from "./PracticeSessionPage";
+import { WordPracticeSessionPage } from "./WordPracticeSessionPage";
 
 type PracticeCategoryId = FingerspellingCategoryId;
 type PracticeHomeCategoryId = PracticeCategoryId | "word";
@@ -45,8 +46,8 @@ const practiceCategories: PracticeCategory[] = [
     id: "word",
     symbol: "별",
     title: "단어 연습",
-    description: "준비 중입니다.",
-    disabled: true,
+    description: "기본 단어 13개를 연습합니다.",
+    count: 13,
   },
 ];
 
@@ -54,9 +55,9 @@ export function PracticeHomePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [selectedCategory, setSelectedCategory] =
-    useState<PracticeCategoryId | null>(null);
+    useState<PracticeHomeCategoryId | null>(null);
   const [activeCategory, setActiveCategory] =
-    useState<PracticeCategoryId | null>(null);
+    useState<PracticeHomeCategoryId | null>(null);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   // 오답노트에서 넘어온 글자 묶음. 있으면 분류 선택을 건너뛰고 바로 연습한다.
@@ -70,12 +71,12 @@ export function PracticeHomePage() {
     (category) => category.id === selectedCategory,
   );
 
-  const handleCategoryClick = (categoryId: PracticeCategoryId) => {
+  const handleCategoryClick = (categoryId: PracticeHomeCategoryId) => {
     setSelectedCategory(categoryId);
   };
 
   const handlePracticeStart = () => {
-    if (!selectedPracticeCategory || selectedPracticeCategory.id === "word") {
+    if (!selectedPracticeCategory) {
       return;
     }
 
@@ -106,6 +107,10 @@ export function PracticeHomePage() {
   }
 
   if (activeCategory) {
+    if (activeCategory === "word") {
+      return <WordPracticeSessionPage onExit={handlePracticeExit} />;
+    }
+
     return (
       <PracticeSessionPage
         category={activeCategory}
@@ -158,11 +163,7 @@ export function PracticeHomePage() {
                     type="button"
                     key={category.id}
                     disabled={category.disabled}
-                    onClick={() => {
-                      if (category.id !== "word") {
-                        handleCategoryClick(category.id);
-                      }
-                    }}
+                    onClick={() => handleCategoryClick(category.id)}
                   >
                     <span className="practice-category-symbol">
                       {category.symbol}
@@ -175,7 +176,7 @@ export function PracticeHomePage() {
 
                     {category.count !== undefined && (
                       <span className="practice-category-count">
-                        {category.count}자
+                        {category.count}{category.id === "word" ? "개" : "자"}
                       </span>
                     )}
                   </button>
