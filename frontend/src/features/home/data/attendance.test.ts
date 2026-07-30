@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import {
   DAYS_PER_WEEK,
-  buildTwoWeekCalendar,
+  buildMonthCalendar,
   currentStreak,
-  formatDayLabel,
+  formatMonthTitle,
+  shiftMonth,
   startOfWeek,
   streakEndingAt,
   toDateKey,
+  toMonthCursor,
 } from "./attendance";
 
 /** 테스트에서 날짜를 읽기 쉽게 만든다(월은 1부터). */
@@ -40,33 +42,6 @@ describe("startOfWeek", () => {
   it("일요일은 그 주 월요일로 6일 되돌린다", () => {
     // 2026-08-02는 일요일. 앞선 월요일은 07-27이다.
     expect(toDateKey(startOfWeek(at(2026, 8, 2)))).toBe("2026-07-27");
-  });
-});
-
-describe("formatDayLabel", () => {
-  it("날짜와 요일을 함께 적는다", () => {
-    expect(formatDayLabel(at(2026, 7, 30))).toBe("30(목)");
-  });
-
-  it("매달 1일에는 월도 함께 적는다", () => {
-    expect(formatDayLabel(at(2026, 8, 1))).toBe("8/1(토)");
-    expect(formatDayLabel(at(2027, 1, 1))).toBe("1/1(금)");
-  });
-
-  it("요일을 월요일부터 바르게 매긴다", () => {
-    const labels = Array.from({ length: DAYS_PER_WEEK }, (_, offset) =>
-      formatDayLabel(at(2026, 7, 27 + offset)),
-    );
-
-    expect(labels).toEqual([
-      "27(월)",
-      "28(화)",
-      "29(수)",
-      "30(목)",
-      "31(금)",
-      "8/1(토)",
-      "2(일)",
-    ]);
   });
 });
 
@@ -121,29 +96,110 @@ describe("currentStreak", () => {
   });
 });
 
-describe("buildTwoWeekCalendar", () => {
-  const today = at(2026, 7, 30); // 목요일
 
-  it("지난주 월요일부터 이번주 일요일까지 14칸을 만든다", () => {
-    const days = buildTwoWeekCalendar([], today);
+describe("월 이동", () => {
+  it("제목에 연도와 월을 적는다", () => {
+    expect(formatMonthTitle({ year: 2026, month: 7 })).toBe("2026년 7월");
+  });
 
-    expect(days).toHaveLength(14);
-    expect(days[0].key).toBe("2026-07-20"); // 지난주 월요일
-    expect(days[6].key).toBe("2026-07-26"); // 지난주 일요일
-    expect(days[7].key).toBe("2026-07-27"); // 이번주 월요일
-    expect(days[13].key).toBe("2026-08-02"); // 이번주 일요일
+  it("앞뒤 달로 옮긴다", () => {
+    const july = { year: 2026, month: 7 };
+
+    expect(shiftMonth(july, 1)).toEqual({ year: 2026, month: 8 });
+    expect(shiftMonth(july, -1)).toEqual({ year: 2026, month: 6 });
+  });
+
+  it("연을 넘겨도 바르게 옮긴다", () => {
+    expect(shiftMonth({ year: 2026, month: 12 }, 1)).toEqual({
+      year: 2027,
+      month: 1,
+    });
+    expect(shiftMonth({ year: 2026, month: 1 }, -1)).toEqual({
+      year: 2025,
+      month: 12,
+    });
+  });
+
+  it("날짜에서 그 달을 얻는다", () => {
+    expect(toMonthCursor(at(2026, 7, 30))).toEqual({ year: 2026, month: 7 });
+  });
+});
+
+describe("buildMonthCalendar", () => {
+  const july = { year: 2026, month: 7 };
+  const today = at(2026, 7, 30);
+
+  it("첫 줄이 월요일에서 시작한다", () => {
+    const days = buildMonthCalendar([], july, today);
+
+    // 2026-07-01은 수요일이므로 앞 달 6/29(월)부터 채운다.
+    expect(days[0].key).toBe("2026-06-29");
+    expect(startOfWeek(at(2026, 7, 1)).getDate()).toBe(29);
+  });
+
+  it("마지막 줄이 일요일에서 끝난다", () => {
+    const days = buildMonthCalendar([], july, today);
+
+    // 2026-07-31은 금요일이므로 뒤 달 8/2(일)까지 채운다.
+    expect(days.at(-1)?.key).toBe("2026-08-02");
+  });
+
+  it("칸 수가 주 단위로 딱 맞는다", () => {
+    const days = buildMonthCalendar([], july, today);
+
+    expect(days.length % DAYS_PER_WEEK).toBe(0);
+    expect(days).toHaveLength(35);
+  });
+
+  it("보고 있는 달의 칸은 숫자만 적는다", () => {
+    const days = buildMonthCalendar([], july, today);
+    const byKey = new Map(days.map((day) => [day.key, day]));
+
+    expect(byKey.get("2026-07-01")?.label).toBe("1");
+    expect(byKey.get("2026-07-30")?.label).toBe("30");
+  });
+
+  it("앞 달에서 끌어온 칸은 첫 칸에만 달을 함께 적는다", () => {
+    const days = buildMonthCalendar([], july, today);
+
+    expect(days[0].label).toBe("6/29");
+    expect(days[1].label).toBe("30");
+    expect(days[0].isCurrentMonth).toBe(false);
+    expect(days[1].isCurrentMonth).toBe(false);
+  });
+
+  it("뒤 달에서 끌어온 칸은 1일에만 달을 함께 적는다", () => {
+    const days = buildMonthCalendar([], july, today);
+    const trailing = days.filter((day) => !day.isCurrentMonth).slice(-2);
+
+    expect(trailing.map((day) => day.label)).toEqual(["8/1", "2"]);
+  });
+
+  it("달이 월요일에 시작하면 앞 칸을 채우지 않는다", () => {
+    // 2026-06-01은 월요일이다.
+    const days = buildMonthCalendar([], { year: 2026, month: 6 }, today);
+
+    expect(days[0].key).toBe("2026-06-01");
+    expect(days[0].isCurrentMonth).toBe(true);
+    expect(days[0].label).toBe("1");
   });
 
   it("오늘 칸만 isToday로 표시한다", () => {
-    const days = buildTwoWeekCalendar([], today);
+    const days = buildMonthCalendar([], july, today);
     const todayCells = days.filter((day) => day.isToday);
 
     expect(todayCells).toHaveLength(1);
     expect(todayCells[0].key).toBe("2026-07-30");
   });
 
-  it("오늘 이후만 미래로 본다. 오늘은 미래가 아니다", () => {
-    const days = buildTwoWeekCalendar([], today);
+  it("다른 달을 보고 있으면 오늘 칸이 없다", () => {
+    const days = buildMonthCalendar([], { year: 2026, month: 5 }, today);
+
+    expect(days.some((day) => day.isToday)).toBe(false);
+  });
+
+  it("오늘 이후만 미래로 본다", () => {
+    const days = buildMonthCalendar([], july, today);
     const futureKeys = days.filter((day) => day.isFuture).map((day) => day.key);
 
     expect(futureKeys).toEqual(["2026-07-31", "2026-08-01", "2026-08-02"]);
@@ -151,43 +207,18 @@ describe("buildTwoWeekCalendar", () => {
 
   it("출석한 칸에 그 날 기준 연속 일수를 담는다", () => {
     const attended = ["2026-07-28", "2026-07-29", "2026-07-30"];
-    const days = buildTwoWeekCalendar(attended, today);
+    const days = buildMonthCalendar(attended, july, today);
     const byKey = new Map(days.map((day) => [day.key, day]));
 
     expect(byKey.get("2026-07-28")?.streak).toBe(1);
-    expect(byKey.get("2026-07-29")?.streak).toBe(2);
     expect(byKey.get("2026-07-30")?.streak).toBe(3);
+    expect(byKey.get("2026-07-27")?.streak).toBe(0);
   });
 
-  it("출석하지 않은 칸은 streak이 0이다", () => {
-    const days = buildTwoWeekCalendar(["2026-07-30"], today);
-    const byKey = new Map(days.map((day) => [day.key, day]));
+  it("2월처럼 짧은 달도 주 단위로 맞춘다", () => {
+    const days = buildMonthCalendar([], { year: 2027, month: 2 }, today);
 
-    expect(byKey.get("2026-07-29")?.isAttended).toBe(false);
-    expect(byKey.get("2026-07-29")?.streak).toBe(0);
-  });
-
-  it("월이 바뀌는 주에도 라벨과 순서가 맞는다", () => {
-    const days = buildTwoWeekCalendar([], today);
-
-    expect(days[12].label).toBe("8/1(토)");
-    expect(days[13].label).toBe("2(일)");
-  });
-
-  it("오늘이 일요일이어도 이번주 마지막 칸이 오늘이다", () => {
-    const sunday = at(2026, 8, 2);
-    const days = buildTwoWeekCalendar([], sunday);
-
-    expect(days[13].key).toBe("2026-08-02");
-    expect(days[13].isToday).toBe(true);
-    expect(days.some((day) => day.isFuture)).toBe(false);
-  });
-
-  it("오늘이 월요일이면 이번주 첫 칸이 오늘이다", () => {
-    const monday = at(2026, 7, 27);
-    const days = buildTwoWeekCalendar([], monday);
-
-    expect(days[7].key).toBe("2026-07-27");
-    expect(days[7].isToday).toBe(true);
+    expect(days.length % DAYS_PER_WEEK).toBe(0);
+    expect(days.filter((day) => day.isCurrentMonth)).toHaveLength(28);
   });
 });

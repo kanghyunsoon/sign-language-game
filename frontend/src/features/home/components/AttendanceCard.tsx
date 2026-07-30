@@ -1,9 +1,14 @@
+import { useState } from "react";
+
 import stampImage from "../../../shared/assets/stamp.webp";
 import {
-  DAYS_PER_WEEK,
-  buildTwoWeekCalendar,
+  WEEKDAY_LABELS,
+  buildMonthCalendar,
   currentStreak,
+  formatMonthTitle,
   fromDateKey,
+  shiftMonth,
+  toMonthCursor,
   useAttendance,
   useMarkAttendance,
 } from "../data/attendance";
@@ -13,12 +18,14 @@ interface AttendanceCardProps {
   readonly today?: Date;
 }
 
-/** 지난주·이번주 출석 현황을 보여주고 오늘 출석을 남기는 카드. */
+/** 한 달 출석 현황을 보여주고 오늘 출석을 남기는 카드. */
 export function AttendanceCard({ today = new Date() }: AttendanceCardProps) {
   const attendedDates = useAttendance();
   const markAttendance = useMarkAttendance();
 
-  const days = buildTwoWeekCalendar(attendedDates, today);
+  const [cursor, setCursor] = useState(() => toMonthCursor(today));
+
+  const days = buildMonthCalendar(attendedDates, cursor, today);
   const streak = currentStreak(attendedDates, today);
 
   return (
@@ -31,50 +38,77 @@ export function AttendanceCard({ today = new Date() }: AttendanceCardProps) {
         <span className="attendance-total">총 {attendedDates.length}일 방문</span>
       </header>
 
-      {/* 앞 7칸이 지난주, 뒤 7칸이 이번주다. 행 구분은 CSS 그리드가 맡는다. */}
+      <div className="attendance-month">
+        <button
+          className="attendance-month-button"
+          type="button"
+          aria-label="지난 달 보기"
+          onClick={() => setCursor((previous) => shiftMonth(previous, -1))}
+        >
+          ‹
+        </button>
+
+        <strong className="attendance-month-title" aria-live="polite">
+          {formatMonthTitle(cursor)}
+        </strong>
+
+        <button
+          className="attendance-month-button"
+          type="button"
+          aria-label="다음 달 보기"
+          onClick={() => setCursor((previous) => shiftMonth(previous, 1))}
+        >
+          ›
+        </button>
+      </div>
+
+      {/* 요일 줄과 날짜 칸이 같은 7열을 쓰도록 그리드를 나눠 둔다. */}
+      <ol className="attendance-weekdays" aria-hidden="true">
+        {WEEKDAY_LABELS.map((weekday) => (
+          <li key={weekday}>{weekday}</li>
+        ))}
+      </ol>
+
       <ol className="attendance-grid">
-        {days.map((day, index) => {
-          const weekLabel = index < DAYS_PER_WEEK ? "지난주" : "이번주";
+        {days.map((day) => (
+          <li
+            className={[
+              "attendance-day",
+              day.isCurrentMonth ? "" : "attendance-day-outside",
+              day.isToday ? "attendance-day-today" : "",
+              day.isAttended ? "attendance-day-done" : "",
+              day.isFuture ? "attendance-day-future" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            key={day.key}
+          >
+            <span className="attendance-day-label">{day.label}</span>
 
-          return (
-            <li
-              className={[
-                "attendance-day",
-                day.isToday ? "attendance-day-today" : "",
-                day.isAttended ? "attendance-day-done" : "",
-                day.isFuture ? "attendance-day-future" : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              key={day.key}
-            >
-              <span className="attendance-day-label">{day.label}</span>
+            {day.isAttended && (
+              <span className="attendance-stamp">
+                <img src={stampImage} alt="" aria-hidden="true" />
 
-              {day.isAttended && (
-                <span className="attendance-stamp">
-                  <img src={stampImage} alt="" aria-hidden="true" />
+                {/* 스탬프 위에 그 날 기준 연속 일수를 얹는다. */}
+                <span className="attendance-stamp-streak">{day.streak}</span>
 
-                  {/* 스탬프 위에 그 날 기준 연속 일수를 얹는다. */}
-                  <span className="attendance-stamp-streak">{day.streak}</span>
-
-                  <span className="attendance-day-reader">
-                    {weekLabel} {day.label} 출석 완료, {day.streak}일째
-                  </span>
+                <span className="attendance-day-reader">
+                  {day.key} 출석 완료, {day.streak}일째
                 </span>
-              )}
+              </span>
+            )}
 
-              {day.isToday && !day.isAttended && (
-                <button
-                  className="attendance-check-button"
-                  type="button"
-                  onClick={() => markAttendance(fromDateKey(day.key))}
-                >
-                  출석하기
-                </button>
-              )}
-            </li>
-          );
-        })}
+            {day.isToday && !day.isAttended && (
+              <button
+                className="attendance-check-button"
+                type="button"
+                onClick={() => markAttendance(fromDateKey(day.key))}
+              >
+                출석하기
+              </button>
+            )}
+          </li>
+        ))}
       </ol>
     </section>
   );

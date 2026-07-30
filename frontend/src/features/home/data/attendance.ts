@@ -57,19 +57,8 @@ export function startOfWeek(date: Date): Date {
   return addDays(date, -offsetFromMonday);
 }
 
-const WEEKDAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"] as const;
-
-/**
- * 칸에 표시할 날짜 라벨.
- * 매달 1일은 어느 달인지 알 수 있게 월을 함께 적는다. (30(목) / 8/1(토))
- */
-export function formatDayLabel(date: Date): string {
-  const day = date.getDate();
-  const weekday = WEEKDAY_LABELS[(date.getDay() + 6) % 7];
-  const dayText = day === 1 ? `${date.getMonth() + 1}/${day}` : String(day);
-
-  return `${dayText}(${weekday})`;
-}
+/** 달력 첫 줄에 놓는 요일 이름. 주 시작이 월요일이라 월요일부터 적는다. */
+export const WEEKDAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"] as const;
 
 /**
  * 그 날짜에서 끝나는 연속 출석 일수. 출석하지 않은 날은 0이다.
@@ -109,7 +98,10 @@ export function currentStreak(
 /** 출석체크 격자의 한 칸. */
 export interface AttendanceDay {
   readonly key: DateKey;
+  /** 칸 왼쪽 위에 적을 날짜. 보통 숫자만, 달이 바뀌는 자리에는 8/1처럼 적는다. */
   readonly label: string;
+  /** 보고 있는 달에 속한 날인지. 앞뒤 달에서 채운 칸은 흐리게 보여준다. */
+  readonly isCurrentMonth: boolean;
   readonly isToday: boolean;
   /** 오늘보다 뒤인 날. 아직 출석할 수 없다. */
   readonly isFuture: boolean;
@@ -121,26 +113,67 @@ export interface AttendanceDay {
 /** 격자 한 행(월~일)의 칸 수. */
 export const DAYS_PER_WEEK = 7;
 
+/** 달력이 보고 있는 달. month는 1~12. */
+export interface MonthCursor {
+  readonly year: number;
+  readonly month: number;
+}
+
+/** 그 날짜가 속한 달. */
+export function toMonthCursor(date: Date): MonthCursor {
+  return { year: date.getFullYear(), month: date.getMonth() + 1 };
+}
+
+/** 달력 상단에 적을 제목. */
+export function formatMonthTitle(cursor: MonthCursor): string {
+  return `${cursor.year}년 ${cursor.month}월`;
+}
+
+/** 달을 delta만큼 옮긴다. 연 넘김은 Date가 알아서 처리한다. */
+export function shiftMonth(cursor: MonthCursor, delta: number): MonthCursor {
+  const moved = new Date(cursor.year, cursor.month - 1 + delta, 1);
+
+  return toMonthCursor(moved);
+}
+
 /**
- * 지난주 월요일부터 이번주 일요일까지 14칸.
- * 앞 7칸이 지난주, 뒤 7칸이 이번주다.
+ * 한 달 전체를 주 단위로 채운 달력.
+ *
+ * 첫 줄을 월요일로 맞추려고 앞뒤 달 날짜로 빈칸을 메운다. 라벨 규칙은
+ * - 보고 있는 달: 숫자만 (30)
+ * - 앞 달에서 끌어온 칸: 첫 칸에만 달을 함께 (6/29), 나머지는 숫자만
+ * - 뒤 달에서 끌어온 칸: 1일에만 달을 함께 (8/1), 나머지는 숫자만
  */
-export function buildTwoWeekCalendar(
+export function buildMonthCalendar(
   attendedDates: readonly DateKey[],
+  cursor: MonthCursor,
   today: Date,
 ): AttendanceDay[] {
-  const thisMonday = startOfWeek(today);
-  const firstDay = addDays(thisMonday, -DAYS_PER_WEEK);
+  const firstOfMonth = new Date(cursor.year, cursor.month - 1, 1);
+  const gridStart = startOfWeek(firstOfMonth);
+  const lastOfMonth = new Date(cursor.year, cursor.month, 0);
+  const gridEnd = addDays(startOfWeek(lastOfMonth), DAYS_PER_WEEK - 1);
+
+  const dayCount =
+    Math.round((gridEnd.getTime() - gridStart.getTime()) / 86_400_000) + 1;
   const todayKey = toDateKey(today);
 
-  return Array.from({ length: DAYS_PER_WEEK * 2 }, (_, offset) => {
-    const date = addDays(firstDay, offset);
+  return Array.from({ length: dayCount }, (_, offset) => {
+    const date = addDays(gridStart, offset);
     const key = toDateKey(date);
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    const isCurrentMonth =
+      date.getFullYear() === cursor.year && month === cursor.month;
     const isAttended = attendedDates.includes(key);
+
+    // 달이 바뀌는 자리에만 월을 덧붙여, 어느 달인지 헷갈리지 않게 한다.
+    const needsMonth = !isCurrentMonth && (offset === 0 || day === 1);
 
     return {
       key,
-      label: formatDayLabel(date),
+      label: needsMonth ? `${month}/${day}` : String(day),
+      isCurrentMonth,
       isToday: key === todayKey,
       isFuture: key > todayKey,
       isAttended,
