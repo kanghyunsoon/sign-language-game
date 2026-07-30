@@ -55,6 +55,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   const [disconnectDefeatOpen, setDisconnectDefeatOpen] = useState(() => mode === "BLOCK" && room?.status === "FINISHED");
   const roomSocketRef = useRef<RoomRealtimeSocket | null>(null);
   const roomRef = useRef<BattleRoomDetail | null>(room);
+  const rememberRoomRef = useRef<(next: BattleRoomDetail) => void>(() => undefined);
   const enteringGameRef = useRef(false);
   const startRtcAndEnterRef = useRef<() => Promise<void>>(async () => undefined);
 
@@ -63,6 +64,10 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
     setRoom(next);
     rememberSession({ ...next, currentUser: user });
   }, [rememberSession, user]);
+
+  useEffect(() => {
+    rememberRoomRef.current = rememberRoom;
+  }, [rememberRoom]);
 
   useEffect(() => {
     roomRef.current = room;
@@ -156,7 +161,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
       if (message.type === "PEER_LEFT") {
         const current = roomRef.current;
         if (current) {
-          rememberRoom({
+          rememberRoomRef.current({
             ...current,
             status: "WAITING",
             playerCount: 1,
@@ -186,7 +191,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
       if (roomSocketRef.current === socket) roomSocketRef.current = null;
       socket.disconnect();
     };
-  }, [roomId, services.roomRealtimeSocketFactory, rememberRoom]);
+  }, [roomId, services.roomRealtimeSocketFactory]);
 
   const startCameraPreview = async () => {
     try {
@@ -235,6 +240,9 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
     setError(null);
     try {
       await gateway.startGame(roomId);
+      // The play page may mount before the WebRTC data channel finishes opening.
+      // Persist the server transition now so that page can keep waiting for it.
+      rememberRoom({ ...room, status: "PLAYING", canStart: false });
       // The backend also broadcasts GAME_STARTED. Calling this here covers the host
       // immediately; the ref prevents the broadcast from starting a second session.
       await startRtcAndEnter();

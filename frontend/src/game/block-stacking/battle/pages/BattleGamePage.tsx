@@ -67,7 +67,12 @@ export function BattleGamePage() {
     resultReportPromiseRef.current = request;
     return request;
   }, [resultClient, roomId]);
-  const refreshMedia = useCallback(() => { setParticipants(battleMediaSession.getRemoteParticipants()); setRtcState(battleMediaSession.getConnectionState()); }, [battleMediaSession]);
+  const refreshMedia = useCallback(() => {
+    const nextState = battleMediaSession.getConnectionState();
+    setParticipants(battleMediaSession.getRemoteParticipants());
+    setRtcState(nextState);
+    setMediaReady(nextState === "CONNECTED");
+  }, [battleMediaSession]);
   useEffect(() => battleMediaSession.subscribe(refreshMedia), [battleMediaSession, refreshMedia]);
 
   useEffect(() => {
