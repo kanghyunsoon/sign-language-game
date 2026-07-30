@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { RoomRealtimeSocket, type RoomWebSocketLike } from "./RoomRealtimeSocket";
+import { RealtimeTicketRequestError } from "./RealtimeTicketClient";
 
 class FakeSocket implements RoomWebSocketLike {
   readyState = 0;
@@ -93,5 +94,16 @@ describe("RoomRealtimeSocket", () => {
     client.disconnectForWebRtcHandoff();
     const second = client.connect(); await vi.waitFor(() => expect(created).toHaveLength(2)); created[1]!.open(); await second;
     expect(issue).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry a rejected identity or one-time ticket", async () => {
+    const issue = vi.fn(async () => { throw new RealtimeTicketRequestError(401); });
+    const client = new RoomRealtimeSocket({
+      webSocketBaseUrl: "ws://host/ws/game-rooms", roomId: "7", localUserId: "42",
+      ticketClient: { issue }, createWebSocket: vi.fn(),
+    });
+
+    await expect(client.connect()).rejects.toThrow("Realtime ticket request failed (401).");
+    expect(issue).toHaveBeenCalledOnce();
   });
 });

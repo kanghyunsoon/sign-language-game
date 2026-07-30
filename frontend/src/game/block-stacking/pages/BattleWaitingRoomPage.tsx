@@ -87,7 +87,6 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
     enteringGameRef.current = true;
     setStartingGame(true);
     setError(null);
-    roomSocketRef.current?.disconnect();
     try {
       const stream = await sharedCameraSession.start();
       setLocalStream(stream);
@@ -213,15 +212,6 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   const toggleReady = async () => {
     if (!roomId || !room || !gateway.setReady || readyBusy) return;
     const nextReady = !room.currentUserReady;
-    const isCurrentUserHost = room.hostUserId === user.userId;
-    const optimisticRoom: BattleRoomDetail = {
-      ...room,
-      currentUserReady: nextReady,
-      hostReady: isCurrentUserHost ? nextReady : Boolean(room.hostReady),
-      guestReady: isCurrentUserHost ? Boolean(room.guestReady) : nextReady,
-      canStart: room.playerCount >= room.maxPlayers && (isCurrentUserHost ? nextReady : Boolean(room.hostReady)) && (isCurrentUserHost ? Boolean(room.guestReady) : nextReady),
-    };
-    rememberRoom(optimisticRoom);
     setReadyBusy(true);
     setError(null);
     try {

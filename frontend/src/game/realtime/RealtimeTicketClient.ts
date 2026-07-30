@@ -3,6 +3,13 @@ export interface RealtimeTicket {
   readonly expiresInSeconds: number;
 }
 
+export class RealtimeTicketRequestError extends Error {
+  constructor(readonly status: number) {
+    super(`Realtime ticket request failed (${status}).`);
+    this.name = "RealtimeTicketRequestError";
+  }
+}
+
 export type RealtimeHeadersProvider = () => HeadersInit | Promise<HeadersInit>;
 
 export interface RealtimeTicketClientOptions {
@@ -31,7 +38,7 @@ export class RealtimeTicketClient {
       credentials: "include",
       headers: configured,
     });
-    if (!response.ok) throw new Error(`Realtime ticket request failed (${response.status}).`);
+    if (!response.ok) throw new RealtimeTicketRequestError(response.status);
     return parseRealtimeTicket(await response.json());
   }
 }

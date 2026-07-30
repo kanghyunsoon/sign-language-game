@@ -104,6 +104,13 @@ function readBattleRoomSession(userId: string): BattleRoomSession | null {
     const raw = window.sessionStorage.getItem(BATTLE_ROOM_SESSION_KEY_PREFIX + userId);
     if (!raw) return null;
     const session = JSON.parse(raw) as BattleRoomSession;
+    // The backend has no room-detail read API. A persisted in-progress state
+    // therefore cannot prove that this user is still a participant after a
+    // refresh, leave, or result report. Never resurrect a PLAYING session.
+    if (session?.status === "PLAYING") {
+      window.sessionStorage.removeItem(BATTLE_ROOM_SESSION_KEY_PREFIX + userId);
+      return null;
+    }
     return session?.roomId && session.currentUser?.userId === userId ? session : null;
   } catch {
     return null;

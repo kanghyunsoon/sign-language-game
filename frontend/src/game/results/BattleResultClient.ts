@@ -9,6 +9,13 @@ export interface BattleResultClientOptions {
   readonly fetcher?: typeof globalThis.fetch;
 }
 
+export class BattleResultRequestError extends Error {
+  constructor(readonly status: number, readonly responseBody: unknown) {
+    super(`Battle result request failed (${status}).`);
+    this.name = "BattleResultRequestError";
+  }
+}
+
 export class BattleResultClient {
   private readonly baseUrl: string;
   private readonly fetcher: typeof globalThis.fetch;
@@ -35,13 +42,15 @@ export class BattleResultClient {
         }),
       },
     );
-    // The result endpoint is write-once per game session. A remount or a peer
-    // recovery can repeat the same report, so an already-recorded result is a
-    // successful terminal state rather than a user-visible failure.
-    if (response.status === 409) return null;
-    if (!response.ok) throw new Error(`Battle result request failed (${response.status}).`);
+    if (!response.ok) throw new BattleResultRequestError(response.status, await responseBody(response));
     return parseBattleResult(await response.json());
   }
+}
+
+async function responseBody(response: Response): Promise<unknown> {
+  const text = await response.text();
+  if (!text) return null;
+  try { return JSON.parse(text) as unknown; } catch { return text; }
 }
 
 function parseBattleResult(value: unknown): BattleResultResponse {

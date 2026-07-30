@@ -1,4 +1,4 @@
-import type { RealtimeTicketClient } from "./RealtimeTicketClient";
+import { RealtimeTicketRequestError, type RealtimeTicketClient } from "./RealtimeTicketClient";
 
 export type RoomServerMessageType =
   | "PEER_DISCONNECTED"
@@ -108,6 +108,9 @@ export class RoomRealtimeSocket {
         return;
       } catch (cause) {
         lastError = cause instanceof Error ? cause : new Error(String(cause));
+        // Retrying a rejected identity or an unusable one-time ticket only
+        // burns tickets and obscures the actual stale-room condition.
+        if (isTerminalAuthenticationFailure(cause)) break;
       }
     }
     const error = lastError ?? new Error("Room WebSocket connection failed.");
@@ -158,6 +161,12 @@ export class RoomRealtimeSocket {
   }
 
   private emitError(error: Error): void { for (const listener of this.errorListeners) listener(error); }
+}
+
+function isTerminalAuthenticationFailure(cause: unknown): boolean {
+  return cause instanceof RealtimeTicketRequestError
+    ? cause.status === 401 || cause.status === 403
+    : cause instanceof Error && /(?:ticket request failed \((?:401|403)\)|invalid.?ticket)/i.test(cause.message);
 }
 
 function wait(delayMs: number): Promise<void> { return new Promise((resolve) => window.setTimeout(resolve, delayMs)); }

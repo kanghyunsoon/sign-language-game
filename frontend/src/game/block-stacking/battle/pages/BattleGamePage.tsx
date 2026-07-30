@@ -27,7 +27,7 @@ import { BattleResultModal } from "../components/BattleResultModal";
 import letterOtter from "../../assets/solo-letter-otter.png";
 import styles from "../battle.module.css";
 import { createDevAuthHeaders } from "../../../app/devAuthHeaders";
-import { BattleResultClient } from "../../../results/BattleResultClient";
+import { BattleResultClient, BattleResultRequestError } from "../../../results/BattleResultClient";
 
 const INITIAL: BattleControllerSnapshot = { state: "IDLE", gameConnectionState: "DISCONNECTED", aiConnectionState: "DISCONNECTED", countdownMs: 0, reconnectDeadlineAt: null, score: 0, combo: 0, maxCombo: 0, removedCount: 0, targetSymbol: null, prediction: null, message: "Waiting for board initialization.", result: null };
 
@@ -51,22 +51,46 @@ export function BattleGamePage() {
   const controllerRef = useRef<BattleController | null>(null); const localRuntimeRef = useRef<BattleLocalBoardRuntime | null>(null); const localViewportRef = useRef({ width: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, height: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight }); const remoteViewportRef = useRef({ width: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, height: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight }); const remoteLoopRef = useRef<number | null>(null);
   const settledTowerHeightsRef = useRef({ local: 0, remote: 0 });
   const [towerHeights, setTowerHeights] = useState({ local: 0, remote: 0 });
+  const localIsHost = battleRoomSession?.hostUserId === user.userId;
   const reportMatchResult = useCallback((result: MatchFinishedEvent): Promise<void> => {
     if (!Number.isSafeInteger(Number(roomId))) return Promise.resolve();
+    // The result endpoint transitions the room out of IN_PROGRESS. Having both
+    // browsers post the same result deterministically creates a 409 race.
+    if (!localIsHost) return Promise.resolve();
     if (resultReportPromiseRef.current) return resultReportPromiseRef.current;
     setResultBusy(true);
     setResultError(null);
     const request = resultClient.reportResult(Number(roomId), result.winnerPlayerId)
-      .then(() => undefined)
+      .then(() => {
+        // Swagger guarantees a 201 result returns the room to WAITING. Update
+        // the persisted copy at the same time so it cannot issue a stale
+        // ready/start request before the user presses the rematch button.
+        if (battleRoomSession) setBattleRoomSession({
+          ...battleRoomSession,
+          status: battleRoomSession.playerCount >= battleRoomSession.maxPlayers ? "FULL" : "WAITING",
+          hostReady: false,
+          guestReady: false,
+          currentUserReady: false,
+          canStart: false,
+          activeMatchId: null,
+        });
+      })
       .catch((cause) => {
         resultReportPromiseRef.current = null;
+        if (cause instanceof BattleResultRequestError && (cause.status === 403 || cause.status === 409)) {
+          // This is not a retryable transport failure: the authoritative room
+          // no longer accepts a result from this browser. Drop all stale local
+          // state before any later ready/start request can reuse it.
+          setBattleRoomSession(null);
+          void battleMediaSession.disconnect().finally(() => sharedCameraSession.stop());
+        }
         setResultError(cause instanceof Error ? cause.message : "결과 전송에 실패했습니다.");
         throw cause;
       })
       .finally(() => setResultBusy(false));
     resultReportPromiseRef.current = request;
     return request;
-  }, [resultClient, roomId]);
+  }, [battleMediaSession, battleRoomSession, localIsHost, resultClient, roomId, setBattleRoomSession, sharedCameraSession]);
   const refreshMedia = useCallback(() => {
     const nextState = battleMediaSession.getConnectionState();
     setParticipants(battleMediaSession.getRemoteParticipants());
@@ -175,7 +199,6 @@ export function BattleGamePage() {
     }
     await leaveBattle("/game/battle");
   };
-  const localIsHost = battleRoomSession?.hostUserId === user.userId;
   const localPlayerLabel = localIsHost ? "PLAYER 1" : "PLAYER 2";
   const remotePlayerLabel = localIsHost ? "PLAYER 2" : "PLAYER 1";
   const showSharedTarget = snapshot.state === "COUNTDOWN" || snapshot.state === "PLAYING" || snapshot.state === "RECONNECTING";
