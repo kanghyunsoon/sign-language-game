@@ -176,7 +176,7 @@
 .module :global(.crowd-dashboard dt) { color:#627087; }
 .module :global(.crowd-dashboard dd) { margin:0; overflow-wrap:anywhere; font-weight:700; }
 @media (max-width:900px) { .module :global(.crowd-runtime) { grid-template-columns:1fr; } .module :global(.crowd-dashboard) { position:static; max-height:none; } }
-.module:has(> :global(.solo-game-page)) { position: relative; display: grid; width: 100%; min-height: 100dvh; overflow: auto; background: #e0f1ff; }
+.module:has(> :global(.solo-game-page)) { position: fixed; inset: 0; display: block; width: 100%; min-height: 0; overflow: hidden; background: #e0f1ff; }
 .module :global(.solo-game-page) { position: relative; display: grid; width: 100%; height: 100dvh; min-width: 0; min-height: 720px; grid-template-rows: 115px minmax(0, 1fr); gap: 7px; margin: 0; padding: 7px 9px 9px; overflow: hidden; border: 1px solid #c8dfe9; border-radius: 4px; background: linear-gradient(to bottom, #e0f1ff 0 84%, #c9e59d 84% 95%, #a9cd7c 95%); box-shadow: 0 12px 34px rgba(44,84,103,.14); isolation: isolate; }
 .module :global(.solo-game-page::before) { position: absolute; z-index: -1; inset: 0; background-image: linear-gradient(rgba(99,165,201,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(99,165,201,.07) 1px, transparent 1px); background-size: 42px 42px; content: ""; mask-image: linear-gradient(to bottom, #000 0 76%, transparent 94%); }
 .module :global(.solo-game-header) { position: relative; min-height: 0; padding: 8px 12px 8px 15px; overflow: hidden; border: 2px solid rgba(255,255,255,.92); border-radius: 15px !important; background: rgba(255,255,255,.92); box-shadow: 0 5px 0 rgba(70,119,139,.12), 0 10px 24px rgba(49,92,111,.09) !important; color: #2d3d44; }
@@ -652,8 +652,8 @@
 .comingSoonConfirm:active { transform: translateY(3px); box-shadow: 0 2px 0 #8fa833; }
 @keyframes comingSoonPop { from { opacity: 0; transform: translateY(18px) scale(.92); } to { opacity: 1; transform: translateY(0) scale(1); } }
 /* Tetris mode selection: same mascot palette, with a stronger arcade presentation. */
-.module:has(> .tetrisModePage) { display: grid; min-height: 100dvh; place-items: center; overflow: hidden; background: #e0f1ff; }
-.tetrisModePage { position: relative; display: grid; width: min(100vw, calc(100dvh * 16 / 9), 1280px); height: min(100dvh, calc(100vw * 9 / 16), 720px); min-height: 0; margin: 0; padding: 30px 54px 28px; overflow: hidden; grid-template-rows: auto minmax(0, 1fr) auto; gap: 20px; border: 1px solid #d7e7ee; background: linear-gradient(to bottom, #e0f1ff 0 73%, #c9e59d 73% 91%, #a9cd7c 91%); isolation: isolate; }
+.module:has(> .tetrisModePage) { position: fixed; inset: 0; display: block; min-height: 0; overflow: hidden; background: #e0f1ff; }
+.tetrisModePage { position: absolute; top: 50%; left: 50%; display: grid; width: 1280px; height: 720px; min-height: 0; margin: 0; padding: 30px 54px 28px; overflow: hidden; grid-template-rows: auto minmax(0, 1fr) auto; gap: 20px; border: 1px solid #d7e7ee; background: linear-gradient(to bottom, #e0f1ff 0 73%, #c9e59d 73% 91%, #a9cd7c 91%); isolation: isolate; transform-origin: center; }
 .tetrisModePage::before { position: absolute; inset: 0; z-index: -1; background-image: linear-gradient(rgba(83,147,177,.055) 1px, transparent 1px), linear-gradient(90deg, rgba(83,147,177,.055) 1px, transparent 1px); background-size: 32px 32px; content: ""; mask-image: linear-gradient(to bottom, #000, transparent 72%); }
 .tetrisModePage::after { position: absolute; z-index: -2; right: 0; bottom: 0; left: 0; height: 9%; border-top: 5px solid rgba(89,124,67,.18); background: linear-gradient(rgba(255,255,255,.09), rgba(61,96,55,.06)), repeating-linear-gradient(90deg, #a8cb7c 0 48px, #9fc273 48px 96px); box-shadow: inset 0 8px 0 rgba(255,255,255,.12); content: ""; }
 .tetrisModeHeader { position: relative; z-index: 3; display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; align-items: start; gap: 18px; }
@@ -665,7 +665,7 @@
 .layersMark i { display: block; width: 6px; height: 6px; border-radius: 1px; background: #b8d648; box-shadow: 0 1px 0 #78912e; }
 .layersMark i:nth-child(2) { height: 11px; background: #ffe33f; }
 .layersMark i:nth-child(3) { height: 8px; background: #ef3f79; }
-.modeTitleBlock h1 { display: flex; align-items: center; margin: 7px 0 4px; color: #28383f; font-family: "Arial Rounded MT Bold", "Malgun Gothic", sans-serif; font-size: clamp(34px, 3.5vw, 52px); font-weight: 1000; letter-spacing: -.075em; line-height: 1; text-shadow: 0 4px 0 rgba(255,255,255,.86), 3px 3px 0 rgba(121,215,247,.32); }
+.modeTitleBlock h1 { display: flex; align-items: center; margin: 7px 0 4px; color: #28383f; font-family: "Arial Rounded MT Bold", "Malgun Gothic", sans-serif; font-size: 52px; font-weight: 1000; letter-spacing: -.075em; line-height: 1; text-shadow: 0 4px 0 rgba(255,255,255,.86), 3px 3px 0 rgba(121,215,247,.32); }
 .titleSu { position: relative; display: inline-block; width: 1.36em; height: 1.45em; margin: -.27em -.08em -.08em .04em; filter: drop-shadow(4px 5px 0 rgba(23,35,43,.24)); animation: titleSuFloat 2.4s ease-in-out infinite; }
 .titleSu i { position: absolute; left: 50%; font-family: "Arial Black", "Malgun Gothic", sans-serif; font-style: normal; font-weight: 1000; line-height: .82; -webkit-text-stroke: 1.5px rgba(23,35,43,.16); transform: translateX(-50%) scaleX(1.06); }
 .titleSu i:first-child { top: -.01em; color: #ef3f79; font-size: 1.17em; }
@@ -796,32 +796,45 @@
 @keyframes pixelBlink { 0%,55% { opacity: .86; } 56%,100% { opacity: .28; } }
 @keyframes hudPulse { 0%,45% { opacity: 1; } 46%,100% { opacity: .48; } }
 @media (prefers-reduced-motion: reduce) { .titleSu, .modeChoiceCard, .modeChoiceIcon, .modeChoiceAction, .fallingBlock, .comboBurst, .battleSparkle, .modeArenaHud strong, .pixelStar { animation: none; transition: none; } }
-@media (max-width: 820px) {
-  .module:has(> .tetrisModePage) { display: block; overflow: auto; }
-  .module > .tetrisModePage { width: 100%; height: auto; min-height: 100dvh; padding: 20px 16px 28px; grid-template-rows: auto auto auto; background: linear-gradient(to bottom, #e0f1ff 0 48%, #c9e59d 48% 94%, #a9cd7c 94%); }
-  .module > .tetrisModePage .tetrisModeHeader { grid-template-columns: 43px minmax(0, 1fr); }
-  .module > .tetrisModePage .modeUserBadge { display: none; }
-  .module > .tetrisModePage .arcadeBackdrop { display: none; }
-  .module > .tetrisModePage .modeArena { grid-template-columns: 1fr; gap: 22px; padding: 10px; }
-  .module > .tetrisModePage .modeChoiceCard { min-height: 430px; }
-  .module > .tetrisModePage .modeArenaHud { display: none; }
-  .module > .tetrisModePage .modeTip { align-items: flex-start; padding-block: 12px; }
-}
-
 .module :global(.solo-title-group) { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .module :global(.solo-back-button) { display: grid; flex: 0 0 auto; width: 36px; height: 36px; padding: 0; place-items: center; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 4px 0 #b6cf8d, 0 7px 14px rgba(63,108,126,.14); color: #597044; cursor: pointer; }
 .module :global(.solo-back-button:hover) { transform: translateY(-1px); }
 
-/* Solo uses normal document sizing so browser zoom can reflow the workspace. */
+/* Solo uses the same fixed 16:9 canvas as the selection screens. */
 .module:has(> :global(.solo-game-page)) > :global(.solo-game-page) {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
   display: grid !important;
-  width: 100% !important;
-  height: 100dvh !important;
-  min-width: 0 !important;
-  min-height: 720px !important;
+  width: 1680px !important;
+  height: 945px !important;
+  min-width: 1680px !important;
+  min-height: 945px !important;
+  margin: 0 !important;
   grid-template-rows: 115px minmax(0, 1fr) !important;
+  transform-origin: center !important;
 }
 
+.module:has(> :global(.solo-game-page)) > :global(.solo-game-page) > :global(.solo-game-header) {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.module:has(> :global(.solo-game-page)) :global(.solo-title-group) {
+  width: auto !important;
+  flex: 0 1 auto !important;
+}
+
+.module:has(> :global(.solo-game-page)) :global(.solo-controls) {
+  width: auto !important;
+  flex: 0 0 auto !important;
+}
+
+.module:has(> :global(.solo-game-page)) :global(.solo-controls button:not(.icon)) {
+  flex: 0 0 auto !important;
+}
 .module:has(> :global(.solo-game-page)) > :global(.solo-game-page) > :global(.solo-workspace) {
   display: grid !important;
   width: 100% !important;
@@ -864,25 +877,4 @@
   justify-self: stretch !important;
   align-self: stretch !important;
   aspect-ratio: auto !important;
-}
-
-@media (max-width: 820px) {
-  .module:has(> :global(.solo-game-page)) > :global(.solo-game-page) {
-    height: auto !important;
-    min-height: 100dvh !important;
-    overflow: visible;
-  }
-  .module:has(> :global(.solo-game-page)) > :global(.solo-game-page) > :global(.solo-workspace) {
-    height: auto !important;
-    grid-template-columns: minmax(0, 1fr) !important;
-    grid-template-rows: minmax(620px, 75dvh) minmax(620px, 75dvh) !important;
-  }
-  .module:has(> :global(.solo-game-page)) > :global(.solo-game-page) > :global(.solo-workspace) > :global(.solo-stage-column) {
-    grid-column: 1 !important;
-    grid-row: 1 !important;
-  }
-  .module:has(> :global(.solo-game-page)) > :global(.solo-game-page) > :global(.solo-workspace) > :global(.solo-sidebar) {
-    grid-column: 1 !important;
-    grid-row: 2 !important;
-  }
 }

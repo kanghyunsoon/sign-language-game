@@ -7,6 +7,8 @@ import { CreateRoomModal } from "../battle/components/CreateRoomModal";
 import styles from "../battle/components/BattleRoomUi.module.css";
 import type { BattleRoomSummary, CreateRoomRequest } from "../battle/room";
 const DEFAULT_POLLING_INTERVAL_MS = 2_500;
+const BATTLE_LOBBY_CANVAS_WIDTH = 1280;
+const BATTLE_LOBBY_CANVAS_HEIGHT = 720;
 const RANKING = ["수달왕", "손톡이", "지문자고수", "새콩이", "수어초보"] as const;
 type RoomFilter = "ALL" | "WAITING" | "OPEN";
 export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK" | "TURN" }) {
@@ -25,6 +27,18 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<RoomFilter>("ALL");
   const [roomCode, setRoomCode] = useState("");
+  const [pageScale, setPageScale] = useState(1);
+  useEffect(() => {
+    const updatePageScale = () => {
+      setPageScale(Math.min(
+        window.innerWidth / BATTLE_LOBBY_CANVAS_WIDTH,
+        window.innerHeight / BATTLE_LOBBY_CANVAS_HEIGHT,
+      ));
+    };
+    updatePageScale();
+    window.addEventListener("resize", updatePageScale);
+    return () => window.removeEventListener("resize", updatePageScale);
+  }, []);
   const loadRooms = useCallback(async (background = false) => { if (!background) setRefreshing(true); try { const result = await gateway.getRooms(); setRooms(result); setError(null); } catch (cause) { setError(errorMessage(cause, "방 목록을 불러오지 못했습니다.")); } finally { setLoading(false); if (!background) setRefreshing(false); } }, [gateway]);
   useEffect(() => { let active = true; void gateway.getRooms().then((result) => { if (active) { setRooms(result); setError(null); } }).catch((cause: unknown) => { if (active) setError(errorMessage(cause, "방 목록을 불러오지 못했습니다.")); }).finally(() => { if (active) setLoading(false); }); const timer = window.setInterval(() => { if (active) void loadRooms(true); }, config.battleRoomPollingIntervalMs ?? DEFAULT_POLLING_INTERVAL_MS); return () => { active = false; window.clearInterval(timer); }; }, [config.battleRoomPollingIntervalMs, loadRooms, gateway]);
   useEffect(() => {
@@ -44,7 +58,11 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
   const createRoom = async (request: CreateRoomRequest) => { setCreating(true); setError(null); try { const session = await gateway.createRoom(request); rememberSession(session); setModalOpen(false); navigate(session.roomId); } catch (cause) { setError(errorMessage(cause, "방을 만들지 못했습니다.")); } finally { setCreating(false); } };
   const joinRoom = async (roomId: string) => { setJoiningRoomId(roomId); setError(null); try { const session = await gateway.joinRoom(roomId); rememberSession(session); navigate(session.roomId); } catch (cause) { setError(errorMessage(cause, "방에 입장하지 못했습니다.")); } finally { setJoiningRoomId(null); } };
   const joinByCode = () => { const normalized = roomCode.trim(); if (!normalized || joiningRoomId) return; void joinRoom(normalized); };
-  return <main className={[styles.page, styles.lobbyPage, styles.fixedCanvasPage].join(" ")}>
+  return <main
+    className={[styles.page, styles.lobbyPage, styles.fixedCanvasPage].join(" ")}
+    data-fixed-battle-lobby-canvas="true"
+    style={{ transform: `translate(-50%, -50%) scale(${pageScale})` }}
+  >
     <button type="button" className={styles.lobbyBack} onClick={() => navigate(mode === "TURN" ? "/game" : "/game/block")} aria-label="게임 모드 선택으로 돌아가기"><ArrowLeft aria-hidden={true} size={19} /></button>
     <button type="button" className={styles.lobbyProfile}>개발 사용자</button>
     <header className={styles.lobbyHero}><span>{mode === "TURN" ? "1:1 TURN BATTLE" : "1:1 BLOCK BATTLE"}</span><h1>게임방 찾기</h1><p>참여할 게임을 선택하고, 입장 가능한 방을 찾아보세요.</p></header>

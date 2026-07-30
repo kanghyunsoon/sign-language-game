@@ -45,6 +45,8 @@ import hintPaperThrow from "../assets/solo-paper-throw.png";
 // busy AI connection drops stale work instead of making the hand overlay lag.
 const SOLO_RECOGNITION_RATE_CONFIG = RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG;
 const SOLO_DECODER_CONFIG = RESPONSIVE_GAMEPLAY_SIGN_DECODER_CONFIG;
+const SOLO_CANVAS_WIDTH = 1680;
+const SOLO_CANVAS_HEIGHT = 945;
 // Large solo blocks shorten the round and make each successful sign visually
 // consequential. Renderer, physics, and game-over geometry must always share
 // this exact value.
@@ -156,6 +158,7 @@ export function SoloGamePage({
   const [savedResult, setSavedResult] = useState<SoloGameResult | null>(null);
   const [soloRank, setSoloRank] = useState<number | null>(null);
   const [cameraStream,setCameraStream]=useState(()=>sharedCameraSession.getStream());
+  const [pageScale, setPageScale] = useState(1);
   const rendererConfig = useMemo(() => ({
     dangerLineY: 160,
     dangerLineRatio: 1 / 6,
@@ -164,6 +167,19 @@ export function SoloGamePage({
     showScenery: false,
   }), []);
   useSharedCameraOwnerCleanup(sharedCameraSession);
+
+  useEffect(() => {
+    const updatePageScale = () => {
+      setPageScale(Math.min(
+        window.innerWidth / SOLO_CANVAS_WIDTH,
+        window.innerHeight / SOLO_CANVAS_HEIGHT,
+      ));
+    };
+
+    updatePageScale();
+    window.addEventListener("resize", updatePageScale);
+    return () => window.removeEventListener("resize", updatePageScale);
+  }, []);
 
   // Runtime snapshots are normally published for gameplay events. Poll the
   // runtime clock separately while playing so the visible timer advances even
@@ -514,7 +530,11 @@ export function SoloGamePage({
   }, []);
 
   return (
-    <div className="solo-game-page">
+    <div
+      className="solo-game-page"
+      data-fixed-solo-canvas="true"
+      style={{ transform: `translate(-50%, -50%) scale(${pageScale})` }}
+    >
       {import.meta.env.DEV && new URLSearchParams(window.location.search).has("collisionAudit") && (
         <GlyphCollisionAudit symbols={SOLO_GAME_SYMBOLS} />
       )}

@@ -30,6 +30,8 @@ import { createDevAuthHeaders } from "../../../app/devAuthHeaders";
 import { BattleResultClient, BattleResultRequestError } from "../../../results/BattleResultClient";
 
 const INITIAL: BattleControllerSnapshot = { state: "IDLE", gameConnectionState: "DISCONNECTED", aiConnectionState: "DISCONNECTED", countdownMs: 0, reconnectDeadlineAt: null, score: 0, combo: 0, maxCombo: 0, removedCount: 0, targetSymbol: null, prediction: null, message: "Waiting for board initialization.", result: null };
+const BATTLE_CANVAS_WIDTH = 1680;
+const BATTLE_CANVAS_HEIGHT = 945;
 
 export function BattleGamePage() {
   const { roomId = "" } = useParams(); const navigate = useNavigate();
@@ -55,6 +57,18 @@ export function BattleGamePage() {
   const controllerRef = useRef<BattleController | null>(null); const localRuntimeRef = useRef<BattleLocalBoardRuntime | null>(null); const localViewportRef = useRef({ width: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, height: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight }); const remoteViewportRef = useRef({ width: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, height: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight }); const remoteLoopRef = useRef<number | null>(null);
   const settledTowerHeightsRef = useRef({ local: 0, remote: 0 });
   const [towerHeights, setTowerHeights] = useState({ local: 0, remote: 0 });
+  const [pageScale, setPageScale] = useState(1);
+  useEffect(() => {
+    const updatePageScale = () => {
+      setPageScale(Math.min(
+        window.innerWidth / BATTLE_CANVAS_WIDTH,
+        window.innerHeight / BATTLE_CANVAS_HEIGHT,
+      ));
+    };
+    updatePageScale();
+    window.addEventListener("resize", updatePageScale);
+    return () => window.removeEventListener("resize", updatePageScale);
+  }, []);
   const localIsHost = battleRoomSession?.hostUserId === user.userId;
   const markRoomWaiting = useCallback(() => {
     if (!battleRoomSession) return;
@@ -252,7 +266,11 @@ export function BattleGamePage() {
   const localPlayerLabel = localIsHost ? "PLAYER 1" : "PLAYER 2";
   const remotePlayerLabel = localIsHost ? "PLAYER 2" : "PLAYER 1";
   const showSharedTarget = snapshot.state === "COUNTDOWN" || snapshot.state === "PLAYING" || snapshot.state === "RECONNECTING";
-  return <main className={`${styles.page} ${styles.battleFixedPage}`}>
+  return <main
+    className={`${styles.page} ${styles.battleFixedPage}`}
+    data-fixed-battle-game-canvas="true"
+    style={{ transform: `translate(-50%, -50%) scale(${pageScale})` }}
+  >
     <header className={styles.topbar}><div><h1>1:1 지문자 대전</h1><p>방 {roomId || "-"}</p></div><BattleConnectionPanel game={snapshot.gameConnectionState} rtc={rtcState} ai={snapshot.aiConnectionState} camera={cameraState} /></header>
     <button type="button" className={styles.battleLeaveButton} onClick={() => void forfeitAndLeave()} disabled={resultBusy}>나가기</button>
     <div className={styles.duelLayout}>
