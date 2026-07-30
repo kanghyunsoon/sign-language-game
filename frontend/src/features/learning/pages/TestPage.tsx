@@ -130,11 +130,9 @@ export function TestPage() {
           <nav className="test-nav" aria-label="주요 메뉴">
             <Link to="/main">메인페이지</Link>
             <Link to="/practice">연습</Link>
-            <Link className="active" to="/test">
-              테스트
-            </Link>
-            <Link to="/dictionary">사전</Link>
+            <Link className="active" to="/test">테스트</Link>
             <Link to="/review-notes">오답노트</Link>
+            <Link to="/dictionary">사전</Link>
             <Link to="/game">게임</Link>
           </nav>
 

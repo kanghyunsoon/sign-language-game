@@ -348,8 +348,8 @@ export function PracticeSessionPage({
 
           <Link className="active" to="/practice">연습</Link>
           <Link to="/test">테스트</Link>
-          <Link to="/dictionary">사전</Link>
           <Link to="/review-notes">오답노트</Link>
+          <Link to="/dictionary">사전</Link>
           <Link to="/game">게임</Link>
         </nav>
 
