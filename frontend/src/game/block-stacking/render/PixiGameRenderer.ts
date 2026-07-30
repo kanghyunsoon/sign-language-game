@@ -323,11 +323,18 @@ export class PixiGameRenderer implements GameRenderer {
 
     const hostBounds = this.rendererHost.getBoundingClientRect();
     const overlayBounds = this.frontLetterHost.getBoundingClientRect();
+    // The solo page is uniformly scaled to fit the browser viewport. DOM
+    // rectangles include that visual scale, while inline left/top/width/height
+    // values are laid out in the unscaled game coordinate system. Convert back
+    // before positioning the foreground glyph layer so browser zoom cannot
+    // offset letters past the actual board frame.
+    const scaleX = hostBounds.width / Math.max(1, this.rendererHost.clientWidth);
+    const scaleY = hostBounds.height / Math.max(1, this.rendererHost.clientHeight);
     this.frontLetterLayer.style.inset = "auto";
-    this.frontLetterLayer.style.left = `${hostBounds.left - overlayBounds.left - this.frontLetterHost.clientLeft}px`;
-    this.frontLetterLayer.style.top = `${hostBounds.top - overlayBounds.top - this.frontLetterHost.clientTop}px`;
-    this.frontLetterLayer.style.width = `${hostBounds.width}px`;
-    this.frontLetterLayer.style.height = `${hostBounds.height}px`;
+    this.frontLetterLayer.style.left = `${(hostBounds.left - overlayBounds.left) / scaleX - this.frontLetterHost.clientLeft}px`;
+    this.frontLetterLayer.style.top = `${(hostBounds.top - overlayBounds.top) / scaleY - this.frontLetterHost.clientTop}px`;
+    this.frontLetterLayer.style.width = `${hostBounds.width / scaleX}px`;
+    this.frontLetterLayer.style.height = `${hostBounds.height / scaleY}px`;
   }
 
   private drawDangerLine(): void {

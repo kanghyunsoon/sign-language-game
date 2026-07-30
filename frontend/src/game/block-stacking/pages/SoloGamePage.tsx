@@ -697,13 +697,15 @@ export function SoloGamePage({
         <aside className="solo-sidebar">
           <section className="solo-camera-cell" aria-label="플레이어 카메라">
             <header className="solo-panel-heading">
-              <span><b>PLAYER CAM</b><small>손을 화면 중앙에 보여주세요</small></span>
+              <span><b>PLAYER CAM</b></span>
               <em className={`solo-ai-chip is-${recognition.connectionState.toLowerCase()}`}>AI · {recognition.connectionState}</em>
             </header>
             <div className="solo-camera-viewport">
               {cameraStream ? <HandCamera
                 sharedStream={cameraStream}
                 compact
+                showNoHandPrompt
+                hideCompactStatus
                 autoStart
                 rateConfig={SOLO_RECOGNITION_RATE_CONFIG}
                 performanceMonitor={recognizerRef.current?.getPerformanceMonitor()}
@@ -720,11 +722,6 @@ export function SoloGamePage({
                 <strong>CAMERA OFFLINE</strong>
                 <span>{cameraError??"공유 카메라를 준비하고 있습니다."}</span>
               </div>}
-              <div className="solo-camera-current-symbol" aria-live="polite">
-                <span>현재 인식</span>
-                <strong>{recognition.prediction?.symbol ?? "–"}</strong>
-                <small>{recognition.prediction ? `${Math.round(recognition.prediction.confidence * 100)}%` : "인식 대기"}</small>
-              </div>
             </div>
           </section>
 
