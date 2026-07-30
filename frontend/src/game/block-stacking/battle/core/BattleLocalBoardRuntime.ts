@@ -47,7 +47,11 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
   restore(bodies: readonly BattleBodyTransform[]): void {
     for (const body of bodies) {
       if (body.state === "REMOVED" || this.physics.getLetterState(body.id)) continue;
-      const saved = { id: body.id, symbol: body.symbol, x: body.x * this.width, y: body.y * this.height, angle: body.angle, velocityX: body.velocityX * this.width, velocityY: body.velocityY * this.height, angularVelocity: body.angularVelocity, settled: body.state === "SETTLED" };
+      // A refresh restores the already-built tower, not a second physics
+      // simulation. Snapshots carry position normalized to the board but
+      // velocities in Matter units, so preserve neither momentum nor gravity
+      // for restored blocks.
+      const saved = { id: body.id, symbol: body.symbol, x: body.x * this.width, y: body.y * this.height, angle: body.angle, velocityX: 0, velocityY: 0, angularVelocity: 0, settled: true };
       const state = this.physics.restoreLetter?.(saved) ?? this.physics.createLetter(saved);
       this.letters.set(body.id, { id: body.id, symbol: state.symbol, spawnedAt: 0, pending: false, ...(state.settled ? { settledAt: this.now() } : {}) });
     }
