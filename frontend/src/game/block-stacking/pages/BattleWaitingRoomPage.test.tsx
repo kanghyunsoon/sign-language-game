@@ -69,6 +69,26 @@ describe("BattleWaitingRoomPage backend flow", () => {
     expect(camera.start).toHaveBeenCalled();
   });
 
+  it("recovers a start 500 when the authoritative rejoin confirms PLAYING", async () => {
+    const { camera } = cameraFixture();
+    const media = new MockBattleMediaSession();
+    const connect = vi.spyOn(media, "connect");
+    const startGame = vi.fn(async () => { throw new Error("Game room request failed (500)."); });
+    const joinRoom = vi.fn(async () => session({ full: true, hostReady: true, guestReady: true, currentUserReady: true, status: "PLAYING" }));
+    renderPage({
+      detail: room({ full: true, hostReady: true, guestReady: true, currentUserReady: true }),
+      gateway: gateway({ startGame, joinRoom, setReady: vi.fn(async () => session({ full: true, hostReady: true, guestReady: true, currentUserReady: true })) }),
+      camera,
+      media,
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "게임 시작" }));
+
+    await waitFor(() => expect(joinRoom).toHaveBeenCalledWith("ABC123"));
+    expect(await screen.findByText("PLAY_ROUTE")).toBeTruthy();
+    expect(connect).toHaveBeenCalledTimes(1);
+  });
+
   it("lets a guest enter when GAME_STARTED arrives", async () => {
     const socket = new FakeRoomSocket();
     const { camera } = cameraFixture();

@@ -83,7 +83,11 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   }, [mode, room?.status]);
 
   const startRtcAndEnter = useCallback(async () => {
-    if (!roomId || !room || enteringGameRef.current) return;
+    // Realtime GAME_STARTED and the REST start response can arrive in either
+    // order. Read the ref here so this path always uses the latest
+    // authoritative room rather than the render that created the callback.
+    const currentRoom = roomRef.current;
+    if (!roomId || !currentRoom || enteringGameRef.current) return;
     enteringGameRef.current = true;
     setStartingGame(true);
     setError(null);
@@ -91,14 +95,14 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
       const stream = await sharedCameraSession.start();
       setLocalStream(stream);
       setCameraEnabled(sharedCameraSession.getVideoTrack()?.enabled ?? true);
-      await battleMediaSession.connect(room, stream);
+      await battleMediaSession.connect(currentRoom, stream);
       navigate(`${lobbyPath}/${roomId}/play`, { replace: true });
     } catch (cause) {
       enteringGameRef.current = false;
       setStartingGame(false);
       setError(errorMessage(cause, "WebRTC 연결을 시작하지 못했습니다."));
     }
-  }, [battleMediaSession, navigate, room, roomId, sharedCameraSession]);
+  }, [battleMediaSession, lobbyPath, navigate, roomId, sharedCameraSession]);
 
   useEffect(() => {
     startRtcAndEnterRef.current = startRtcAndEnter;
@@ -292,7 +296,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   };
 
   const startGame = async () => {
-    if (!roomId || !room || startingGame || !room.hostReady || !room.guestReady || room.playerCount < room.maxPlayers) return;
+    if (!roomId || !room || !room.roomCode || startingGame || !room.hostReady || !room.guestReady || room.playerCount < room.maxPlayers) return;
     setStartingGame(true);
     setError(null);
     try {
@@ -304,6 +308,20 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
       // immediately; the ref prevents the broadcast from starting a second session.
       await startRtcAndEnter();
     } catch (cause) {
+      // The room state is committed before the backend broadcasts
+      // GAME_STARTED. A post-commit broadcast failure can therefore surface
+      // as HTTP 500 even though this match is already IN_PROGRESS. Rejoining
+      // is idempotent and gives us the authoritative room state.
+      try {
+        const authoritative = await gateway.joinRoom(room.roomCode);
+        if (authoritative.status === "PLAYING") {
+          rememberRoom(authoritative);
+          await startRtcAndEnterRef.current();
+          return;
+        }
+      } catch {
+        // Preserve the original start failure when state recovery is unavailable.
+      }
       setStartingGame(false);
       setError(errorMessage(cause, "두 참가자가 모두 준비됐는지 확인해 주세요."));
     }
