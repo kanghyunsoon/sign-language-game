@@ -11,6 +11,7 @@ import { PythonWebSocketSignRecognizer } from "../../../recognition/websocket/Py
 import { RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG } from "../../../recognition/runtime";
 import { RESPONSIVE_GAMEPLAY_SIGN_DECODER_CONFIG } from "../../../recognition/temporal";
 import type { BattleControllerSnapshot } from "../core/BattleController";
+import type { MatchFinishedEvent } from "../transport/battleTransportTypes";
 import { BattleController } from "../core/BattleController";
 import { BattleExitCoordinator } from "../core/BattleExitCoordinator";
 import { BattleLocalBoardRuntime } from "../core/BattleLocalBoardRuntime";
@@ -43,9 +44,26 @@ export function BattleGamePage() {
   const [cameraState, setCameraState] = useState<"CONNECTED" | "DISCONNECTED">(() => sharedCameraSession.getVideoTrack()?.readyState === "live" ? "CONNECTED" : "DISCONNECTED");
   const [rtcState, setRtcState] = useState(() => battleMediaSession.getConnectionState()); const [localRenderer, setLocalRenderer] = useState<GameRenderer | null>(null); const [remoteRenderer, setRemoteRenderer] = useState<GameRenderer | null>(null);
   const resultReportedRef = useRef(false);
+  const resultReportPromiseRef = useRef<Promise<void> | null>(null);
   const controllerRef = useRef<BattleController | null>(null); const localRuntimeRef = useRef<BattleLocalBoardRuntime | null>(null); const localViewportRef = useRef({ width: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, height: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight }); const remoteViewportRef = useRef({ width: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, height: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight }); const remoteLoopRef = useRef<number | null>(null);
   const settledTowerHeightsRef = useRef({ local: 0, remote: 0 });
   const [towerHeights, setTowerHeights] = useState({ local: 0, remote: 0 });
+  const reportMatchResult = useCallback((result: MatchFinishedEvent): Promise<void> => {
+    if (!Number.isSafeInteger(Number(roomId))) return Promise.resolve();
+    if (resultReportPromiseRef.current) return resultReportPromiseRef.current;
+    setResultBusy(true);
+    setResultError(null);
+    const request = resultClient.reportResult(Number(roomId), result.winnerPlayerId)
+      .then(() => undefined)
+      .catch((cause) => {
+        resultReportPromiseRef.current = null;
+        setResultError(cause instanceof Error ? cause.message : "결과 전송에 실패했습니다.");
+        throw cause;
+      })
+      .finally(() => setResultBusy(false));
+    resultReportPromiseRef.current = request;
+    return request;
+  }, [resultClient, roomId]);
   const refreshMedia = useCallback(() => { setParticipants(battleMediaSession.getRemoteParticipants()); setRtcState(battleMediaSession.getConnectionState()); }, [battleMediaSession]);
   useEffect(() => battleMediaSession.subscribe(refreshMedia), [battleMediaSession, refreshMedia]);
 
@@ -88,14 +106,10 @@ export function BattleGamePage() {
 
   useEffect(() => {
     const result = snapshot.result;
-    if (!result || resultReportedRef.current || !Number.isSafeInteger(Number(roomId))) return;
+    if (!result || resultReportedRef.current) return;
     resultReportedRef.current = true;
-    setResultBusy(true);
-    setResultError(null);
-    void resultClient.reportResult(Number(roomId), result.winnerPlayerId)
-      .catch((cause) => setResultError(cause instanceof Error ? cause.message : "결과 전송에 실패했습니다."))
-      .finally(() => setResultBusy(false));
-  }, [resultClient, roomId, snapshot.result]);
+    void reportMatchResult(result).catch(() => { resultReportedRef.current = false; });
+  }, [reportMatchResult, snapshot.result]);
 
   const localStream = sharedCameraSession.getStream(); const opponent = participants[0] ?? null;
   const returnToWaiting = async () => { if (!roomId || resultBusy) return; setResultBusy(true); setResultError(null); try {
@@ -117,6 +131,16 @@ export function BattleGamePage() {
     // Give the P2P data channel one short turn to deliver MATCH_FINISHED
     // before this browser releases the game and media connections.
     if (forfeited) await new Promise<void>((resolve) => window.setTimeout(resolve, 80));
+    const result = controllerRef.current?.snapshot().result;
+    if (result) {
+      try {
+        // reportResult receives the winner. The backend records the other
+        // participant as the loser under the documented room-result contract.
+        await reportMatchResult(result);
+      } catch {
+        return;
+      }
+    }
     await leaveBattle("/game/battle");
   };
   const localIsHost = battleRoomSession?.hostUserId === user.userId;
