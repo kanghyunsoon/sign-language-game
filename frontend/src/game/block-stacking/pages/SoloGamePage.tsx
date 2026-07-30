@@ -246,11 +246,12 @@ export function SoloGamePage({
         friction: 0.14,
         frictionAir: 0.0045,
         restitution: 0.035,
-        // A leaning letter must keep reacting to later collisions rather than
-        // being converted into an immovable block after a brief pause.
-        settleDurationMs: 4_000,
-        linearVelocityThreshold: 0.018,
-        angularVelocityThreshold: 0.002,
+        // A letter still reactivates on the next collision, but should count
+        // as settled as soon as it visually comes to rest so the tower gauge
+        // responds without a multi-second pause.
+        settleDurationMs: 550,
+        linearVelocityThreshold: 0.045,
+        angularVelocityThreshold: 0.006,
         freezeSettledBodies: false,
       }),
       soloConfig: {
