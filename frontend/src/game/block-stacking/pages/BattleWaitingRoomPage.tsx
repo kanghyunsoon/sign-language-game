@@ -230,7 +230,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   };
 
   useEffect(() => {
-    if (!roomId || !room?.hostReady || room.playerCount < room.maxPlayers || room.hostUserId !== user.userId || !gateway.setReady) return;
+    if (!roomId || room?.status !== "FULL" || !room.hostReady || room.playerCount < room.maxPlayers || room.hostUserId !== user.userId || !gateway.setReady) return;
     let active = true;
     const syncReadyState = async () => {
       try {

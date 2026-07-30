@@ -28,6 +28,17 @@ describe("SwaggerBattleRoomGateway", () => {
     );
   });
 
+  it("uses the cached successful join when a repeated request receives 409", async () => {
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce(response(room({ guestUserId: 2, participantCount: 2 })))
+      .mockResolvedValueOnce(response(null, 409));
+    const gateway = createGateway(fetcher);
+
+    await gateway.joinRoom("ABC123");
+
+    await expect(gateway.joinRoom("ABC123")).resolves.toMatchObject({ roomId: "10", roomCode: "ABC123" });
+  });
+
   it("maps ready state and uses role-based room data", async () => {
     const fetcher = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => response(room({
       guestUserId: 2,
@@ -105,10 +116,10 @@ function room(overrides: Partial<{
   };
 }
 
-function response(value: unknown): Response {
+function response(value: unknown, status = 200): Response {
   return {
-    ok: true,
-    status: 200,
+    ok: status >= 200 && status < 300,
+    status,
     json: async () => value,
   } as Response;
 }
