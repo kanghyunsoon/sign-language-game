@@ -775,17 +775,7 @@
 .battleFixedPage .sharedCloudOne { top:14%; animation-duration:32s; animation-delay:-5s; }.battleFixedPage .sharedCloudTwo { top:32%; scale:.72; animation-duration:38s; animation-delay:-22s; }.battleFixedPage .sharedCloudThree { top:49%; scale:.54; opacity:.74; animation-duration:44s; animation-delay:-33s; }
 .battleFixedPage .sharedHills { z-index:3; right:-8%; bottom:12%; left:-8%; height:24%; border-radius:50% 55% 0 0 / 80% 90% 0 0; background:#b8d98c; box-shadow:0 18px 0 #9fc676; animation:shared-hill-breeze 7s ease-in-out infinite alternate,shared-hill-night 64s ease-in-out infinite; transform-origin:50% 100%; }
 .battleFixedPage .sharedFireflies { position:absolute; z-index:4; right:4%; bottom:8%; left:4%; height:22%; animation:shared-firefly-cycle 64s ease-in-out infinite; }.battleFixedPage .sharedFireflies i { position:absolute; display:block; width:5px; height:5px; border-radius:50%; background:#fff19a; box-shadow:0 0 8px 3px rgba(255,225,89,.66); animation:shared-firefly-float 4.2s ease-in-out infinite alternate; }.battleFixedPage .sharedFireflies i:nth-child(1){left:9%;bottom:28%;animation-delay:-.8s}.battleFixedPage .sharedFireflies i:nth-child(2){left:31%;bottom:61%;animation-delay:-2.4s;animation-duration:5.1s}.battleFixedPage .sharedFireflies i:nth-child(3){left:55%;bottom:19%;animation-delay:-1.6s;animation-duration:3.7s}.battleFixedPage .sharedFireflies i:nth-child(4){left:74%;bottom:57%;animation-delay:-3.1s;animation-duration:4.7s}.battleFixedPage .sharedFireflies i:nth-child(5){left:91%;bottom:34%;animation-delay:-.2s;animation-duration:5.4s}
-.battleFixedPage .duelBoards { position:relative; z-index:1; }
-.battleFixedPage .duelBoards .boardPanel,
-.battleFixedPage .duelBoards .boardPlayArea,
-.battleFixedPage .duelBoards .boardCanvas,
-.battleFixedPage .duelBoards [data-game-renderer-host],
-.battleFixedPage .duelBoards canvas { background:transparent !important; }
-/* Some WebGL compositors present Pixi's transparent clear buffer as white.
-   Battle glyphs are rendered in the separate DOM foreground layer, so hide
-   only that unreliable buffer and keep the shared stage visible underneath. */
-.battleFixedPage .duelBoards canvas { opacity:0; }
-.battleFixedPage .duelBoards .boardPlayArea::after { position:absolute; z-index:2; top:16.66%; right:0; left:0; height:3px; pointer-events:none; background:repeating-linear-gradient(90deg,#f0ba55 0 13px,transparent 13px 22px); content:""; }
+.battleFixedPage .duelBoards { position:relative; z-index:1; }.battleFixedPage .duelBoards .boardPlayArea { background:transparent; }.battleFixedPage .duelBoards .boardPanel { background:transparent; }
 .battleFixedPage .paperBlackHole { position:absolute; z-index:4; top:63%; left:50%; display:grid; width:116px; height:116px; place-items:center; border-radius:50%; background:radial-gradient(circle,#01020a 0 15%,#17102f 16% 25%,#5b2785 31%,rgba(116,56,170,.53) 46%,rgba(50,26,94,0) 74%); box-shadow:0 0 24px 10px rgba(133,83,215,.58),inset 0 0 25px #01020a; pointer-events:none; transform:translate(-50%,-50%); animation:paper-black-hole 1.15s cubic-bezier(.16,.76,.22,1) both; }
 .battleFixedPage .paperBlackHole::before,.battleFixedPage .paperBlackHole::after { position:absolute; inset:7px; border:3px dashed rgba(235,193,255,.9); border-radius:50%; content:""; animation:target-drain-ring .48s linear infinite; }
 .battleFixedPage .paperBlackHole::after { inset:19px; border-color:rgba(113,222,255,.8); animation-direction:reverse; animation-duration:.32s; }
