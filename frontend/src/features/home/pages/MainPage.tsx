@@ -9,8 +9,10 @@ import {
   writeOtterHabitatId,
 } from "../data/otterHabitat";
 import otterInCave from "../assets/otter_in_cave.webp";
+import otterInCave2 from "../assets/otter_in_cave_2.webp";
 import otterInRock from "../assets/otter_in_rock.webp";
 import otterWithLog from "../assets/otter_with_log.webp";
+import otterWithLog2 from "../assets/otter_with_log_2.webp";
 import rocksLeft from "../assets/rocks_left.webp";
 import rocksRight from "../assets/rocks_right.webp";
 import "./MainPage.css";
@@ -79,15 +81,35 @@ const MENU_BAND = [...learningMenus, ...learningMenus, ...learningMenus];
 /** 가운데 벌의 시작 위치. 트랙의 기준점이다. */
 const MENU_BAND_ORIGIN = learningMenus.length;
 
+interface OtterHabitat {
+  id: string;
+  image: string;
+  alt: string;
+  /** 그림마다 여백이 달라, 다른 집과 크기를 맞출 보정 클래스가 필요할 때 쓴다. */
+  imageClass?: string;
+}
+
 /**
  * 히어로에 보여줄 수달의 집. [이사하기]를 누르면 순서대로 돌아간다.
  * id는 선택을 저장하는 값이므로, 순서를 바꿔도 id는 그대로 둬야 한다.
  */
-const otterHabitats = [
+const otterHabitats: readonly OtterHabitat[] = [
   { id: "log", image: otterWithLog, alt: "통나무에 기대어 쉬고 있는 수달" },
+  {
+    id: "on-log",
+    image: otterWithLog2,
+    alt: "물 위 통나무에 앉아 있는 수달",
+    imageClass: "main-otter-on-log",
+  },
   { id: "rock", image: otterInRock, alt: "바위 안에서 쉬고 있는 수달" },
   { id: "cave", image: otterInCave, alt: "굴 안에서 쉬고 있는 수달" },
-] as const;
+  {
+    id: "riverside-cave",
+    image: otterInCave2,
+    alt: "물가 굴 안에서 쉬고 있는 수달",
+    imageClass: "main-otter-riverside",
+  },
+];
 
 const learningGuideSteps = [
   {
@@ -260,7 +282,15 @@ export function MainPage() {
                 이사하기
               </button>
 
-              <img className="main-otter" src={habitat.image} alt={habitat.alt} />
+              <img
+                className={
+                  habitat.imageClass
+                    ? `main-otter ${habitat.imageClass}`
+                    : "main-otter"
+                }
+                src={habitat.image}
+                alt={habitat.alt}
+              />
             </div>
 
             {/* <img
