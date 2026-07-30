@@ -5,7 +5,10 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 vi.mock("../../../game/recognition", () => ({
   HandCamera: () => null,
-  PythonWebSocketSignRecognizer: class {
+}));
+
+vi.mock("../recognition/PracticeWebSocketSignRecognizer", () => ({
+  PracticeWebSocketSignRecognizer: class {
     getConnectionState() { return "DISCONNECTED"; }
     subscribe() { return () => {}; }
     connect() { return Promise.resolve(); }

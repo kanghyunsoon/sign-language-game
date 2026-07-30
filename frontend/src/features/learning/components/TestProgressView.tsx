@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   HandCamera,
-  PythonWebSocketSignRecognizer,
   type RecognitionConnectionState,
 } from "../../../game/recognition";
 import { getAiWebSocketUrl } from "../data/aiRecognition";
+import { PracticeWebSocketSignRecognizer } from "../recognition/PracticeWebSocketSignRecognizer";
 import type {
   TestAnswerState,
   TestQuestion,
@@ -30,10 +30,6 @@ export function TestProgressView({
   const targetSymbolRef = useRef("");
   const answeredRef = useRef(false);
   const advanceRef = useRef<(state: TestAnswerState) => void>(() => {});
-  const recognizer = useMemo(
-    () => new PythonWebSocketSignRecognizer({ url: getAiWebSocketUrl() }),
-    [],
-  );
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [results, setResults] = useState<TestQuestionResult[]>([]);
@@ -59,6 +55,14 @@ export function TestProgressView({
   );
 
   const currentQuestion = questions[currentIndex];
+  const useNumberEndpoint = currentQuestion?.categoryId === "number";
+  const recognizer = useMemo(
+    () =>
+      new PracticeWebSocketSignRecognizer({
+        url: getAiWebSocketUrl(useNumberEndpoint),
+      }),
+    [useNumberEndpoint],
+  );
   const totalCount = questions.length;
   const remainingSeconds = Math.ceil(remainingMs / 1000);
   const isTimeUrgent = remainingMs <= 3000;

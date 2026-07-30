@@ -72,13 +72,12 @@ describe("TestPage 설정 화면", () => {
     ).toHaveProperty("disabled", true);
   });
 
-  it("숫자 분류는 AI 미지원이라 선택할 수 없다", () => {
+  it("숫자 분류를 선택할 수 있다", () => {
     renderPage();
 
     const numberCategory = screen.getByRole("button", { name: /숫자/ });
 
-    expect(numberCategory).toHaveProperty("disabled", true);
-    expect(screen.getByText("준비중")).toBeTruthy();
+    expect(numberCategory).toHaveProperty("disabled", false);
   });
 
   it("전체를 고르면 보유 글자 수만큼 출제한다", () => {
