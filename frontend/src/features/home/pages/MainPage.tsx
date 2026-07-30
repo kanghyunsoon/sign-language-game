@@ -1,10 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type TransitionEvent } from "react";
 import { Link } from "react-router-dom";
 
 import { SiteFooter } from "../../../shared/components/SiteFooter";
 import { AttendanceCard } from "../components/AttendanceCard";
+import {
+  findHabitatIndex,
+  readOtterHabitatId,
+  writeOtterHabitatId,
+} from "../data/otterHabitat";
 import otterInCave from "../assets/otter_in_cave.webp";
 import otterInRock from "../assets/otter_in_rock.webp";
+import otterWithLog from "../assets/otter_with_log.webp";
 import rocksLeft from "../assets/rocks_left.webp";
 import rocksRight from "../assets/rocks_right.webp";
 import "./MainPage.css";
@@ -58,21 +64,27 @@ const learningMenus: LearningMenu[] = [
 const VISIBLE_MENU_COUNT = 3;
 
 /**
- * 화살표를 누르면 보이는 만큼(3칸) 한 묶음씩 옮긴다.
- * 5개를 3칸씩 보면 두 번째 묶음이 넘치므로 마지막 묶음은 끝에 붙여 자른다.
- * 그래서 묶음은 [연습·테스트·게임], [게임·오답노트·사전] 둘이고 게임이 겹친다.
+ * 화살표로 오가는 두 묶음의 시작 위치.
+ * [연습·테스트·게임]과 [게임·오답노트·사전]이고, 게임이 양쪽에 걸쳐 있다.
  */
-const MENU_PAGE_STARTS = Array.from(
-  { length: Math.ceil(learningMenus.length / VISIBLE_MENU_COUNT) },
-  (_, page) =>
-    Math.min(
-      page * VISIBLE_MENU_COUNT,
-      Math.max(0, learningMenus.length - VISIBLE_MENU_COUNT),
-    ),
-);
+const MENU_PAGE_STARTS = [0, learningMenus.length - VISIBLE_MENU_COUNT];
 
-/** 히어로에 보여줄 수달의 집. [이사하기]를 누르면 순서대로 돌아간다. */
+/**
+ * 끊김 없이 도는 띠를 만들려고 메뉴를 세 벌 늘어놓는다.
+ * 가운데 벌을 기준으로 좌우 어느 쪽으로 밀어도 보여줄 카드가 남아 있고,
+ * 이동이 끝난 뒤 다시 가운데 벌로 되돌리면 무한히 돌 수 있다.
+ */
+const MENU_BAND = [...learningMenus, ...learningMenus, ...learningMenus];
+
+/** 가운데 벌의 시작 위치. 트랙의 기준점이다. */
+const MENU_BAND_ORIGIN = learningMenus.length;
+
+/**
+ * 히어로에 보여줄 수달의 집. [이사하기]를 누르면 순서대로 돌아간다.
+ * id는 선택을 저장하는 값이므로, 순서를 바꿔도 id는 그대로 둬야 한다.
+ */
 const otterHabitats = [
+  { id: "log", image: otterWithLog, alt: "통나무에 기대어 쉬고 있는 수달" },
   { id: "rock", image: otterInRock, alt: "바위 안에서 쉬고 있는 수달" },
   { id: "cave", image: otterInCave, alt: "굴 안에서 쉬고 있는 수달" },
 ] as const;
@@ -101,19 +113,32 @@ const learningGuideSteps = [
 ] as const;
 
 export function MainPage() {
+  /** 트랙 왼쪽 끝에 놓인 카드가 띠에서 몇 번째인지. 가운데 벌에서 시작한다. */
+  const [bandOffset, setBandOffset] = useState(MENU_BAND_ORIGIN);
+  /** 지금 보고 있는 묶음. 이동 거리를 여기서 정한다. */
   const [menuPage, setMenuPage] = useState(0);
-  /** 새 묶음이 들어오는 쪽. 첫 렌더에서는 애니메이션 없이 그린다. */
-  const [slideFrom, setSlideFrom] = useState<"left" | "right" | null>(null);
+  /** 미끄러지는 중인지. 이동이 끝난 뒤 되돌릴 때는 꺼서 순간이동시킨다. */
+  const [isSliding, setIsSliding] = useState(false);
   const [pageScale, setPageScale] = useState(1);
   const [isLearningGuideOpen, setIsLearningGuideOpen] = useState(false);
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
-  const [habitatIndex, setHabitatIndex] = useState(0);
+  /** 지난번에 골라 둔 집에서 시작한다. 기록이 없으면 첫 집이다. */
+  const [habitatIndex, setHabitatIndex] = useState(() =>
+    findHabitatIndex(
+      otterHabitats.map((option) => option.id),
+      readOtterHabitatId(),
+    ),
+  );
 
   const habitat = otterHabitats[habitatIndex];
 
   /** 다음 집으로 옮긴다. 마지막이면 처음으로 돌아가 그림이 계속 바뀐다. */
   const moveHabitat = () => {
-    setHabitatIndex((previous) => (previous + 1) % otterHabitats.length);
+    const next = (habitatIndex + 1) % otterHabitats.length;
+
+    setHabitatIndex(next);
+    // 새로고침해도 같은 집이 나오도록 바로 남긴다.
+    writeOtterHabitatId(otterHabitats[next].id);
   };
 
   useEffect(() => {
@@ -128,27 +153,71 @@ export function MainPage() {
     return () => window.removeEventListener("resize", updatePageScale);
   }, []);
 
-  const menuStartIndex = MENU_PAGE_STARTS[menuPage];
-  const visibleMenus = learningMenus.slice(
-    menuStartIndex,
-    menuStartIndex + VISIBLE_MENU_COUNT,
-  );
-
   /**
-   * 묶음을 돌리면서, 카드가 화살표 방향으로 밀려 보이게 한다.
-   * [<]는 카드를 오른쪽으로 밀어 새 묶음이 왼쪽에서 들어오고, [>]는 그 반대다.
+   * 반대 묶음으로 옮긴다. [>]는 카드가 왼쪽으로, [<]는 오른쪽으로 흐른다.
    *
-   * 묶음이 둘뿐이라 물리적 순서만 따르면 어느 쪽을 눌러도 같은 방향으로 밀린다.
-   * 그래서 트랙을 옮기는 대신 들어오는 방향을 직접 정해 애니메이션한다.
+   * 옮기는 칸 수는 방향과 지금 묶음에 따라 다르다. 다섯 칸이 둥글게 이어져 있어
+   * 같은 묶음에 닿는 길이 양쪽으로 다르기 때문이다. 예를 들어 [연습·테스트·게임]에서
+   * [게임·오답노트·사전]까지는 왼쪽으로 두 칸, 오른쪽으로는 세 칸이다.
+   * 그래서 도착 묶음을 먼저 정하고, 화살표 방향으로 도는 거리를 계산한다.
    */
   const moveMenu = (direction: -1 | 1) => {
-    setSlideFrom(direction === -1 ? "left" : "right");
-    setMenuPage(
-      (current) =>
-        (current - direction + MENU_PAGE_STARTS.length) %
-        MENU_PAGE_STARTS.length,
-    );
+    // 미끄러지는 중에 또 누르면 되돌리는 시점과 엉키므로 무시한다.
+    if (isSliding) return;
+
+    const count = learningMenus.length;
+    // 묶음이 둘뿐이라 어느 화살표를 눌러도 반대 묶음에 닿는다.
+    const nextPage = (menuPage + 1) % MENU_PAGE_STARTS.length;
+    const from = MENU_PAGE_STARTS[menuPage];
+    const to = MENU_PAGE_STARTS[nextPage];
+
+    // 화살표 방향으로만 돌아 도착 묶음까지 가는 거리.
+    const step =
+      direction === 1
+        ? (to - from + count) % count
+        : -((from - to + count) % count);
+
+    setIsSliding(true);
+    setMenuPage(nextPage);
+    setBandOffset((current) => current + step);
   };
+
+  /**
+   * 이동이 끝나면 보이는 카드를 그대로 둔 채 기준점을 가운데 벌로 되돌린다.
+   * 미끄러짐을 함께 끄기 때문에 화면에서는 아무 일도 일어나지 않은 것처럼 보이고,
+   * 덕분에 같은 방향으로 계속 눌러도 벌이 모자라지 않는다.
+   */
+  const finishSlide = () => {
+    setIsSliding(false);
+    setBandOffset((current) => {
+      const count = learningMenus.length;
+
+      if (current < count) return current + count;
+      if (current >= count * 2) return current - count;
+      return current;
+    });
+  };
+
+  /**
+   * 전환이 끝나는 것을 기다린다. 카드에 걸린 전환(hover 등)도 여기까지 올라오므로
+   * 트랙 자신의 전환만 골라 받는다.
+   */
+  const handleTransitionEnd = (event: TransitionEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget) return;
+    finishSlide();
+  };
+
+  /**
+   * 전환이 끝났다는 알림이 오지 않는 환경(모션 최소화 설정 등)에서도
+   * 다음 이동이 막히지 않도록, 전환 시간이 지나면 스스로 마무리한다.
+   */
+  useEffect(() => {
+    if (!isSliding) return;
+
+    const timer = window.setTimeout(finishSlide, 600);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSliding]);
 
   return (
     <div className="main-page">
@@ -237,34 +306,47 @@ export function MainPage() {
                 className="carousel-button carousel-button-prev"
                 type="button"
                 aria-label="학습 메뉴 왼쪽으로 넘기기"
-                disabled={MENU_PAGE_STARTS.length < 2}
+                disabled={learningMenus.length <= VISIBLE_MENU_COUNT}
                 onClick={() => moveMenu(-1)}
               >
                 ‹
               </button>
 
-              {/* key가 바뀌면 트랙이 다시 그려지며 들어오는 방향으로 미끄러진다. */}
+              {/* 띠 전체를 늘어놓고 창만큼만 보여준다. */}
               <div className="learning-menu-viewport">
                 <div
                   className="learning-menu-track"
-                  key={menuPage}
-                  data-slide-from={slideFrom ?? undefined}
+                  data-sliding={isSliding ? "true" : undefined}
+                  style={{
+                    transform: `translateX(calc(${-bandOffset} * (var(--menu-slot) + var(--menu-card-gap))))`,
+                  }}
+                  onTransitionEnd={handleTransitionEnd}
                 >
-                  {visibleMenus.map((menu) => (
-                    <Link
-                      className="learning-menu-card"
-                      to={menu.path}
-                      key={menu.title}
-                    >
-                      <span className={`learning-menu-icon ${menu.tone}`}>
-                        {menu.icon}
-                      </span>
-                      <span className="learning-menu-copy">
-                        <strong>{menu.title}</strong>
-                        <span>{menu.description}</span>
-                      </span>
-                    </Link>
-                  ))}
+                  {MENU_BAND.map((menu, index) => {
+                    // 창 밖의 사본은 보조기기와 탭 이동에서 빼, 같은 메뉴가
+                    // 세 번씩 읽히지 않게 한다.
+                    const isVisible =
+                      index >= bandOffset &&
+                      index < bandOffset + VISIBLE_MENU_COUNT;
+
+                    return (
+                      <Link
+                        className="learning-menu-card"
+                        to={menu.path}
+                        key={`${index}-${menu.title}`}
+                        aria-hidden={isVisible ? undefined : "true"}
+                        tabIndex={isVisible ? undefined : -1}
+                      >
+                        <span className={`learning-menu-icon ${menu.tone}`}>
+                          {menu.icon}
+                        </span>
+                        <span className="learning-menu-copy">
+                          <strong>{menu.title}</strong>
+                          <span>{menu.description}</span>
+                        </span>
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -272,7 +354,7 @@ export function MainPage() {
                 className="carousel-button carousel-button-next"
                 type="button"
                 aria-label="학습 메뉴 오른쪽으로 넘기기"
-                disabled={MENU_PAGE_STARTS.length < 2}
+                disabled={learningMenus.length <= VISIBLE_MENU_COUNT}
                 onClick={() => moveMenu(1)}
               >
                 ›

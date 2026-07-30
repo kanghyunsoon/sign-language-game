@@ -1108,53 +1108,39 @@ a {
 
 /* ---------------- 학습 메뉴 캐러셀 (839) ---------------- */
 
-/* 카드 사이 간격. 트랙 이동 거리 계산에도 같은 값을 쓴다. */
+/*
+ * 카드 한 칸의 폭과 간격. 트랙을 옮기는 거리도 이 값으로 계산하므로,
+ * 카드 폭과 이동 거리가 어긋날 수 없다.
+ *
+ * 창 폭이 고정(1400px)이라 칸 폭도 px로 정한다. 트랙은 자기 폭 기준으로
+ * %가 계산되어 카드가 15장 늘어선 트랙에서는 100%를 쓸 수 없다.
+ */
 .learning-menu-viewport {
   --menu-card-gap: 0px;
+  --menu-slot: calc((1400px - var(--menu-card-gap) * 2) / 3);
   width: 1400px;
   margin: 0 auto;
   overflow: hidden;
   border-radius: 18px;
 }
 
+/* 띠 전체를 한 줄로 늘어놓는다. 창을 넘는 부분은 잘려 보이지 않는다. */
 .learning-menu-track {
   display: flex;
   gap: var(--menu-card-gap);
+  width: max-content;
 }
 
-/* 새 묶음이 화살표 방향에서 미끄러져 들어온다.
-   [<]는 왼쪽에서(카드가 오른쪽으로 밀림), [>]는 오른쪽에서 들어온다. */
-.learning-menu-track[data-slide-from="left"] {
-  animation: menuSlideFromLeft 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+/*
+ * 미끄러지는 동안에만 전환을 건다. 이동이 끝나고 기준점을 가운데 벌로
+ * 되돌릴 때는 전환이 없어야 순간이동해 눈에 띄지 않는다.
+ */
+.learning-menu-track[data-sliding="true"] {
+  transition: transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
-.learning-menu-track[data-slide-from="right"] {
-  animation: menuSlideFromRight 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
-}
-
-@keyframes menuSlideFromLeft {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-@keyframes menuSlideFromRight {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-/* 한 화면에 3칸이 들어가도록 폭을 고정한다. */
 .learning-menu-track .learning-menu-card {
-  flex: 0 0 calc(
-    (100% - (var(--menu-card-gap) * 2)) / 3
-  );
+  flex: 0 0 var(--menu-slot);
   min-height: 270px;
   border-radius: 0;
 }
