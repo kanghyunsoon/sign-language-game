@@ -1,10 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type TransitionEvent } from "react";
 import { Link } from "react-router-dom";
 
 import { SiteFooter } from "../../../shared/components/SiteFooter";
-import otterInRock from "../assets/otter_in_rock.png";
-import rocksLeft from "../assets/rocks_left.png";
-import rocksRight from "../assets/rocks_right.png";
+import { AttendanceCard } from "../components/AttendanceCard";
+import {
+  findHabitatIndex,
+  readOtterHabitatId,
+  writeOtterHabitatId,
+} from "../data/otterHabitat";
+import otterInCave from "../assets/otter_in_cave.webp";
+import otterInRock from "../assets/otter_in_rock.webp";
+import otterWithLog from "../assets/otter_with_log.webp";
+import rocksLeft from "../assets/rocks_left.webp";
+import rocksRight from "../assets/rocks_right.webp";
 import "./MainPage.css";
 
 interface LearningMenu {
@@ -24,13 +32,6 @@ const learningMenus: LearningMenu[] = [
     path: "/practice",
   },
   {
-    title: "게임",
-    description: "간단한 게임을 통해 수어를 즐겁게 연습해요.",
-    icon: "◆",
-    tone: "game",
-    path: "/game",
-  },
-  {
     title: "테스트",
     description: "배운 내용을 퀴즈 형식으로 확인하고 점수를 기록해요.",
     icon: "✓",
@@ -38,11 +39,11 @@ const learningMenus: LearningMenu[] = [
     path: "/test",
   },
   {
-    title: "사전",
-    description: "자음, 모음, 숫자와 자주 쓰는 표현을 찾아봐요.",
-    icon: "A",
-    tone: "dictionary",
-    path: "/dictionary",
+    title: "게임",
+    description: "간단한 게임을 통해 수어를 즐겁게 연습해요.",
+    icon: "◆",
+    tone: "game",
+    path: "/game",
   },
   {
     title: "오답노트",
@@ -51,9 +52,42 @@ const learningMenus: LearningMenu[] = [
     tone: "review",
     path: "/review-notes",
   },
+  {
+    title: "사전",
+    description: "자음, 모음, 숫자와 자주 쓰는 표현을 찾아봐요.",
+    icon: "A",
+    tone: "dictionary",
+    path: "/dictionary",
+  },
 ];
 
 const VISIBLE_MENU_COUNT = 3;
+
+/**
+ * 화살표로 오가는 두 묶음의 시작 위치.
+ * [연습·테스트·게임]과 [게임·오답노트·사전]이고, 게임이 양쪽에 걸쳐 있다.
+ */
+const MENU_PAGE_STARTS = [0, learningMenus.length - VISIBLE_MENU_COUNT];
+
+/**
+ * 끊김 없이 도는 띠를 만들려고 메뉴를 세 벌 늘어놓는다.
+ * 가운데 벌을 기준으로 좌우 어느 쪽으로 밀어도 보여줄 카드가 남아 있고,
+ * 이동이 끝난 뒤 다시 가운데 벌로 되돌리면 무한히 돌 수 있다.
+ */
+const MENU_BAND = [...learningMenus, ...learningMenus, ...learningMenus];
+
+/** 가운데 벌의 시작 위치. 트랙의 기준점이다. */
+const MENU_BAND_ORIGIN = learningMenus.length;
+
+/**
+ * 히어로에 보여줄 수달의 집. [이사하기]를 누르면 순서대로 돌아간다.
+ * id는 선택을 저장하는 값이므로, 순서를 바꿔도 id는 그대로 둬야 한다.
+ */
+const otterHabitats = [
+  { id: "log", image: otterWithLog, alt: "통나무에 기대어 쉬고 있는 수달" },
+  { id: "rock", image: otterInRock, alt: "바위 안에서 쉬고 있는 수달" },
+  { id: "cave", image: otterInCave, alt: "굴 안에서 쉬고 있는 수달" },
+] as const;
 
 const learningGuideSteps = [
   {
@@ -79,9 +113,33 @@ const learningGuideSteps = [
 ] as const;
 
 export function MainPage() {
-  const [menuStartIndex, setMenuStartIndex] = useState(0);
+  /** 트랙 왼쪽 끝에 놓인 카드가 띠에서 몇 번째인지. 가운데 벌에서 시작한다. */
+  const [bandOffset, setBandOffset] = useState(MENU_BAND_ORIGIN);
+  /** 지금 보고 있는 묶음. 이동 거리를 여기서 정한다. */
+  const [menuPage, setMenuPage] = useState(0);
+  /** 미끄러지는 중인지. 이동이 끝난 뒤 되돌릴 때는 꺼서 순간이동시킨다. */
+  const [isSliding, setIsSliding] = useState(false);
   const [pageScale, setPageScale] = useState(1);
   const [isLearningGuideOpen, setIsLearningGuideOpen] = useState(false);
+  const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
+  /** 지난번에 골라 둔 집에서 시작한다. 기록이 없으면 첫 집이다. */
+  const [habitatIndex, setHabitatIndex] = useState(() =>
+    findHabitatIndex(
+      otterHabitats.map((option) => option.id),
+      readOtterHabitatId(),
+    ),
+  );
+
+  const habitat = otterHabitats[habitatIndex];
+
+  /** 다음 집으로 옮긴다. 마지막이면 처음으로 돌아가 그림이 계속 바뀐다. */
+  const moveHabitat = () => {
+    const next = (habitatIndex + 1) % otterHabitats.length;
+
+    setHabitatIndex(next);
+    // 새로고침해도 같은 집이 나오도록 바로 남긴다.
+    writeOtterHabitatId(otterHabitats[next].id);
+  };
 
   useEffect(() => {
     const updatePageScale = () => {
@@ -95,17 +153,71 @@ export function MainPage() {
     return () => window.removeEventListener("resize", updatePageScale);
   }, []);
 
-  const visibleMenus = Array.from(
-    { length: VISIBLE_MENU_COUNT },
-    (_, offset) => learningMenus[(menuStartIndex + offset) % learningMenus.length],
-  );
-
+  /**
+   * 반대 묶음으로 옮긴다. [>]는 카드가 왼쪽으로, [<]는 오른쪽으로 흐른다.
+   *
+   * 옮기는 칸 수는 방향과 지금 묶음에 따라 다르다. 다섯 칸이 둥글게 이어져 있어
+   * 같은 묶음에 닿는 길이 양쪽으로 다르기 때문이다. 예를 들어 [연습·테스트·게임]에서
+   * [게임·오답노트·사전]까지는 왼쪽으로 두 칸, 오른쪽으로는 세 칸이다.
+   * 그래서 도착 묶음을 먼저 정하고, 화살표 방향으로 도는 거리를 계산한다.
+   */
   const moveMenu = (direction: -1 | 1) => {
-    setMenuStartIndex(
-      (currentIndex) =>
-        (currentIndex + direction + learningMenus.length) % learningMenus.length,
-    );
+    // 미끄러지는 중에 또 누르면 되돌리는 시점과 엉키므로 무시한다.
+    if (isSliding) return;
+
+    const count = learningMenus.length;
+    // 묶음이 둘뿐이라 어느 화살표를 눌러도 반대 묶음에 닿는다.
+    const nextPage = (menuPage + 1) % MENU_PAGE_STARTS.length;
+    const from = MENU_PAGE_STARTS[menuPage];
+    const to = MENU_PAGE_STARTS[nextPage];
+
+    // 화살표 방향으로만 돌아 도착 묶음까지 가는 거리.
+    const step =
+      direction === 1
+        ? (to - from + count) % count
+        : -((from - to + count) % count);
+
+    setIsSliding(true);
+    setMenuPage(nextPage);
+    setBandOffset((current) => current + step);
   };
+
+  /**
+   * 이동이 끝나면 보이는 카드를 그대로 둔 채 기준점을 가운데 벌로 되돌린다.
+   * 미끄러짐을 함께 끄기 때문에 화면에서는 아무 일도 일어나지 않은 것처럼 보이고,
+   * 덕분에 같은 방향으로 계속 눌러도 벌이 모자라지 않는다.
+   */
+  const finishSlide = () => {
+    setIsSliding(false);
+    setBandOffset((current) => {
+      const count = learningMenus.length;
+
+      if (current < count) return current + count;
+      if (current >= count * 2) return current - count;
+      return current;
+    });
+  };
+
+  /**
+   * 전환이 끝나는 것을 기다린다. 카드에 걸린 전환(hover 등)도 여기까지 올라오므로
+   * 트랙 자신의 전환만 골라 받는다.
+   */
+  const handleTransitionEnd = (event: TransitionEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget) return;
+    finishSlide();
+  };
+
+  /**
+   * 전환이 끝났다는 알림이 오지 않는 환경(모션 최소화 설정 등)에서도
+   * 다음 이동이 막히지 않도록, 전환 시간이 지나면 스스로 마무리한다.
+   */
+  useEffect(() => {
+    if (!isSliding) return;
+
+    const timer = window.setTimeout(finishSlide, 600);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSliding]);
 
   return (
     <div className="main-page">
@@ -118,8 +230,8 @@ export function MainPage() {
             <Link className="active" to="/main">메인페이지</Link>
             <Link to="/practice">연습</Link>
             <Link to="/test">테스트</Link>
-            <Link to="/dictionary">사전</Link>
             <Link to="/review-notes">오답노트</Link>
+            <Link to="/dictionary">사전</Link>
             <Link to="/game">게임</Link>
           </nav>
 
@@ -138,13 +250,20 @@ export function MainPage() {
               <p>손 모양을 보고 따라 하며 차근차근 익혀보세요.</p>
             </div>
 
-            <img
-              className="main-otter"
-              src={otterInRock}
-              alt="바위 안에서 쉬고 있는 수달"
-            />
+            {/* 프레임이 위치를 맡아, [이사하기]를 수달 왼쪽 위에 붙일 수 있다. */}
+            <div className="main-otter-frame">
+              <button
+                className="main-habitat-button"
+                type="button"
+                onClick={moveHabitat}
+              >
+                이사하기
+              </button>
 
-            <img
+              <img className="main-otter" src={habitat.image} alt={habitat.alt} />
+            </div>
+
+            {/* <img
               className="main-rocks main-rocks-left"
               src={rocksLeft}
               alt=""
@@ -155,9 +274,17 @@ export function MainPage() {
               src={rocksRight}
               alt=""
               aria-hidden="true"
-            />
+            /> */}
 
             <div className="main-hero-actions">
+              <button
+                className="main-secondary-button"
+                type="button"
+                onClick={() => setIsAttendanceOpen(true)}
+              >
+                출석체크
+              </button>
+
               <button
                 className="main-secondary-button"
                 type="button"
@@ -178,34 +305,56 @@ export function MainPage() {
               <button
                 className="carousel-button carousel-button-prev"
                 type="button"
-                aria-label="이전 학습 메뉴 보기"
+                aria-label="학습 메뉴 왼쪽으로 넘기기"
+                disabled={learningMenus.length <= VISIBLE_MENU_COUNT}
                 onClick={() => moveMenu(-1)}
               >
                 ‹
               </button>
 
-              <div className="learning-menu-cards" aria-live="polite">
-                {visibleMenus.map((menu, index) => (
-                  <Link
-                    className="learning-menu-card"
-                    to={menu.path}
-                    key={`${menu.title}-${menuStartIndex}-${index}`}
-                  >
-                    <span className={`learning-menu-icon ${menu.tone}`}>
-                      {menu.icon}
-                    </span>
-                    <span className="learning-menu-copy">
-                      <strong>{menu.title}</strong>
-                      <span>{menu.description}</span>
-                    </span>
-                  </Link>
-                ))}
+              {/* 띠 전체를 늘어놓고 창만큼만 보여준다. */}
+              <div className="learning-menu-viewport">
+                <div
+                  className="learning-menu-track"
+                  data-sliding={isSliding ? "true" : undefined}
+                  style={{
+                    transform: `translateX(calc(${-bandOffset} * (var(--menu-slot) + var(--menu-card-gap))))`,
+                  }}
+                  onTransitionEnd={handleTransitionEnd}
+                >
+                  {MENU_BAND.map((menu, index) => {
+                    // 창 밖의 사본은 보조기기와 탭 이동에서 빼, 같은 메뉴가
+                    // 세 번씩 읽히지 않게 한다.
+                    const isVisible =
+                      index >= bandOffset &&
+                      index < bandOffset + VISIBLE_MENU_COUNT;
+
+                    return (
+                      <Link
+                        className="learning-menu-card"
+                        to={menu.path}
+                        key={`${index}-${menu.title}`}
+                        aria-hidden={isVisible ? undefined : "true"}
+                        tabIndex={isVisible ? undefined : -1}
+                      >
+                        <span className={`learning-menu-icon ${menu.tone}`}>
+                          {menu.icon}
+                        </span>
+                        <span className="learning-menu-copy">
+                          <strong>{menu.title}</strong>
+                          <span>{menu.description}</span>
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
 
               <button
                 className="carousel-button carousel-button-next"
                 type="button"
-                aria-label="다음 학습 메뉴 보기"
+                aria-label="학습 메뉴 오른쪽으로 넘기기"
+                disabled={learningMenus.length <= VISIBLE_MENU_COUNT}
                 onClick={() => moveMenu(1)}
               >
                 ›
@@ -215,6 +364,35 @@ export function MainPage() {
         </main>
 
         <SiteFooter sizing="fixed" />
+
+        {isAttendanceOpen && (
+          <div
+            className="learning-guide-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="attendance-title"
+            onMouseDown={(event) => {
+              if (event.currentTarget === event.target) {
+                setIsAttendanceOpen(false);
+              }
+            }}
+          >
+            <section className="learning-guide-modal attendance-modal">
+              <button
+                className="learning-guide-close"
+                type="button"
+                aria-label="출석체크 닫기"
+                onClick={() => setIsAttendanceOpen(false)}
+              >
+                ×
+              </button>
+
+              <h2 id="attendance-title">출석체크</h2>
+
+              <AttendanceCard />
+            </section>
+          </div>
+        )}
 
         {isLearningGuideOpen && (
           <div
