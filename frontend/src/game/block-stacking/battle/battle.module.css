@@ -781,10 +781,10 @@
 .battleFixedPage .sharedTargetOtter {
   position: absolute;
   z-index: 20;
-  /* Match the solo paper holder: the paper edge meets the stage frame. */
-  top: -116px;
+  /* The paper's top edge, rather than the otter image box, meets the frame. */
+  top: -104px;
   left: 50%;
-  width: 320px;
+  width: 220px;
   pointer-events: none;
   transform: translateX(-50%);
   filter: drop-shadow(0 9px 7px rgba(62, 83, 74, .18));
@@ -801,7 +801,7 @@
   left: 50%;
   color: #db5c82;
   font-family: "Arial Rounded MT Bold", "Malgun Gothic", sans-serif;
-  font-size: 72px;
+  font-size: 50px;
   font-weight: 1000;
   line-height: 1;
   text-shadow: 0 3px 0 rgba(130, 48, 75, .13);
