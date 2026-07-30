@@ -291,7 +291,7 @@
 .module :global(.tower-height-gauge__fill i) { position:relative; display:block; width:7px; height:7px; margin-left:15px; border-radius:50%; background:#fffde9; box-shadow:0 0 8px #fff; animation:tower-gauge-spark .7s ease-in-out infinite alternate; }
 .module :global(.tower-height-gauge__fill i:nth-child(2n)) { margin-left:37px; animation-delay:.24s; }.module :global(.tower-height-gauge__fill i:nth-child(3n)) { animation-delay:.45s; }
 .module :global(.tower-height-gauge__cap) { position:absolute; z-index:1; right:-8px; left:-8px; bottom:calc(5px + (100% - 10px) * var(--tower-gauge-level)); height:9px; border-radius:3px; background:#fff8b7; box-shadow:0 0 15px #fff3a3,0 0 5px #79bf92; transition:bottom 720ms cubic-bezier(.18,.88,.22,1); }
-.module :global(.solo-tower-height-gauge) { position:absolute; z-index:8; top:20%; right:8px; bottom:14%; }
+.module :global(.solo-tower-height-gauge) { position:absolute; z-index:8; top:22%; right:8px; bottom:16%; }
 .module :global(.solo-tower-height-gauge .tower-height-gauge__track) { height:100%; }
 @keyframes tower-gauge-sheen { from { transform:translateY(110%); } to { transform:translateY(-110%); } }
 @keyframes tower-gauge-spark { from { opacity:.28; transform:translateX(-1px) scale(.7); } to { opacity:1; transform:translateX(2px) scale(1.15); } }
