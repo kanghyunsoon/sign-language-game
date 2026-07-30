@@ -38,7 +38,11 @@ export function GameModule(props: GameModuleProps) {
   const location = useLocation();
   const usesOwnSoloCanvas = location.pathname === "/game/solo";
   const isRecognitionTool = location.pathname.startsWith("/game/recognition/");
-  const usesModeSelectionCanvas = location.pathname === "/game/block";
+  // The category screen was designed at the same 1280×720 proportion as the
+  // block-mode selector. Keeping it in the compact fixed canvas prevents the
+  // 1280×720 page from sitting inside a larger 1920×1080 canvas at browser
+  // zoom levels.
+  const usesModeSelectionCanvas = location.pathname === "/game" || location.pathname === "/game/block";
   const usesRoomFinderCanvas =
     location.pathname === "/game/battle" ||
     location.pathname === "/game/turn-battle";
