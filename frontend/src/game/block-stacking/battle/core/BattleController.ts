@@ -71,6 +71,10 @@ export class BattleController {
     if (message.type === "MATCH_FINISHED") { this.result = message; this.options.localBoard.stop(); this.message = "Match finished."; this.transition("FINISHED"); return; }
     if (message.type === "PLAYER_DISCONNECTED") { if (message.playerId !== this.options.playerId) this.beginReconnect(); return; }
     if (message.type === "PLAYER_RECONNECTED") { this.message = "Opponent reconnected."; if (this.machine.getState() === "RECONNECTING") this.transition("PLAYING"); return; }
+    if (message.type === "BOARD_SNAPSHOT" && message.playerId === this.options.playerId) {
+      this.options.localBoard.restore?.(message.bodies);
+      return;
+    }
     if ("playerId" in message && message.playerId !== this.options.playerId) {
       this.options.remoteBoard.apply(message as RemoteSyncMessage, this.now());
       if (message.type === "BOARD_SNAPSHOT" && this.machine.getState() === "RECONNECTING") { this.clearReconnectTimers(); this.reconnectDeadlineAt = null; this.options.localBoard.start(); this.message = "Match state restored."; this.transition("PLAYING"); }

@@ -1,6 +1,6 @@
 import type { PhysicsLetterState, PhysicsWorld } from "../../physics/types";
 import type { GameRenderer } from "../../render/types";
-import type { SpawnLetterEvent } from "../transport/battleTransportTypes";
+import type { BattleBodyTransform, SpawnLetterEvent } from "../transport/battleTransportTypes";
 import type { LocalBoardPublisher } from "../sync/LocalBoardPublisher";
 import { BATTLE_LETTER_SIZE, type BattleRuntimeConfig } from "./BattleRuntimeConfig";
 
@@ -8,7 +8,7 @@ interface LetterRecord { readonly id: string; readonly symbol: string; readonly 
 
 export interface BattleLocalBoard {
   start(): void; stop(): void; spawn(event: SpawnLetterEvent): void; selectRemoval(symbol: string): string | null;
-  acceptRemoval(letterId: string): void; rejectRemoval(letterId?: string): void; getTargetSymbol(): string | null; takeTargetForOtter(): string | null; takeLetterForOtter(letterId: string): string | null; resize(width: number, height: number): void; setPublisher(publisher: LocalBoardPublisher): void; setGameOverHandler(handler: () => void): void; dispose(): void;
+  acceptRemoval(letterId: string): void; rejectRemoval(letterId?: string): void; restore?(bodies: readonly BattleBodyTransform[]): void; getTargetSymbol(): string | null; takeTargetForOtter(): string | null; takeLetterForOtter(letterId: string): string | null; resize(width: number, height: number): void; setPublisher(publisher: LocalBoardPublisher): void; setGameOverHandler(handler: () => void): void; dispose(): void;
 }
 
 export class BattleLocalBoardRuntime implements BattleLocalBoard {
@@ -44,6 +44,15 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
   }
   acceptRemoval(letterId: string): void { const record = this.letters.get(letterId); if (!record) return; if (this.priorityTargetId === letterId) this.priorityTargetId = null; this.renderer.highlightRemoval(letterId, this.config.removalEffectMs); this.updateTarget(); }
   rejectRemoval(letterId?: string): void { if (letterId) { const record = this.letters.get(letterId); if (record) record.pending = false; } else for (const record of this.letters.values()) record.pending = false; this.updateTarget(); }
+  restore(bodies: readonly BattleBodyTransform[]): void {
+    for (const body of bodies) {
+      if (body.state === "REMOVED" || this.physics.getLetterState(body.id)) continue;
+      const saved = { id: body.id, symbol: body.symbol, x: body.x * this.width, y: body.y * this.height, angle: body.angle, velocityX: body.velocityX * this.width, velocityY: body.velocityY * this.height, angularVelocity: body.angularVelocity, settled: body.state === "SETTLED" };
+      const state = this.physics.restoreLetter?.(saved) ?? this.physics.createLetter(saved);
+      this.letters.set(body.id, { id: body.id, symbol: state.symbol, spawnedAt: 0, pending: false, ...(state.settled ? { settledAt: this.now() } : {}) });
+    }
+    this.updateTarget(); this.renderer.render(this.physics.getLetterStates());
+  }
   getTargetSymbol(): string | null { return this.currentTarget()?.symbol ?? null; }
   /** 수달 이벤트가 현재 지정 블록 자체를 집어 갈 때 사용한다. */
   takeTargetForOtter(): string | null {

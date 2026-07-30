@@ -5,8 +5,10 @@ import type { BattleBodyTransform, BattleConnectionOptions, BattleConnectionStat
 
 type PeerCommand = ClientBattleMessage;
 interface PlayerState { score: number; combo: number; maxCombo: number; removedCount: number; gameOver: boolean; }
+interface PersistedAuthority { readonly roomId: string; readonly hostPlayerId: string; readonly playerIds: readonly string[]; readonly sequence: number; readonly spawnIndex: number; readonly targetIndex: number; readonly sharedTarget: { readonly id: string; readonly symbol: string } | null; readonly players: readonly [string, PlayerState][]; readonly letters: readonly [string, { readonly playerId: string; readonly symbol: string }][]; readonly boards: readonly [string, readonly BattleBodyTransform[]][]; }
 const CLAIM_EFFECT_DURATION_MS = 1_150;
 const NEXT_TARGET_DELAY_MS = 2_300;
+const AUTHORITY_STORAGE_PREFIX = "sudal:block-battle:authority:";
 
 /** Browser-hosted authority carried only by the room WebRTC DataChannel. */
 export class P2pBattleTransport implements BattleGameTransport {
@@ -42,12 +44,13 @@ export class P2pBattleTransport implements BattleGameTransport {
     if (generation !== this.connectGeneration || this.delegate.getConnectionState() !== "CONNECTED") return;
     if (this.isHost()) {
       this.unsubscribeCommands ??= this.delegate.subscribeCommands((message, remoteUserId) => this.handle(message, remoteUserId));
+      this.restoreAuthority();
       this.startAuthority();
     } else {
       this.delegate.send({ type: "REQUEST_MATCH_STATE", commandId: crypto.randomUUID(), matchId: this.matchId, occurredAt: Date.now() });
     }
   }
-  disconnect(): void { this.connectGeneration += 1; this.unsubscribeCommands?.(); this.unsubscribeCommands = null; if (this.targetTimer) clearTimeout(this.targetTimer); this.targetTimer = null; this.delegate.disconnect(); }
+  disconnect(): void { this.persistAuthority(); this.connectGeneration += 1; this.unsubscribeCommands?.(); this.unsubscribeCommands = null; if (this.targetTimer) clearTimeout(this.targetTimer); this.targetTimer = null; this.delegate.disconnect(); }
   send(message: ClientBattleMessage): void { if (this.isHost()) this.handle(message, this.localPlayerId); else this.delegate.send(message); }
   subscribe(listener: (message: ServerBattleMessage) => void): () => void { return this.delegate.subscribe(listener); }
   subscribeConnectionState(listener: (state: BattleConnectionState) => void): () => void { return this.delegate.subscribeConnectionState(listener); }
@@ -77,6 +80,7 @@ export class P2pBattleTransport implements BattleGameTransport {
     const targetId = `${this.matchId}-target-${this.targetIndex}`;
     this.targetIndex += 1;
     this.sharedTarget = { id: targetId, symbol };
+    this.persistAuthority();
     this.delegate.publishEvent({ type: "SHARED_TARGET", sequence: ++this.sequence, matchId: this.matchId, targetId, symbol, presentedAt: Date.now() });
   }
   private claimTarget(message: Extract<ClientBattleMessage, { type: "CLAIM_SHARED_TARGET" }>, playerId: string): void {
@@ -95,6 +99,7 @@ export class P2pBattleTransport implements BattleGameTransport {
     this.letters.set(letterId, { playerId, symbol: target.symbol });
     this.delegate.publishEvent({ type: "SPAWN_LETTER", sequence: ++this.sequence, matchId: this.matchId, playerId, letterId, spawnIndex: this.spawnIndex++, symbol: target.symbol, spawnAt: acceptedAt + CLAIM_EFFECT_DURATION_MS, normalizedX: .5, initialAngle: 0 });
     this.scheduleNextTarget(NEXT_TARGET_DELAY_MS);
+    this.persistAuthority();
   }
   private handle(message: ClientBattleMessage, playerId: string): void {
     if (!this.isHost() || !(this.playerIds as readonly string[]).includes(playerId) || ("matchId" in message && message.matchId !== this.matchId)) return;
@@ -106,7 +111,7 @@ export class P2pBattleTransport implements BattleGameTransport {
       return;
     }
     if (message.type === "BODY_TRANSFORM_BATCH") { if (message.playerId !== playerId) return; this.delegate.publishEvent({ ...message, sequence: ++this.sequence }); return; }
-    if (message.type === "BOARD_SNAPSHOT") { if (message.playerId !== playerId) return; this.boards.set(playerId, message.bodies); this.delegate.publishSnapshot({ ...message, sequence: ++this.sequence }); return; }
+    if (message.type === "BOARD_SNAPSHOT") { if (message.playerId !== playerId) return; this.boards.set(playerId, message.bodies); this.persistAuthority(); this.delegate.publishSnapshot({ ...message, sequence: ++this.sequence }); return; }
     if (message.type === "CLAIM_SHARED_TARGET") { this.claimTarget(message, playerId); return; }
     if (message.type === "RESULT_RECORDED_COMMAND") {
       if (playerId !== this.hostPlayerId) return;
@@ -127,13 +132,34 @@ export class P2pBattleTransport implements BattleGameTransport {
     const state = this.players.get(playerId)!;
     state.combo += 1; state.maxCombo = Math.max(state.maxCombo, state.combo); state.removedCount += 1; state.score += 100 + state.combo * 10;
     this.delegate.publishEvent({ type: "REMOVE_LETTER_ACCEPTED", sequence: ++this.sequence, commandId: message.commandId, playerId, letterId: message.letterId, symbol: message.symbol, score: state.score, combo: state.combo, maxCombo: state.maxCombo, removedCount: state.removedCount, acceptedAt: Date.now() });
+    this.persistAuthority();
   }
   private finish(loserPlayerId: string, reason: "DANGER_LINE" | "FORFEIT"): void {
     const loser = this.players.get(loserPlayerId); if (!loser || loser.gameOver) return; loser.gameOver = true;
     if (this.targetTimer) clearTimeout(this.targetTimer); this.targetTimer = null; this.sharedTarget = null;
+    this.clearPersistedAuthority();
     const winnerPlayerId = this.playerIds.find((id) => id !== loserPlayerId) ?? null;
     this.delegate.publishEvent({ type: "MATCH_FINISHED", sequence: ++this.sequence, matchId: this.matchId, winnerPlayerId, loserPlayerId, reason, finishedAt: Date.now(), results: this.playerIds.map((id) => { const state = this.players.get(id)!; return { playerId: id, score: state.score, maxCombo: state.maxCombo, removedCount: state.removedCount, attackCount: 0 }; }) });
   }
+  private storageKey(): string { return `${AUTHORITY_STORAGE_PREFIX}${this.localPlayerId}:${this.roomId}`; }
+  private persistAuthority(): void {
+    if (!this.isHost() || !this.roomId || typeof window === "undefined") return;
+    const value: PersistedAuthority = { roomId: this.roomId, hostPlayerId: this.hostPlayerId, playerIds: this.playerIds, sequence: this.sequence, spawnIndex: this.spawnIndex, targetIndex: this.targetIndex, sharedTarget: this.sharedTarget, players: [...this.players.entries()], letters: [...this.letters.entries()], boards: [...this.boards.entries()] };
+    try { window.sessionStorage.setItem(this.storageKey(), JSON.stringify(value)); } catch { /* Storage is optional; a connected peer can still resync. */ }
+  }
+  private restoreAuthority(): void {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.sessionStorage.getItem(this.storageKey()); if (!raw) return;
+      const saved = JSON.parse(raw) as PersistedAuthority;
+      if (saved.roomId !== this.roomId || saved.hostPlayerId !== this.hostPlayerId || saved.playerIds.length !== this.playerIds.length || saved.playerIds.some((id) => !this.playerIds.includes(id))) return;
+      this.sequence = saved.sequence; this.spawnIndex = saved.spawnIndex; this.targetIndex = saved.targetIndex; this.sharedTarget = saved.sharedTarget;
+      this.players.clear(); for (const [id, state] of saved.players) this.players.set(id, state);
+      this.letters.clear(); for (const [id, letter] of saved.letters) this.letters.set(id, letter);
+      this.boards.clear(); for (const [id, bodies] of saved.boards) this.boards.set(id, bodies);
+    } catch { this.clearPersistedAuthority(); }
+  }
+  private clearPersistedAuthority(): void { try { if (typeof window !== "undefined") window.sessionStorage.removeItem(this.storageKey()); } catch { /* no-op */ } }
 }
 function freshPlayer(): PlayerState { return { score: 0, combo: 0, maxCombo: 0, removedCount: 0, gameOver: false }; }
 const SYMBOLS = ["ㄱ", "ㄴ", "ㄷ", "ㄹ", "ㅁ", "ㅂ", "ㅅ", "ㅇ", "ㅈ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ", "ㅏ", "ㅑ", "ㅓ", "ㅕ", "ㅗ", "ㅛ", "ㅜ", "ㅠ", "ㅡ", "ㅣ", "ㅐ", "ㅔ", "ㅚ", "ㅟ", "ㅢ"] as const;

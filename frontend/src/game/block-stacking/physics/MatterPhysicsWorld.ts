@@ -58,6 +58,19 @@ export class MatterPhysicsWorld implements PhysicsWorld {
     return this.toState(record);
   }
 
+  restoreLetter(state: PhysicsLetterState): PhysicsLetterState {
+    const existing = this.getLetterState(state.id);
+    if (existing) return existing;
+    this.createLetter({ id: state.id, symbol: state.symbol, x: state.x, y: state.y, angle: state.angle, velocityY: state.velocityY, angularVelocity: state.angularVelocity });
+    const record = this.letters.get(state.id)!;
+    MatterBody.setPosition(record.body, { x: state.x, y: state.y });
+    MatterBody.setAngle(record.body, state.angle);
+    MatterBody.setVelocity(record.body, { x: state.velocityX, y: state.velocityY });
+    MatterBody.setAngularVelocity(record.body, state.angularVelocity);
+    if (state.settled) this.synchronizeSettledLetter(state.id, state);
+    return this.toState(record);
+  }
+
   resize(width: number, height: number): void {
     this.assertActive();
     if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {

@@ -70,6 +70,7 @@ export type PhysicsEvent =
 
 export interface PhysicsWorld {
   createLetter(spec: LetterBodySpec): PhysicsLetterState;
+  restoreLetter?(state: PhysicsLetterState): PhysicsLetterState;
   resize(width: number, height: number): void;
   update(deltaMs: number): readonly PhysicsEvent[];
   getLetterState(id: string): PhysicsLetterState | undefined;
