@@ -62,10 +62,11 @@ export interface HandCameraProps {
   readonly compact?: boolean;
   readonly showNoHandPrompt?: boolean;
   readonly hideCompactStatus?: boolean;
+  readonly showCompactRecognition?: boolean;
   readonly visionAdapterFactory?: RecognitionVisionAdapterFactory;
 }
 
-export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE_CONFIG, performanceMonitor, temporalDecoder, activePlayerSession, recognitionSession, handDetectionConfig = GAMEPLAY_HAND_DETECTION_CONFIG, autoStart = false, onLandmarkFrame, onHandNotDetected, targetSymbol, prediction, referenceTemplate, onPoseFeedback, connectionState, modelVersion, connectionError, awaitingHandRelease = false, showDebug = false, compact = false, showNoHandPrompt = false, hideCompactStatus = false, visionAdapterFactory }: HandCameraProps) {
+export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE_CONFIG, performanceMonitor, temporalDecoder, activePlayerSession, recognitionSession, handDetectionConfig = GAMEPLAY_HAND_DETECTION_CONFIG, autoStart = false, onLandmarkFrame, onHandNotDetected, targetSymbol, prediction, referenceTemplate, onPoseFeedback, connectionState, modelVersion, connectionError, awaitingHandRelease = false, showDebug = false, compact = false, showNoHandPrompt = false, hideCompactStatus = false, showCompactRecognition = false, visionAdapterFactory }: HandCameraProps) {
   // Registration/ownership is a debug-only tool. Gameplay always uses the
   // first detected hand, so a registration state can never block recognition.
   // Registration is not used by any game mode. Keep the prop surface for
@@ -274,6 +275,7 @@ export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE
         {userRegistrationEnabled&&recognitionSession&&<><ActivePlayerRegistrationModal session={recognitionSession}/><RecognitionBlockedOverlay session={recognitionSession}/>{showDebug&&<RecognitionDebugOverlay session={recognitionSession}/>}</>}
         {status !== "RUNNING" && <div className="camera-placeholder"><Hand aria-hidden="true" size={34} strokeWidth={1.5}/><span>{status === "ERROR" ? "카메라를 시작하지 못했습니다." : "카메라 준비 중"}</span></div>}
         {status === "RUNNING" && handCount === 0 && showNoHandPrompt && <div className="camera-no-hand-prompt" role="status" aria-live="polite"><span>손을 화면 중앙에</span><strong>보여 주세요!</strong></div>}
+        {showCompactRecognition && <div className="camera-compact-recognition" aria-live="polite"><span>현재 인식</span><strong key={prediction?.symbol ?? "waiting"}>{prediction?.symbol ?? "-"}</strong><small>{prediction ? `${Math.round(prediction.confidence * 100)}%` : "인식 대기"}</small></div>}
         {!hideCompactStatus && <div className="camera-compact-status"><span className={`status-dot ${status === "RUNNING" ? "is-running" : ""}`}/><strong>내 카메라</strong><small>{status}</small></div>}
       </div>
       {error&&<div className="camera-error camera-compact-error" role="alert"><AlertTriangle aria-hidden="true" size={16}/><span>{error.message}</span></div>}

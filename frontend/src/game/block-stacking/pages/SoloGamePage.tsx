@@ -608,49 +608,6 @@ export function SoloGamePage({
             <span>TIME</span>
             <strong>{formatPlayTime(snapshot.playTimeMs)}</strong>
           </div>
-          {hintOtter.phase !== "HIDDEN" && hintOtter.symbol !== null && (
-            <div
-              ref={hintOtterElementRef}
-              key={hintOtter.cycle}
-              className={`solo-hint-otter is-${hintOtter.phase.toLowerCase()}${snapshot.runState === "PAUSED" ? " is-paused" : ""}`}
-              data-direction={hintOtter.direction}
-              aria-hidden="true"
-            >
-              <div className="solo-hint-otter-sprite">
-                {hintOtter.phase === "WALKING" && (
-                  <>
-                    <img className="solo-hint-frame hint-carry-frame hint-carry-frame-0" src={hintCarryFrame0} alt="" draggable={false} />
-                    <img className="solo-hint-frame hint-carry-frame hint-carry-frame-1" src={hintCarryFrame1} alt="" draggable={false} />
-                    <div className="solo-hint-paper-guide">
-                      <SignGuideImage symbol={hintOtter.symbol} size={58} />
-                    </div>
-                  </>
-                )}
-                {hintOtter.phase === "THROWING" && (
-                  <>
-                    <img className="solo-hint-frame hint-throw-frame hint-throw-carry" src={hintCarryFrame2} alt="" draggable={false} />
-                    <img className="solo-hint-frame hint-throw-frame hint-throw-celebrate-0" src={hintCelebrateFrame0} alt="" draggable={false} />
-                    <img className="solo-hint-frame hint-throw-frame hint-throw-celebrate-1" src={hintCelebrateFrame1} alt="" draggable={false} />
-                    <div className="solo-hint-paper-guide hint-throw-guide">
-                      <SignGuideImage symbol={hintOtter.symbol} size={58} />
-                    </div>
-                    <div className="solo-hint-thrown-paper">
-                      <img src={hintPaperThrow} alt="" draggable={false} />
-                      <span>
-                        <SignGuideImage symbol={hintOtter.symbol} size={32} />
-                      </span>
-                    </div>
-                  </>
-                )}
-                {hintOtter.phase === "RUNNING" && (
-                  <>
-                    <img className="solo-hint-frame hint-run-frame hint-run-frame-0" src={hintCelebrateFrame2} alt="" draggable={false} />
-                    <img className="solo-hint-frame hint-run-frame hint-run-frame-1" src={hintCelebrateFrame3} alt="" draggable={false} />
-                  </>
-                )}
-              </div>
-            </div>
-          )}
           {(snapshot.runState === "IDLE" || snapshot.runState === "PAUSED") && (
             <div className="solo-start-overlay" aria-label="게임 시작">
               <div>
@@ -682,6 +639,21 @@ export function SoloGamePage({
             </div>
           )}
           </div>
+          {hintOtter.phase !== "HIDDEN" && hintOtter.symbol !== null && (
+            <div
+              ref={hintOtterElementRef}
+              key={hintOtter.cycle}
+              className={`solo-hint-otter is-${hintOtter.phase.toLowerCase()}${snapshot.runState === "PAUSED" ? " is-paused" : ""}`}
+              data-direction={hintOtter.direction}
+              aria-hidden="true"
+            >
+              <div className="solo-hint-otter-sprite">
+                {hintOtter.phase === "WALKING" && <><img className="solo-hint-frame hint-carry-frame hint-carry-frame-0" src={hintCarryFrame0} alt="" draggable={false} /><img className="solo-hint-frame hint-carry-frame hint-carry-frame-1" src={hintCarryFrame1} alt="" draggable={false} /><div className="solo-hint-paper-guide"><SignGuideImage symbol={hintOtter.symbol} size={58} /></div></>}
+                {hintOtter.phase === "THROWING" && <><img className="solo-hint-frame hint-throw-frame hint-throw-carry" src={hintCarryFrame2} alt="" draggable={false} /><img className="solo-hint-frame hint-throw-frame hint-throw-celebrate-0" src={hintCelebrateFrame0} alt="" draggable={false} /><img className="solo-hint-frame hint-throw-frame hint-throw-celebrate-1" src={hintCelebrateFrame1} alt="" draggable={false} /><div className="solo-hint-paper-guide hint-throw-guide"><SignGuideImage symbol={hintOtter.symbol} size={58} /></div><div className="solo-hint-thrown-paper"><img src={hintPaperThrow} alt="" draggable={false} /><span><SignGuideImage symbol={hintOtter.symbol} size={32} /></span></div></>}
+                {hintOtter.phase === "RUNNING" && <><img className="solo-hint-frame hint-run-frame hint-run-frame-0" src={hintCelebrateFrame2} alt="" draggable={false} /><img className="solo-hint-frame hint-run-frame hint-run-frame-1" src={hintCelebrateFrame3} alt="" draggable={false} /></>}
+              </div>
+            </div>
+          )}
           {snapshot.runState === "RUNNING" && (
             <div className="solo-letter-otter" aria-hidden="true">
               <img src={letterOtter} alt="" draggable={false} />
@@ -707,6 +679,7 @@ export function SoloGamePage({
                 compact
                 showNoHandPrompt
                 hideCompactStatus
+                showCompactRecognition
                 autoStart
                 rateConfig={SOLO_RECOGNITION_RATE_CONFIG}
                 performanceMonitor={recognizerRef.current?.getPerformanceMonitor()}
