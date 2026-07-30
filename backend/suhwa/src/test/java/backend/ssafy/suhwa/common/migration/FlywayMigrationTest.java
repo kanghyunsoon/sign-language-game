@@ -59,12 +59,16 @@ class FlywayMigrationTest {
         assertThat(result.success).isTrue();
         assertThat(result.migrationsExecuted)
                 .as("신규 DB에서는 V1부터 전부 실행돼야 한다")
-                .isGreaterThanOrEqualTo(2);
+                .isGreaterThanOrEqualTo(4);
         assertThat(appliedVersions(schema))
                 .as("버전이 빠짐없이 성공으로 기록돼야 한다")
                 .containsEntry("1", true)
-                .containsEntry("2", true);
+                .containsEntry("2", true)
+                .containsEntry("3", true)
+                .containsEntry("4", true);
         assertGameRoomIndexReplaced(schema);
+        assertTestSessionSchemaCreated(schema);
+        assertGrowthSchemaMigrated(schema);
     }
 
     @Test
@@ -79,11 +83,54 @@ class FlywayMigrationTest {
         assertThat(appliedVersions(schema))
                 .as("V1은 실행하지 않고 baseline으로만 기록되며, V2는 실제로 적용돼야 한다")
                 .containsEntry("1", true)
-                .containsEntry("2", true);
+                .containsEntry("2", true)
+                .containsEntry("3", true)
+                .containsEntry("4", true);
         assertThat(baselineRowExists(schema))
                 .as("baseline-on-migrate가 동작했다면 BASELINE 타입 행이 있어야 한다")
                 .isTrue();
         assertGameRoomIndexReplaced(schema);
+        assertTestSessionSchemaCreated(schema);
+        assertGrowthSchemaMigrated(schema);
+    }
+
+    private void assertGrowthSchemaMigrated(String schema) throws SQLException {
+        assertThat(count(schema,
+                "SELECT COUNT(*) FROM information_schema.COLUMNS "
+                        + "WHERE TABLE_SCHEMA = '" + schema + "' "
+                        + "AND TABLE_NAME = 'user_pets' AND COLUMN_NAME = 'name'"))
+                .as("V4 removes the pet name")
+                .isZero();
+        assertThat(count(schema,
+                "SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS "
+                        + "WHERE CONSTRAINT_SCHEMA = '" + schema + "' "
+                        + "AND TABLE_NAME = 'user_pets' AND CONSTRAINT_TYPE = 'CHECK'"))
+                .as("V4 constrains pet level and experience")
+                .isGreaterThanOrEqualTo(2);
+    }
+
+    private void assertTestSessionSchemaCreated(String schema) throws SQLException {
+        assertThat(count(schema,
+                "SELECT COUNT(*) FROM information_schema.TABLES "
+                        + "WHERE TABLE_SCHEMA = '" + schema + "' AND TABLE_NAME = 'test_sessions'"))
+                .as("V3 creates the parent test_sessions table")
+                .isEqualTo(1);
+        assertThat(count(schema,
+                "SELECT COUNT(*) FROM information_schema.COLUMNS "
+                        + "WHERE TABLE_SCHEMA = '" + schema + "' "
+                        + "AND TABLE_NAME = 'wrong_answer_logs' "
+                        + "AND COLUMN_NAME = 'test_session_id' AND IS_NULLABLE = 'YES'"))
+                .as("V3 preserves legacy wrong-answer rows with a nullable test_session_id")
+                .isEqualTo(1);
+        assertThat(count(schema,
+                "SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE "
+                        + "WHERE TABLE_SCHEMA = '" + schema + "' "
+                        + "AND TABLE_NAME = 'wrong_answer_logs' "
+                        + "AND COLUMN_NAME = 'test_session_id' "
+                        + "AND REFERENCED_TABLE_NAME = 'test_sessions' "
+                        + "AND REFERENCED_COLUMN_NAME = 'id'"))
+                .as("V3 links wrong answers to their parent test session")
+                .isEqualTo(1);
     }
 
     /** V2가 노리는 최종 상태: 복합 인덱스가 있고, 중복이던 단일 인덱스는 사라져 있어야 한다(FR-017). */
@@ -181,6 +228,15 @@ class FlywayMigrationTest {
                         "SELECT COUNT(*) FROM flyway_schema_history WHERE type = 'BASELINE'")) {
             resultSet.next();
             return resultSet.getInt(1) > 0;
+        }
+    }
+
+    private int count(String schema, String sql) throws SQLException {
+        try (Connection connection = connect(schema);
+                Statement statement = connection.createStatement();
+                ResultSet resultSet = statement.executeQuery(sql)) {
+            resultSet.next();
+            return resultSet.getInt(1);
         }
     }
 

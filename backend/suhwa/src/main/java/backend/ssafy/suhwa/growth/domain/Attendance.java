@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
@@ -14,9 +15,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
-/** 엔티티만 정의(API/로직 없음, FR-035). */
 @Entity
-@Table(name = "attendance")
+@Table(
+        name = "attendance",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_attendance_user_date",
+                columnNames = {"user_id", "attendance_date"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Attendance {
@@ -39,9 +43,15 @@ public class Attendance {
     private LocalDateTime createdAt;
 
     @Builder
-    public Attendance(Long userId, LocalDate attendanceDate) {
+    public Attendance(Long userId, LocalDate attendanceDate, Integer streakCount) {
+        if (userId == null || attendanceDate == null) {
+            throw new IllegalArgumentException("출석 사용자와 날짜는 필수입니다.");
+        }
+        if (streakCount != null && streakCount < 1) {
+            throw new IllegalArgumentException("연속 출석 일수는 1 이상이어야 합니다.");
+        }
         this.userId = userId;
         this.attendanceDate = attendanceDate;
-        this.streakCount = 1;
+        this.streakCount = streakCount == null ? 1 : streakCount;
     }
 }

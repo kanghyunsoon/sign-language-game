@@ -1,0 +1,13 @@
+.git/
+.gradle/
+**/build/
+**/bin/
+*.class
+*.jar
+*.log*
+.env*
+.idea/
+.vscode/
+coverage/
+Dockerfile*
+.dockerignore

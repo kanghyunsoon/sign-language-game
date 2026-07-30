@@ -75,6 +75,20 @@ game:
     leave-grace-seconds: ${GAME_ROOM_LEAVE_GRACE_SECONDS:7}
     join-confirmation-seconds: ${GAME_ROOM_JOIN_CONFIRMATION_SECONDS:15}
 
+growth:
+  attendance-exp: ${GROWTH_ATTENDANCE_EXP:3}
+  practice-exp: ${GROWTH_PRACTICE_EXP:10}
+  test-exp: ${GROWTH_TEST_EXP:7}
+  solo-fast-exp: ${GROWTH_SOLO_FAST_EXP:15}
+  solo-medium-exp: ${GROWTH_SOLO_MEDIUM_EXP:10}
+  solo-slow-exp: ${GROWTH_SOLO_SLOW_EXP:5}
+  duel-winner-exp: ${GROWTH_DUEL_WINNER_EXP:10}
+  duel-loser-exp: ${GROWTH_DUEL_LOSER_EXP:3}
+  exp-per-level: ${GROWTH_EXP_PER_LEVEL:20}
+  first-evolution-level: ${GROWTH_FIRST_EVOLUTION_LEVEL:5}
+  final-evolution-level: ${GROWTH_FINAL_EVOLUTION_LEVEL:10}
+  max-level: ${GROWTH_MAX_LEVEL:10}
+
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:}
 

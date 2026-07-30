@@ -11,6 +11,7 @@ import backend.ssafy.suhwa.auth.dto.LoginRequest;
 import backend.ssafy.suhwa.auth.dto.RefreshRequest;
 import backend.ssafy.suhwa.auth.dto.SignupRequest;
 import backend.ssafy.suhwa.auth.dto.TokenResponse;
+import backend.ssafy.suhwa.growth.repository.UserPetRepository;
 import backend.ssafy.suhwa.user.dto.UpdateProfileRequest;
 import tools.jackson.databind.ObjectMapper;
 import java.util.UUID;
@@ -20,11 +21,19 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
+@TestPropertySource(properties = {
+        "spring.datasource.url=jdbc:h2:mem:user-lifecycle;MODE=MySQL;DB_CLOSE_DELAY=-1",
+        "spring.datasource.driver-class-name=org.h2.Driver",
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.transaction.default-timeout=30s",
+        "jwt.secret=0123456789012345678901234567890123456789012345678901234567890123"
+})
 class UserLifecycleIntegrationTest {
 
     @Autowired
@@ -33,15 +42,28 @@ class UserLifecycleIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private UserPetRepository userPetRepository;
+
     @Test
     void fullLifecycle_signup_login_refresh_logout_withdraw_resignup() throws Exception {
         String email = "lifecycle-" + UUID.randomUUID() + "@test.com";
 
-        mockMvc.perform(post("/auth/signup")
+        MvcResult signupResult = mockMvc.perform(post("/auth/signup")
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(
                                 new SignupRequest(email, "password1", "닉네임"))))
-                .andExpect(status().isCreated());
+                .andExpect(status().isCreated())
+                .andReturn();
+        Long signedUpUserId = objectMapper.readTree(signupResult.getResponse().getContentAsString())
+                .get("id").asLong();
+        org.assertj.core.api.Assertions.assertThat(userPetRepository.findByUserId(signedUpUserId))
+                .isPresent()
+                .get()
+                .satisfies(pet -> {
+                    org.assertj.core.api.Assertions.assertThat(pet.getLevel()).isEqualTo(1);
+                    org.assertj.core.api.Assertions.assertThat(pet.getExp()).isZero();
+                });
 
         TokenResponse tokens = login(email, "password1");
 

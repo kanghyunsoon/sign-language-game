@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.test.context.TestPropertySource;
 
-/** 펫/출석은 엔티티만 존재하고 서비스·컨트롤러가 없으므로(FR-034/FR-035), JPA 매핑 오류 없이 컨텍스트가 로드되고 기본 CRUD가 되는지만 확인한다. */
 @DataJpaTest
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 class GrowthEntityMappingTest {
@@ -25,12 +24,11 @@ class GrowthEntityMappingTest {
 
     @Test
     void userPet_savesAndLoadsWithDefaults() {
-        UserPet saved = userPetRepository.save(UserPet.builder().userId(1L).name("몽이").build());
+        UserPet saved = userPetRepository.save(UserPet.builder().userId(1L).build());
 
         UserPet found = userPetRepository.findById(saved.getId()).orElseThrow();
 
         assertThat(found.getUserId()).isEqualTo(1L);
-        assertThat(found.getName()).isEqualTo("몽이");
         assertThat(found.getLevel()).isEqualTo(1);
         assertThat(found.getExp()).isZero();
     }

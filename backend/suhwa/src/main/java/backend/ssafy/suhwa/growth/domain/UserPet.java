@@ -12,7 +12,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/** 엔티티만 정의(API/로직 없음, FR-034). 회원가입 시 row 생성 여부 등은 1차 범위 밖. */
 @Entity
 @Table(name = "user_pets")
 @Getter
@@ -26,9 +25,6 @@ public class UserPet extends BaseTimeEntity {
     @Column(name = "user_id", nullable = false, unique = true)
     private Long userId;
 
-    @Column(length = 50)
-    private String name;
-
     @Column(nullable = false)
     private int level;
 
@@ -36,10 +32,47 @@ public class UserPet extends BaseTimeEntity {
     private int exp;
 
     @Builder
-    public UserPet(Long userId, String name) {
+    public UserPet(Long userId, Integer level, Integer exp) {
         this.userId = userId;
-        this.name = name;
-        this.level = 1;
-        this.exp = 0;
+        this.level = level == null ? 1 : level;
+        this.exp = exp == null ? 0 : exp;
+        validateState();
+    }
+
+    public void addExperience(int amount, int expPerLevel, int maxLevel) {
+        if (amount < 0 || expPerLevel <= 0 || maxLevel < 1) {
+            throw new IllegalArgumentException("성장 정책 값이 올바르지 않습니다.");
+        }
+        if (level >= maxLevel) {
+            level = maxLevel;
+            exp = 0;
+            return;
+        }
+
+        exp += amount;
+        while (exp >= expPerLevel && level < maxLevel) {
+            exp -= expPerLevel;
+            level++;
+        }
+        if (level >= maxLevel) {
+            level = maxLevel;
+            exp = 0;
+        }
+    }
+
+    public EvolutionStage evolutionStage(int firstEvolutionLevel, int finalEvolutionLevel) {
+        if (level >= finalEvolutionLevel) {
+            return EvolutionStage.STAGE_3;
+        }
+        if (level >= firstEvolutionLevel) {
+            return EvolutionStage.STAGE_2;
+        }
+        return EvolutionStage.STAGE_1;
+    }
+
+    private void validateState() {
+        if (level < 1 || exp < 0) {
+            throw new IllegalArgumentException("펫 성장 상태가 올바르지 않습니다.");
+        }
     }
 }
