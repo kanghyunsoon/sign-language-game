@@ -26,7 +26,7 @@
 .disabled:hover { border-color: #9abbd4; background: #f7fbfe; }
 .placeholder a { display: inline-flex; align-items: center; gap: 7px; margin-top: 18px; color: #245a8d; font-weight: 800; }
 .placeholderIcon { display: inline-grid; place-items: center; width: 62px; height: 62px; border-radius: 50%; background: #eef7fd; color: #245a8d; }
-@media (max-width: 720px) { .module .modeGrid, .module .categoryGrid { grid-template-columns: 1fr; } .module .modeHeader { flex-direction: column; } .module .categoryCard { min-height: 270px; } }
+@media (max-width: 720px) { .module .modeGrid { grid-template-columns: 1fr; } .module .modeHeader { flex-direction: column; } }
 
 /* Legacy solo class names are scoped below the module root during staged extraction. */
 .module :global(.solo-game-page) { position: relative; display: grid; height: calc(100dvh - 28px); min-height: 0; grid-template-rows: auto minmax(0, 1fr); gap: 8px; padding: 14px; background: #dceefa; }
@@ -602,8 +602,8 @@
 }
 
 /* Game selection: sky-and-grass stage with the existing otter mascot. */
-.module:has(> .categoryPage) { display: grid; min-height: 100dvh; place-items: center; overflow: hidden; background: #e0f1ff; }
-.categoryPage { position: relative; display: grid; width: min(100vw, calc(100dvh * 16 / 9), 1280px); height: min(100dvh, calc(100vw * 9 / 16), 720px); min-height: 0; margin: 0 auto; padding: clamp(18px, 2.6vw, 34px) clamp(24px, 3.2vw, 46px) 26px; overflow: hidden; grid-template-rows: auto minmax(270px, 1fr) auto auto; border: 1px solid #d7e7ee; border-radius: 4px; background: linear-gradient(to bottom, #e0f1ff 0 67%, #c9e59d 67% 91%, #a9cd7c 91%); color: #354248; isolation: isolate; }
+.module:has(> .categoryPage) { position: fixed; inset: 0; display: block; min-height: 0; overflow: hidden; background: #e0f1ff; }
+.categoryPage { position: absolute; top: 50%; left: 50%; display: grid; width: 1280px; height: 720px; min-height: 0; margin: 0; padding: 34px 46px 26px; overflow: hidden; grid-template-rows: auto minmax(270px, 1fr) auto auto; border: 1px solid #d7e7ee; border-radius: 4px; background: linear-gradient(to bottom, #e0f1ff 0 67%, #c9e59d 67% 91%, #a9cd7c 91%); color: #354248; isolation: isolate; transform-origin: center; }
 .categoryPage::after { position: absolute; z-index: -1; right: -8%; bottom: 0; left: -8%; height: 9%; background: #a8cb7c; content: ""; }
 .categoryTopBar { position: relative; z-index: 4; display: flex; align-items: center; justify-content: space-between; }
 .categoryUtilityButton, .categoryUser { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; border: 0; border-radius: 16px; background: rgba(255,255,255,.76); box-shadow: 0 5px 16px rgba(74,105,112,.08); color: #394950; font: inherit; font-weight: 900; }
@@ -611,19 +611,19 @@
 .categoryUtilityButton:hover { transform: translateY(-2px); background: #fff; }
 .categoryUser { min-width: 98px; padding: 0 18px; font-size: 13px; }
 .categoryHero { position: relative; z-index: 2; display: grid; align-content: center; justify-items: center; gap: 18px; margin-top: -18px; }
-.otterLogo { display: flex; align-items: flex-end; justify-content: center; gap: .04em; margin: 0; color: #fff; font-family: "Arial Rounded MT Bold", "Malgun Gothic", sans-serif; font-size: clamp(44px, 5.7vw, 72px); font-weight: 1000; letter-spacing: -.11em; line-height: .92; -webkit-text-stroke: 2px #17232b; filter: drop-shadow(0 7px 0 #17232b); transform: rotate(-1deg); }
+.otterLogo { display: flex; align-items: flex-end; justify-content: center; gap: .04em; margin: 0; color: #fff; font-family: "Arial Rounded MT Bold", "Malgun Gothic", sans-serif; font-size: 72px; font-weight: 1000; letter-spacing: -.11em; line-height: .92; -webkit-text-stroke: 2px #17232b; filter: drop-shadow(0 7px 0 #17232b); transform: rotate(-1deg); }
 .otterLogo span { display: inline-block; }
 .logoYellow { color: #ffe33f; transform: rotate(-2deg); }
 .logoPink { margin-left: .16em; color: #ef3f79; font-size: 1.12em; transform: rotate(3deg) translateY(2px); }
 .logoBlue { color: #79d7f7; transform: rotate(-3deg); }
-.categoryOtter { display: block; width: clamp(190px, 20vw, 250px); height: clamp(190px, 20vw, 250px); margin: 0; object-fit: contain; filter: drop-shadow(0 12px 10px rgba(77,91,80,.14)); }
+.categoryOtter { display: block; width: 250px; height: 250px; margin: 0; object-fit: contain; filter: drop-shadow(0 12px 10px rgba(77,91,80,.14)); }
 .skyCloud { position: absolute; z-index: 0; width: 220px; height: 74px; border-radius: 70px; background: rgba(255,255,255,.7); }
 .skyCloud::before, .skyCloud::after { position: absolute; bottom: 20px; border-radius: 50%; background: rgba(255,255,255,.72); content: ""; }
 .skyCloud::before { left: 28px; width: 105px; height: 105px; }
 .skyCloud::after { right: 24px; width: 82px; height: 82px; }
 .cloudLeft { top: 38%; left: 11%; transform: scale(.78); }
 .cloudRight { top: 12%; right: 10%; transform: scale(1.08); }
-.categoryGrid { position: relative; z-index: 3; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: clamp(20px, 2.4vw, 32px); width: min(980px, 100%); margin: 0 auto; }
+.categoryGrid { position: relative; z-index: 3; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 32px; width: min(980px, 100%); margin: 0 auto; }
 .categoryCard { position: relative; display: grid; min-width: 0; min-height: 178px; grid-template-columns: 58px minmax(0, 1fr); align-content: center; align-items: center; gap: 16px; padding: 34px 24px 25px; border: 2px solid transparent; border-radius: 20px; background: #fff; box-shadow: 0 10px 0 #dce3e5, 0 16px 26px rgba(73,95,94,.12); color: #374148; font: inherit; text-align: left; text-decoration: none; transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s ease, border-color .22s ease; }
 .categoryCard[href]:hover { z-index: 5; border-color: #cadd6d; box-shadow: 0 14px 0 #dce3e5, 0 22px 30px rgba(73,95,94,.17); transform: translateY(-10px) rotate(-.5deg); }
 .categoryCardFeatured { min-height: 194px; border-color: #d4df78; transform: translateY(-8px); }
@@ -651,18 +651,6 @@
 .comingSoonConfirm { min-width: 142px; min-height: 45px; margin-top: 20px; border: 0; border-radius: 15px; background: #b8d648; box-shadow: 0 5px 0 #8fa833; color: #fff; font: inherit; font-weight: 900; cursor: pointer; }
 .comingSoonConfirm:active { transform: translateY(3px); box-shadow: 0 2px 0 #8fa833; }
 @keyframes comingSoonPop { from { opacity: 0; transform: translateY(18px) scale(.92); } to { opacity: 1; transform: translateY(0) scale(1); } }
-@media (max-width: 760px) {
-  .module:has(> .categoryPage) { overflow: auto; }
-  .module .categoryPage { width: 100%; height: auto; min-height: 100dvh; margin: 0; padding: 18px; grid-template-rows: auto auto auto auto; border: 0; background: linear-gradient(to bottom, #e0f1ff 0 48%, #c9e59d 48% 94%, #a9cd7c 94%); }
-  .module .categoryHero { margin: 12px 0 28px; }
-  .module .otterLogo { font-size: clamp(38px, 13vw, 58px); }
-  .module .categoryOtter { width: 185px; height: 185px; }
-  .module .skyCloud { opacity: .58; }
-  .module .categoryGrid { grid-template-columns: 1fr; align-items: stretch; gap: 16px; width: min(420px, 100%); }
-  .module .categoryCard, .module .categoryCardFeatured { min-height: 142px; transform: none; }
-  .module .categoryCardFeatured[href]:hover, .module .categoryCard[href]:hover { transform: translateY(-7px); }
-}
-
 /* Tetris mode selection: same mascot palette, with a stronger arcade presentation. */
 .module:has(> .tetrisModePage) { display: grid; min-height: 100dvh; place-items: center; overflow: hidden; background: #e0f1ff; }
 .tetrisModePage { position: relative; display: grid; width: min(100vw, calc(100dvh * 16 / 9), 1280px); height: min(100dvh, calc(100vw * 9 / 16), 720px); min-height: 0; margin: 0; padding: 30px 54px 28px; overflow: hidden; grid-template-rows: auto minmax(0, 1fr) auto; gap: 20px; border: 1px solid #d7e7ee; background: linear-gradient(to bottom, #e0f1ff 0 73%, #c9e59d 73% 91%, #a9cd7c 91%); isolation: isolate; }

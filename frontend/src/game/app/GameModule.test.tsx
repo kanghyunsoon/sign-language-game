@@ -128,14 +128,16 @@ describe("GameModule", () => {
     expect(screen.getByRole("heading", { name: "수어의 달인" })).toBeTruthy();
     expect(screen.getByText("개발 사용자")).toBeTruthy();
   });
-  it("uses normal document layout so browser zoom is not counter-scaled", () => {
+  it("keeps the game category canvas at a fixed 16:9 ratio across browser zoom", () => {
     renderGameModule();
     const wheel = new WheelEvent("wheel", { ctrlKey: true, deltaY: -100, cancelable: true });
     const keyboard = new KeyboardEvent("keydown", { ctrlKey: true, key: "+", cancelable: true });
     window.dispatchEvent(wheel); window.dispatchEvent(keyboard);
     expect(wheel.defaultPrevented).toBe(false);
     expect(keyboard.defaultPrevented).toBe(false);
-    expect(document.querySelector("[data-fixed-game-canvas='true']")).toBeNull();
+    const canvas = document.querySelector<HTMLElement>("[data-fixed-game-canvas='true']");
+    expect(canvas).not.toBeNull();
+    expect(canvas?.style.transform).toContain("translate(-50%, -50%) scale(");
     expect(document.querySelector("[data-game-module='true']")?.children).toHaveLength(1);
   });
 });
