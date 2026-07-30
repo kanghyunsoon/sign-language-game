@@ -781,11 +781,11 @@
 .battleFixedPage .duelBoards .boardCanvas,
 .battleFixedPage .duelBoards [data-game-renderer-host],
 .battleFixedPage .duelBoards canvas { background:transparent !important; }
-/* WebGL can still expose an opaque white clear buffer on some browsers even
-   when Pixi is initialized with alpha. Multiplying that canvas makes white
-   neutral, so the single shared sky behind both boards remains visible while
-   the dashed line and rendering effects stay on top. */
-.battleFixedPage .duelBoards canvas { mix-blend-mode:multiply; }
+/* Some WebGL compositors present Pixi's transparent clear buffer as white.
+   Battle glyphs are rendered in the separate DOM foreground layer, so hide
+   only that unreliable buffer and keep the shared stage visible underneath. */
+.battleFixedPage .duelBoards canvas { opacity:0; }
+.battleFixedPage .duelBoards .boardPlayArea::after { position:absolute; z-index:2; top:16.66%; right:0; left:0; height:3px; pointer-events:none; background:repeating-linear-gradient(90deg,#f0ba55 0 13px,transparent 13px 22px); content:""; }
 .battleFixedPage .paperBlackHole { position:absolute; z-index:4; top:63%; left:50%; display:grid; width:116px; height:116px; place-items:center; border-radius:50%; background:radial-gradient(circle,#01020a 0 15%,#17102f 16% 25%,#5b2785 31%,rgba(116,56,170,.53) 46%,rgba(50,26,94,0) 74%); box-shadow:0 0 24px 10px rgba(133,83,215,.58),inset 0 0 25px #01020a; pointer-events:none; transform:translate(-50%,-50%); animation:paper-black-hole 1.15s cubic-bezier(.16,.76,.22,1) both; }
 .battleFixedPage .paperBlackHole::before,.battleFixedPage .paperBlackHole::after { position:absolute; inset:7px; border:3px dashed rgba(235,193,255,.9); border-radius:50%; content:""; animation:target-drain-ring .48s linear infinite; }
 .battleFixedPage .paperBlackHole::after { inset:19px; border-color:rgba(113,222,255,.8); animation-direction:reverse; animation-duration:.32s; }
