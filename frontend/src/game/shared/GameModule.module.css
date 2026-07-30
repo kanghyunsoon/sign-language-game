@@ -30,7 +30,7 @@
 .disabled:hover { border-color: #9abbd4; background: #f7fbfe; }
 .placeholder a { display: inline-flex; align-items: center; gap: 7px; margin-top: 18px; color: #245a8d; font-weight: 800; }
 .placeholderIcon { display: inline-grid; place-items: center; width: 62px; height: 62px; border-radius: 50%; background: #eef7fd; color: #245a8d; }
-@media (max-width: 720px) { .modeGrid, .categoryGrid { grid-template-columns: 1fr; } .modeHeader { flex-direction: column; } .categoryCard { min-height: 270px; } }
+@media (max-width: 720px) { .module:not(.fixedViewportModule) .modeGrid, .module:not(.fixedViewportModule) .categoryGrid { grid-template-columns: 1fr; } .module:not(.fixedViewportModule) .modeHeader { flex-direction: column; } .module:not(.fixedViewportModule) .categoryCard { min-height: 270px; } }
 
 /* Legacy solo class names are scoped below the module root during staged extraction. */
 .module :global(.solo-game-page) { position: relative; display: grid; height: calc(100dvh - 28px); min-height: 0; grid-template-rows: auto minmax(0, 1fr); gap: 8px; padding: 14px; background: #dceefa; }
@@ -650,15 +650,15 @@
 .comingSoonConfirm:active { transform: translateY(3px); box-shadow: 0 2px 0 #8fa833; }
 @keyframes comingSoonPop { from { opacity: 0; transform: translateY(18px) scale(.92); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @media (max-width: 760px) {
-  .module:has(> .categoryPage) { overflow: auto; }
-  .categoryPage { width: 100%; height: auto; min-height: 100dvh; margin: 0; padding: 18px; grid-template-rows: auto auto auto auto; border: 0; background: linear-gradient(to bottom, #e0f1ff 0 48%, #c9e59d 48% 94%, #a9cd7c 94%); }
-  .categoryHero { margin: 12px 0 28px; }
-  .otterLogo { font-size: clamp(38px, 13vw, 58px); }
-  .categoryOtter { width: 185px; height: 185px; }
-  .skyCloud { opacity: .58; }
-  .categoryGrid { grid-template-columns: 1fr; align-items: stretch; gap: 16px; width: min(420px, 100%); }
-  .categoryCard, .categoryCardFeatured { min-height: 142px; transform: none; }
-  .categoryCardFeatured[href]:hover, .categoryCard[href]:hover { transform: translateY(-7px); }
+  .module:not(.fixedViewportModule):has(> .categoryPage) { overflow: auto; }
+  .module:not(.fixedViewportModule) .categoryPage { width: 100%; height: auto; min-height: 100dvh; margin: 0; padding: 18px; grid-template-rows: auto auto auto auto; border: 0; background: linear-gradient(to bottom, #e0f1ff 0 48%, #c9e59d 48% 94%, #a9cd7c 94%); }
+  .module:not(.fixedViewportModule) .categoryHero { margin: 12px 0 28px; }
+  .module:not(.fixedViewportModule) .otterLogo { font-size: clamp(38px, 13vw, 58px); }
+  .module:not(.fixedViewportModule) .categoryOtter { width: 185px; height: 185px; }
+  .module:not(.fixedViewportModule) .skyCloud { opacity: .58; }
+  .module:not(.fixedViewportModule) .categoryGrid { grid-template-columns: 1fr; align-items: stretch; gap: 16px; width: min(420px, 100%); }
+  .module:not(.fixedViewportModule) .categoryCard, .module:not(.fixedViewportModule) .categoryCardFeatured { min-height: 142px; transform: none; }
+  .module:not(.fixedViewportModule) .categoryCardFeatured[href]:hover, .module:not(.fixedViewportModule) .categoryCard[href]:hover { transform: translateY(-7px); }
 }
 
 /* Tetris mode selection: same mascot palette, with a stronger arcade presentation. */
