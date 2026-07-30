@@ -29,8 +29,9 @@ public class RoomParticipantRegistry {
 
     /**
      * 남은 참가자가 있어도 방을 레지스트리에서 떼어내고 그 상태를 반환한다(없으면 {@code null}).
-     * 방 생명주기가 끝났을 때의 자원 폐기용이며, 반환된 상태의 타이머·세션 정리는 호출자가
-     * 수행한다({@code RoomRealtimeNotifier.disposeRoom}).
+     * 방 생명주기가 끝났을 때의 자원 폐기용이며, 반환된 상태에 남은 예약 타이머의 취소는 호출자가
+     * 수행한다({@code RoomRealtimeNotifier.disposeRoom}). 세션은 닫지 않는다 — 근거는 같은 메서드
+     * 참조.
      */
     public RoomLiveState removeRoom(Long roomId) {
         return rooms.remove(roomId);

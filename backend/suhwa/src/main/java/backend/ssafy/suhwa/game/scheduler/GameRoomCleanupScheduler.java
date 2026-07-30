@@ -72,14 +72,15 @@ public class GameRoomCleanupScheduler {
     }
 
     /**
-     * 삭제된 방의 실시간 자원(예약 타이머, WebSocket 세션, 레지스트리 엔트리)을 회수한다.
-     * DB 행만 지우면 레지스트리 엔트리는 그대로 남아 방 수에 비례해 누적된다.
+     * 삭제된 방의 실시간 자원(예약 타이머, 레지스트리 엔트리)을 회수한다. DB 행만 지우면
+     * 레지스트리 엔트리는 그대로 남아 방 수에 비례해 누적된다.
      *
      * <p>선정 대상 전체를 폐기하지 않고 <b>실제로 사라진 방만</b> 폐기한다 — 벌크 DELETE에는
      * IN_PROGRESS 방을 보호하는 조건이 있어, 선정과 삭제 사이에 게임이 시작된 방은 삭제되지 않고
-     * 살아남는다. 그런 방을 폐기하면 진행 중인 대전의 연결을 끊는다.
+     * 살아남는다. 그런 방을 폐기하면 진행 중인 대전의 유예 타이머가 취소되고 레지스트리 엔트리가
+     * 사라져, 그 대전의 재접속·이탈 처리가 동작하지 않게 된다.
      *
-     * <p>커밋 후에 실행한다 — 롤백되면 방이 살아 있으므로 연결을 끊으면 안 된다.
+     * <p>커밋 후에 실행한다 — 롤백되면 방이 살아 있으므로 그 상태를 지우면 안 된다.
      */
     private void disposeDeletedRoomsAfterCommit(List<Long> ids) {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
