@@ -15,7 +15,9 @@ export const VUS_MAX = num('VUS_MAX', 200);
 
 // 시나리오 3·4에서 한 iteration 이 두 계정을 쓴다. 풀이 이보다 작으면
 // 같은 계정이 여러 방의 host 가 되므로(서버가 막지 않는다) 넉넉히 잡는다.
-export const TOKENS_PATH = __ENV.TOKENS_PATH || './data/tokens.json';
+// open() 은 호출한 **모듈 파일 기준**으로 상대 경로를 해석한다(cwd 기준이 아니다).
+// 이 값을 쓰는 곳이 lib/tokens.js 이므로 lib/ 에서 한 단계 올라간다.
+export const TOKENS_PATH = __ENV.TOKENS_PATH || '../data/tokens.json';
 
 // 목표 SLO. 아직 확정값이 아니다(action-plan Phase 0 #4). 기준선을 보고 조정한다.
 export const SLO = {

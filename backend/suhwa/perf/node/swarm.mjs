@@ -126,11 +126,22 @@ async function openSubscriber(token, onEvent) {
 
 let pendingProbe = null; // { roomCode, startedAt, resolve }
 
+// 최근 update 이벤트를 짧게 보관한다.
+//
+// 왜 필요한가: 로비 브로드캐스트는 트랜잭션 커밋 직후(afterCommit)에 실행되므로, SSE 이벤트가
+// create 의 HTTP 응답보다 **먼저** 도착할 수 있다. 응답을 받은 뒤에야 대기 등록을 하면 이미
+// 지나간 이벤트를 놓쳐 전달 지연이 전부 miss 로 집계된다(실제로 그렇게 나왔다).
+// 그래서 도착한 이벤트를 먼저 쌓아두고, 응답을 받은 뒤 과거분부터 조회한다.
+const recentUpdates = [];
+
 function onProbeEvent(name, data) {
-  if (name !== 'update' || !pendingProbe) return;
-  // 스냅샷 안에 내가 만든 방 코드가 보이면 팬아웃이 도달한 것이다.
-  if (data.includes(pendingProbe.roomCode)) {
-    stats.probeLagMs.push(Date.now() - pendingProbe.startedAt);
+  if (name !== 'update') return;
+  const now = Date.now();
+  recentUpdates.push({ t: now, data });
+  while (recentUpdates.length > 0 && now - recentUpdates[0].t > 5000) recentUpdates.shift();
+
+  if (pendingProbe && data.includes(pendingProbe.roomCode)) {
+    stats.probeLagMs.push(now - pendingProbe.startedAt);
     const done = pendingProbe;
     pendingProbe = null;
     done.resolve();
@@ -138,11 +149,23 @@ function onProbeEvent(name, data) {
 }
 
 async function probeOnce(token) {
+  // 요청을 보내기 **전에** 기준 시각을 잡는다. 응답 후에 잡으면 팬아웃 지연이 음수가 되거나
+  // 과소평가된다.
+  const startedAt = Date.now();
   const created = await request('POST', '/game-rooms', { token, body: { gameType: 'SIGN_DUEL' } });
   if (created.status !== 201) return;
   const room = JSON.parse(created.body);
+
+  // 응답을 기다리는 동안 이미 도착했는지 먼저 본다.
+  const already = recentUpdates.find((u) => u.t >= startedAt && u.data.includes(room.roomCode));
+  if (already) {
+    stats.probeLagMs.push(already.t - startedAt);
+    await request('POST', `/game-rooms/${room.id}/leave`, { token });
+    return;
+  }
+
   const seen = new Promise((resolve) => {
-    pendingProbe = { roomCode: room.roomCode, startedAt: Date.now(), resolve };
+    pendingProbe = { roomCode: room.roomCode, startedAt, resolve };
   });
   // 2초 안에 안 오면 놓친 것으로 센다 — 팬아웃이 밀리고 있다는 신호다.
   const timedOut = await Promise.race([

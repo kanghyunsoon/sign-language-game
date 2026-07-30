@@ -12,7 +12,10 @@ SET SESSION cte_max_recursion_depth = 1000000;
 
 -- 1) 사용자 -----------------------------------------------------------------
 -- perf-seed@perf.local 이 seed.sh 가 API 로 만든 원본이다.
-INSERT INTO users (email, password_hash, nickname, created_at, updated_at)
+-- INSERT IGNORE 를 쓴다: MySQL 은 INSERT ... WITH RECURSIVE ... SELECT 뒤에
+-- ON DUPLICATE KEY UPDATE 를 붙이는 것을 문법 오류로 거부한다. 재실행 시 기존 계정을
+-- 건너뛰기만 하면 되므로 IGNORE 로 충분하다.
+INSERT IGNORE INTO users (email, password_hash, nickname, created_at, updated_at)
 WITH RECURSIVE seq(n) AS (
     SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < {{USERS}}
 )
@@ -21,12 +24,13 @@ SELECT CONCAT('perf', seq.n, '@perf.local'),
        CONCAT('perf', seq.n),
        NOW(), NOW()
 FROM seq
-CROSS JOIN (SELECT password_hash FROM users WHERE email = 'perf-seed@perf.local' LIMIT 1) src
-ON DUPLICATE KEY UPDATE users.updated_at = NOW();
+CROSS JOIN (SELECT password_hash FROM users WHERE email = 'perf-seed@perf.local' LIMIT 1) src;
 
 -- 2) 학습 콘텐츠 -------------------------------------------------------------
 -- 마이그레이션에 INSERT 가 없어 signs 테이블이 비어 있다. 그대로 재면 /signs 는
 -- 빈 배열 응답 시간을 재는 셈이 된다(시나리오 2 전제).
+-- 재실행 시 중복 적재를 막기 위해 먼저 지운다 — label 에 유니크 제약이 없어 IGNORE 가 듣지 않는다.
+DELETE FROM signs WHERE label LIKE 'label-%';
 INSERT INTO signs (category, label, reference_media_url, tip, is_active, created_at)
 WITH RECURSIVE seq(n) AS (
     SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 30
@@ -46,7 +50,7 @@ FROM seq;
 -- GameRoomCleanupScheduler 가 보관 기간(기본 30분) 초과로 판단해 즉시 지워버린다
 -- (레지스트리에 confirmed 참가자가 없으므로 보호도 받지 못한다).
 -- 30분 넘는 소크에서는 GAME_ROOM_WAITING_RETENTION_MINUTES 를 올려 적재량을 고정해야 한다.
-INSERT INTO game_rooms (room_code, host_user_id, guest_user_id, host_ready, guest_ready,
+INSERT IGNORE INTO game_rooms (room_code, host_user_id, guest_user_id, host_ready, guest_ready,
                         status, game_type, version, created_at, updated_at)
 WITH RECURSIVE seq(n) AS (
     SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < GREATEST({{WAITING_ROOMS}}, 1)
@@ -56,8 +60,10 @@ SELECT CONCAT('BG', LPAD(seq.n, 4, '0')),
        NULL, FALSE, FALSE,
        'WAITING', 'SIGN_DUEL', 0, NOW(), NOW()
 FROM seq
-WHERE {{WAITING_ROOMS}} > 0
-ON DUPLICATE KEY UPDATE game_rooms.updated_at = NOW();
+WHERE {{WAITING_ROOMS}} > 0;
+
+-- 재실행 시 이미 있던 배경 방의 updated_at 을 현재로 밀어, 정리 배치의 대상이 되지 않게 한다.
+UPDATE game_rooms SET updated_at = NOW() WHERE room_code LIKE 'BG%' AND status = 'WAITING';
 
 SELECT (SELECT COUNT(*) FROM users)                                AS users,
        (SELECT COUNT(*) FROM signs)                                AS signs,

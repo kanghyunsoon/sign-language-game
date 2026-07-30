@@ -41,10 +41,21 @@ export const options = {
       exec: 'control',
     },
   },
-  // 임계값을 걸지 않는다 — 이 시나리오의 목적은 합격/불합격이 아니라 **곡선**이다.
-  // 구독자 500명에서 p95 가 무너지는 것은 발견이지 실패가 아니다.
-  // 실행마다 --summary-export 로 남겨 파일 대 파일로 비교한다.
-  thresholds: {},
+  // 이 시나리오는 합격/불합격이 아니라 **곡선**을 얻는 것이 목적이다. 구독자 500명에서
+  // p95 가 무너지는 것은 발견이지 실패가 아니므로 실질적인 상한을 걸지 않는다.
+  //
+  // 그런데도 임계값을 선언하는 이유: k6 는 **임계값이 참조한 태그에 대해서만** 하위 메트릭
+  // (http_req_duration{name:room_create})을 만든다. thresholds 를 비워두면 요약에 태그별
+  // p95 가 아예 존재하지 않아 격자표를 채울 수 없다. 그래서 통과가 보장된 값으로 선언만 한다.
+  thresholds: {
+    'http_req_duration{name:room_create}': ['p(95)<600000'],
+    'http_req_duration{name:room_join}': ['p(95)<600000'],
+    'http_req_duration{name:room_ready}': ['p(95)<600000'],
+    'http_req_duration{name:room_start}': ['p(95)<600000'],
+    'http_req_duration{name:room_results}': ['p(95)<600000'],
+    'http_req_duration{name:room_leave}': ['p(95)<600000'],
+    'http_req_duration{name:users_me}': ['p(95)<600000'],
+  },
   // 태그를 붙여 결과 파일에서 격자 좌표를 잃지 않게 한다.
   tags: {
     subscribers: __ENV.SUBSCRIBERS || 'unknown',

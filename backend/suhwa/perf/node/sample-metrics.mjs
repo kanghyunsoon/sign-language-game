@@ -11,6 +11,19 @@ const BASE_URL = process.env.BASE_URL || 'http://backend:8080';
 const INTERVAL_MS = Number(process.env.INTERVAL_MS || 1000);
 const TAG_RUN = process.env.TAG_RUN || 'adhoc';
 const RESULTS_DIR = process.env.RESULTS_DIR || '/results';
+const TOKENS_FILE = process.env.TOKENS_FILE || '/data/tokens.json';
+
+// actuator 는 노출(MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE)만으로는 열리지 않는다 —
+// SecurityConfig 의 PERMIT_ALL_PATHS 에는 /actuator/health 만 있고 나머지는 anyRequest()
+// .authenticated() 에 걸려 401 이 된다. 권한 검사는 없으므로 아무 유효한 JWT 하나면 통과한다.
+// 소스를 고치지 않고 시드 계정의 토큰을 재사용한다.
+let authHeader = {};
+try {
+  const tokens = JSON.parse(fs.readFileSync(TOKENS_FILE, 'utf8'));
+  authHeader = { Authorization: `Bearer ${tokens[0].accessToken}` };
+} catch (e) {
+  console.error(`[sampler] 토큰을 읽지 못했다(${TOKENS_FILE}) — actuator 가 401 로 막혀 값이 비게 된다: ${e.message}`);
+}
 
 // [메트릭 이름, 태그 필터, 읽을 통계] — 무엇을 판정하는지는 PLAN.md §6-9 참조.
 const SERIES = [
@@ -21,8 +34,11 @@ const SERIES = [
   // 🔴2 소크의 우상향 추세
   ['jvm.memory.used', 'area:heap', 'VALUE'],
   ['jvm.gc.pause', null, 'MAX'],
-  // 스레드 고갈이 원인인지
-  ['tomcat.threads.busy', null, 'VALUE'],
+  // 스레드 고갈·요청 적체가 원인인지.
+  // tomcat.threads.* 는 이 앱에 등록되지 않는다(등록된 tomcat 메트릭은 세션 관련뿐) —
+  // 동시 처리 중인 요청 수가 같은 질문에 더 직접적으로 답한다.
+  ['http.server.requests.active', null, 'ACTIVE_TASKS'],
+  ['jvm.threads.live', null, 'VALUE'],
   // 확인 대기·유예 타이머 스케줄러 포화. 다른 부하 테스트에는 없는 이 프로젝트 고유 지표다 —
   // 포화되면 MR !120 의 TaskRejectedException 가드가 발동해 방 정리가 조용히 누락된다.
   ['executor.active', null, 'VALUE'],
@@ -40,7 +56,7 @@ console.log(`[sampler] ${outPath} 기록 시작 (${INTERVAL_MS}ms 주기)`);
 async function readOne([name, tag, stat]) {
   const url = `${BASE_URL}/actuator/metrics/${encodeURIComponent(name)}${tag ? `?tag=${encodeURIComponent(tag)}` : ''}`;
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: authHeader });
     if (!res.ok) return '';
     const body = await res.json();
     const m = (body.measurements || []).find((x) => x.statistic === stat);
