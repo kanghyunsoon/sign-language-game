@@ -39,3 +39,4 @@ game-ai-dev-server/requirements-training.txt
 !number-model/models/**
 !word-model/models/
 !word-model/models/**
+word-model/models/word-13-v1/best_model.pt
