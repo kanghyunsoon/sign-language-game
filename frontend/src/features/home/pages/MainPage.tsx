@@ -58,11 +58,18 @@ const learningMenus: LearningMenu[] = [
 const VISIBLE_MENU_COUNT = 3;
 
 /**
- * 화살표를 누르면 보이는 만큼(3칸) 한 번에 옮긴다.
- * 5개를 3칸씩 보면 두 번째 묶음이 넘치므로, 마지막 묶음은 끝에 붙여 자른다.
- * (연습·테스트·게임 / 게임·오답노트·사전)
+ * 화살표를 누르면 보이는 만큼(3칸) 한 묶음씩 옮긴다.
+ * 5개를 3칸씩 보면 두 번째 묶음이 넘치므로 마지막 묶음은 끝에 붙여 자른다.
+ * 그래서 묶음은 [연습·테스트·게임], [게임·오답노트·사전] 둘이고 게임이 겹친다.
  */
-const MAX_MENU_START = Math.max(0, learningMenus.length - VISIBLE_MENU_COUNT);
+const MENU_PAGE_STARTS = Array.from(
+  { length: Math.ceil(learningMenus.length / VISIBLE_MENU_COUNT) },
+  (_, page) =>
+    Math.min(
+      page * VISIBLE_MENU_COUNT,
+      Math.max(0, learningMenus.length - VISIBLE_MENU_COUNT),
+    ),
+);
 
 /** 히어로에 보여줄 수달의 집. [이사하기]를 누르면 순서대로 돌아간다. */
 const otterHabitats = [
@@ -94,7 +101,7 @@ const learningGuideSteps = [
 ] as const;
 
 export function MainPage() {
-  const [menuStartIndex, setMenuStartIndex] = useState(0);
+  const [menuPage, setMenuPage] = useState(0);
   const [pageScale, setPageScale] = useState(1);
   const [isLearningGuideOpen, setIsLearningGuideOpen] = useState(false);
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
@@ -119,12 +126,18 @@ export function MainPage() {
     return () => window.removeEventListener("resize", updatePageScale);
   }, []);
 
+  const menuStartIndex = MENU_PAGE_STARTS[menuPage];
+
+  /**
+   * 화살표가 가리키는 방향으로 카드가 밀려간다.
+   * [<]를 누르면 카드가 왼쪽으로 밀려 뒤 묶음이, [>]면 오른쪽으로 밀려 앞 묶음이
+   * 나온다. 끝에서는 반대편으로 돌아 계속 넘길 수 있다.
+   */
   const moveMenu = (direction: -1 | 1) => {
-    setMenuStartIndex((currentIndex) =>
-      Math.min(
-        MAX_MENU_START,
-        Math.max(0, currentIndex + direction * VISIBLE_MENU_COUNT),
-      ),
+    setMenuPage(
+      (current) =>
+        (current - direction + MENU_PAGE_STARTS.length) %
+        MENU_PAGE_STARTS.length,
     );
   };
 
@@ -214,8 +227,8 @@ export function MainPage() {
               <button
                 className="carousel-button carousel-button-prev"
                 type="button"
-                aria-label="이전 학습 메뉴 보기"
-                disabled={menuStartIndex === 0}
+                aria-label="학습 메뉴 왼쪽으로 넘기기"
+                disabled={MENU_PAGE_STARTS.length < 2}
                 onClick={() => moveMenu(-1)}
               >
                 ‹
@@ -251,8 +264,8 @@ export function MainPage() {
               <button
                 className="carousel-button carousel-button-next"
                 type="button"
-                aria-label="다음 학습 메뉴 보기"
-                disabled={menuStartIndex === MAX_MENU_START}
+                aria-label="학습 메뉴 오른쪽으로 넘기기"
+                disabled={MENU_PAGE_STARTS.length < 2}
                 onClick={() => moveMenu(1)}
               >
                 ›
