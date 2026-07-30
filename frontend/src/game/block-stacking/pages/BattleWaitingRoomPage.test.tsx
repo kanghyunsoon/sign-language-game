@@ -86,6 +86,21 @@ describe("BattleWaitingRoomPage backend flow", () => {
     expect(connect).toHaveBeenCalledTimes(1);
   });
 
+  it("asks a returning player before resuming an active game", async () => {
+    const { camera } = cameraFixture();
+    renderPage({ detail: room({ full: true, status: "PLAYING", activeMatchId: "match-1" }), camera, media: new MockBattleMediaSession() });
+    expect(await screen.findByRole("heading", { name: "아직 진행 중인 게임이 있습니다." })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "재입장" }));
+    expect(await screen.findByText("PLAY_ROUTE")).toBeTruthy();
+  });
+
+  it("shows the disconnect defeat notice after the rejoin window expired", async () => {
+    renderPage({ detail: room({ full: true, status: "FINISHED" }) });
+    expect(await screen.findByText("연결이 되지 않아 패배 처리되었습니다 ㅠㅠ")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "확인" }));
+    expect(await screen.findByText("LIST_ROUTE")).toBeTruthy();
+  });
+
   it("leaves through REST and releases media resources", async () => {
     const leaveRoom = vi.fn(async () => undefined);
     const camera = emptyCamera();
@@ -179,6 +194,8 @@ function room(options: {
   hostReady?: boolean;
   guestReady?: boolean;
   currentUserReady?: boolean;
+  status?: BattleRoomDetail["status"];
+  activeMatchId?: string | null;
 } = {}): BattleRoomDetail {
   const full = options.full ?? false;
   const participants = [
@@ -189,7 +206,7 @@ function room(options: {
     roomId: "1",
     roomCode: "ABC123",
     title: "지문자 대전방",
-    status: full ? "FULL" : "WAITING",
+    status: options.status ?? (full ? "FULL" : "WAITING"),
     playerCount: participants.length,
     maxPlayers: 2,
     hostUserId: "1",
@@ -204,7 +221,7 @@ function room(options: {
     currentUserReady: options.currentUserReady ?? false,
     canStart: full && Boolean(options.hostReady) && Boolean(options.guestReady),
     rematch: false,
-    activeMatchId: null,
+    activeMatchId: options.activeMatchId ?? null,
     matchStartAt: null,
   };
 }

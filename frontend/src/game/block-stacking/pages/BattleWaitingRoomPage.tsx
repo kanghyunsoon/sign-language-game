@@ -51,6 +51,8 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   const [startingGame, setStartingGame] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rejoinPromptOpen, setRejoinPromptOpen] = useState(() => mode === "BLOCK" && room?.status === "PLAYING");
+  const [disconnectDefeatOpen, setDisconnectDefeatOpen] = useState(() => mode === "BLOCK" && room?.status === "FINISHED");
   const roomSocketRef = useRef<RoomRealtimeSocket | null>(null);
   const roomRef = useRef<BattleRoomDetail | null>(room);
   const enteringGameRef = useRef(false);
@@ -65,6 +67,15 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   useEffect(() => {
     roomRef.current = room;
   }, [room]);
+
+  useEffect(() => {
+    if (mode !== "BLOCK") return;
+    if (room?.status === "PLAYING" && !enteringGameRef.current) setRejoinPromptOpen(true);
+    if (room?.status === "FINISHED") {
+      setRejoinPromptOpen(false);
+      setDisconnectDefeatOpen(true);
+    }
+  }, [mode, room?.status]);
 
   const startRtcAndEnter = useCallback(async () => {
     if (!roomId || !room || enteringGameRef.current) return;
@@ -102,7 +113,17 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
       const summary = rooms.find((candidate) => candidate.roomId === current.roomId || candidate.roomCode === current.roomCode);
       if (!summary) return;
       if (summary.status === "PLAYING") {
-        void startRtcAndEnterRef.current();
+        // A fresh GAME_STARTED event enters immediately. A player who returns
+        // to an already-playing room must choose whether to resume instead.
+        if (current.status === "PLAYING" && mode === "BLOCK") setRejoinPromptOpen(true);
+        else void startRtcAndEnterRef.current();
+        return;
+      }
+
+      if (summary.status === "FINISHED" && mode === "BLOCK") {
+        rememberRoom({ ...current, status: "FINISHED", canJoin: summary.canJoin });
+        setRejoinPromptOpen(false);
+        setDisconnectDefeatOpen(true);
         return;
       }
 
@@ -125,7 +146,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
         participants,
       });
     }, (cause) => setError(errorMessage(cause, "?湲곗떎 ?ㅼ떆媛??곹깭瑜?媛깆떊?섏? 紐삵뻽?듬땲??")));
-  }, [gateway, roomId, rememberRoom]);
+  }, [gateway, mode, roomId, rememberRoom]);
   useEffect(() => {
     if (!roomId || !services.roomRealtimeSocketFactory) return;
     const socket = services.roomRealtimeSocketFactory.create(roomId);
@@ -354,6 +375,8 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
           </p>
         </section>
       </div>
+      {rejoinPromptOpen ? <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-labelledby="battle-rejoin-title"><section className={styles.modal}><header><div><span>진행 중인 게임</span><h2 id="battle-rejoin-title">아직 진행 중인 게임이 있습니다.</h2></div></header><form onSubmit={(event) => { event.preventDefault(); setRejoinPromptOpen(false); void startRtcAndEnter(); }}><p>재입장 하시겠습니까?</p><div className={styles.modalActions}><button type="button" onClick={() => setRejoinPromptOpen(false)}>나중에</button><button type="submit" className={styles.primaryButton} disabled={startingGame}>재입장</button></div></form></section></div> : null}
+      {disconnectDefeatOpen ? <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-labelledby="battle-disconnect-title"><section className={styles.modal}><header><div><span>게임 종료</span><h2 id="battle-disconnect-title">연결이 되지 않아 패배 처리되었습니다 ㅠㅠ</h2></div></header><form onSubmit={(event) => { event.preventDefault(); setDisconnectDefeatOpen(false); rememberSession(null); navigate(lobbyPath, { replace: true }); }}><p>상대가 10초 안에 재접속하지 않아 게임이 종료되었습니다.</p><div className={styles.modalActions}><button type="submit" className={styles.primaryButton}>확인</button></div></form></section></div> : null}
     </main>
   );
 }
