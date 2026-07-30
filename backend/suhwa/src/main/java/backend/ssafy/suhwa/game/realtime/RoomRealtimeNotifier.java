@@ -30,4 +30,19 @@ public interface RoomRealtimeNotifier {
 
     /** FR-030 — 참가자의 준비 상태 변경을 같은 방 상대방에게(본인 제외) 즉시 통보. */
     void notifyReadyChanged(Long roomId, Long userId, boolean isReady);
+
+    /**
+     * 방의 생명주기가 끝났을 때 그 방에 남아 있는 실시간 상태를 폐기한다 — 예약 타이머 취소와
+     * 레지스트리 엔트리 제거.
+     *
+     * <p>{@link #notifyPeerLeft}는 나간 당사자 하나만 정리하므로, 방이 {@code CLOSED}로 끝나거나
+     * 행 자체가 삭제될 때 <b>남은 참가자의 상태가 힙에 계속 남는다</b>. 이 메서드가 그 잔여물을
+     * 치운다.
+     *
+     * <p>WebSocket 세션은 닫지 않는다 — 끝난 방의 세션이 메시지를 보내면 ERROR를 받는 것이 정해진
+     * 동작이다(FR-024). 자원 회수를 위해 그 계약을 바꾸지 않는다.
+     *
+     * <p>반드시 <b>커밋 후</b>에 호출해야 한다 — 롤백되면 방이 살아 있으므로 상태를 지우면 안 된다.
+     */
+    void disposeRoom(Long roomId);
 }
