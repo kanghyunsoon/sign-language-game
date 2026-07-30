@@ -67,6 +67,15 @@ class UserLifecycleIntegrationTest {
 
         TokenResponse tokens = login(email, "password1");
 
+        mockMvc.perform(get("/growth/pet")
+                        .header("Authorization", "Bearer " + tokens.accessToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.level").value(1))
+                .andExpect(jsonPath("$.currentExp").value(0));
+
+        mockMvc.perform(get("/growth/pet"))
+                .andExpect(status().isUnauthorized());
+
         mockMvc.perform(get("/users/me").header("Authorization", "Bearer " + tokens.accessToken()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value(email));
@@ -107,6 +116,11 @@ class UserLifecycleIntegrationTest {
         mockMvc.perform(delete("/users/me")
                         .header("Authorization", "Bearer " + reLoginTokens.accessToken()))
                 .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/growth/pet")
+                        .header("Authorization", "Bearer " + reLoginTokens.accessToken()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("USER_NOT_FOUND"));
 
         // 탈퇴 계정 로그인 차단
         mockMvc.perform(post("/auth/login")
