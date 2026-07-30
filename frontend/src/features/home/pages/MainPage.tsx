@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { SiteFooter } from "../../../shared/components/SiteFooter";
+import { AttendanceCard } from "../components/AttendanceCard";
 import otterInRock from "../assets/otter_in_rock.png";
 import rocksLeft from "../assets/rocks_left.png";
 import rocksRight from "../assets/rocks_right.png";
@@ -82,6 +83,7 @@ export function MainPage() {
   const [menuStartIndex, setMenuStartIndex] = useState(0);
   const [pageScale, setPageScale] = useState(1);
   const [isLearningGuideOpen, setIsLearningGuideOpen] = useState(false);
+  const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
 
   useEffect(() => {
     const updatePageScale = () => {
@@ -161,6 +163,14 @@ export function MainPage() {
               <button
                 className="main-secondary-button"
                 type="button"
+                onClick={() => setIsAttendanceOpen(true)}
+              >
+                출석체크
+              </button>
+
+              <button
+                className="main-secondary-button"
+                type="button"
                 onClick={() => setIsLearningGuideOpen(true)}
               >
                 학습 방법 보기
@@ -215,6 +225,35 @@ export function MainPage() {
         </main>
 
         <SiteFooter sizing="fixed" />
+
+        {isAttendanceOpen && (
+          <div
+            className="learning-guide-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="attendance-title"
+            onMouseDown={(event) => {
+              if (event.currentTarget === event.target) {
+                setIsAttendanceOpen(false);
+              }
+            }}
+          >
+            <section className="learning-guide-modal attendance-modal">
+              <button
+                className="learning-guide-close"
+                type="button"
+                aria-label="출석체크 닫기"
+                onClick={() => setIsAttendanceOpen(false)}
+              >
+                ×
+              </button>
+
+              <h2 id="attendance-title">출석체크</h2>
+
+              <AttendanceCard />
+            </section>
+          </div>
+        )}
 
         {isLearningGuideOpen && (
           <div

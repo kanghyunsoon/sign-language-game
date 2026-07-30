@@ -784,3 +784,141 @@ a {
   height: 140px;
   font-size: 96px;
 }
+
+/* ---------------- 출석체크 (모달 안) ---------------- */
+
+/*
+ * 학습 메뉴 카드와 같은 테두리·배경·라운딩 토큰을 쓴다.
+ * 이 페이지는 1920x1200 캔버스를 transform으로 축소하므로 치수는 px로 적는다.
+ */
+.attendance-card {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+.attendance-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.attendance-streak {
+  color: var(--main-text);
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.attendance-total {
+  color: var(--main-muted);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* 7열 2행. 1행이 지난주, 2행이 이번주다. */
+.attendance-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.attendance-day {
+  position: relative;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  padding: 10px;
+  border: 1px solid #e5ddd1;
+  border-radius: 18px;
+  background: rgba(255, 254, 251, 0.98);
+}
+
+/* 날짜는 칸 좌상단에 작게. */
+.attendance-day-label {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  color: var(--main-muted);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* 오늘 칸은 옅은 포인트 색으로 구분한다. */
+.attendance-day-today {
+  border-color: #cbb89c;
+  background: #fdf4e4;
+}
+
+.attendance-day-today .attendance-day-label {
+  color: var(--main-brown);
+}
+
+/* 아직 오지 않은 날은 눌러도 소용이 없으므로 톤을 낮춘다. */
+.attendance-day-future {
+  background: rgba(245, 242, 235, 0.7);
+  opacity: 0.55;
+}
+
+.attendance-stamp {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 74%;
+  height: 74%;
+}
+
+.attendance-stamp img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* 스탬프 위에 연속 일수를 얹는다. */
+.attendance-stamp-streak {
+  position: absolute;
+  color: #ffffff;
+  font-size: 30px;
+  font-weight: 900;
+  text-shadow: 0 2px 4px rgba(63, 43, 32, 0.45);
+}
+
+/* 스탬프만으로는 보조기기가 내용을 알 수 없어 텍스트를 숨겨 둔다. */
+.attendance-day-reader {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.attendance-check-button {
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 800;
+  background: var(--main-brown);
+  box-shadow: 0 3px 0 #3f2f22;
+  cursor: pointer;
+}
+
+.attendance-check-button:hover {
+  background: #6b5140;
+}
+
+.attendance-check-button:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #3f2f22;
+}
+
+/* 출석체크 모달은 학습 방법 모달보다 좁다. */
+.attendance-modal {
+  width: 1100px;
+}
