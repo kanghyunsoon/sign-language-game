@@ -44,9 +44,11 @@ export const GameCanvas = memo(function GameCanvas({
     rendererHost.style.height = "100%";
     rendererHost.style.display = "block";
     mount.replaceChildren(rendererHost);
-    const initialBounds = mount.getBoundingClientRect();
-    const width = Math.max(1, Math.round(initialBounds.width));
-    const height = Math.max(1, Math.round(initialBounds.height));
+    // The game page itself can be uniformly CSS-scaled. Visual bounds include
+    // that transform, while Pixi and the physics world need the untransformed
+    // logical board size.
+    const width = Math.max(1, Math.round(mount.clientWidth));
+    const height = Math.max(1, Math.round(mount.clientHeight));
 
     void PixiGameRenderer.create(rendererHost, {
       ...rendererConfig,

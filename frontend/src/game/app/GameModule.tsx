@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useCallback, useLayoutEffect, useState, type CSSProperties } from "react";
+import { useLocation } from "react-router-dom";
 import type { GameModuleServices } from "../contracts/GameModuleServices";
 import { GameModuleRoutes } from "./GameModuleRoutes";
 import { GameServiceProvider } from "./GameServiceProvider";
@@ -28,23 +29,58 @@ export interface GameModuleProps {
   readonly serviceOverrides?: Partial<GameModuleServices>;
 }
 
+const GAME_VIEWPORT_WIDTH = 1920;
+const GAME_VIEWPORT_HEIGHT = 1080;
+const MODE_VIEWPORT_WIDTH = 1280;
+const MODE_VIEWPORT_HEIGHT = 720;
+
 export function GameModule(props: GameModuleProps) {
-  useEffect(() => {
-    const preventWheelZoom = (event: WheelEvent) => { if (event.ctrlKey) event.preventDefault(); };
-    const preventKeyboardZoom = (event: KeyboardEvent) => {
-      if (event.ctrlKey && ["+", "-", "=", "0"].includes(event.key)) event.preventDefault();
-    };
-    window.addEventListener("wheel", preventWheelZoom, { passive: false });
-    window.addEventListener("keydown", preventKeyboardZoom);
-    return () => {
-      window.removeEventListener("wheel", preventWheelZoom);
-      window.removeEventListener("keydown", preventKeyboardZoom);
-    };
-  }, []);
+  const location = useLocation();
+  const usesOwnSoloCanvas = location.pathname === "/game/solo";
+  const isRecognitionTool = location.pathname.startsWith("/game/recognition/");
+  const usesModeSelectionCanvas = location.pathname === "/game/block";
+  const usesRoomFinderCanvas =
+    location.pathname === "/game/battle" ||
+    location.pathname === "/game/turn-battle";
+  const useFixedGameCanvas = !usesOwnSoloCanvas && !isRecognitionTool;
+  const usesCompactCanvas = usesModeSelectionCanvas || usesRoomFinderCanvas;
+  const viewportWidth = usesCompactCanvas ? MODE_VIEWPORT_WIDTH : GAME_VIEWPORT_WIDTH;
+  const viewportHeight = usesCompactCanvas ? MODE_VIEWPORT_HEIGHT : GAME_VIEWPORT_HEIGHT;
+  const getViewportScale = useCallback(
+    () => Math.min(window.innerWidth / viewportWidth, window.innerHeight / viewportHeight),
+    [viewportHeight, viewportWidth],
+  );
+  const [viewportScale, setViewportScale] = useState(getViewportScale);
+
+  useLayoutEffect(() => {
+    if (!useFixedGameCanvas) return undefined;
+    const updateScale = () => setViewportScale(getViewportScale());
+    updateScale();
+    window.addEventListener("resize", updateScale);
+    return () => window.removeEventListener("resize", updateScale);
+  }, [getViewportScale, useFixedGameCanvas]);
+
   return (
     <GameServiceProvider {...props}>
-      <section className={styles.module} data-game-module="true">
-        <GameModuleRoutes />
+      <section
+        className={[styles.module, useFixedGameCanvas ? styles.fixedViewportModule : undefined].filter(Boolean).join(" ")}
+        data-game-module="true"
+        data-fixed-game-canvas={useFixedGameCanvas ? "true" : undefined}
+      >
+        {useFixedGameCanvas ? (
+          <div
+            className={styles.gameViewportCanvas}
+            style={{
+              "--game-viewport-scale": viewportScale,
+              "--game-viewport-width": `${viewportWidth}px`,
+              "--game-viewport-height": `${viewportHeight}px`,
+            } as CSSProperties}
+          >
+            <GameModuleRoutes />
+          </div>
+        ) : (
+          <GameModuleRoutes />
+        )}
       </section>
     </GameServiceProvider>
   );

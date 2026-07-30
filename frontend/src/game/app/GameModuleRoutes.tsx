@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { BattleGamePage } from "../block-stacking/battle/pages/BattleGamePage";
+import { BattleDesignPreviewPage } from "../block-stacking/battle/pages/BattleDesignPreviewPage";
 import { BattleBotPracticePage } from "../block-stacking/battle/pages/BattleBotPracticePage";
 import { BattleResultPage } from "../block-stacking/pages/BattleResultPage";
 import { BattleRoomListPage } from "../block-stacking/pages/BattleRoomListPage";
@@ -24,6 +25,7 @@ export function GameModuleRoutes() {
 
       <Route path="solo" element={<SoloGamePage />} />
       <Route path="battle" element={<BattleRoomListPage />} />
+      {import.meta.env.DEV ? <Route path="battle/preview" element={<BattleDesignPreviewPage />} /> : null}
       {import.meta.env.DEV ? <Route path="battle/practice" element={<BattleBotPracticePage key="battle-bot-runtime-v9" />} /> : null}
       <Route path="battle/:roomId" element={<BattleWaitingRoomPage />} />
       <Route path="battle/:roomId/play" element={<BattleGamePage />} />

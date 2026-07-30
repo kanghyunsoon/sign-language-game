@@ -12,6 +12,7 @@ import {
   type GameRunState,
   type SoloGameConfig,
 } from "./types";
+import { towerHeightRatio } from "./towerHeight";
 
 const MAX_FRAME_DELTA_MS = 32;
 // Matter is not created while the paper glyph is visible. The block comes
@@ -302,6 +303,7 @@ export class GameRuntime {
   }
 
   snapshot(): GameRuntimeSnapshot {
+    const states = this.physics.getLetterStates();
     return {
       runState: this.runState,
       score: this.score,
@@ -309,7 +311,8 @@ export class GameRuntime {
       bestCombo: this.bestCombo,
       removedCount: this.removedCount,
       playTimeMs: this.playTimeMs,
-      activeLetterCount: this.physics.getLetterStates().length,
+      activeLetterCount: states.length,
+      towerHeightRatio: towerHeightRatio(states, this.boardHeight, this.config.dangerLineY, this.config.letterHeight),
       lockedSymbol: this.core.snapshot().inputLock.lockedSymbol,
       queuedSymbol: this.queuedSymbol,
       paperBurstVersion: this.paperBurstVersion,

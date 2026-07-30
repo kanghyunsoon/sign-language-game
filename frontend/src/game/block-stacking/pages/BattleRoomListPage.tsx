@@ -44,7 +44,7 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
   const createRoom = async (request: CreateRoomRequest) => { setCreating(true); setError(null); try { const session = await gateway.createRoom(request); rememberSession(session); setModalOpen(false); navigate(session.roomId); } catch (cause) { setError(errorMessage(cause, "방을 만들지 못했습니다.")); } finally { setCreating(false); } };
   const joinRoom = async (roomId: string) => { setJoiningRoomId(roomId); setError(null); try { const session = await gateway.joinRoom(roomId); rememberSession(session); navigate(session.roomId); } catch (cause) { setError(errorMessage(cause, "방에 입장하지 못했습니다.")); } finally { setJoiningRoomId(null); } };
   const joinByCode = () => { const normalized = roomCode.trim(); if (!normalized || joiningRoomId) return; void joinRoom(normalized); };
-  return <main className={[styles.page, styles.lobbyPage].join(" ")}>
+  return <main className={[styles.page, styles.lobbyPage, styles.fixedCanvasPage].join(" ")}>
     <button type="button" className={styles.lobbyBack} onClick={() => navigate(mode === "TURN" ? "/game" : "/game/block")} aria-label="게임 모드 선택으로 돌아가기"><ArrowLeft aria-hidden={true} size={19} /></button>
     <button type="button" className={styles.lobbyProfile}>개발 사용자</button>
     <header className={styles.lobbyHero}><span>{mode === "TURN" ? "1:1 TURN BATTLE" : "1:1 BLOCK BATTLE"}</span><h1>게임방 찾기</h1><p>참여할 게임을 선택하고, 입장 가능한 방을 찾아보세요.</p></header>

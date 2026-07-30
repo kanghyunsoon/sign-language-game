@@ -366,11 +366,7 @@ export class PixiGameRenderer implements GameRenderer {
     this.boardScenery.circle(x + unit * .85, y + unit * .05, unit * .7).fill({ color: 0xffffff, alpha: .76 });
   }
   private drawBoardGrid(): void {
-    const cell = Math.max(42, Math.min(56, Math.round(Math.min(this.width, this.height) / 10)));
     this.boardGrid.clear();
-    for (let x = cell; x < this.width; x += cell) this.boardGrid.moveTo(x, 0).lineTo(x, this.height);
-    for (let y = cell; y < this.height; y += cell) this.boardGrid.moveTo(0, y).lineTo(this.width, y);
-    this.boardGrid.stroke({ color: 0xffffff, width: 1, alpha: .62 });
   }
 
   private drawGridCloud(x: number, y: number, scale: number): void {

@@ -128,13 +128,14 @@ describe("GameModule", () => {
     expect(screen.getByRole("heading", { name: "수어의 달인" })).toBeTruthy();
     expect(screen.getByText("개발 사용자")).toBeTruthy();
   });
-  it("prevents browser zoom shortcuts while the game module is mounted", () => {
+  it("allows browser zoom while preserving the fixed game canvas", () => {
     renderGameModule();
     const wheel = new WheelEvent("wheel", { ctrlKey: true, deltaY: -100, cancelable: true });
     const keyboard = new KeyboardEvent("keydown", { ctrlKey: true, key: "+", cancelable: true });
     window.dispatchEvent(wheel); window.dispatchEvent(keyboard);
-    expect(wheel.defaultPrevented).toBe(true);
-    expect(keyboard.defaultPrevented).toBe(true);
+    expect(wheel.defaultPrevented).toBe(false);
+    expect(keyboard.defaultPrevented).toBe(false);
+    expect(document.querySelector("[data-fixed-game-canvas='true']")).toBeTruthy();
   });
 });
 

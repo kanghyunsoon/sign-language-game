@@ -12,6 +12,7 @@ const snapshot: GameRuntimeSnapshot = {
   removedCount: 3,
   playTimeMs: 12_345.4,
   activeLetterCount: 5,
+  towerHeightRatio: 0,
   lockedSymbol: null,
   queuedSymbol: null,
   paperBurstVersion: 0,

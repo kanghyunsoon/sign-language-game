@@ -1,9 +1,10 @@
 import { ArrowLeft, Pause, Play, RotateCcw } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useGameModuleContext } from "../../app/GameModuleContext";
 import { GameCanvas } from "../components/GameCanvas";
+import { TowerHeightGauge } from "../components/TowerHeightGauge";
 import { GlyphCollisionAudit } from "../components/GlyphCollisionAudit";
 import { DEFAULT_GAME_CONFIG } from "../core/types";
 import { getGlyphCollisionRects, primeGlyphCollisionCache } from "../glyphs/glyphRaster";
@@ -81,6 +82,7 @@ const INITIAL_SNAPSHOT: GameRuntimeSnapshot = {
   removedCount: 0,
   playTimeMs: 0,
   activeLetterCount: 0,
+  towerHeightRatio: 0,
   lockedSymbol: null,
   queuedSymbol: null,
   paperBurstVersion: 0,
@@ -112,6 +114,16 @@ export function SoloGamePage({
   soloGameApiFactory,
   signRecognizerFactory,
 }: SoloGamePageProps = {}) {
+  const SOLO_CANVAS_WIDTH = 2048;
+  const SOLO_CANVAS_HEIGHT = 1092;
+  const getSoloCanvasScale = useCallback(
+    () => Math.min(
+      window.innerWidth / SOLO_CANVAS_WIDTH,
+      window.innerHeight / SOLO_CANVAS_HEIGHT,
+    ),
+    [],
+  );
+  const [soloCanvasScale, setSoloCanvasScale] = useState(getSoloCanvasScale);
   const navigate = useNavigate();
   const { accessToken, config, services, sharedCameraSession } = useGameModuleContext();
   const tetrisWeightApi = useMemo(() => new TetrisWeightApi({
@@ -508,8 +520,18 @@ export function SoloGamePage({
     runtimeRef.current?.resizeViewport(viewport.width, viewport.height);
   }, []);
 
+  useLayoutEffect(() => {
+    const syncSoloCanvasScale = () => setSoloCanvasScale(getSoloCanvasScale());
+    syncSoloCanvasScale();
+    window.addEventListener("resize", syncSoloCanvasScale);
+    return () => window.removeEventListener("resize", syncSoloCanvasScale);
+  }, [getSoloCanvasScale]);
+
   return (
-    <div className="solo-game-page">
+    <div
+      className="solo-game-page"
+      style={{ "--solo-canvas-scale": soloCanvasScale } as CSSProperties}
+    >
       {import.meta.env.DEV && new URLSearchParams(window.location.search).has("collisionAudit") && (
         <GlyphCollisionAudit symbols={SOLO_GAME_SYMBOLS} />
       )}
@@ -580,6 +602,7 @@ export function SoloGamePage({
             onViewportResize={resizeRuntime}
             onRendererDisposed={disposeRuntime}
           />
+          <TowerHeightGauge ratio={snapshot.towerHeightRatio} className="solo-tower-height-gauge" label="STACK" />
           <div className="solo-board-time" aria-label={`경과 시간 ${formatPlayTime(snapshot.playTimeMs)}`}>
             <span>TIME</span>
             <strong>{formatPlayTime(snapshot.playTimeMs)}</strong>

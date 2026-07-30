@@ -106,18 +106,18 @@
 .lobbySide { display:grid; align-content:start; gap:12px; }.createPanel { display:grid; gap:10px; padding:14px; }.createPanel > header { padding-bottom:10px; }.createButton { min-height:54px !important; border:0 !important; border-radius:13px !important; background:#b7d94a !important; box-shadow:0 5px 0 #91af36; color:#fff !important; font-size:.92rem; }.createPanel > p { margin:0; color:#a8b0b2; font-size:.64rem; text-align:center; }.codeJoin { display:grid; gap:8px; padding:10px; border:1px solid #e9eeee; border-radius:13px; }.codeJoin > strong { font-size:.73rem; }.codeJoin > div { display:flex; gap:6px; }.codeJoin input { min-height:36px; padding:0 9px; border:1px solid #e5ebec; border-radius:9px; }.codeJoin button { min-width:54px; border:0 !important; border-radius:9px !important; background:#87bee5 !important; color:#fff !important; font-size:.68rem; }.linkJoin { border:0 !important; background:#f7fafb !important; color:#687780 !important; }
 .quickTip { padding:14px; border-color:#d7ecfb; background:#eff8ff; text-align:center; }.quickTip strong { color:#4b7188; font-size:.78rem; }.quickTip p,.modeTip p { margin:7px 0 11px; color:#8797a0; font-size:.64rem; line-height:1.45; }.quickTip button { width:100%; min-height:36px !important; border:0 !important; border-radius:10px !important; background:#fff !important; color:#5c7180 !important; font-size:.68rem; }.modeTip { padding:13px; border-color:#f2dfe0; background:#fff2f2; }.modeTip strong { color:#765557; font-size:.75rem; }
 .lobbyPage .errorBanner { margin:0 0 12px; border-radius:12px; }
-@media (max-width:1050px) { .lobbyGrid { grid-template-columns:minmax(180px,.65fr) minmax(0,1.8fr); }.lobbySide { grid-column:1 / -1; grid-template-columns:repeat(3,minmax(0,1fr)); }.createPanel,.quickTip,.modeTip { height:100%; } }
-@media (max-width:760px) { .lobbyPage { padding-top:26px; }.lobbyHero { padding:72px 0 36px; }.lobbyGrid { grid-template-columns:1fr; }.lobbySide { grid-column:auto; grid-template-columns:1fr; }.roomSearch { grid-template-columns:1fr; }.roomSearch > div { overflow:auto; }.lobbyPage .roomCard { grid-template-columns:1fr; }.lobbyPage .joinButton { grid-column:1; grid-row:auto; width:100%; }.lobbyPage .roomFacts { flex-wrap:wrap; }.lobbyBack { top:22px; }.lobbyProfile { top:20px; } }
+@media (max-width:1050px) { .lobbyPage:not(.fixedCanvasPage) .lobbyGrid { grid-template-columns:minmax(180px,.65fr) minmax(0,1.8fr); }.lobbyPage:not(.fixedCanvasPage) .lobbySide { grid-column:1 / -1; grid-template-columns:repeat(3,minmax(0,1fr)); }.lobbyPage:not(.fixedCanvasPage) .createPanel,.lobbyPage:not(.fixedCanvasPage) .quickTip,.lobbyPage:not(.fixedCanvasPage) .modeTip { height:100%; } }
+@media (max-width:760px) { .lobbyPage:not(.fixedCanvasPage) { padding-top:26px; }.lobbyPage:not(.fixedCanvasPage) .lobbyHero { padding:72px 0 36px; }.lobbyPage:not(.fixedCanvasPage) .lobbyGrid { grid-template-columns:1fr; }.lobbyPage:not(.fixedCanvasPage) .lobbySide { grid-column:auto; grid-template-columns:1fr; }.lobbyPage:not(.fixedCanvasPage) .roomSearch { grid-template-columns:1fr; }.lobbyPage:not(.fixedCanvasPage) .roomSearch > div { overflow:auto; }.lobbyPage:not(.fixedCanvasPage) .roomCard { grid-template-columns:1fr; }.lobbyPage:not(.fixedCanvasPage) .joinButton { grid-column:1; grid-row:auto; width:100%; }.lobbyPage:not(.fixedCanvasPage) .roomFacts { flex-wrap:wrap; }.lobbyPage:not(.fixedCanvasPage) .lobbyBack { top:22px; }.lobbyPage:not(.fixedCanvasPage) .lobbyProfile { top:20px; } }
 
 .lobbyPage .errorBanner { width:min(560px,100%); margin:-48px auto 14px; padding:10px 14px; border:1px solid #f2cdcf; border-left:4px solid #d85a61; border-radius:12px; box-shadow:0 8px 18px rgba(143,72,76,.08); font-size:.76rem; text-align:center; }
-@media (max-width:760px) { .lobbyPage .errorBanner { margin:-22px auto 14px; } }
+@media (max-width:760px) { .lobbyPage:not(.fixedCanvasPage) .errorBanner { margin:-22px auto 14px; } }
 
 /* Keep the room finder scenery visibly behind every panel. */
 .lobbyPage { isolation:isolate; background:linear-gradient(180deg,#e5f3ff 0 70%,#c9e49e 70% 91%,#a8cc7d 91%); background-attachment:fixed; }
 .lobbyPage::before { position:fixed; z-index:0; top:70vh; right:0; bottom:0; left:0; display:block; background:linear-gradient(180deg,#c9e49e 0 72%,#a8cc7d 72%); content:""; }
 .lobbyPage::after { position:fixed; z-index:0; top:70px; left:7vw; display:block; width:370px; height:180px; border-radius:999px; background:radial-gradient(circle at 29% 52%,rgba(255,255,255,.74) 0 19%,transparent 19.6%),radial-gradient(circle at 50% 31%,rgba(255,255,255,.76) 0 29%,transparent 29.6%),radial-gradient(circle at 68% 67%,rgba(255,255,255,.74) 0 35%,transparent 35.6%); opacity:.94; content:""; }
 .lobbyPage > * { position:relative; z-index:1; }
-@media (max-width:760px) { .lobbyPage::after { top:90px; left:-50px; transform:scale(.72); transform-origin:left top; } }
+@media (max-width:760px) { .lobbyPage:not(.fixedCanvasPage)::after { top:90px; left:-50px; transform:scale(.72); transform-origin:left top; } }
 
 .lobbyPage > .lobbyBack, .lobbyPage > .lobbyProfile { position:absolute; }
 
@@ -157,6 +157,89 @@
   .lobbyPage .roomGrid { min-height: 0; overflow: auto; align-content: start; }
   .lobbyPage .lobbySide { overflow: hidden; }
   .lobbyPage .lobbyBack { z-index: 5; pointer-events: auto; }
+}
+
+.lobbyPage.fixedCanvasPage {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0;
+  padding: 24px 40px;
+  overflow: hidden;
+}
+
+.lobbyPage.fixedCanvasPage::after {
+  position: absolute;
+  top: 42px;
+  left: 70px;
+}
+
+.lobbyPage.fixedCanvasPage .lobbyBack {
+  top: 24px;
+  left: 40px;
+  z-index: 5;
+  pointer-events: auto;
+}
+
+.lobbyPage.fixedCanvasPage .lobbyProfile {
+  top: 24px;
+  right: 40px;
+}
+
+.lobbyPage.fixedCanvasPage .lobbyHero {
+  min-height: 0;
+  padding: 42px 0 20px;
+}
+
+.lobbyPage.fixedCanvasPage .lobbyHero h1 {
+  font-size: 3.4rem;
+}
+
+.lobbyPage.fixedCanvasPage .lobbyGrid {
+  min-height: 0;
+  height: 100%;
+  grid-template-columns: minmax(190px, .7fr) minmax(430px, 2.25fr) minmax(210px, .8fr);
+}
+
+.lobbyPage.fixedCanvasPage .rankingPanel,
+.lobbyPage.fixedCanvasPage .lobbyRooms,
+.lobbyPage.fixedCanvasPage .lobbySide {
+  min-height: 0;
+}
+
+.lobbyPage.fixedCanvasPage .rankingPanel {
+  overflow: hidden;
+}
+
+.lobbyPage.fixedCanvasPage .lobbyRooms {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.lobbyPage.fixedCanvasPage .roomGrid {
+  min-height: 0;
+  overflow: auto;
+  align-content: start;
+}
+
+.lobbyPage.fixedCanvasPage .lobbySide {
+  grid-column: auto;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.lobbyPage.fixedCanvasPage .modeTip {
+  display: none;
+}
+
+.lobbyPage.fixedCanvasPage .quickTip {
+  min-height: 0;
 }
 
 /* Keep every essential lobby card within a 16:9 desktop viewport. */

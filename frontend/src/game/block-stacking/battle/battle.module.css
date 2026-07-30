@@ -16,7 +16,7 @@
 .practicePage .boardPanel{min-height:0;overflow:hidden;border:3px solid #fff;border-radius:22px;background:var(--cream);box-shadow:0 8px 0 #b8d3dd,0 16px 28px #54829b2e}
 .practicePage .boardPanel header{min-height:70px;box-sizing:border-box;padding:12px 18px;border:0;border-bottom:2px solid #d4e5da;background:linear-gradient(105deg,#fffdf5,#f2fae5);color:var(--ink)}
 .practicePage .boardPanel header span{color:#719148!important;font-size:.71rem;font-weight:900;letter-spacing:.08em}.practicePage .boardPanel header h2{margin:3px 0 0;color:var(--ink)!important;font-size:clamp(1rem,1.35vw,1.3rem)}
-.practicePage .boardCanvas{position:relative;background:linear-gradient(#ffffff9c,#ffffff9c),repeating-linear-gradient(0deg,transparent 0 47px,#d9ebef 48px 49px),repeating-linear-gradient(90deg,transparent 0 47px,#d9ebef 48px 49px),#f6fcff}.practicePage .boardCanvas::after{content:"";position:absolute;inset:9px;pointer-events:none;border:2px solid #c7e09b;border-radius:14px}
+.practicePage .boardCanvas{position:relative;background:linear-gradient(#ffffff9c,#ffffff9c),#f6fcff}.practicePage .boardCanvas::after{content:"";position:absolute;inset:9px;pointer-events:none;border:2px solid #c7e09b;border-radius:14px}
 .practicePage .boardStats{gap:clamp(7px,.9vw,16px);color:var(--muted);font-size:.77rem}.practicePage .boardStats strong{color:var(--ink)!important;font-size:1.08rem}.practicePage .boardStats span:first-child strong{color:var(--coral)!important;font-size:1.45rem}.practicePage .boardStats i[data-state="CONNECTED"]{background:var(--teal);box-shadow:0 0 0 4px #d9f1e7}
 .practicePage .practiceUtility{min-height:0;display:grid;grid-template-columns:minmax(0,1.45fr) minmax(170px,.55fr);gap:clamp(10px,1.1vw,18px)}
 .practicePage .practiceCamera,.practicePage .signGuide,.practicePage .botStatus{border:3px solid #fff;border-radius:20px;overflow:hidden;box-shadow:0 7px 0 #b8d3dd,0 14px 22px #54829b25}.practicePage .practiceCamera{background:#263c43}
@@ -419,8 +419,6 @@
     radial-gradient(ellipse at 71% 35%, rgba(255,255,255,.7) 0 .58rem, transparent .62rem),
     radial-gradient(ellipse at 50% 102%, #b9d98d 0 45%, transparent 45.4%),
     radial-gradient(ellipse at 18% 104%, #c8e59d 0 33%, transparent 33.4%),
-    repeating-linear-gradient(0deg, transparent 0 46px, rgba(255,255,255,.72) 47px 49px),
-    repeating-linear-gradient(90deg, transparent 0 46px, rgba(255,255,255,.72) 47px 49px),
     linear-gradient(180deg, #dff1ff 0 69%, #c9e59d 69% 87%, #a9cd7c 87%);
 }
 .practicePage .boardCanvas::before,
@@ -464,8 +462,6 @@
     radial-gradient(ellipse at 71% 35%, rgba(255,255,255,.7) 0 .58rem, transparent .62rem),
     radial-gradient(ellipse 52% 21% at 50% 106%, #b9d98d 99%, transparent 100%),
     radial-gradient(ellipse 42% 16% at 8% 104%, #c8e59d 99%, transparent 100%),
-    repeating-linear-gradient(0deg, transparent 0 46px, rgba(255,255,255,.72) 47px 49px),
-    repeating-linear-gradient(90deg, transparent 0 46px, rgba(255,255,255,.72) 47px 49px),
     linear-gradient(180deg, #dff1ff 0 69%, #c9e59d 69% 87%, #a9cd7c 87%);
 }
 
@@ -482,8 +478,6 @@
     radial-gradient(ellipse at 71% 35%, #fff 0 .58rem, rgba(126,177,200,.14) .61rem .68rem, transparent .71rem),
     radial-gradient(ellipse 52% 21% at 50% 106%, #b9d98d 99%, transparent 100%),
     radial-gradient(ellipse 42% 16% at 8% 104%, #c8e59d 99%, transparent 100%),
-    repeating-linear-gradient(0deg, transparent 0 46px, rgba(255,255,255,.72) 47px 49px),
-    repeating-linear-gradient(90deg, transparent 0 46px, rgba(255,255,255,.72) 47px 49px),
     linear-gradient(180deg, #dff1ff 0 69%, #c9e59d 69% 87%, #a9cd7c 87%);
 }
 
@@ -504,8 +498,6 @@
   border: 3px solid #91b56a;
   border-radius: 0 0 15px 15px;
   background:
-    repeating-linear-gradient(0deg, transparent 0 46px, rgba(255,255,255,.86) 47px 49px),
-    repeating-linear-gradient(90deg, transparent 0 46px, rgba(255,255,255,.86) 47px 49px),
     linear-gradient(180deg, #dff1ff 0 69%, #c9e59d 69% 87%, #a9cd7c 87%);
 }
 .practicePage .battleSkyDecor i { position: absolute; display: block; pointer-events: none; }
@@ -675,8 +667,6 @@
   position:absolute; z-index:0; inset:0; overflow:hidden;
   border:2px solid #91b56a; border-radius:0 0 15px 15px;
   background:
-    repeating-linear-gradient(0deg, transparent 0 46px, rgba(255,255,255,.86) 47px 49px),
-    repeating-linear-gradient(90deg, transparent 0 46px, rgba(255,255,255,.86) 47px 49px),
     linear-gradient(180deg, #dff1ff 0 69%, #c9e59d 69% 87%, #a9cd7c 87%);
 }
 .battleFixedPage .battleSkyDecor i { position:absolute; display:block; pointer-events:none; }
@@ -694,6 +684,7 @@
 .battleFixedPage .boardPlayArea .boardCanvas::before,
 .battleFixedPage .boardPlayArea .boardCanvas::after { content:none; }
 .battleFixedPage .boardPlayArea .boardCanvas canvas { position:relative; z-index:1; background:transparent; }
+.boardTowerHeightGauge { position:absolute; z-index:8; right:clamp(2px,.6vw,10px); bottom:17%; }
 .battleFixedPage .videos { gap:clamp(9px,1vw,16px); }
 .battleFixedPage .videoCell { border-color:#fff; border-radius:18px; box-shadow:0 6px 0 rgba(139,174,172,.34),0 12px 22px rgba(76,112,126,.14); }
 .battleFixedPage .videoCell video {
@@ -958,6 +949,24 @@
   font-weight: 1000;
   line-height: 1;
 }
+.battlePreviewPage .previewActions { display:flex; align-items:center; gap:8px; }
+.battlePreviewPage .previewActions a,
+.battlePreviewPage .previewActions span { padding:6px 10px; border-radius:999px; background:#fffef8; color:#66813d; font-size:.68rem; font-weight:900; text-decoration:none; }
+.battlePreviewPage .previewActions span { background:#243b45; color:#eaf6ce; letter-spacing:.08em; }
+.battlePreviewPage .previewBoardSurface { position:relative; z-index:1; width:100%; height:100%; overflow:hidden; background:linear-gradient(180deg,#dff1ff 0 69%,#c9e59d 69% 87%,#a9cd7c 87%); }
+.battlePreviewPage .previewBoardSurface::before { position:absolute; inset:0; background:linear-gradient(90deg,rgba(255,255,255,.55) 2px,transparent 2px) 0 0/10% 100%,linear-gradient(0deg,rgba(255,255,255,.55) 2px,transparent 2px) 0 0/100% 13%; content:""; }
+.battlePreviewPage .previewBoardSurface::after { position:absolute; z-index:1; top:32%; right:0; left:0; border-top:4px dashed #e7c86d; content:""; }
+.battlePreviewPage .previewBoardSurface i { position:absolute; z-index:2; display:block; pointer-events:none; }
+.battlePreviewPage .previewCloudOne,.battlePreviewPage .previewCloudTwo,.battlePreviewPage .previewCloudThree { height:20px; border-radius:999px; background:rgba(255,255,255,.82); }
+.battlePreviewPage .previewCloudOne { top:17%; left:16%; width:68px; }.battlePreviewPage .previewCloudTwo { top:39%; left:60%; width:56px; }.battlePreviewPage .previewCloudThree { top:59%; left:31%; width:44px; }
+.battlePreviewPage .previewSun { top:12%; right:10%; width:52px; height:52px; border-radius:50%; background:rgba(255,229,108,.65); box-shadow:0 0 0 10px rgba(255,244,180,.24); }
+.battlePreviewPage .previewHill { right:-12%; bottom:9%; left:-12%; height:22%; border-radius:50% 55% 0 0 / 80% 90% 0 0; background:#b8d98c; box-shadow:0 15px 0 #9fc676; }
+.battlePreviewPage .previewGlyphOne,.battlePreviewPage .previewGlyphTwo { position:absolute; z-index:3; bottom:5%; color:#486b73; font-family:"Arial Rounded MT Bold","Malgun Gothic",sans-serif; font-size:clamp(2.5rem,6vw,5rem); line-height:1; text-shadow:0 5px 0 rgba(77,107,112,.2); }
+.battlePreviewPage .previewGlyphOne { left:19%; transform:rotate(-8deg); }.battlePreviewPage .previewGlyphTwo { right:18%; color:#cf5c83; transform:rotate(10deg); }
+.battlePreviewPage .previewCameraViewport { display:grid; place-items:center; background:linear-gradient(135deg,#14252d,#27434b); }
+.battlePreviewPage .previewCameraGrid { position:absolute; inset:0; opacity:.38; background:linear-gradient(90deg,transparent 49%,rgba(255,255,255,.35) 50%,transparent 51%),linear-gradient(0deg,transparent 49%,rgba(255,255,255,.35) 50%,transparent 51%); background-size:50% 100%,100% 50%; }
+.battlePreviewPage .previewCameraGrid i { position:absolute; display:block; width:8px; height:8px; border:2px solid #b7dd84; border-radius:50%; }.battlePreviewPage .previewCameraGrid i:nth-child(1){top:15%;left:15%;}.battlePreviewPage .previewCameraGrid i:nth-child(2){top:15%;right:15%;}.battlePreviewPage .previewCameraGrid i:nth-child(3){bottom:15%;left:15%;}.battlePreviewPage .previewCameraGrid i:nth-child(4){right:15%;bottom:15%;}
+.battlePreviewPage .previewCameraLabel { position:relative; z-index:1; color:#e9f3d1; font-size:.72rem; font-weight:900; letter-spacing:.12em; }
 @media (max-width: 980px) {
   .battleFixedPage .duelLayout { grid-template-columns: minmax(0, 1fr) 220px; }
   .battleFixedPage .sharedTargetOtter { width: 150px; }

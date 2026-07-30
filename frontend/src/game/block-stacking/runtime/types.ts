@@ -36,6 +36,8 @@ export interface GameRuntimeSnapshot {
   readonly removedCount: number;
   readonly playTimeMs: number;
   readonly activeLetterCount: number;
+  /** Height of the topmost physical glyph, normalized from board floor to danger line. */
+  readonly towerHeightRatio: number;
   readonly lockedSymbol: string | null;
   /** The symbol currently waiting on the otter's paper in manual-drop mode. */
   readonly queuedSymbol: string | null;
