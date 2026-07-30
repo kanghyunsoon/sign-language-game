@@ -87,7 +87,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
     // order. Read the ref here so this path always uses the latest
     // authoritative room rather than the render that created the callback.
     const currentRoom = roomRef.current;
-    if (!roomId || !currentRoom || enteringGameRef.current) return;
+    if (!roomId || !currentRoom || currentRoom.status !== "PLAYING" || enteringGameRef.current) return;
     enteringGameRef.current = true;
     setStartingGame(true);
     setError(null);
@@ -178,7 +178,23 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
     const socket = services.roomRealtimeSocketFactory.create(roomId);
     roomSocketRef.current = socket;
     const unsubscribe = socket.subscribe((message) => {
-      if (message.type === "GAME_STARTED") void startRtcAndEnterRef.current();
+      if (message.type === "GAME_STARTED") {
+        // The event can arrive before the REST start request resolves (and
+        // before a failed start has been rolled back). Rejoin first and only
+        // enter the play page from the backend's authoritative PLAYING state.
+        void (async () => {
+          const current = roomRef.current;
+          if (!current?.roomCode) return;
+          try {
+            const authoritative = await gateway.joinRoom(current.roomCode);
+            if (authoritative.status !== "PLAYING") return;
+            rememberRoomRef.current(authoritative);
+            await startRtcAndEnterRef.current();
+          } catch (cause) {
+            setError(errorMessage(cause, "게임 시작 상태를 확인하지 못했습니다."));
+          }
+        })();
+      }
       if (message.type === "PEER_JOINED") {
         const current = roomRef.current;
         const joinedUserId = payloadUserId(message.payload);
@@ -261,7 +277,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
       if (roomSocketRef.current === socket) roomSocketRef.current = null;
       socket.disconnect();
     };
-  }, [roomId, services.roomRealtimeSocketFactory]);
+  }, [gateway, roomId, services.roomRealtimeSocketFactory]);
 
   const startCameraPreview = async () => {
     try {

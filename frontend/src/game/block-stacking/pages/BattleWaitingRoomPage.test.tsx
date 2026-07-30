@@ -94,16 +94,41 @@ describe("BattleWaitingRoomPage backend flow", () => {
     const { camera } = cameraFixture();
     const media = new MockBattleMediaSession();
     const connect = vi.spyOn(media, "connect");
+    const joinRoom = vi.fn(async () => session({ full: true, hostReady: true, guestReady: true, currentUserReady: true, status: "PLAYING" }));
     renderPage({
       currentUserId: "2",
       detail: room({ full: true, hostReady: true, guestReady: true, currentUserReady: true }),
+      gateway: gateway({ joinRoom }),
       socket,
       camera,
       media,
     });
     socket.emit({ type: "GAME_STARTED", payload: { roomId: 1 } });
+    await waitFor(() => expect(joinRoom).toHaveBeenCalledWith("ABC123"));
     expect(await screen.findByText("PLAY_ROUTE")).toBeTruthy();
     expect(connect).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not enter the play page from GAME_STARTED until the backend confirms PLAYING", async () => {
+    const socket = new FakeRoomSocket();
+    const { camera } = cameraFixture();
+    const media = new MockBattleMediaSession();
+    const connect = vi.spyOn(media, "connect");
+    const joinRoom = vi.fn(async () => session({ full: true, hostReady: true, guestReady: true, currentUserReady: true, status: "FULL" }));
+    renderPage({
+      currentUserId: "2",
+      detail: room({ full: true, hostReady: true, guestReady: true, currentUserReady: true }),
+      gateway: gateway({ joinRoom }),
+      socket,
+      camera,
+      media,
+    });
+
+    socket.emit({ type: "GAME_STARTED", payload: { roomId: 1 } });
+
+    await waitFor(() => expect(joinRoom).toHaveBeenCalledWith("ABC123"));
+    expect(screen.queryByText("PLAY_ROUTE")).toBeNull();
+    expect(connect).not.toHaveBeenCalled();
   });
 
   it("applies the backend PEER_READY_CHANGED event before start", async () => {
