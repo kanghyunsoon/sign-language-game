@@ -304,7 +304,9 @@
 .module :global(.solo-letter-otter strong.is-releasing::after) { color: #ffcb58; animation: solo-paper-spark-right .34s .42s cubic-bezier(.18,.8,.2,1) both; }
 .module :global(.solo-hint-otter) {
   position: absolute;
-  z-index: 1000;
+  /* Physics glyphs use the external 900 layer so they can extend past the
+     board frame. Keep the walking otter above that layer at every zoom. */
+  z-index: 1200;
   bottom: 2.2%;
   left: 0;
   width: clamp(182px, 15.5vw, 220px);
