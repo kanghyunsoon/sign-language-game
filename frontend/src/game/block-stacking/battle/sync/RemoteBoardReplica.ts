@@ -13,13 +13,17 @@ export class RemoteBoardReplica {
     const sampledAt = this.toLocalTimeline(message, receivedAt);
     if (message.sequence <= this.lastSequence && message.type !== "BODY_TRANSFORM_BATCH") return false;
     if (message.type === "BOARD_SNAPSHOT") {
+      const wasAuthoritative = this.hasAuthoritativeSnapshot;
       this.lastSequence = message.sequence; this.hasAuthoritativeSnapshot = true; const ids = message.bodies.filter((body) => body.state !== "REMOVED").map((body) => body.id); this.buffer.restore(ids); this.states.clear(); this.symbols.clear();
       for (const body of message.bodies) if (body.state !== "REMOVED") {
         this.states.set(body.id, body.state);
         this.symbols.set(body.id, body.symbol);
-        // Do not interpolate from a packet that predates this complete board.
-        // The snapshot replaces the remote display atomically.
-        this.buffer.replace(message.sequence, sampledAt, body);
+        // The first full board snapshot establishes authority. Later snapshots
+        // must join the live transform history instead of resetting it; a reset
+        // every snapshot interval is visible as a dropped frame on the remote
+        // player's falling blocks.
+        if (wasAuthoritative) this.buffer.push(message.sequence, sampledAt, body);
+        else this.buffer.replace(message.sequence, sampledAt, body);
       }
       return true;
     }
