@@ -28,6 +28,7 @@ export class MatterPhysicsWorld implements PhysicsWorld {
   private readonly letters = new Map<string, LetterBodyRecord>();
   private readonly activeLetterIds = new Set<string>();
   private readonly pendingMovedIds = new Set<string>();
+  private readonly externallySettledIds = new Set<string>();
   private boundaries: Body[];
   private width: number;
   private height: number;
@@ -68,6 +69,7 @@ export class MatterPhysicsWorld implements PhysicsWorld {
     const previousHeight = this.height;
     const horizontalScale = width / previousWidth;
     const halfLetter = this.config.letterWidth / 2;
+    this.externallySettledIds.clear();
     for (const record of this.letters.values()) {
       const nextX = Math.max(halfLetter, Math.min(width - halfLetter, record.body.position.x * horizontalScale));
       const distanceFromFloor = previousHeight - record.body.position.y;
@@ -135,6 +137,27 @@ export class MatterPhysicsWorld implements PhysicsWorld {
     return [...this.letters.values()].map((record) => this.toState(record));
   }
 
+  /**
+   * Pins a letter to an authoritative final state received from another
+   * simulation.  This is intentionally limited to settled bodies: moving
+   * bodies still render locally so transport jitter cannot become animation
+   * jitter.
+   */
+  synchronizeSettledLetter(id: string, state: Pick<PhysicsLetterState, "x" | "y" | "angle">): boolean {
+    const record = this.letters.get(id);
+    if (!record) return false;
+    const { body } = record;
+    MatterBody.setPosition(body, { x: state.x, y: state.y });
+    MatterBody.setAngle(body, state.angle);
+    MatterBody.setVelocity(body, { x: 0, y: 0 });
+    MatterBody.setAngularVelocity(body, 0);
+    MatterBody.setStatic(body, true);
+    this.activeLetterIds.delete(id);
+    this.settlementDetector.remove(id);
+    this.externallySettledIds.add(id);
+    return true;
+  }
+
   removeLetter(id: string): boolean {
     const record = this.letters.get(id);
     if (!record) return false;
@@ -143,6 +166,7 @@ export class MatterPhysicsWorld implements PhysicsWorld {
     this.letters.delete(id);
     this.activeLetterIds.delete(id);
     this.settlementDetector.remove(id);
+    this.externallySettledIds.delete(id);
     for (const remaining of this.letters.values()) {
       if (remaining.body.position.y >= removedY || !this.settlementDetector.isSettled(remaining.id)) continue;
       this.settlementDetector.remove(remaining.id);
@@ -161,6 +185,7 @@ export class MatterPhysicsWorld implements PhysicsWorld {
     this.settlementDetector.clear();
     this.pendingMovedIds.clear();
     this.activeLetterIds.clear();
+    this.externallySettledIds.clear();
   }
 
   destroy(): void {
@@ -201,7 +226,7 @@ export class MatterPhysicsWorld implements PhysicsWorld {
       velocityX: body.velocity.x,
       velocityY: body.velocity.y,
       angularVelocity: body.angularVelocity,
-      settled: this.settlementDetector.isSettled(record.id),
+      settled: this.externallySettledIds.has(record.id) || this.settlementDetector.isSettled(record.id),
     };
   }
 

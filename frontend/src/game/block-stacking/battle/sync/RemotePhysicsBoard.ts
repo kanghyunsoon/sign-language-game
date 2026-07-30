@@ -1,7 +1,7 @@
 import { MatterPhysicsWorld } from "../../physics/MatterPhysicsWorld";
 import { DEFAULT_PHYSICS_CONFIG, type PhysicsLetterState } from "../../physics/types";
 import { BATTLE_LETTER_SIZE, DEFAULT_BATTLE_RUNTIME_CONFIG } from "../core/BattleRuntimeConfig";
-import type { SpawnLetterEvent } from "../transport/battleTransportTypes";
+import type { BattleBodyTransform, SpawnLetterEvent } from "../transport/battleTransportTypes";
 import type { RemoteBoard, RemoteSyncMessage } from "./RemoteBoardReplica";
 
 /**
@@ -46,12 +46,15 @@ export class RemotePhysicsBoard implements RemoteBoard {
       const activeIds = new Set(message.bodies.filter((body) => body.state !== "REMOVED").map((body) => body.id));
       for (const id of [...this.symbols.keys()]) if (!activeIds.has(id)) this.remove(id);
       for (const body of message.bodies) {
-        if (body.state !== "REMOVED" && !this.physics.getLetterState(body.id)) this.createCenteredLetter(body.id, body.symbol, body.angle);
+        if (body.state === "REMOVED") continue;
+        if (!this.physics.getLetterState(body.id)) this.createCenteredLetter(body.id, body.symbol, body.angle);
+        if (body.state === "SETTLED") this.synchronizeSettledLetter(body);
       }
       return true;
     }
-    if (message.type === "LETTER_SPAWNED_SYNC" && !this.physics.getLetterState(message.body.id)) {
-      this.createCenteredLetter(message.body.id, message.body.symbol, message.body.angle);
+    if (message.type === "LETTER_SPAWNED_SYNC") {
+      if (!this.physics.getLetterState(message.body.id)) this.createCenteredLetter(message.body.id, message.body.symbol, message.body.angle);
+      if (message.body.state === "SETTLED") this.synchronizeSettledLetter(message.body);
     }
     // Transform packets deliberately do not drive this board. They describe
     // the opponent's rendering cadence, which is what caused visible stutter.
@@ -64,6 +67,10 @@ export class RemotePhysicsBoard implements RemoteBoard {
       if (deltaMs > 0) this.physics.update(deltaMs);
     }
     this.previousAt = now;
+    return this.physics.getLetterStates();
+  }
+
+  getStates(): readonly PhysicsLetterState[] {
     return this.physics.getLetterStates();
   }
 
@@ -90,5 +97,13 @@ export class RemotePhysicsBoard implements RemoteBoard {
   private remove(id: string): void {
     this.physics.removeLetter(id);
     this.symbols.delete(id);
+  }
+
+  private synchronizeSettledLetter(body: BattleBodyTransform): void {
+    this.physics.synchronizeSettledLetter(body.id, {
+      x: body.x * this.width,
+      y: body.y * this.height,
+      angle: body.angle,
+    });
   }
 }

@@ -94,7 +94,7 @@ export function BattleGamePage() {
       const remoteViewport = remoteViewportRef.current;
       const next = {
         local: settledTowerHeightRatio(settledTowerHeightsRef.current.local, localRuntimeRef.current?.getStates() ?? [], localViewport.height, localViewport.height * BATTLE_DANGER_LINE_RATIO, BATTLE_LETTER_SIZE),
-        remote: settledTowerHeightRatio(settledTowerHeightsRef.current.remote, replica.renderStates(performance.now()), remoteViewport.height, remoteViewport.height * BATTLE_DANGER_LINE_RATIO, BATTLE_LETTER_SIZE),
+        remote: settledTowerHeightRatio(settledTowerHeightsRef.current.remote, replica.getStates(), remoteViewport.height, remoteViewport.height * BATTLE_DANGER_LINE_RATIO, BATTLE_LETTER_SIZE),
       };
       settledTowerHeightsRef.current = next;
       setTowerHeights((current) => Math.abs(current.local - next.local) < .001 && Math.abs(current.remote - next.remote) < .001 ? current : next);

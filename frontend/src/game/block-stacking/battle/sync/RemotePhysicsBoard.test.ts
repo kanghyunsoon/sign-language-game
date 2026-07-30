@@ -18,4 +18,12 @@ describe("RemotePhysicsBoard", () => {
     board.apply({ type: "BODY_TRANSFORM_BATCH", sequence: 2, matchId: "m", playerId: "opponent", sentAt: 0, bodies: [{ id: "opponent-1", symbol: "ㄱ", x: .9, y: .8, angle: 0, velocityX: 0, velocityY: 0, angularVelocity: 0, state: "FALLING" }] }, 0);
     expect(board.renderStates(0)[0]?.x).toBe(200);
   });
+
+  it("uses the source board's exact position once the letter settles", () => {
+    const board = new RemotePhysicsBoard();
+    board.resize(400, 600);
+    board.spawn(spawn, 0);
+    board.apply({ type: "BOARD_SNAPSHOT", sequence: 2, matchId: "m", playerId: "opponent", sentAt: 0, bodies: [{ id: "opponent-1", symbol: "A", x: .25, y: .8, angle: .4, velocityX: 0, velocityY: 0, angularVelocity: 0, state: "SETTLED" }] }, 0);
+    expect(board.getStates()[0]).toMatchObject({ x: 100, y: 480, angle: .4, settled: true });
+  });
 });
