@@ -102,6 +102,8 @@ const learningGuideSteps = [
 
 export function MainPage() {
   const [menuPage, setMenuPage] = useState(0);
+  /** 새 묶음이 들어오는 쪽. 첫 렌더에서는 애니메이션 없이 그린다. */
+  const [slideFrom, setSlideFrom] = useState<"left" | "right" | null>(null);
   const [pageScale, setPageScale] = useState(1);
   const [isLearningGuideOpen, setIsLearningGuideOpen] = useState(false);
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
@@ -127,13 +129,20 @@ export function MainPage() {
   }, []);
 
   const menuStartIndex = MENU_PAGE_STARTS[menuPage];
+  const visibleMenus = learningMenus.slice(
+    menuStartIndex,
+    menuStartIndex + VISIBLE_MENU_COUNT,
+  );
 
   /**
-   * 화살표가 가리키는 방향으로 카드가 밀려간다.
-   * [<]를 누르면 카드가 왼쪽으로 밀려 뒤 묶음이, [>]면 오른쪽으로 밀려 앞 묶음이
-   * 나온다. 끝에서는 반대편으로 돌아 계속 넘길 수 있다.
+   * 묶음을 돌리면서, 카드가 화살표 방향으로 밀려 보이게 한다.
+   * [<]는 카드를 오른쪽으로 밀어 새 묶음이 왼쪽에서 들어오고, [>]는 그 반대다.
+   *
+   * 묶음이 둘뿐이라 물리적 순서만 따르면 어느 쪽을 눌러도 같은 방향으로 밀린다.
+   * 그래서 트랙을 옮기는 대신 들어오는 방향을 직접 정해 애니메이션한다.
    */
   const moveMenu = (direction: -1 | 1) => {
+    setSlideFrom(direction === -1 ? "left" : "right");
     setMenuPage(
       (current) =>
         (current - direction + MENU_PAGE_STARTS.length) %
@@ -234,16 +243,14 @@ export function MainPage() {
                 ‹
               </button>
 
-              {/* 카드를 모두 그려 두고 트랙을 밀어 옮긴다. 그래야 끊기지 않고
-                  미끄러지듯 움직인다. */}
+              {/* key가 바뀌면 트랙이 다시 그려지며 들어오는 방향으로 미끄러진다. */}
               <div className="learning-menu-viewport">
                 <div
                   className="learning-menu-track"
-                  style={{
-                    transform: `translateX(calc(${-menuStartIndex} * (100% + var(--menu-card-gap)) / ${VISIBLE_MENU_COUNT}))`,
-                  }}
+                  key={menuPage}
+                  data-slide-from={slideFrom ?? undefined}
                 >
-                  {learningMenus.map((menu) => (
+                  {visibleMenus.map((menu) => (
                     <Link
                       className="learning-menu-card"
                       to={menu.path}

@@ -1070,8 +1070,7 @@ a {
    수달 왼쪽 위에 붙인다. */
 .main-habitat-button {
   position: absolute;
-  top: 20%;
-  left: 12%;
+  top: 23%;
   z-index: 3;
   height: 56px;
   padding: 0 24px;
@@ -1111,8 +1110,34 @@ a {
 .learning-menu-track {
   display: flex;
   gap: var(--menu-card-gap);
-  /* 한 묶음씩 미끄러지듯 옮긴다. */
-  transition: transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* 새 묶음이 화살표 방향에서 미끄러져 들어온다.
+   [<]는 왼쪽에서(카드가 오른쪽으로 밀림), [>]는 오른쪽에서 들어온다. */
+.learning-menu-track[data-slide-from="left"] {
+  animation: menuSlideFromLeft 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.learning-menu-track[data-slide-from="right"] {
+  animation: menuSlideFromRight 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@keyframes menuSlideFromLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes menuSlideFromRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
 /* 한 화면에 3칸이 들어가도록 폭을 고정한다. */
