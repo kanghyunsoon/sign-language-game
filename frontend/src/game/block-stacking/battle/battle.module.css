@@ -700,16 +700,6 @@
 /* Pixi owns the board scenery for both players. Never layer CSS grids over only one board. */
 .battleFixedPage .battleSkyDecor { display:none; }
 .battleFixedPage .boardPlayArea { background:#dff1ff; }
-.battleFixedPage .boardPlayArea {
-  background:
-    linear-gradient(rgba(255,255,255,.34) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(116,165,190,.16) 1px,transparent 1px),
-    linear-gradient(180deg,#d9f1ff 0%,#ecf9ff 70%,#d3e9a8 70%,#b6d487 100%) !important;
-  background-size:28px 28px,28px 28px,100% 100% !important;
-}
-.boardEmptyState { position:absolute; z-index:2; inset:0; display:grid; align-content:center; justify-items:center; gap:10px; padding:20px; pointer-events:none; color:#587883; text-align:center; text-shadow:0 1px 0 #fff; }
-.boardEmptyState strong { display:grid; place-items:center; width:clamp(74px,10vw,120px); aspect-ratio:1; border:3px dashed #9fc97b; border-radius:50%; background:#fffef0d9; box-shadow:0 6px 0 #a9c68b55; color:#de6688; font-size:clamp(2.8rem,6vw,5rem); line-height:1; }
-.boardEmptyState span { max-width:18rem; padding:7px 12px; border-radius:999px; background:#fffef0e8; box-shadow:0 3px 0 #94ad8960; font-size:clamp(.75rem,1vw,.95rem); font-weight:800; line-height:1.4; }
 /* Keep the battle chrome compact: the target and score live in the player board. */
 .battleFixedPage { grid-template-rows:42px minmax(0,1fr) !important; gap:8px !important; }
 .battleFixedPage .topbar { height:42px; padding:0 6px; }
