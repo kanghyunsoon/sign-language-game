@@ -33,6 +33,8 @@ export interface RoomRealtimeSocketOptions {
 
 const OPEN = 1;
 const CLOSED = 3;
+const MAX_CONNECT_ATTEMPTS = 4;
+const RETRY_DELAYS_MS = [0, 300, 700, 1_400] as const;
 const MESSAGE_TYPES = new Set<RoomServerMessageType>([
   "PEER_DISCONNECTED", "PEER_RECONNECTED", "PEER_LEFT",
   "GAME_STARTED", "SIGNAL", "ERROR",
@@ -45,6 +47,7 @@ export class RoomRealtimeSocket {
   private readonly errorListeners = new Set<(error: Error) => void>();
   private readonly baseUrl: string;
   private readonly createWebSocket: (url: string) => RoomWebSocketLike;
+  private connectionGeneration = 0;
 
   constructor(private readonly options: RoomRealtimeSocketOptions) {
     this.baseUrl = options.webSocketBaseUrl.replace(/\/$/, "");
@@ -55,7 +58,8 @@ export class RoomRealtimeSocket {
   async connect(): Promise<void> {
     if (this.socket?.readyState === OPEN) return;
     if (this.pending) return this.pending;
-    this.pending = this.openWithFreshTicket();
+    const generation = ++this.connectionGeneration;
+    this.pending = this.openWithFreshTicket(generation);
     try {
       await this.pending;
     } finally {
@@ -90,7 +94,26 @@ export class RoomRealtimeSocket {
     this.close(1000, "CLIENT_CLOSED");
   }
 
-  private async openWithFreshTicket(): Promise<void> {
+  private async openWithFreshTicket(generation: number): Promise<void> {
+    let lastError: Error | null = null;
+    for (let attempt = 0; attempt < MAX_CONNECT_ATTEMPTS; attempt += 1) {
+      if (generation !== this.connectionGeneration) throw new Error("Room WebSocket connection was cancelled.");
+      const delay = RETRY_DELAYS_MS[attempt] ?? RETRY_DELAYS_MS.at(-1) ?? 0;
+      if (delay > 0) await wait(delay);
+      if (generation !== this.connectionGeneration) throw new Error("Room WebSocket connection was cancelled.");
+      try {
+        await this.openOnce();
+        return;
+      } catch (cause) {
+        lastError = cause instanceof Error ? cause : new Error(String(cause));
+      }
+    }
+    const error = lastError ?? new Error("Room WebSocket connection failed.");
+    this.emitError(error);
+    throw error;
+  }
+
+  private async openOnce(): Promise<void> {
     const { ticket } = await this.options.ticketClient.issue();
     const socket = this.createWebSocket(
       `${this.baseUrl}/${encodeURIComponent(this.options.roomId)}?ticket=${encodeURIComponent(ticket)}`,
@@ -106,7 +129,6 @@ export class RoomRealtimeSocket {
         // leaves the lobby showing a stale red error despite being connected.
         if (settled) return;
         const error = new Error("Room WebSocket connection failed.");
-        this.emitError(error);
         settled = true;
         reject(error);
       };
@@ -127,6 +149,7 @@ export class RoomRealtimeSocket {
   }
 
   private close(code: number, reason: string): void {
+    this.connectionGeneration += 1;
     const socket = this.socket;
     this.socket = null;
     if (socket && socket.readyState !== CLOSED) socket.close(code, reason);
@@ -134,6 +157,8 @@ export class RoomRealtimeSocket {
 
   private emitError(error: Error): void { for (const listener of this.errorListeners) listener(error); }
 }
+
+function wait(delayMs: number): Promise<void> { return new Promise((resolve) => window.setTimeout(resolve, delayMs)); }
 
 export function parseRoomServerMessage(raw: string): RoomServerMessage {
   const value: unknown = JSON.parse(raw);
