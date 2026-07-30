@@ -3,6 +3,7 @@ package backend.ssafy.suhwa.growth.controller;
 import backend.ssafy.suhwa.common.security.LoginUser;
 import backend.ssafy.suhwa.growth.dto.AttendanceCompletionResponse;
 import backend.ssafy.suhwa.growth.dto.AttendanceResponse;
+import backend.ssafy.suhwa.growth.dto.PetStatusResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,4 +23,9 @@ public interface GrowthApi {
     @ApiResponse(responseCode = "200", description = "신규 또는 기존 출석과 갱신된 펫 상태")
     @PostMapping("/growth/attendance")
     ResponseEntity<AttendanceCompletionResponse> checkIn(@LoginUser Long userId);
+
+    @Operation(summary = "펫 성장 상태 조회")
+    @ApiResponse(responseCode = "200", description = "로그인 사용자의 최신 펫 성장 상태")
+    @GetMapping("/growth/pet")
+    ResponseEntity<PetStatusResponse> getPet(@LoginUser Long userId);
 }

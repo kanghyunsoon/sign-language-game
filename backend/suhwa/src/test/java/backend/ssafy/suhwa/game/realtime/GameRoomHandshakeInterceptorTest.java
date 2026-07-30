@@ -9,6 +9,8 @@ import backend.ssafy.suhwa.game.dto.GameRoomResponse;
 import backend.ssafy.suhwa.game.service.GameRoomService;
 import backend.ssafy.suhwa.user.domain.User;
 import backend.ssafy.suhwa.user.repository.UserRepository;
+import backend.ssafy.suhwa.growth.domain.UserPet;
+import backend.ssafy.suhwa.growth.repository.UserPetRepository;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -42,6 +44,9 @@ class GameRoomHandshakeInterceptorTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private UserPetRepository userPetRepository;
+
     private Long hostId;
     private Long guestId;
     private Long strangerId;
@@ -54,10 +59,12 @@ class GameRoomHandshakeInterceptorTest {
     }
 
     private Long createUser(String prefix) {
-        return userRepository.save(User.builder()
+        Long userId = userRepository.save(User.builder()
                         .email(prefix + "-" + System.nanoTime() + "@test.com").passwordHash("h").nickname(prefix)
                         .build())
                 .getId();
+        userPetRepository.save(UserPet.builder().userId(userId).build());
+        return userId;
     }
 
     private WebSocketSession connect(Long roomId, Long userId, BlockingQueue<String> messages) throws Exception {

@@ -2,7 +2,9 @@ package backend.ssafy.suhwa.learning.repository;
 
 import backend.ssafy.suhwa.learning.domain.SignCategory;
 import backend.ssafy.suhwa.learning.domain.WrongAnswerLog;
+import backend.ssafy.suhwa.learning.dto.WrongAnswerCount;
 import backend.ssafy.suhwa.learning.dto.WrongAnswerResponse;
+import java.util.Collection;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -30,4 +32,18 @@ public interface WrongAnswerLogRepository extends JpaRepository<WrongAnswerLog, 
             + "ORDER BY w.wrongAt DESC")
     List<WrongAnswerResponse> findRecentByUserIdAndCategory(
             @Param("userId") Long userId, @Param("category") SignCategory category, Pageable pageable);
+
+    @Query("SELECT new backend.ssafy.suhwa.learning.dto.WrongAnswerCount("
+            + "w.signId, COUNT(w.id)) "
+            + "FROM WrongAnswerLog w JOIN Sign s ON w.signId = s.id "
+            + "WHERE w.userId = :userId "
+            + "AND w.testSessionId IN :testSessionIds "
+            + "AND s.active = true "
+            + "AND s.category IN :categories "
+            + "GROUP BY w.signId "
+            + "ORDER BY COUNT(w.id) DESC, w.signId ASC")
+    List<WrongAnswerCount> countByUserIdAndTestSessionIdsAndCategories(
+            @Param("userId") Long userId,
+            @Param("testSessionIds") Collection<Long> testSessionIds,
+            @Param("categories") Collection<SignCategory> categories);
 }

@@ -29,6 +29,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import backend.ssafy.suhwa.user.service.UserService;
 
 @DataJpaTest
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
@@ -49,6 +51,9 @@ class AttendanceIntegrationTest {
 
     @Autowired
     private UserPetRepository userPetRepository;
+
+    @MockitoBean
+    private UserService userService;
 
     @AfterEach
     void cleanUp() {

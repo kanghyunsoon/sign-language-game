@@ -11,6 +11,9 @@ import backend.ssafy.suhwa.growth.dto.AttendanceCompletionResponse;
 import backend.ssafy.suhwa.growth.dto.AttendanceResponse;
 import backend.ssafy.suhwa.growth.dto.PetStatusResponse;
 import backend.ssafy.suhwa.growth.service.AttendanceService;
+import backend.ssafy.suhwa.growth.service.PetQueryService;
+import backend.ssafy.suhwa.common.exception.BusinessException;
+import backend.ssafy.suhwa.common.exception.ErrorCode;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -33,6 +36,9 @@ class GrowthControllerTest {
 
     @MockitoBean
     private AttendanceService attendanceService;
+
+    @MockitoBean
+    private PetQueryService petQueryService;
 
     @BeforeEach
     void authenticate() {
@@ -68,5 +74,27 @@ class GrowthControllerTest {
                 .andExpect(jsonPath("$.newlyAttended").value(true))
                 .andExpect(jsonPath("$.awardedExp").value(3))
                 .andExpect(jsonPath("$.pet.currentExp").value(3));
+    }
+
+    @Test
+    void getPetReturnsCurrentGrowthState() throws Exception {
+        given(petQueryService.getStatus(1L))
+                .willReturn(new PetStatusResponse(5, 7, 13, EvolutionStage.STAGE_2, 10));
+
+        mockMvc.perform(get("/growth/pet"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.level").value(5))
+                .andExpect(jsonPath("$.currentExp").value(7))
+                .andExpect(jsonPath("$.evolutionStage").value("STAGE_2"));
+    }
+
+    @Test
+    void getPetForWithdrawnUserReturnsNotFound() throws Exception {
+        given(petQueryService.getStatus(1L))
+                .willThrow(new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        mockMvc.perform(get("/growth/pet"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("USER_NOT_FOUND"));
     }
 }

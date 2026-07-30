@@ -19,6 +19,9 @@ import backend.ssafy.suhwa.gameresult.domain.GameResult;
 import backend.ssafy.suhwa.gameresult.domain.GameResultType;
 import backend.ssafy.suhwa.gameresult.repository.GameResultRepository;
 import backend.ssafy.suhwa.gameresult.service.GameResultService;
+import backend.ssafy.suhwa.growth.config.GrowthPolicyProperties;
+import backend.ssafy.suhwa.growth.domain.UserPet;
+import backend.ssafy.suhwa.growth.service.GrowthRewardService;
 import backend.ssafy.suhwa.user.domain.User;
 import backend.ssafy.suhwa.user.repository.UserRepository;
 import java.util.List;
@@ -32,7 +35,10 @@ import org.springframework.scheduling.TaskScheduler;
 import org.springframework.test.context.TestPropertySource;
 
 @DataJpaTest
-@TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
+@TestPropertySource(properties = {
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.transaction.default-timeout=30s"
+})
 @Import(JpaAuditingConfig.class)
 class GameRoomServiceTest {
 
@@ -46,13 +52,21 @@ class GameRoomServiceTest {
     private UserRepository userRepository;
 
     private GameRoomService gameRoomService;
+    private GrowthRewardService growthRewardService;
+    private UserPet hostPet;
+    private UserPet guestPet;
     private Long hostId;
     private Long guestId;
 
     @BeforeEach
     void setUp() {
+        growthRewardService = Mockito.mock(GrowthRewardService.class);
+        hostPet = Mockito.mock(UserPet.class);
+        guestPet = Mockito.mock(UserPet.class);
         gameRoomService = new GameRoomService(
-                gameRoomRepository, new GameResultService(gameResultRepository),
+                gameRoomRepository,
+                new GameResultService(
+                        gameResultRepository, growthRewardService, new GrowthPolicyProperties()),
                 Mockito.mock(RoomRealtimeNotifier.class), Mockito.mock(LobbyBroadcastService.class),
                 new RoomParticipantRegistry(), new RealtimeTicketService(60L),
                 Mockito.mock(TaskScheduler.class), 15L,
@@ -63,6 +77,8 @@ class GameRoomServiceTest {
         guestId = userRepository.save(User.builder()
                 .email("guest-" + System.nanoTime() + "@test.com").passwordHash("h").nickname("guest").build())
                 .getId();
+        Mockito.when(growthRewardService.lockPet(hostId)).thenReturn(hostPet);
+        Mockito.when(growthRewardService.lockPet(guestId)).thenReturn(guestPet);
     }
 
     private GameRoomResponse createReadyRoom() {
@@ -250,6 +266,22 @@ class GameRoomServiceTest {
             assertThat(r.getUserId()).isEqualTo(guestId);
             assertThat(r.getScore()).isEqualTo(0);
         });
+        Mockito.verify(growthRewardService).rewardLocked(hostPet, 10);
+        Mockito.verify(growthRewardService).rewardLocked(guestPet, 3);
+    }
+
+    @Test
+    void reportResult_whenGuestWins_locksByUserIdButRewardsByOutcome() {
+        GameRoomResponse room = createReadyRoom();
+        gameRoomService.start(room.id(), hostId);
+
+        gameRoomService.reportResult(room.id(), guestId, guestId);
+
+        org.mockito.InOrder lockOrder = Mockito.inOrder(growthRewardService);
+        lockOrder.verify(growthRewardService).lockPet(hostId);
+        lockOrder.verify(growthRewardService).lockPet(guestId);
+        Mockito.verify(growthRewardService).rewardLocked(guestPet, 10);
+        Mockito.verify(growthRewardService).rewardLocked(hostPet, 3);
     }
 
     @Test

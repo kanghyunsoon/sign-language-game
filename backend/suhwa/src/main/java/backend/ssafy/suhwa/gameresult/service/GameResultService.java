@@ -3,7 +3,11 @@ package backend.ssafy.suhwa.gameresult.service;
 import backend.ssafy.suhwa.gameresult.domain.GameResult;
 import backend.ssafy.suhwa.gameresult.domain.GameResultType;
 import backend.ssafy.suhwa.gameresult.repository.GameResultRepository;
+import backend.ssafy.suhwa.growth.config.GrowthPolicyProperties;
+import backend.ssafy.suhwa.growth.domain.UserPet;
+import backend.ssafy.suhwa.growth.service.GrowthRewardService;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>솔로 결과 기록은 같은 모듈 안의 {@link SoloResultService}가 그대로 담당한다.
  */
 @Service
+@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class GameResultService {
 
@@ -26,10 +31,8 @@ public class GameResultService {
     private static final int LOSS_SCORE = 0;
 
     private final GameResultRepository gameResultRepository;
-
-    public GameResultService(GameResultRepository gameResultRepository) {
-        this.gameResultRepository = gameResultRepository;
-    }
+    private final GrowthRewardService growthRewardService;
+    private final GrowthPolicyProperties policy;
 
     /**
      * 대전 결과를 승자·패자 두 행으로 기록한다. 호출자의 트랜잭션에 참여하므로, 방 상태 전이와
@@ -37,10 +40,19 @@ public class GameResultService {
      */
     @Transactional
     public void recordDuel(Long winnerUserId, Long loserUserId, GameResultType gameType) {
+        Long firstUserId = Math.min(winnerUserId, loserUserId);
+        Long secondUserId = Math.max(winnerUserId, loserUserId);
+        UserPet firstPet = growthRewardService.lockPet(firstUserId);
+        UserPet secondPet = growthRewardService.lockPet(secondUserId);
+        UserPet winnerPet = winnerUserId.equals(firstUserId) ? firstPet : secondPet;
+        UserPet loserPet = loserUserId.equals(firstUserId) ? firstPet : secondPet;
+
         gameResultRepository.save(GameResult.builder()
                 .userId(winnerUserId).gameType(gameType).score(WIN_SCORE).build());
         gameResultRepository.save(GameResult.builder()
                 .userId(loserUserId).gameType(gameType).score(LOSS_SCORE).build());
+        growthRewardService.rewardLocked(winnerPet, policy.getDuelWinnerExp());
+        growthRewardService.rewardLocked(loserPet, policy.getDuelLoserExp());
     }
 
     /** 랭킹 집계 원본. 해당 게임 종류의 기록 전체를 돌려준다. */
