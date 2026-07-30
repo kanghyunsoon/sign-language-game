@@ -15,6 +15,23 @@ export function towerHeightRatio(
   return clamp((boardHeight - topY) / (boardHeight - dangerLineY));
 }
 
+/**
+ * Holds the previously painted level while Matter bodies are moving. This
+ * keeps a falling glyph or a collapsing tower from moving the gauge until the
+ * board has settled into its next stable shape.
+ */
+export function settledTowerHeightRatio(
+  previousRatio: number,
+  states: readonly PhysicsLetterState[],
+  boardHeight: number,
+  dangerLineY: number,
+  letterHeight: number,
+): number {
+  if (states.length === 0) return 0;
+  if (states.some((state) => !state.settled)) return previousRatio;
+  return towerHeightRatio(states, boardHeight, dangerLineY, letterHeight);
+}
+
 function clamp(value: number): number {
   return Math.max(0, Math.min(1, value));
 }

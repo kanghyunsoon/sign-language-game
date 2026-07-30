@@ -20,7 +20,7 @@ import { RemoteBoardReplica } from "../sync/RemoteBoardReplica";
 import { RemoteBoardRenderer } from "../render/RemoteBoardRenderer";
 import { LocalBoardPublisher } from "../sync/LocalBoardPublisher";
 import { BattleBoardPanel } from "../components/BattleBoardPanel";
-import { towerHeightRatio } from "../../runtime/towerHeight";
+import { settledTowerHeightRatio } from "../../runtime/towerHeight";
 import { BattleConnectionPanel } from "../components/BattleConnectionPanel";
 import { BattleResultModal } from "../components/BattleResultModal";
 import letterOtter from "../../assets/solo-letter-otter.png";
@@ -44,6 +44,7 @@ export function BattleGamePage() {
   const [rtcState, setRtcState] = useState(() => battleMediaSession.getConnectionState()); const [localRenderer, setLocalRenderer] = useState<GameRenderer | null>(null); const [remoteRenderer, setRemoteRenderer] = useState<GameRenderer | null>(null);
   const resultReportedRef = useRef(false);
   const controllerRef = useRef<BattleController | null>(null); const localRuntimeRef = useRef<BattleLocalBoardRuntime | null>(null); const localViewportRef = useRef({ width: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, height: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight }); const remoteViewportRef = useRef({ width: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, height: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight }); const remoteLoopRef = useRef<number | null>(null);
+  const settledTowerHeightsRef = useRef({ local: 0, remote: 0 });
   const [towerHeights, setTowerHeights] = useState({ local: 0, remote: 0 });
   const refreshMedia = useCallback(() => { setParticipants(battleMediaSession.getRemoteParticipants()); setRtcState(battleMediaSession.getConnectionState()); }, [battleMediaSession]);
   useEffect(() => battleMediaSession.subscribe(refreshMedia), [battleMediaSession, refreshMedia]);
@@ -75,9 +76,10 @@ export function BattleGamePage() {
       const localViewport = localViewportRef.current;
       const remoteViewport = remoteViewportRef.current;
       const next = {
-        local: towerHeightRatio(localRuntimeRef.current?.getStates() ?? [], localViewport.height, localViewport.height * BATTLE_DANGER_LINE_RATIO, BATTLE_LETTER_SIZE),
-        remote: towerHeightRatio(replica.renderStates(performance.now()), remoteViewport.height, remoteViewport.height * BATTLE_DANGER_LINE_RATIO, BATTLE_LETTER_SIZE),
+        local: settledTowerHeightRatio(settledTowerHeightsRef.current.local, localRuntimeRef.current?.getStates() ?? [], localViewport.height, localViewport.height * BATTLE_DANGER_LINE_RATIO, BATTLE_LETTER_SIZE),
+        remote: settledTowerHeightRatio(settledTowerHeightsRef.current.remote, replica.renderStates(performance.now()), remoteViewport.height, remoteViewport.height * BATTLE_DANGER_LINE_RATIO, BATTLE_LETTER_SIZE),
       };
+      settledTowerHeightsRef.current = next;
       setTowerHeights((current) => Math.abs(current.local - next.local) < .001 && Math.abs(current.remote - next.remote) < .001 ? current : next);
       frame = requestAnimationFrame(sampleTowerHeights);
     };

@@ -12,7 +12,7 @@ import {
   type GameRunState,
   type SoloGameConfig,
 } from "./types";
-import { towerHeightRatio } from "./towerHeight";
+import { settledTowerHeightRatio } from "./towerHeight";
 
 const MAX_FRAME_DELTA_MS = 32;
 // Matter is not created while the paper glyph is visible. The block comes
@@ -67,6 +67,7 @@ export class GameRuntime {
   private paperBurstSymbol: string | null = null;
   private pendingPaperDrop: { readonly symbol: string; remainingMs: number } | null = null;
   private paperReleaseLetterId: string | null = null;
+  private settledTowerHeightRatio = 0;
   private lastMessage = "Start the game to spawn letters.";
   private disposed = false;
 
@@ -158,6 +159,7 @@ export class GameRuntime {
     this.paperBurstVersion = 0;
     this.pendingPaperDrop = null;
     this.paperReleaseLetterId = null;
+    this.settledTowerHeightRatio = 0;
     this.lastMessage = "Game reset. Press start when ready.";
     this.publish();
   }
@@ -289,6 +291,7 @@ export class GameRuntime {
     }
 
     const states = this.physics.getLetterStates();
+    this.settledTowerHeightRatio = settledTowerHeightRatio(this.settledTowerHeightRatio, states, this.boardHeight, this.config.dangerLineY, this.config.letterHeight);
     this.updatePaperRelease(states);
     this.renderer.render(states);
     this.checkDangerLine(states, boundedDelta);
@@ -312,7 +315,7 @@ export class GameRuntime {
       removedCount: this.removedCount,
       playTimeMs: this.playTimeMs,
       activeLetterCount: states.length,
-      towerHeightRatio: towerHeightRatio(states, this.boardHeight, this.config.dangerLineY, this.config.letterHeight),
+      towerHeightRatio: this.settledTowerHeightRatio,
       lockedSymbol: this.core.snapshot().inputLock.lockedSymbol,
       queuedSymbol: this.queuedSymbol,
       paperBurstVersion: this.paperBurstVersion,

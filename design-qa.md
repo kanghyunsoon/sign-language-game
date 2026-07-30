@@ -19,3 +19,10 @@ final result: passed
 - Foreground layering: The walking hint otter now uses the foreground stacking layer, so it walks in front of stacked physics glyphs instead of being obscured by them.
 - Responsive canvas: The fixed game canvas uses its untransformed logical dimensions for Pixi and Matter, avoiding mismatched physics when the page is CSS-scaled.
 - Verification: `npm.cmd run build` passed. Targeted tower-height and solo result tests passed. `git diff --check` passed.
+
+### Follow-up adjustments
+
+- The gauge uses the fixed game-canvas dimension instead of viewport units, so browser zoom and window scaling preserve its intended proportion.
+- Its level now holds while any Matter glyph is moving and updates only after the pile has settled; this applies to solo and both 1:1 boards.
+- Physics glyphs are explicitly in front of the hill scenery, while the walking otter remains in front of the glyph layer.
+- The solo result overlay now shares the board's inner padding and its action buttons use the same content width as the card.
