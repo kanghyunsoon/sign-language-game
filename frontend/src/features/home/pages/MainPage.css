@@ -866,12 +866,14 @@ a {
   opacity: 0.55;
 }
 
+/* 좌상단 날짜와 겹치지 않도록 아래로 내린다. */
 .attendance-stamp {
   position: relative;
   display: grid;
   place-items: center;
-  width: 74%;
-  height: 74%;
+  width: 68%;
+  height: 68%;
+  margin-top: 16%;
 }
 
 .attendance-stamp img {
@@ -886,7 +888,7 @@ a {
   color: #807365;
   font-size: 30px;
   font-weight: 900;
-  text-shadow: 0 2px 4px rgba(63, 43, 32, 0.45);
+  /* text-shadow: 0 2px 4px rgba(63, 43, 32, 0.45); */
 }
 
 /* 스탬프만으로는 보조기기가 내용을 알 수 없어 텍스트를 숨겨 둔다. */
