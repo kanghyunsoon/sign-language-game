@@ -1076,6 +1076,17 @@ a {
   transform: none;
 }
 
+/* 여백이 좁아 같은 칸을 채우면 다른 집보다 크게 보이는 그림들의 보정.
+   프레임은 그대로 두고 그림만 줄여, [이사하기] 위치가 흔들리지 않게 한다.
+   translateY를 scale보다 앞에 둬서 올리는 거리가 함께 줄지 않는다. */
+.main-otter-frame .main-otter-on-log {
+  transform: translateY(-6%) scale(0.7);
+}
+
+.main-otter-frame .main-otter-riverside {
+  transform: translateY(-6%) scale(0.7);
+}
+
 /* [이사하기]도 히어로의 다른 버튼과 같은 흰 알약으로 맞추고, 화면 끝이 아니라
    수달 왼쪽 위에 붙인다. */
 .main-habitat-button {
