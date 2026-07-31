@@ -60,12 +60,14 @@ class LobbyBroadcastServiceTest {
     }
 
     /**
-     * 클라이언트가 이미 떠난 구독은 오류가 아니라 정상 종료로 닫는다. completeWithError로 닫으면
-     * 이미 끊긴 응답에 오류 본문을 쓰려고 MVC 예외 처리로 다시 들어가, 정상 이탈마다 전역 핸들러가
-     * ERROR 스택을 남긴다.
+     * 클라이언트가 이미 떠난 구독(AsyncRequestNotUsableException)은 컨테이너가 이미 비동기
+     * 컨텍스트를 끝낸 상태라, complete()/completeWithError() 둘 다 부르지 않는다(버그픽스).
+     * 여기서 emitter.complete()를 또 부르면 이미 끝난 컨텍스트를 재종료하려다
+     * IllegalStateException이 나고, 그 처리가 /error로 비동기 디스패치되며 보안 필터까지
+     * 다시 타 로그를 오염시켰다(직접 재현해 확인함).
      */
     @Test
-    void sendHeartbeat_clientAlreadyGone_completesWithoutError() throws Exception {
+    void sendHeartbeat_clientAlreadyGone_doesNotTouchEmitterAgain() throws Exception {
         GameRoomRepository repository = mock(GameRoomRepository.class);
         LobbySubscriberRegistry registry = new LobbySubscriberRegistry();
         SseEmitter emitter = mock(SseEmitter.class);
@@ -76,7 +78,7 @@ class LobbyBroadcastServiceTest {
 
         service.sendHeartbeat();
 
-        verify(emitter).complete();
+        verify(emitter, never()).complete();
         verify(emitter, never()).completeWithError(any());
     }
 
@@ -159,7 +161,7 @@ class LobbyBroadcastServiceTest {
 
     /** 스냅샷·업데이트 전송도 하트비트와 같은 종료 규칙을 따른다. */
     @Test
-    void broadcastUpdate_clientAlreadyGone_completesWithoutError() throws Exception {
+    void broadcastUpdate_clientAlreadyGone_doesNotTouchEmitterAgain() throws Exception {
         GameRoomRepository repository = mock(GameRoomRepository.class);
         given(repository.findByStatus(GameRoomStatus.WAITING)).willReturn(List.of());
         LobbySubscriberRegistry registry = new LobbySubscriberRegistry();
@@ -171,7 +173,7 @@ class LobbyBroadcastServiceTest {
 
         service.broadcastUpdate();
 
-        verify(emitter).complete();
+        verify(emitter, never()).complete();
         verify(emitter, never()).completeWithError(any());
     }
 }

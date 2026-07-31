@@ -78,16 +78,18 @@ public class LobbyBroadcastService {
      * {@code LobbySubscriberRegistry}에서 제거되는 동작은 동일하다.
      *
      * <p>클라이언트가 이미 떠난 경우({@link AsyncRequestNotUsableException} — 탭 닫기, 새로고침,
-     * 네트워크 단절)는 오류가 아니라 종료이므로 {@code complete()}로 조용히 닫는다.
-     * {@code completeWithError()}를 쓰면 이미 끊긴 응답에 오류 본문을 쓰려고 MVC 예외 처리로
-     * 다시 들어가, 정상 이탈마다 전역 핸들러가 ERROR 스택을 남기고 응답 Content-Type이
-     * {@code text/event-stream}으로 확정돼 있어 2차 실패까지 발생한다.
+     * 네트워크 단절)는 컨테이너가 이미 이 응답의 비동기 컨텍스트를 끝낸 상태다(버그픽스, 직접
+     * 재현해 확인함) — 이 예외 자체가 "더 이상 이 응답을 건드리지 마라"는 신호다. 여기서
+     * {@code emitter.complete()}를 또 부르면 이미 끝난 컨텍스트를 다시 건드리는 셈이라
+     * {@code IllegalStateException}("AsyncContext after an error had occurred")이 나고, 그
+     * 재종료 시도가 {@code /error}로 비동기 디스패치되면서 보안 필터 체인까지 다시 타 로그를
+     * 이중으로 오염시킨다. 등록 시 걸어둔 {@code onCompletion}/{@code onError} 콜백은 컨테이너의
+     * 종료 처리만으로 이미 실행되므로(또는 실행될 예정이므로), 여기서 더 할 일이 없다.
      *
      * <p>그 외 전송 실패는 원인을 남길 가치가 있으므로 기존대로 오류로 종료한다.
      */
     private void closeAfterFailure(SseEmitter emitter, IOException e) {
         if (e instanceof AsyncRequestNotUsableException) {
-            emitter.complete();
             return;
         }
         emitter.completeWithError(e);
