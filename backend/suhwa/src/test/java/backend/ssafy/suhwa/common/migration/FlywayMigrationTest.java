@@ -59,18 +59,21 @@ class FlywayMigrationTest {
         assertThat(result.success).isTrue();
         assertThat(result.migrationsExecuted)
                 .as("신규 DB에서는 V1부터 전부 실행돼야 한다")
-                .isGreaterThanOrEqualTo(5);
+                .isGreaterThanOrEqualTo(7);
         assertThat(appliedVersions(schema))
                 .as("버전이 빠짐없이 성공으로 기록돼야 한다")
                 .containsEntry("1", true)
                 .containsEntry("2", true)
-                .containsEntry("3", true)
                 .containsEntry("4", true)
-                .containsEntry("5", true);
+                .containsEntry("5", true)
+                .containsEntry("6", true)
+                .containsEntry("7", true)
+                .containsEntry("8", true);
         assertGameRoomIndexReplaced(schema);
         assertTestSessionSchemaCreated(schema);
         assertGrowthSchemaMigrated(schema);
-        assertActivityRewardSchemaMigrated(schema);
+        assertExpandedPetGrowthConstraints(schema);
+        assertObsoleteActivitySessionSchemaRemoved(schema);
     }
 
     @Test
@@ -86,22 +89,25 @@ class FlywayMigrationTest {
                 .as("V1은 실행하지 않고 baseline으로만 기록되며, V2는 실제로 적용돼야 한다")
                 .containsEntry("1", true)
                 .containsEntry("2", true)
-                .containsEntry("3", true)
                 .containsEntry("4", true)
-                .containsEntry("5", true);
+                .containsEntry("5", true)
+                .containsEntry("6", true)
+                .containsEntry("7", true)
+                .containsEntry("8", true);
         assertThat(baselineRowExists(schema))
                 .as("baseline-on-migrate가 동작했다면 BASELINE 타입 행이 있어야 한다")
                 .isTrue();
         assertGameRoomIndexReplaced(schema);
         assertTestSessionSchemaCreated(schema);
         assertGrowthSchemaMigrated(schema);
-        assertActivityRewardSchemaMigrated(schema);
+        assertExpandedPetGrowthConstraints(schema);
+        assertObsoleteActivitySessionSchemaRemoved(schema);
     }
 
     @Test
     void existingCompletedTestSessionsAreBackfilledWithoutRetroactiveReward() throws Exception {
         String schema = resetDatabase();
-        flyway(schema, "3").migrate();
+        flyway(schema, "5").migrate();
         try (Connection connection = connect(schema);
                 Statement statement = connection.createStatement()) {
             statement.executeUpdate(
@@ -122,28 +128,57 @@ class FlywayMigrationTest {
                 .isEqualTo(1);
     }
 
-    private void assertActivityRewardSchemaMigrated(String schema) throws SQLException {
+    @Test
+    void v8ConvertsSoloDurationToCeilingSecondsAndPreservesExistingSecondScores() throws Exception {
+        String schema = resetDatabase();
+        flyway(schema, "7").migrate();
+        try (Connection connection = connect(schema);
+                Statement statement = connection.createStatement()) {
+            statement.executeUpdate(
+                    "INSERT INTO users (email, password_hash, nickname) "
+                            + "VALUES ('solo@test.com', 'hash', 'solo')");
+            statement.executeUpdate(
+                    "INSERT INTO game_results (user_id, game_type, score, play_duration_ms) VALUES "
+                            + "(1, 'TETRIS_SOLO', 999, 60000), "
+                            + "(1, 'TETRIS_SOLO', 999, 60001), "
+                            + "(1, 'TETRIS_SOLO', 90, NULL)");
+        }
+
+        flyway(schema).migrate();
+
+        assertThat(count(schema, "SELECT COUNT(*) FROM game_results WHERE game_type = 'TETRIS_SOLO'"))
+                .as("V8 must preserve every solo result row")
+                .isEqualTo(3);
+        assertThat(count(schema,
+                "SELECT COUNT(*) FROM game_results "
+                        + "WHERE game_type = 'TETRIS_SOLO' AND score IN (60, 61, 90)"))
+                .as("milliseconds are rounded up to seconds and legacy second scores stay unchanged")
+                .isEqualTo(3);
+        assertObsoleteActivitySessionSchemaRemoved(schema);
+    }
+
+    private void assertObsoleteActivitySessionSchemaRemoved(String schema) throws SQLException {
         assertThat(count(schema,
                 "SELECT COUNT(*) FROM information_schema.TABLES "
                         + "WHERE TABLE_SCHEMA = '" + schema + "' "
                         + "AND TABLE_NAME IN ('practice_sessions', 'solo_sessions', "
                         + "'solo_session_symbols', 'solo_symbol_statistics')"))
-                .as("V5 creates activity idempotency tables")
-                .isEqualTo(4);
+                .as("V8 removes unused practice and solo session tables")
+                .isZero();
         assertThat(count(schema,
                 "SELECT COUNT(*) FROM information_schema.COLUMNS "
                         + "WHERE TABLE_SCHEMA = '" + schema + "' "
                         + "AND TABLE_NAME = 'test_sessions' "
                         + "AND COLUMN_NAME IN ('correct_count', 'total_count')"))
-                .as("V5 stores the authoritative test completion result")
+                .as("V6 stores the authoritative test completion result")
                 .isEqualTo(2);
         assertThat(count(schema,
                 "SELECT COUNT(*) FROM information_schema.COLUMNS "
                         + "WHERE TABLE_SCHEMA = '" + schema + "' "
                         + "AND TABLE_NAME = 'game_results' "
                         + "AND COLUMN_NAME IN ('solo_session_id', 'play_duration_ms')"))
-                .as("V5 links solo results and completion time")
-                .isEqualTo(2);
+                .as("V8 restores game_results to game_type and score only")
+                .isZero();
     }
 
     private void assertGrowthSchemaMigrated(String schema) throws SQLException {
@@ -159,6 +194,21 @@ class FlywayMigrationTest {
                         + "AND TABLE_NAME = 'user_pets' AND CONSTRAINT_TYPE = 'CHECK'"))
                 .as("V4 constrains pet level and experience")
                 .isGreaterThanOrEqualTo(2);
+    }
+
+    private void assertExpandedPetGrowthConstraints(String schema) throws SQLException {
+        try (Connection connection = connect(schema);
+                Statement statement = connection.createStatement()) {
+            statement.executeUpdate(
+                    "INSERT INTO users (email, password_hash, nickname) "
+                            + "VALUES ('level20@test.com', 'hash', 'level20')");
+            statement.executeUpdate(
+                    "INSERT INTO user_pets (user_id, level, exp) VALUES (LAST_INSERT_ID(), 20, 0)");
+        }
+
+        assertThat(count(schema, "SELECT COUNT(*) FROM user_pets WHERE level = 20 AND exp = 0"))
+                .as("V7 allows the new maximum level while keeping maximum-level XP at zero")
+                .isEqualTo(1);
     }
 
     private void assertTestSessionSchemaCreated(String schema) throws SQLException {

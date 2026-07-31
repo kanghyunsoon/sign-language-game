@@ -82,8 +82,10 @@ game:
 
 growth:
   attendance-exp: ${GROWTH_ATTENDANCE_EXP:3}
-  practice-exp: ${GROWTH_PRACTICE_EXP:10}
   test-exp: ${GROWTH_TEST_EXP:7}
+  solo-fast-score-max: ${GROWTH_SOLO_FAST_SCORE_MAX:60}
+  solo-medium-score-max: ${GROWTH_SOLO_MEDIUM_SCORE_MAX:90}
+  solo-slow-score-max: ${GROWTH_SOLO_SLOW_SCORE_MAX:120}
   solo-fast-exp: ${GROWTH_SOLO_FAST_EXP:15}
   solo-medium-exp: ${GROWTH_SOLO_MEDIUM_EXP:10}
   solo-slow-exp: ${GROWTH_SOLO_SLOW_EXP:5}
@@ -91,8 +93,10 @@ growth:
   duel-loser-exp: ${GROWTH_DUEL_LOSER_EXP:3}
   exp-per-level: ${GROWTH_EXP_PER_LEVEL:20}
   first-evolution-level: ${GROWTH_FIRST_EVOLUTION_LEVEL:5}
-  final-evolution-level: ${GROWTH_FINAL_EVOLUTION_LEVEL:10}
-  max-level: ${GROWTH_MAX_LEVEL:10}
+  second-evolution-level: ${GROWTH_SECOND_EVOLUTION_LEVEL:10}
+  third-evolution-level: ${GROWTH_THIRD_EVOLUTION_LEVEL:15}
+  final-evolution-level: ${GROWTH_FINAL_EVOLUTION_LEVEL:20}
+  max-level: ${GROWTH_MAX_LEVEL:20}
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:}

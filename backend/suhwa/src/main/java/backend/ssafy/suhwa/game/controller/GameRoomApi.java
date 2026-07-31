@@ -60,15 +60,14 @@ public interface GameRoomApi {
     @PostMapping("/game-rooms/{roomId}/start")
     ResponseEntity<GameRoomResponse> startGame(@LoginUser Long userId, @PathVariable Long roomId);
 
-    @Operation(summary = "게임 결과 보고 (변경 — 점수 대신 승자 정보만)", description =
-            "001/002 계약을 대체한다. 점수는 더 이상 받지 않는다(FR-021). 승자는 역할이 아니라 사용자 ID로 "
-                    + "직접 지정하며, 생략하거나 null이면 무승부로 처리되어 어느 쪽의 승패에도 반영되지 않는다(FR-033).")
+    @Operation(summary = "1대1 게임 결과 보고", description =
+            "승자의 사용자 ID만 전송한다. 승자는 game_results score=1과 펫 XP 10, 패자는 score=0과 "
+                    + "펫 XP 3을 받는다. winnerUserId를 생략하거나 null로 보내면 무승부로 처리하며 결과와 XP를 지급하지 않는다.")
     @ApiResponse(responseCode = "201", description =
-            "winnerUserId가 있으면 승자에게 game_results score=1, 패자에게 score=0 행을 반영한다(FR-021/026). "
-                    + "방은 CLOSED가 아니라 WAITING으로 복귀해 재대결이 가능해진다(FR-013).")
-    @ApiResponse(responseCode = "400", description = "winnerUserId가 해당 방의 참가자(host/guest)가 아님")
-    @ApiResponse(responseCode = "403", description = "해당 게임 참가자가 아님 (Edge Case)")
-    @ApiResponse(responseCode = "409", description = "방이 이미 진행 중(IN_PROGRESS)이 아님 — 중복 보고 또는 무효화된 매치")
+            "결과와 보상을 반영하고 방을 WAITING 상태로 돌려 재대결 가능")
+    @ApiResponse(responseCode = "400", description = "winnerUserId가 해당 방 참가자가 아님")
+    @ApiResponse(responseCode = "403", description = "요청자가 해당 게임 참가자가 아님")
+    @ApiResponse(responseCode = "409", description = "진행 중인 게임이 아니거나 이미 결과가 보고됨")
     @PostMapping("/game-rooms/{roomId}/results")
     ResponseEntity<GameResultResponse> reportResult(
             @LoginUser Long userId, @PathVariable Long roomId, @RequestBody @Valid GameResultRequest request);

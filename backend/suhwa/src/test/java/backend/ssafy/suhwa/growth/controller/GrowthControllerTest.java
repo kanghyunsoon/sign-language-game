@@ -64,7 +64,7 @@ class GrowthControllerTest {
 
     @Test
     void postAttendanceReturnsGrowthResult() throws Exception {
-        PetStatusResponse pet = new PetStatusResponse(1, 3, 17, EvolutionStage.STAGE_1, 10);
+        PetStatusResponse pet = new PetStatusResponse(1, 3, 17, EvolutionStage.STAGE_1, 20);
         given(attendanceService.checkIn(1L)).willReturn(
                 new AttendanceCompletionResponse(
                         LocalDate.of(2026, 7, 30), true, 1, true, 3, pet));
@@ -79,7 +79,7 @@ class GrowthControllerTest {
     @Test
     void getPetReturnsCurrentGrowthState() throws Exception {
         given(petQueryService.getStatus(1L))
-                .willReturn(new PetStatusResponse(5, 7, 13, EvolutionStage.STAGE_2, 10));
+                .willReturn(new PetStatusResponse(5, 7, 13, EvolutionStage.STAGE_2, 20));
 
         mockMvc.perform(get("/growth/pet"))
                 .andExpect(status().isOk())

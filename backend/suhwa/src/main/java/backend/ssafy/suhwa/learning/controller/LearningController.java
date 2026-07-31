@@ -2,15 +2,12 @@ package backend.ssafy.suhwa.learning.controller;
 
 import backend.ssafy.suhwa.learning.domain.SignCategory;
 import backend.ssafy.suhwa.learning.dto.SignResponse;
-import backend.ssafy.suhwa.learning.dto.ActivityCompletionResponse;
-import backend.ssafy.suhwa.learning.dto.PracticeSessionResponse;
 import backend.ssafy.suhwa.learning.dto.TestCompletionRequest;
 import backend.ssafy.suhwa.learning.dto.TestSessionResponse;
 import backend.ssafy.suhwa.learning.dto.TetrisWeightResponse;
 import backend.ssafy.suhwa.learning.dto.WrongAnswerRequest;
 import backend.ssafy.suhwa.learning.dto.WrongAnswerResponse;
 import backend.ssafy.suhwa.learning.service.SignService;
-import backend.ssafy.suhwa.learning.service.PracticeSessionService;
 import backend.ssafy.suhwa.learning.service.TestSessionService;
 import backend.ssafy.suhwa.learning.service.WrongAnswerService;
 import java.util.List;
@@ -26,13 +23,11 @@ public class LearningController implements LearningApi {
     private final SignService signService;
     private final WrongAnswerService wrongAnswerService;
     private final TestSessionService testSessionService;
-    private final PracticeSessionService practiceSessionService;
 
     @Override
     public ResponseEntity<List<SignResponse>> listSigns(SignCategory category) {
-        List<SignResponse> responses = signService.getActiveSignsByCategory(category).stream()
-                .map(SignResponse::from)
-                .toList();
+        List<SignResponse> responses =
+                signService.getActiveSignsByCategory(category).stream().map(SignResponse::from).toList();
         return ResponseEntity.ok(responses);
     }
 
@@ -43,25 +38,14 @@ public class LearningController implements LearningApi {
     }
 
     @Override
-    public ResponseEntity<List<WrongAnswerResponse>> listWrongAnswers(Long userId, SignCategory category) {
+    public ResponseEntity<List<WrongAnswerResponse>> listWrongAnswers(
+            Long userId, SignCategory category) {
         return ResponseEntity.ok(wrongAnswerService.getRecentWrongAnswers(userId, category));
     }
 
     @Override
     public ResponseEntity<List<TetrisWeightResponse>> getTetrisWeights(Long userId) {
         return ResponseEntity.ok(wrongAnswerService.getTetrisWeightsFromRecentTests(userId));
-    }
-
-    @Override
-    public ResponseEntity<PracticeSessionResponse> startPracticeSession(Long userId) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(PracticeSessionResponse.from(practiceSessionService.start(userId)));
-    }
-
-    @Override
-    public ResponseEntity<ActivityCompletionResponse> completePracticeSession(
-            Long userId, Long practiceSessionId) {
-        return ResponseEntity.ok(practiceSessionService.complete(userId, practiceSessionId));
     }
 
     @Override

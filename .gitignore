@@ -24,6 +24,7 @@ build/
 
 ### Java ###
 *.class
+**/bin/
 HELP.md
 
 ### Env ###

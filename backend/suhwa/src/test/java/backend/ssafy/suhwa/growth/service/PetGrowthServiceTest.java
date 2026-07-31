@@ -50,4 +50,14 @@ class PetGrowthServiceTest {
         assertThat(pet.getLevel()).isEqualTo(2);
         assertThat(pet.getExp()).isEqualTo(3);
     }
+
+    @Test
+    void legacyLevelTenPetCanReceiveExperienceTowardLevelTwenty() {
+        UserPet pet = UserPet.builder().userId(1L).level(10).exp(0).build();
+
+        petGrowthService.addExperience(pet, 20);
+
+        assertThat(pet.getLevel()).isEqualTo(11);
+        assertThat(pet.getExp()).isZero();
+    }
 }

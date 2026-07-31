@@ -60,8 +60,24 @@ public class UserPet extends BaseTimeEntity {
         }
     }
 
-    public EvolutionStage evolutionStage(int firstEvolutionLevel, int finalEvolutionLevel) {
+    public EvolutionStage evolutionStage(
+            int firstEvolutionLevel,
+            int secondEvolutionLevel,
+            int thirdEvolutionLevel,
+            int finalEvolutionLevel) {
+        if (firstEvolutionLevel < 1
+                || firstEvolutionLevel >= secondEvolutionLevel
+                || secondEvolutionLevel >= thirdEvolutionLevel
+                || thirdEvolutionLevel >= finalEvolutionLevel) {
+            throw new IllegalArgumentException("진화 단계 정책 값이 올바르지 않습니다.");
+        }
         if (level >= finalEvolutionLevel) {
+            return EvolutionStage.STAGE_5;
+        }
+        if (level >= thirdEvolutionLevel) {
+            return EvolutionStage.STAGE_4;
+        }
+        if (level >= secondEvolutionLevel) {
             return EvolutionStage.STAGE_3;
         }
         if (level >= firstEvolutionLevel) {

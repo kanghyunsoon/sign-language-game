@@ -44,11 +44,11 @@ public class OpenApiConfig {
                 .tags(new ArrayList<>(List.of(
                         new Tag().name("Auth").description("회원가입/로그인/토큰 재발급/로그아웃"),
                         new Tag().name("Users").description("회원 프로필 조회/수정/탈퇴"),
-                        new Tag().name("Learning").description("학습 콘텐츠/오답노트/테스트 결과"),
+                        new Tag().name("Learning").description("학습 콘텐츠/오답노트/테스트"),
                         new Tag().name("Growth").description("출석 및 펫 성장 상태"),
-                        new Tag().name("SoloSessions").description("테트리스 솔로 세션 시작/완료/결과"),
+                        new Tag().name("SoloResults").description("테트리스 솔로 완료 결과"),
                         new Tag().name("GameRooms").description("게임방 생성/입장/진행/결과"),
-                        new Tag().name("Ranking").description("랭킹 조회"))));
+                        new Tag().name("Ranking").description("게임 종류별 랭킹 조회"))));
     }
 
     /**
