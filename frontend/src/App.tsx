@@ -36,7 +36,14 @@ export function App() {
         <Route path="/" element={<PreLoginPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
-        <Route path="/main" element={<MainPage />} />
+        <Route
+          path="/main"
+          element={
+            <ProtectedRoute>
+              <MainPage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/profile"
           element={
@@ -45,10 +52,38 @@ export function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/practice" element={<PracticeHomePage />} />
-        <Route path="/dictionary" element={<DictionaryPage />} />
-        <Route path="/test" element={<TestPage />} />
-        <Route path="/review-notes" element={<ReviewNotesPage />} />
+        <Route
+          path="/practice"
+          element={
+            <ProtectedRoute>
+              <PracticeHomePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dictionary"
+          element={
+            <ProtectedRoute>
+              <DictionaryPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/test"
+          element={
+            <ProtectedRoute>
+              <TestPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/review-notes"
+          element={
+            <ProtectedRoute>
+              <ReviewNotesPage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/game/*"
           element={
