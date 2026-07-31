@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "modelVersion": "number-10-v1",
+  "labels": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "none"
+  ],
+  "featureVersion": "v3",
+  "featureSize": 78,
+  "frameInput": true,
+  "format": "sklearn-extra-trees",
+  "artifact": "number-10.joblib",
+  "sha256": "9c1cd23e068e497f4839bdac232f6fa1b0f8c3395347f4883d763bf3e763a96e",
+  "datasets": [
+    "captured-2026-07-video",
+    "holdout2-2026-07-29",
+    "ksl-numbers",
+    "new7-2026-07-28",
+    "roboflow-jamo-as-none"
+  ],
+  "evaluation": "evaluation.json"
+}

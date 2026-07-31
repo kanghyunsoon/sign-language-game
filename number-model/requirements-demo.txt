@@ -1,0 +1,4 @@
+-r requirements-extract.txt
+# live_demo.py only. opencv arrives with mediapipe but is named here on purpose.
+opencv-contrib-python
+matplotlib

@@ -9,3 +9,8 @@ ai/data/rejected/
 ai/artifacts/
 *.jsonl
 *.npz
+
+word-model/models/word-13-v1/*
+!word-model/models/word-13-v1/.gitkeep
+!word-model/models/word-13-v1/manifest.json
+!word-model/models/word-13-v1/best_model.pt
