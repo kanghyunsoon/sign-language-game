@@ -77,6 +77,13 @@ public class GameRoomService {
 
     @Transactional
     public GameRoomResponse create(Long hostUserId, GameType gameType) {
+        // 한 유저가 활성 방(WAITING/IN_PROGRESS)을 여러 개 갖지 못하게 막는다(버그픽스) — 이전엔
+        // 이 확인이 전혀 없어 재요청/재접속마다 방이 방치된 채 계속 쌓일 수 있었다. 조회 후 삽입
+        // 방식이라 완벽한 동시성 보장은 아니다(같은 유저의 거의 동시 create() 요청은 이론상 둘 다
+        // 통과할 수 있음) — DB 유니크 제약까지는 이번 범위에서 넣지 않기로 했다.
+        if (gameRoomRepository.existsActiveRoomForUser(hostUserId)) {
+            throw new BusinessException(ErrorCode.ALREADY_IN_ACTIVE_ROOM);
+        }
         GameRoom room = GameRoom.builder()
                 .roomCode(generateUniqueRoomCode())
                 .hostUserId(hostUserId)

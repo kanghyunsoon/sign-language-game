@@ -100,6 +100,33 @@ class GameRoomServiceTest {
     }
 
     @Test
+    void create_rejectedWhenHostAlreadyHasActiveRoom() {
+        gameRoomService.create(hostId, GameType.SIGN_DUEL);
+
+        assertThatThrownBy(() -> gameRoomService.create(hostId, GameType.TETRIS_DUEL))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void create_rejectedWhenGuestOfAnotherActiveRoomTriesToCreate() {
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
+        gameRoomService.join(room.roomCode(), guestId);
+
+        assertThatThrownBy(() -> gameRoomService.create(guestId, GameType.SIGN_DUEL))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void create_allowedAgainAfterPreviousRoomClosed() {
+        GameRoomResponse first = gameRoomService.create(hostId, GameType.SIGN_DUEL);
+        gameRoomService.leave(first.id(), hostId);
+
+        GameRoomResponse second = gameRoomService.create(hostId, GameType.TETRIS_DUEL);
+
+        assertThat(second.gameType()).isEqualTo(GameType.TETRIS_DUEL);
+    }
+
+    @Test
     void join_includesRealtimeTicket_andReentryIssuesNewOne() {
         GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
 
