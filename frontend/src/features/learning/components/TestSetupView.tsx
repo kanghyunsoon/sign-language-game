@@ -13,7 +13,6 @@ import {
   resolveQuestionCount,
   testCategories,
 } from "../data/testSession";
-import { fingerspellingItems } from "../data/fingerspelling";
 import otterImage from "../assets/otter.png";
 
 interface TestSetupViewProps {
@@ -24,21 +23,20 @@ interface TestSetupViewProps {
 export function TestSetupView({ onStart }: TestSetupViewProps) {
   const [selectedCategories, setSelectedCategories] = useState<
     TestCategoryId[]
-  >(["consonant"]);
-  const [presetId, setPresetId] = useState<TestCountPresetId>("5");
+  >([]);
+  const [presetId, setPresetId] = useState<TestCountPresetId | null>(null);
   const [customCount, setCustomCount] = useState(5);
 
   const availableCount = maxQuestionCount(selectedCategories);
-  const requestedCount = requestedCountForPreset(
-    presetId,
-    selectedCategories,
-    customCount,
-  );
+  const requestedCount = presetId
+    ? requestedCountForPreset(presetId, selectedCategories, customCount)
+    : 0;
   const resolvedCount = resolveQuestionCount(
     selectedCategories,
     requestedCount,
   );
-  const isStartDisabled = resolvedCount === 0;
+  const isStartDisabled =
+    selectedCategories.length === 0 || presetId === null || resolvedCount === 0;
   // 보유 글자보다 많이 고르면 가능한 개수로 줄여 출제한다.
   const isCountReduced = resolvedCount > 0 && resolvedCount < requestedCount;
 
@@ -74,6 +72,10 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
   const countNotice = () => {
     if (selectedCategories.length === 0) {
       return "분류를 한 개 이상 선택해 주세요.";
+    }
+
+    if (presetId === null) {
+      return "문항 수를 선택해 주세요.";
     }
 
     if (isStartDisabled) {
@@ -147,7 +149,9 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
 
                     <span className="test-category-count">
                       {isAvailable
-                        ? `${fingerspellingItems[category.id].length}자`
+                        ? `${maxQuestionCount([category.id])}${
+                            category.id === "word" ? "개" : "자"
+                          }`
                         : "준비중"}
                     </span>
                   </span>
@@ -177,7 +181,11 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
                   type="button"
                   key={preset.id}
                   aria-pressed={isSelected}
-                  onClick={() => setPresetId(preset.id)}
+                  onClick={() =>
+                    setPresetId((previous) =>
+                      previous === preset.id ? null : preset.id,
+                    )
+                  }
                 >
                   {preset.label}
                 </button>

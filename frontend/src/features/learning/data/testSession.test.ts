@@ -24,6 +24,7 @@ describe("testQuestionPool", () => {
     expect(testQuestionPool(["number"])).toHaveLength(10);
     expect(testQuestionPool(["consonant"])).toHaveLength(14);
     expect(testQuestionPool(["vowel"])).toHaveLength(17);
+    expect(testQuestionPool(["word"])).toHaveLength(13);
   });
 
   it("여러 분류를 자음 → 모음 → 숫자 순서로 합친다", () => {
@@ -163,12 +164,12 @@ describe("requestedCountForPreset", () => {
 });
 
 describe("테스트 가능 분류", () => {
-  it("AI가 지원하지 않는 숫자는 아직 테스트할 수 없다", () => {
-    // 현재 모델(jamo-31-v1)은 자음·모음만 학습되어 있다.
-    expect(UNSUPPORTED_TEST_CATEGORIES).toEqual(["number"]);
-    expect(isTestCategoryAvailable("number")).toBe(false);
+  it("자음·모음·숫자·단어를 모두 테스트할 수 있다", () => {
+    expect(UNSUPPORTED_TEST_CATEGORIES).toEqual([]);
+    expect(isTestCategoryAvailable("number")).toBe(true);
     expect(isTestCategoryAvailable("consonant")).toBe(true);
     expect(isTestCategoryAvailable("vowel")).toBe(true);
+    expect(isTestCategoryAvailable("word")).toBe(true);
   });
 });
 
@@ -204,22 +205,19 @@ describe("buildTestQuestionsFromSymbols", () => {
     ).toHaveLength(symbols.length);
   });
 
-  it("URL을 직접 고쳐 숫자가 들어와도 지원 분류만 남긴다", () => {
+  it("오답노트에서 선택한 숫자도 테스트 문항으로 유지한다", () => {
     const questions = buildTestQuestionsFromSymbols(
       entriesFor(["ㄱ", "1", "ㅏ", "10"]),
       zeroRandom,
     );
 
     expect(questions.map((question) => question.symbol).sort()).toEqual(
-      ["ㄱ", "ㅏ"].sort(),
+      ["ㄱ", "1", "ㅏ", "10"].sort(),
     );
   });
 
   it("남는 글자가 없으면 빈 배열이다", () => {
     expect(buildTestQuestionsFromSymbols([], zeroRandom)).toEqual([]);
-    expect(
-      buildTestQuestionsFromSymbols(entriesFor(["1", "2"]), zeroRandom),
-    ).toEqual([]);
   });
 
   it("원본 배열을 바꾸지 않는다", () => {

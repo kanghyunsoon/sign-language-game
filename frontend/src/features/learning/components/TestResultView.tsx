@@ -5,6 +5,7 @@ import { FingerspellingDetail } from "./FingerspellingDetail";
 import type { TestQuestionResult } from "../data/testSession";
 import { wrongResults } from "../data/testSession";
 import { addReviewNote, removeReviewNotes } from "../data/reviewNotes";
+import type { FingerspellingEntry } from "../data/fingerspelling";
 
 interface TestResultViewProps {
   readonly results: readonly TestQuestionResult[];
@@ -20,17 +21,29 @@ interface WrongNoteToast {
 /** 알림이 화면에 머무는 시간. */
 const TOAST_DURATION_MS = 2200;
 
+const isFingerspellingQuestion = (
+  question: TestQuestionResult["question"],
+): question is TestQuestionResult["question"] & FingerspellingEntry =>
+  question.categoryId !== "word";
+
 /** 테스트가 끝난 뒤 문항별 정오답과 지문자 상세를 보여주는 결과 화면. */
 export function TestResultView({ results, onRetry }: TestResultViewProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   // 틀린 글자를 오답노트에 담아 둔 상태로 시작하고, 상세에서 개별로 넣고 뺄 수 있다.
   const [wrongNoteSymbols, setWrongNoteSymbols] = useState(
-    () => new Set(wrongResults(results).map((result) => result.question.symbol)),
+    () =>
+      new Set(
+        wrongResults(results)
+          .filter((result) => isFingerspellingQuestion(result.question))
+          .map((result) => result.question.symbol),
+      ),
   );
 
   // 틀린 글자는 결과 화면에 들어오는 즉시 오답노트에 담긴다.
   useEffect(() => {
-    wrongResults(results).forEach((result) => addReviewNote(result.question.symbol));
+    wrongResults(results)
+      .filter((result) => isFingerspellingQuestion(result.question))
+      .forEach((result) => addReviewNote(result.question.symbol));
   }, [results]);
 
   const wrongCount = wrongResults(results).length;
@@ -168,24 +181,39 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
           </div>
         </section>
 
-        <FingerspellingDetail
-          className="test-result-detail"
-          entry={selectedResult.question}
-          footer={
-            <button
-              className={`test-wrong-note-toggle ${
-                isSelectedInWrongNote ? "test-wrong-note-toggle-remove" : ""
-              }`}
-              type="button"
-              aria-pressed={isSelectedInWrongNote}
-              onClick={() =>
-                handleWrongNoteToggle(selectedResult.question.symbol)
-              }
-            >
-              {isSelectedInWrongNote ? "오답노트 삭제하기" : "오답노트 추가하기"}
-            </button>
-          }
-        />
+        {isFingerspellingQuestion(selectedResult.question) ? (
+          <FingerspellingDetail
+            className="test-result-detail"
+            entry={selectedResult.question}
+            footer={
+              <button
+                className={`test-wrong-note-toggle ${
+                  isSelectedInWrongNote ? "test-wrong-note-toggle-remove" : ""
+                }`}
+                type="button"
+                aria-pressed={isSelectedInWrongNote}
+                onClick={() =>
+                  handleWrongNoteToggle(selectedResult.question.symbol)
+                }
+              >
+                {isSelectedInWrongNote ? "오답노트 삭제하기" : "오답노트 추가하기"}
+              </button>
+            }
+          />
+        ) : (
+          <section className="fingerspelling-detail test-result-detail">
+            <span className="fingerspelling-detail-badge">수어 · 단어</span>
+            <h2 className="fingerspelling-detail-symbol">
+              {selectedResult.question.symbol}
+            </h2>
+            <p className="fingerspelling-detail-name">
+              {selectedResult.question.name}
+            </p>
+            <div className="fingerspelling-detail-image">
+              <p>수어 동작 영상은 준비 중입니다.</p>
+            </div>
+          </section>
+        )}
       </div>
 
       {toast ? (
