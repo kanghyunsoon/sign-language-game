@@ -37,9 +37,9 @@ export class BattleResultClient {
         method: "POST",
         credentials: "include",
         headers,
-        body: JSON.stringify({
-          winnerUserId: winnerUserId === null ? null : requiredUserId(winnerUserId),
-        }),
+        body: JSON.stringify(
+          winnerUserId === null ? {} : { winnerUserId: requiredUserId(winnerUserId) },
+        ),
       },
     );
     if (!response.ok) throw new BattleResultRequestError(response.status, await responseBody(response));
@@ -56,7 +56,9 @@ async function responseBody(response: Response): Promise<unknown> {
 function parseBattleResult(value: unknown): BattleResultResponse {
   if (!isRecord(value)) throw new Error("Invalid battle result response.");
   return {
-    winnerUserId: value.winnerUserId === null ? null : integer(value.winnerUserId, "winnerUserId"),
+    winnerUserId: value.winnerUserId === null || value.winnerUserId === undefined
+      ? null
+      : integer(value.winnerUserId, "winnerUserId"),
   };
 }
 function requiredUserId(value: string | number): number {

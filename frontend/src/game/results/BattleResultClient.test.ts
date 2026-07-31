@@ -6,7 +6,7 @@ describe("BattleResultClient", () => {
     const calls: Array<{ url: string; init?: RequestInit }> = [];
     const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       calls.push({ url: String(input), init });
-      return new Response(JSON.stringify({ winnerUserId: winnerUserId === null ? null : Number(winnerUserId) }), {
+      return new Response(JSON.stringify(winnerUserId === null ? {} : { winnerUserId: Number(winnerUserId) }), {
         status: 201,
         headers: { "Content-Type": "application/json" },
       });
@@ -18,9 +18,9 @@ describe("BattleResultClient", () => {
       winnerUserId: winnerUserId === null ? null : Number(winnerUserId),
     });
     expect(calls[0]?.url).toBe("/api/game-rooms/7/results?userId=42");
-    expect(JSON.parse(String(calls[0]?.init?.body))).toEqual({
-      winnerUserId: winnerUserId === null ? null : Number(winnerUserId),
-    });
+    expect(JSON.parse(String(calls[0]?.init?.body))).toEqual(
+      winnerUserId === null ? {} : { winnerUserId: Number(winnerUserId) },
+    );
   });
 
   it("preserves a 409 as a room-lifecycle conflict", async () => {
