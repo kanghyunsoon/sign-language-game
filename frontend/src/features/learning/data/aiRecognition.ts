@@ -33,6 +33,5 @@ export function getWordAiWebSocketUrl(): string {
     return configuredUrl;
   }
 
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${protocol}//${window.location.host}/word`;
+  return "wss://i15a405.p.ssafy.io/word";
 }
