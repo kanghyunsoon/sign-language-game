@@ -46,6 +46,7 @@ export function ProfilePage() {
   const [soloRanking, setSoloRanking] = useState<RankingEntry | null>(null);
   const [statsLoading, setStatsLoading] = useState(Boolean(accessToken));
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
+  const [isExperienceGuideOpen, setIsExperienceGuideOpen] = useState(false);
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
   const [deleteAccountError, setDeleteAccountError] = useState<string | null>(null);
   const [deletingAccount, setDeletingAccount] = useState(false);
@@ -253,10 +254,14 @@ export function ProfilePage() {
             <img src={wrongAnswerNoteIcon} alt="" />
             <span>오답 노트</span>
           </Link>
-          <div className="profile-floating-item profile-item-star">
+          <button
+            className="profile-floating-item profile-item-star"
+            type="button"
+            onClick={() => setIsExperienceGuideOpen(true)}
+          >
             <img src={starIcon} alt="" />
             <span>경험치 얻기</span>
-          </div>
+          </button>
 
           {SHOW_LEVEL_CARD && <section className="profile-level-card" aria-label="학습 레벨">
             <div className="profile-level-heading">
@@ -428,7 +433,67 @@ export function ProfilePage() {
               ×
             </button>
             <h2 id="profile-attendance-title">출석체크</h2>
-            <AttendanceCard />
+            <AttendanceCard
+              accessToken={accessToken}
+              onPetUpdated={setGrowth}
+            />
+          </section>
+        </div>
+      )}
+
+      {isExperienceGuideOpen && (
+        <div
+          className="profile-experience-guide-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="profile-experience-guide-title"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target) {
+              setIsExperienceGuideOpen(false);
+            }
+          }}
+        >
+          <section className="profile-experience-guide">
+            <button
+              className="profile-experience-guide-close"
+              type="button"
+              aria-label="경험치 얻는 방법 닫기"
+              onClick={() => setIsExperienceGuideOpen(false)}
+            >
+              ×
+            </button>
+
+            <h2 id="profile-experience-guide-title">경험치 얻는 방법</h2>
+            <p className="profile-experience-guide-intro">
+              출석하고, 테스트와 게임에 참여해 수달을 성장시켜 보세요!
+            </p>
+
+            <ol className="profile-experience-methods">
+              <li>
+                <span>1</span>
+                <strong>매일 출석하기</strong>
+                <p>하루에 한 번 출석체크하고 3XP를 받아요.</p>
+              </li>
+              <li>
+                <span>2</span>
+                <strong>테스트 도전하기</strong>
+                <p>정답률 80% 이상을 달성하면 7XP를 받아요.</p>
+              </li>
+              <li>
+                <span>3</span>
+                <strong>블록 쌓기 기록 도전</strong>
+                <p>120초 안에 완료하면 기록에 따라 최대 15XP를 받아요.</p>
+              </li>
+              <li>
+                <span>4</span>
+                <strong>친구와 대전하기</strong>
+                <p>대전에서 승리하면 10XP, 패배해도 3XP를 받아요.</p>
+              </li>
+            </ol>
+
+            <p className="profile-experience-guide-footer">
+              획득한 경험치는 프로필에서 확인할 수 있어요.
+            </p>
           </section>
         </div>
       )}

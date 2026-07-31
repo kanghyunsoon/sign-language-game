@@ -14,6 +14,12 @@ export interface AttendanceStatus {
   readonly streakCount: number;
 }
 
+export interface AttendanceCompletion extends AttendanceStatus {
+  readonly newlyAttended: boolean;
+  readonly awardedExp: number;
+  readonly pet: PetGrowth;
+}
+
 export type RankingGameType = "SIGN_DUEL" | "TETRIS_DUEL" | "TETRIS_SOLO";
 
 export interface RankingEntry {
@@ -64,12 +70,41 @@ async function getJson<T>(path: string, accessToken: string): Promise<T> {
   return (await response.json()) as T;
 }
 
+async function postJson<T>(path: string, accessToken: string): Promise<T> {
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+  } catch {
+    throw new ProfileApiError("네트워크 오류로 요청을 완료하지 못했습니다.", 0);
+  }
+
+  if (!response.ok) {
+    throw new ProfileApiError(
+      `출석체크를 완료하지 못했습니다. (HTTP ${response.status})`,
+      response.status,
+    );
+  }
+
+  return (await response.json()) as T;
+}
+
 export function getPetGrowth(accessToken: string): Promise<PetGrowth> {
   return getJson<PetGrowth>("/growth/pet", accessToken);
 }
 
 export function getAttendance(accessToken: string): Promise<AttendanceStatus> {
   return getJson<AttendanceStatus>("/growth/attendance", accessToken);
+}
+
+export function checkIn(accessToken: string): Promise<AttendanceCompletion> {
+  return postJson<AttendanceCompletion>("/growth/attendance", accessToken);
 }
 
 export function getRanking(

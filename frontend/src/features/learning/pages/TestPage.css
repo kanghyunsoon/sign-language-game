@@ -1130,3 +1130,61 @@
 .test-coming-soon-confirm { min-width: 142px; min-height: 45px; margin-top: 20px; border: 0; border-radius: 15px; background: #8fa071; box-shadow: 0 5px 0 #6f8052; color: #fff; font: inherit; font-weight: 900; cursor: pointer; }
 .test-coming-soon-confirm:active { transform: translateY(3px); box-shadow: 0 2px 0 #6f8052; }
 @keyframes testComingSoonPop { from { opacity: 0; transform: translateY(18px) scale(.92); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+.test-reward-overlay {
+  position: absolute;
+  z-index: 120;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(63, 43, 32, 0.28);
+  backdrop-filter: blur(5px);
+}
+
+.test-reward-card {
+  width: min(480px, calc(100% - 40px));
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: 30px;
+  border: 3px solid #d8c8a9;
+  border-radius: 24px;
+  text-align: center;
+  background: #fffdf7;
+  box-shadow: 0 20px 42px rgba(59, 42, 35, 0.25);
+}
+
+.test-reward-card img {
+  width: 180px;
+  height: 180px;
+  object-fit: contain;
+}
+
+.test-reward-card h2 {
+  margin: 8px 0 10px;
+  color: #5f402b;
+  font-size: 32px;
+}
+
+.test-reward-card p {
+  margin: 0 0 22px;
+  color: #827368;
+  font-size: 17px;
+  font-weight: 400;
+}
+
+.test-reward-card a {
+  min-width: 210px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 22px;
+  border-radius: 13px;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+  text-decoration: none;
+  background: #8fa071;
+  box-shadow: 0 5px 0 #6f8052;
+}
