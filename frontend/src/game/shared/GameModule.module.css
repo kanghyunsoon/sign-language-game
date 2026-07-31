@@ -645,6 +645,8 @@
 .categoryCardIcon { display: grid; width: 58px; height: 76px; place-items: center; border-radius: 50%; background: #eff7d6; color: #718d36; }
 .categoryCardCopy { display: grid; gap: 5px; }
 .categoryCardCopy strong { font-size: 22px; letter-spacing: -.04em; }
+.categoryCardTitleLogo { position: relative; display: block; width: 144px; height: 54px; margin: -2px 0 3px; overflow: hidden; }
+.categoryCardTitleLogo img { position: absolute; top: -33px; left: -31px; width: 195px; max-width: none; height: auto; filter: drop-shadow(0 3px 3px rgba(79,58,42,.16)); }
 .categoryCardCopy small { color: #7a8786; font-size: 12px; line-height: 1.45; }
 .categoryCardDisabled { cursor: pointer; border-color: #d4d5c9; background: #f3f3ec; box-shadow: 0 10px 0 #d2d4cf, 0 16px 26px rgba(73,95,94,.08); filter: saturate(.28); opacity: .82; }
 .categoryCardDisabled:hover { border-color: #c6c8ba; box-shadow: 0 13px 0 #d2d4cf, 0 20px 28px rgba(73,95,94,.11); transform: translateY(-5px); }

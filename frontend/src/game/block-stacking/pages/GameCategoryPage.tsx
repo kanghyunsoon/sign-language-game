@@ -3,6 +3,7 @@ import { ArrowLeft, Flower2, Layers3, Sparkles, Swords, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 import otterCharacter from "../assets/game-menu-otter.png";
+import pringlesTitle from "../assets/solo-start-title.png";
 import { useGameModuleContext } from "../../app/GameModuleContext";
 import styles from "../../shared/GameModule.module.css";
 
@@ -27,7 +28,7 @@ const CATEGORIES: readonly GameSelectionCard[] = [
   {
     id: "BLOCK_STACK",
     title: "지문자 테트리스",
-    description: "화면에 나타나는 지문자를 표현해 블록을 제거하세요!",
+    description: "화면의 지문자를 맞혀 블록을 쌓고, 솔로 기록과 1:1 승부에 도전하세요!",
     playStyle: "solo · 1 VS 1",
     destination: "block",
     featured: true,
@@ -96,7 +97,14 @@ export function GameCategoryPage() {
             <>
               <span className={styles.categoryCardBadge}>{playStyle}</span>
               <span className={styles.categoryCardIcon}><Icon aria-hidden="true" size={28} /></span>
-              <span className={styles.categoryCardCopy}><strong>{title}</strong><small>{description}</small></span>
+              <span className={styles.categoryCardCopy}>
+                {id === "BLOCK_STACK" ? (
+                  <span className={styles.categoryCardTitleLogo} aria-hidden="true">
+                    <img src={pringlesTitle} alt="" />
+                  </span>
+                ) : <strong>{title}</strong>}
+                <small>{description}</small>
+              </span>
             </>
           );
           const className = `${styles.categoryCard} ${featured ? styles.categoryCardFeatured : ""} ${destination ? "" : styles.categoryCardDisabled}`;
