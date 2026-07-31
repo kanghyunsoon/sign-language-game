@@ -11,6 +11,7 @@ class FakeSocket implements RoomWebSocketLike {
   send = vi.fn();
   close = vi.fn();
   open(): void { this.readyState = 1; this.onopen?.(); }
+  drop(): void { this.readyState = 3; this.onclose?.(); }
 }
 
 describe("RoomRealtimeSocket", () => {
@@ -41,7 +42,7 @@ describe("RoomRealtimeSocket", () => {
     });
   });
 
-  it("closes signaling with an explicit WebRTC handoff reason", async () => {
+  it("keeps the documented presence socket open after WebRTC handoff", async () => {
     const socket = new FakeSocket();
     const client = new RoomRealtimeSocket({
       webSocketBaseUrl: "ws://host/ws/game-rooms",
@@ -54,8 +55,8 @@ describe("RoomRealtimeSocket", () => {
     socket.open();
     await connecting;
     client.disconnectForWebRtcHandoff();
-    expect(socket.send).toHaveBeenCalledWith(JSON.stringify({ type: "WEBRTC_CONNECTED" }));
-    expect(socket.close).toHaveBeenCalledWith(1000, "WEBRTC_ESTABLISHED");
+    expect(socket.send).not.toHaveBeenCalled();
+    expect(socket.close).not.toHaveBeenCalled();
   });
 
   it("does not report a stale connection error after the handshake succeeds", async () => {
@@ -92,9 +93,38 @@ describe("RoomRealtimeSocket", () => {
       },
     });
     const first = client.connect(); await vi.waitFor(() => expect(created).toHaveLength(1)); created[0]!.open(); await first;
-    client.disconnectForWebRtcHandoff();
+    client.disconnect();
     const second = client.connect(); await vi.waitFor(() => expect(created).toHaveLength(2)); created[1]!.open(); await second;
     expect(issue).toHaveBeenCalledTimes(2);
+  });
+
+  it("automatically reconnects an unexpectedly closed presence socket with a fresh ticket", async () => {
+    const available = [new FakeSocket(), new FakeSocket()];
+    const created: FakeSocket[] = [];
+    const issue = vi.fn()
+      .mockResolvedValueOnce({ ticket: "first", expiresInSeconds: 30 })
+      .mockResolvedValueOnce({ ticket: "second", expiresInSeconds: 30 });
+    const client = new RoomRealtimeSocket({
+      webSocketBaseUrl: "ws://host/ws/game-rooms",
+      roomId: "7",
+      localUserId: "42",
+      ticketClient: { issue },
+      createWebSocket: () => {
+        const socket = available.shift()!;
+        created.push(socket);
+        return socket;
+      },
+    });
+
+    const initial = client.connect();
+    await vi.waitFor(() => expect(created).toHaveLength(1));
+    created[0]!.open();
+    await initial;
+    created[0]!.drop();
+
+    await vi.waitFor(() => expect(created).toHaveLength(2));
+    expect(issue).toHaveBeenCalledTimes(2);
+    created[1]!.open();
   });
 
   it("does not retry a rejected identity or one-time ticket", async () => {
@@ -130,7 +160,7 @@ describe("RoomRealtimeSocket", () => {
     expect(wait.mock.calls.flat()).toEqual([300, 600, 100]);
   });
 
-  it.each(["PEER_JOINED", "PEER_READY_CHANGED"] as const)("accepts the backend %s event", async (type) => {
+  it.each(["PEER_DISCONNECTED", "PEER_RECONNECTED"] as const)("accepts the documented backend %s event", async (type) => {
     const socket = new FakeSocket();
     const client = new RoomRealtimeSocket({
       webSocketBaseUrl: "ws://host/ws/game-rooms", roomId: "7", localUserId: "42",

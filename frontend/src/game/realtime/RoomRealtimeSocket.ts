@@ -1,11 +1,9 @@
 import { RealtimeTicketRequestError, type RealtimeTicketClient } from "./RealtimeTicketClient";
 
 export type RoomServerMessageType =
-  | "PEER_JOINED"
   | "PEER_DISCONNECTED"
   | "PEER_RECONNECTED"
   | "PEER_LEFT"
-  | "PEER_READY_CHANGED"
   | "GAME_STARTED"
   | "SIGNAL"
   | "ERROR";
@@ -43,7 +41,7 @@ const CLOSED = 3;
 const DEFAULT_RECONNECT_BUDGET_MS = 8_000;
 const RETRY_DELAYS_MS = [0, 300, 600, 1_000, 1_500, 2_000, 2_500] as const;
 const MESSAGE_TYPES = new Set<RoomServerMessageType>([
-  "PEER_JOINED", "PEER_DISCONNECTED", "PEER_RECONNECTED", "PEER_LEFT", "PEER_READY_CHANGED",
+  "PEER_DISCONNECTED", "PEER_RECONNECTED", "PEER_LEFT",
   "GAME_STARTED", "SIGNAL", "ERROR",
 ]);
 
@@ -52,20 +50,20 @@ export class RoomRealtimeSocket {
   private pending: Promise<void> | null = null;
   private readonly listeners = new Set<(message: RoomServerMessage) => void>();
   private readonly errorListeners = new Set<(error: Error) => void>();
+  private readonly baseUrl: string;
+  private readonly createWebSocket: (url: string) => RoomWebSocketLike;
   private readonly reconnectBudgetMs: number;
   private readonly now: () => number;
   private readonly wait: (delayMs: number) => Promise<void>;
-  private readonly baseUrl: string;
-  private readonly createWebSocket: (url: string) => RoomWebSocketLike;
   private connectionGeneration = 0;
 
   constructor(private readonly options: RoomRealtimeSocketOptions) {
     this.baseUrl = options.webSocketBaseUrl.replace(/\/$/, "");
+    this.createWebSocket = options.createWebSocket
+      ?? ((url) => new WebSocket(url) as unknown as RoomWebSocketLike);
     this.reconnectBudgetMs = options.reconnectBudgetMs ?? DEFAULT_RECONNECT_BUDGET_MS;
     this.now = options.now ?? Date.now;
     this.wait = options.wait ?? wait;
-    this.createWebSocket = options.createWebSocket
-      ?? ((url) => new WebSocket(url) as unknown as RoomWebSocketLike);
   }
 
   async connect(): Promise<void> {
@@ -98,12 +96,13 @@ export class RoomRealtimeSocket {
     return () => this.errorListeners.delete(listener);
   }
 
-  /** Called only after RTCPeerConnection and its DataChannel are both ready. */
+  /**
+   * The documented Room WebSocket is also the authoritative participant
+   * presence channel. Keep it open after WebRTC connects; Swagger permits
+   * clients to send SIGNAL only and treats a close as a disconnect.
+   */
   disconnectForWebRtcHandoff(): void {
-    if (this.socket?.readyState === OPEN) {
-      this.socket.send(JSON.stringify({ type: "WEBRTC_CONNECTED" }));
-    }
-    this.close(1000, "WEBRTC_ESTABLISHED");
+    // Intentionally retained as a compatibility no-op for media-session callers.
   }
 
   disconnect(): void {
@@ -111,8 +110,8 @@ export class RoomRealtimeSocket {
   }
 
   private async openWithFreshTicket(generation: number): Promise<void> {
-    const deadlineAt = this.now() + this.reconnectBudgetMs;
     let lastError: Error | null = null;
+    const deadlineAt = this.now() + this.reconnectBudgetMs;
     for (let attempt = 0; attempt < RETRY_DELAYS_MS.length; attempt += 1) {
       if (generation !== this.connectionGeneration) throw new Error("Room WebSocket connection was cancelled.");
       const remainingBeforeDelay = deadlineAt - this.now();
@@ -120,9 +119,9 @@ export class RoomRealtimeSocket {
       const configuredDelay = RETRY_DELAYS_MS[attempt] ?? RETRY_DELAYS_MS.at(-1) ?? 0;
       const delay = Math.min(configuredDelay, remainingBeforeDelay);
       if (delay > 0) await this.wait(delay);
+      if (generation !== this.connectionGeneration) throw new Error("Room WebSocket connection was cancelled.");
       const remainingForAttempt = deadlineAt - this.now();
       if (remainingForAttempt <= 0) break;
-      if (generation !== this.connectionGeneration) throw new Error("Room WebSocket connection was cancelled.");
       try {
         await this.openOnce(remainingForAttempt);
         return;
@@ -169,16 +168,22 @@ export class RoomRealtimeSocket {
         // leaves the lobby showing a stale red error despite being connected.
         if (settled) return;
         const error = new Error("Room WebSocket connection failed.");
-        globalThis.clearTimeout(timeout);
         settled = true;
+        globalThis.clearTimeout(timeout);
         reject(error);
       };
       socket.onclose = () => {
-        if (this.socket === socket) this.socket = null;
+        const wasCurrentSocket = this.socket === socket;
+        if (wasCurrentSocket) this.socket = null;
         if (!settled) {
           settled = true;
           globalThis.clearTimeout(timeout);
           reject(new Error("Room WebSocket closed before connection."));
+        } else if (wasCurrentSocket) {
+          // An established presence connection closed unexpectedly. Re-enter
+          // through connect() so every retry receives a fresh one-use ticket
+          // and remains bounded by the eight-second reconnect budget.
+          void this.connect().catch(() => undefined);
         }
       };
     });

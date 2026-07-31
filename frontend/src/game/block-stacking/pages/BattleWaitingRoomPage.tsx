@@ -182,7 +182,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   }, [gateway, mode, roomId, rememberRoom]);
 
   useEffect(() => {
-    if (!roomId || room?.status !== "WAITING" || !room.roomCode) return undefined;
+    if (!roomId || (room?.status !== "WAITING" && room?.status !== "FULL") || !room.roomCode) return undefined;
     const roomCode = room.roomCode;
     let checking = false;
     const checkStartedState = async () => {
@@ -190,8 +190,8 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
       checking = true;
       try {
         const authoritative = await gateway.joinRoom(roomCode);
-        if (authoritative.status !== "PLAYING") return;
         rememberRoomRef.current(authoritative);
+        if (authoritative.status !== "PLAYING") return;
         await startRtcAndEnterRef.current();
       } catch {
         // Realtime remains the primary path. This fallback only recovers a
@@ -225,36 +225,6 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
             setError(errorMessage(cause, "게임 시작 상태를 확인하지 못했습니다."));
           }
         })();
-      }
-      if (message.type === "PEER_JOINED") {
-        const current = roomRef.current;
-        const joinedUserId = payloadUserId(message.payload);
-        if (current && joinedUserId && !current.participants.some((participant) => participant.userId === joinedUserId)) {
-          rememberRoomRef.current({
-            ...current,
-            status: "FULL",
-            playerCount: Math.min(current.maxPlayers, current.playerCount + 1),
-            canJoin: false,
-            guestReady: false,
-            participants: [...current.participants, { userId: joinedUserId, displayName: "상대방", isHost: false, ready: false }],
-          });
-        }
-      }
-      if (message.type === "PEER_READY_CHANGED") {
-        const current = roomRef.current;
-        const changedUserId = payloadUserId(message.payload);
-        const isReady = payloadBoolean(message.payload, "isReady");
-        if (current && changedUserId && isReady !== null) {
-          const hostReady = changedUserId === current.hostUserId ? isReady : Boolean(current.hostReady);
-          const guestReady = changedUserId === current.hostUserId ? Boolean(current.guestReady) : isReady;
-          rememberRoomRef.current({
-            ...current,
-            hostReady,
-            guestReady,
-            canStart: current.hostUserId === user.userId && current.playerCount >= current.maxPlayers && hostReady && guestReady,
-            participants: current.participants.map((participant) => participant.userId === changedUserId ? { ...participant, ready: isReady } : participant),
-          });
-        }
       }
       if (message.type === "PEER_LEFT") {
         const current = roomRef.current;
@@ -518,10 +488,4 @@ function payloadUserId(payload: unknown, key = "userId"): string | null {
   if (!payload || typeof payload !== "object") return null;
   const value = (payload as Record<string, unknown>)[key];
   return typeof value === "string" || typeof value === "number" ? String(value) : null;
-}
-
-function payloadBoolean(payload: unknown, key: string): boolean | null {
-  if (!payload || typeof payload !== "object") return null;
-  const value = (payload as Record<string, unknown>)[key];
-  return typeof value === "boolean" ? value : null;
 }

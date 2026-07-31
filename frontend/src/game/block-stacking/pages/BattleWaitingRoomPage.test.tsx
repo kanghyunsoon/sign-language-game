@@ -158,17 +158,6 @@ describe("BattleWaitingRoomPage backend flow", () => {
     expect(connect).not.toHaveBeenCalled();
   });
 
-  it("applies the backend PEER_READY_CHANGED event before start", async () => {
-    const socket = new FakeRoomSocket();
-    renderPage({
-      detail: room({ full: true, hostReady: true, guestReady: false, currentUserReady: true }),
-      socket,
-    });
-    expect((screen.getByRole("button", { name: /게임 시작/ }) as HTMLButtonElement).disabled).toBe(true);
-    socket.emit({ type: "PEER_READY_CHANGED", payload: { userId: 2, isReady: true } });
-    await waitFor(() => expect((screen.getByRole("button", { name: /게임 시작/ }) as HTMLButtonElement).disabled).toBe(false));
-  });
-
   it("delegates host state when the backend reports the host left", async () => {
     const socket = new FakeRoomSocket();
     renderPage({
