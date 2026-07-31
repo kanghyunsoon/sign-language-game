@@ -49,6 +49,7 @@ export function parseRealtimeTicket(value: unknown): RealtimeTicket {
     || value.ticket.length === 0
     || typeof value.expiresInSeconds !== "number"
     || !Number.isFinite(value.expiresInSeconds)
+    || !Number.isSafeInteger(value.expiresInSeconds)
     || value.expiresInSeconds <= 0) {
     throw new Error("Invalid realtime ticket response.");
   }

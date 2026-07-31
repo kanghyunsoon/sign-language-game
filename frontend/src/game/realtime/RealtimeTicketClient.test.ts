@@ -32,4 +32,15 @@ describe("RealtimeTicketClient", () => {
     });
     await expect(client.issue()).rejects.toThrow("Invalid realtime ticket response");
   });
+
+  it("rejects non-integer ticket expiry values outside the Swagger int64 contract", async () => {
+    const client = new RealtimeTicketClient({
+      apiBaseUrl: "/api", userId: "42",
+      fetcher: vi.fn(async () => new Response(JSON.stringify({
+        ticket: "one-use",
+        expiresInSeconds: 30.5,
+      }), { status: 201, headers: { "Content-Type": "application/json" } })),
+    });
+    await expect(client.issue()).rejects.toThrow("Invalid realtime ticket response");
+  });
 });

@@ -24,11 +24,7 @@ export class SoloGameApiError extends Error {
   }
 }
 
-/**
- * Swagger-backed solo result client.
- *
- * OpenAPI-backed solo session and result client.
- */
+/** OpenAPI-backed solo session, result, and ranking client. */
 export class HttpSoloGameApi implements SoloGameApi {
   private readonly baseUrl: string;
   private readonly fetcher: SoloFetch;

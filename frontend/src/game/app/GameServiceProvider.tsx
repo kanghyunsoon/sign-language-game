@@ -175,8 +175,7 @@ function createDefaultServices(
   const useSwaggerContract =
     Boolean(accessToken) || import.meta.env.VITE_P2P_E2E === "true" || isProduction;
   return {
-    // Swagger exposes roomless solo result reporting. The play session itself
-    // stays client-side; production reports the elapsed-second score directly.
+    // Production uses the documented solo session start/complete/results API.
     soloGameApi: useSwaggerContract
       ? new HttpSoloGameApi({ baseUrl: config.soloApiBaseUrl, userId: user.userId, credentials: "include", headers })
       : new LocalSoloGameApi({ userId: user.userId }),
