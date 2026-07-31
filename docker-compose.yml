@@ -9,6 +9,9 @@ services:
       HANDPRACTICE_AI_HOST: ${HANDPRACTICE_AI_HOST:-0.0.0.0}
       HANDPRACTICE_AI_PORT: ${HANDPRACTICE_AI_PORT:-8765}
       HANDPRACTICE_AI_MODEL: ${HANDPRACTICE_AI_MODEL:-baseline}
+      # Decision-margin gate (top1 - top2). Raise to 0.3~0.4 to demand a more
+      # precise handshape; 0 disables the gate. See game-ai-dev-server/README.md.
+      HANDPRACTICE_AI_MIN_MARGIN: ${HANDPRACTICE_AI_MIN_MARGIN:-0.25}
 
     ports:
       - "127.0.0.1:${AI_PORT:-8765}:${AI_PORT:-8765}"

@@ -36,6 +36,33 @@ V2_MODEL_PATH = MODEL_DIRECTORY / "jamo31-v2big.tflite"
 V3_MODEL_PATH = MODEL_DIRECTORY / "jamo31-v3.tflite"
 ENSEMBLE_WEIGHT = 0.5
 SEQUENCE_LENGTH = 10
+
+# Decision-margin gate (top1 - top2).
+#
+# The model is deliberately tolerant — rotation augmentation makes it accept a
+# wide range of wrist angles — so a sloppy handshape still gets a high top-1
+# probability. Raising the confirmation threshold does not fix that: it mostly
+# blocks the jamo whose absolute confidence is naturally lower (measured: at
+# threshold 0.6, ㅅ loses 16% of its frames while zero sloppy inputs are
+# rejected). The separating signal is the *gap* to the runner-up.
+#
+# Measured on the locked test split (1900 sequences, jamo-31-ensemble-v2):
+#   correct frames  median gap 0.984 (p5 0.293)
+#   wrong frames    median gap 0.159 (p25 0.083)
+#
+#   gap    correct kept    wrong rejected
+#   0.00       1.000            0.000
+#   0.20       0.965            0.600
+#   0.25 →     0.957            0.733     (default: balanced)
+#   0.30       0.949            0.833
+#   0.40       0.934            0.933     (stricter practice mode)
+#
+# When the gap is below MINIMUM_DECISION_MARGIN the prediction is reported with
+# a suppressed confidence, so the browser's temporal decoder never confirms it.
+# The argmax label is left untouched, so top-candidate feedback still shows what
+# the handshape leaned towards. Tune with HANDPRACTICE_AI_MIN_MARGIN.
+MINIMUM_DECISION_MARGIN = float(os.getenv("HANDPRACTICE_AI_MIN_MARGIN", "0.25"))
+SUPPRESSED_CONFIDENCE = 0.05
 READINESS_PATH = REPOSITORY_ROOT / "game-contracts" / "recognition" / "readiness.json"
 
 
@@ -127,7 +154,9 @@ class EnsembleModelAdapter:
         v2_model_path: Path = V2_MODEL_PATH,
         v3_model_path: Path = V3_MODEL_PATH,
         weight: float = ENSEMBLE_WEIGHT,
+        minimum_margin: float = MINIMUM_DECISION_MARGIN,
     ) -> None:
+        self._minimum_margin = float(minimum_margin)
         self._v2 = _TFLiteHead(v2_model_path)
         self._v3 = _TFLiteHead(v3_model_path)
         if self._v2.sequence_length != self._v3.sequence_length:
@@ -152,6 +181,26 @@ class EnsembleModelAdapter:
     def feature_sizes(self) -> tuple[int, int]:
         return self._v2.feature_size, self._v3.feature_size
 
+    @property
+    def minimum_margin(self) -> float:
+        return self._minimum_margin
+
+    def _apply_margin_gate(self, probabilities: np.ndarray) -> np.ndarray:
+        """Suppress the reported confidence when top1 and top2 are too close.
+
+        A sloppy handshape sits between two jamo, so its runner-up stays high.
+        Scaling the winner down to SUPPRESSED_CONFIDENCE keeps the label (useful
+        for top-candidate feedback) while making sure the browser's temporal
+        decoder cannot confirm it.
+        """
+        if self._minimum_margin <= 0.0:
+            return probabilities
+        ordered = np.sort(probabilities)
+        if float(ordered[-1] - ordered[-2]) >= self._minimum_margin:
+            return probabilities
+        gated = probabilities * (SUPPRESSED_CONFIDENCE / max(float(ordered[-1]), 1e-6))
+        return np.clip(gated, 0.0, 1.0).astype(np.float32)
+
     def predict_pair(self, v2_sequence: np.ndarray, v3_sequence: np.ndarray) -> np.ndarray:
         probabilities = (
             self._weight * self._v2.predict(v2_sequence)
@@ -160,12 +209,12 @@ class EnsembleModelAdapter:
         output = np.asarray(probabilities, dtype=np.float32)
         if output.shape != (self.contract.output_size,):
             raise ValueError(f"Expected model output {(self.contract.output_size,)}, got {output.shape}")
-        return output
+        return self._apply_margin_gate(output)
 
     def predict(self, sequence: np.ndarray) -> np.ndarray:
         """Accepts the v3 sequence alone; both heads need the pair, so callers
         that have only one feature set fall back to the v3 head."""
-        return self._v3.predict(sequence)
+        return self._apply_margin_gate(self._v3.predict(sequence))
 
 
 def create_model_runner(profile: str | None = None) -> ModelRunner:
