@@ -6,6 +6,7 @@ import { createDevAuthHeaders } from "../../app/devAuthHeaders";
 import { PythonWebSocketSignRecognizer } from "../../recognition";
 import { COMPETITIVE_RECOGNITION_SYMBOLS } from "../../recognition/readiness/recognitionReadiness";
 import { BattleResultClient } from "../../results/BattleResultClient";
+import { submitBattleResult } from "../../results/BattleResultSubmission";
 import { useStrictModeSafeDispose } from "../../shared/useStrictModeSafeDispose";
 import { GlyphBattleOnboarding, LineRaceAttackHand, LineRaceCameraPanel, LineRaceRecognitionStatus } from "../components";
 import { DEFAULT_LINE_RACE_RUNTIME_CONFIG, type LineRaceRuntime, type LineRaceRuntimeSnapshot } from "../core";
@@ -169,10 +170,13 @@ export function GlyphTurnOnlinePage() {
     resultReported.current = true;
     setResultSubmitting(true);
     const winnerUserId = host.health === guest.health ? null : host.health > guest.health ? host.playerId : guest.playerId;
-    void resultClient.reportResult(Number(roomId), winnerUserId)
+    void submitBattleResult({
+      primary: user.userId === hostId,
+      report: () => resultClient.reportResult(Number(roomId), winnerUserId),
+    })
       .catch((cause) => setResultError(cause instanceof Error ? cause.message : "결과 전송에 실패했습니다."))
       .finally(() => setResultSubmitting(false));
-  }, [hostId, resultClient, roomId, snapshot]);
+  }, [hostId, resultClient, roomId, snapshot, user.userId]);
 
   const getInputContext = useCallback(() => turnGateway.getInputContext(), [turnGateway]);
   const getDecoderSnapshot = useCallback(() => recognizer.getTemporalDecoder().getSnapshot(), [recognizer]);

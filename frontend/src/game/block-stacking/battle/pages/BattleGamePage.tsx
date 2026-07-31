@@ -28,6 +28,7 @@ import letterOtter from "../../assets/solo-letter-otter.png";
 import styles from "../battle.module.css";
 import { createDevAuthHeaders } from "../../../app/devAuthHeaders";
 import { BattleResultClient, BattleResultRequestError } from "../../../results/BattleResultClient";
+import { submitBattleResult } from "../../../results/BattleResultSubmission";
 import { BattleRoomRecoveryCancelledError, isMissingOrForbiddenRoom, recoverBattleRoom } from "../core/BattleRoomRecovery";
 
 const INITIAL: BattleControllerSnapshot = { state: "IDLE", gameConnectionState: "DISCONNECTED", aiConnectionState: "DISCONNECTED", countdownMs: 0, reconnectDeadlineAt: null, score: 0, combo: 0, maxCombo: 0, removedCount: 0, targetSymbol: null, prediction: null, message: "Waiting for board initialization.", result: null };
@@ -54,6 +55,7 @@ export function BattleGamePage() {
   const [cameraState, setCameraState] = useState<"CONNECTED" | "DISCONNECTED">(() => sharedCameraSession.getVideoTrack()?.readyState === "live" ? "CONNECTED" : "DISCONNECTED");
   const [rtcState, setRtcState] = useState(() => battleMediaSession.getConnectionState()); const [localRenderer, setLocalRenderer] = useState<GameRenderer | null>(null); const [remoteRenderer, setRemoteRenderer] = useState<GameRenderer | null>(null);
   const resultReportedRef = useRef(false);
+  const resultRecordedRef = useRef(false);
   const resultReportPromiseRef = useRef<Promise<void> | null>(null);
   const exitInFlightRef = useRef(false);
   const forfeitAndLeaveRef = useRef<() => Promise<void>>(async () => undefined);
@@ -89,18 +91,21 @@ export function BattleGamePage() {
   }, [battleRoomSession, setBattleRoomSession]);
   const reportMatchResult = useCallback((result: MatchFinishedEvent): Promise<void> => {
     if (!Number.isSafeInteger(Number(roomId))) return Promise.resolve();
-    // The result endpoint transitions the room out of IN_PROGRESS. Having both
-    // browsers post the same result deterministically creates a 409 race.
-    if (!localIsHost) return Promise.resolve();
     if (resultReportPromiseRef.current) return resultReportPromiseRef.current;
     setResultBusy(true);
     setResultError(null);
-    const request = resultClient.reportResult(Number(roomId), result.winnerPlayerId)
-      .then(() => {
+    const request = submitBattleResult({
+      primary: localIsHost,
+      cancelled: () => resultRecordedRef.current,
+      report: () => resultClient.reportResult(Number(roomId), result.winnerPlayerId),
+    })
+      .then((outcome) => {
+        if (outcome === "CANCELLED") return;
         // Swagger guarantees a 201 result returns the room to WAITING. Update
         // the persisted copy at the same time so it cannot issue a stale
         // ready/start request before the user presses the rematch button.
         markRoomWaiting();
+        resultRecordedRef.current = true;
         setResultRecorded(true);
         try {
           transport.send({ type: "RESULT_RECORDED_COMMAND", commandId: crypto.randomUUID(), matchId: result.matchId, recordedAt: Date.now() });
@@ -111,7 +116,7 @@ export function BattleGamePage() {
       })
       .catch((cause) => {
         resultReportPromiseRef.current = null;
-        if (cause instanceof BattleResultRequestError && (cause.status === 403 || cause.status === 409)) {
+        if (cause instanceof BattleResultRequestError && cause.status === 403) {
           // This is not a retryable transport failure: the authoritative room
           // no longer accepts a result from this browser. Drop all stale local
           // state before any later ready/start request can reuse it.
@@ -251,6 +256,7 @@ export function BattleGamePage() {
     const result = controllerRef.current?.snapshot().result;
     if (result && result.matchId !== message.matchId) return;
     markRoomWaiting();
+    resultRecordedRef.current = true;
     setResultRecorded(true);
   }), [markRoomWaiting, transport]);
 
