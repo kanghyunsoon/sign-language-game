@@ -31,14 +31,17 @@ export interface RoomRealtimeSocketOptions {
   readonly localUserId: string;
   readonly ticketClient: Pick<RealtimeTicketClient, "issue">;
   readonly createWebSocket?: (url: string) => RoomWebSocketLike;
+  readonly reconnectBudgetMs?: number;
+  readonly now?: () => number;
+  readonly wait?: (delayMs: number) => Promise<void>;
 }
 
 const OPEN = 1;
 const CLOSED = 3;
-// A refreshed browser can race the server's cleanup of its previous signaling
-// socket. Keep issuing one-time tickets throughout the room's 10-second rejoin
-// grace period instead of giving up after roughly two seconds.
-const RETRY_DELAYS_MS = [0, 350, 700, 1_200, 1_700, 2_200, 2_700] as const;
+// Finish before the backend's 10-second disconnect grace period so a
+// successfully reopened socket still has time to be registered as reconnected.
+const DEFAULT_RECONNECT_BUDGET_MS = 8_000;
+const RETRY_DELAYS_MS = [0, 300, 600, 1_000, 1_500, 2_000, 2_500] as const;
 const MESSAGE_TYPES = new Set<RoomServerMessageType>([
   "PEER_JOINED", "PEER_DISCONNECTED", "PEER_RECONNECTED", "PEER_LEFT", "PEER_READY_CHANGED",
   "GAME_STARTED", "SIGNAL", "ERROR",
@@ -49,12 +52,18 @@ export class RoomRealtimeSocket {
   private pending: Promise<void> | null = null;
   private readonly listeners = new Set<(message: RoomServerMessage) => void>();
   private readonly errorListeners = new Set<(error: Error) => void>();
+  private readonly reconnectBudgetMs: number;
+  private readonly now: () => number;
+  private readonly wait: (delayMs: number) => Promise<void>;
   private readonly baseUrl: string;
   private readonly createWebSocket: (url: string) => RoomWebSocketLike;
   private connectionGeneration = 0;
 
   constructor(private readonly options: RoomRealtimeSocketOptions) {
     this.baseUrl = options.webSocketBaseUrl.replace(/\/$/, "");
+    this.reconnectBudgetMs = options.reconnectBudgetMs ?? DEFAULT_RECONNECT_BUDGET_MS;
+    this.now = options.now ?? Date.now;
+    this.wait = options.wait ?? wait;
     this.createWebSocket = options.createWebSocket
       ?? ((url) => new WebSocket(url) as unknown as RoomWebSocketLike);
   }
@@ -102,14 +111,20 @@ export class RoomRealtimeSocket {
   }
 
   private async openWithFreshTicket(generation: number): Promise<void> {
+    const deadlineAt = this.now() + this.reconnectBudgetMs;
     let lastError: Error | null = null;
     for (let attempt = 0; attempt < RETRY_DELAYS_MS.length; attempt += 1) {
       if (generation !== this.connectionGeneration) throw new Error("Room WebSocket connection was cancelled.");
-      const delay = RETRY_DELAYS_MS[attempt] ?? RETRY_DELAYS_MS.at(-1) ?? 0;
-      if (delay > 0) await wait(delay);
+      const remainingBeforeDelay = deadlineAt - this.now();
+      if (remainingBeforeDelay <= 0) break;
+      const configuredDelay = RETRY_DELAYS_MS[attempt] ?? RETRY_DELAYS_MS.at(-1) ?? 0;
+      const delay = Math.min(configuredDelay, remainingBeforeDelay);
+      if (delay > 0) await this.wait(delay);
+      const remainingForAttempt = deadlineAt - this.now();
+      if (remainingForAttempt <= 0) break;
       if (generation !== this.connectionGeneration) throw new Error("Room WebSocket connection was cancelled.");
       try {
-        await this.openOnce();
+        await this.openOnce(remainingForAttempt);
         return;
       } catch (cause) {
         lastError = cause instanceof Error ? cause : new Error(String(cause));
@@ -123,7 +138,7 @@ export class RoomRealtimeSocket {
     throw error;
   }
 
-  private async openOnce(): Promise<void> {
+  private async openOnce(handshakeTimeoutMs: number): Promise<void> {
     const { ticket } = await this.options.ticketClient.issue();
     const socket = this.createWebSocket(
       `${this.baseUrl}/${encodeURIComponent(this.options.roomId)}?ticket=${encodeURIComponent(ticket)}`,
@@ -131,7 +146,22 @@ export class RoomRealtimeSocket {
     this.socket = socket;
     await new Promise<void>((resolve, reject) => {
       let settled = false;
-      socket.onopen = () => { settled = true; resolve(); };
+      const timeout = globalThis.setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        if (this.socket === socket) this.socket = null;
+        socket.close(4000, "CONNECT_TIMEOUT");
+        reject(new Error("Room WebSocket connection timed out."));
+      }, handshakeTimeoutMs);
+      socket.onopen = () => {
+        if (settled) {
+          socket.close(4000, "LATE_OPEN");
+          return;
+        }
+        settled = true;
+        globalThis.clearTimeout(timeout);
+        resolve();
+      };
       socket.onmessage = (event) => this.receive(event.data);
       socket.onerror = () => {
         // Browser WebSocket errors do not carry a useful cause.  Once the
@@ -139,12 +169,17 @@ export class RoomRealtimeSocket {
         // leaves the lobby showing a stale red error despite being connected.
         if (settled) return;
         const error = new Error("Room WebSocket connection failed.");
+        globalThis.clearTimeout(timeout);
         settled = true;
         reject(error);
       };
       socket.onclose = () => {
         if (this.socket === socket) this.socket = null;
-        if (!settled) { settled = true; reject(new Error("Room WebSocket closed before connection.")); }
+        if (!settled) {
+          settled = true;
+          globalThis.clearTimeout(timeout);
+          reject(new Error("Room WebSocket closed before connection."));
+        }
       };
     });
   }

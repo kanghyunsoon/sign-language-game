@@ -108,6 +108,28 @@ describe("RoomRealtimeSocket", () => {
     expect(issue).toHaveBeenCalledOnce();
   });
 
+  it("stops transient retries at the absolute reconnect deadline", async () => {
+    let now = 0;
+    const issue = vi.fn(async () => { throw new Error("temporary network failure"); });
+    const wait = vi.fn(async (delayMs: number) => { now += delayMs; });
+    const client = new RoomRealtimeSocket({
+      webSocketBaseUrl: "ws://host/ws/game-rooms",
+      roomId: "7",
+      localUserId: "42",
+      ticketClient: { issue },
+      createWebSocket: vi.fn(),
+      reconnectBudgetMs: 1_000,
+      now: () => now,
+      wait,
+    });
+
+    await expect(client.connect()).rejects.toThrow("temporary network failure");
+
+    expect(now).toBe(1_000);
+    expect(issue).toHaveBeenCalledTimes(3);
+    expect(wait.mock.calls.flat()).toEqual([300, 600, 100]);
+  });
+
   it.each(["PEER_JOINED", "PEER_READY_CHANGED"] as const)("accepts the backend %s event", async (type) => {
     const socket = new FakeSocket();
     const client = new RoomRealtimeSocket({
