@@ -95,6 +95,49 @@ export function currentStreak(
     : streakEndingAt(attendedDates, addDays(today, -1));
 }
 
+/**
+ * 비트를 고루 흩는다.
+ *
+ * 스탬프를 고를 때 나머지 연산으로 하위 두 비트만 쓰기 때문에, 해시값이
+ * 날짜에 조금이라도 규칙적으로 따라가면 그 규칙이 그대로 화면에 드러난다.
+ * 실제로 처음 쓴 곱셈 해시(×31)는 7일 간격이 같은 값으로 떨어져 달력의
+ * 같은 요일 열에 같은 조개가 줄줄이 찍혔다. 그래서 상위 비트를 하위로
+ * 되섞어(murmur3의 마무리 단계) 한 비트만 달라도 값 전체가 바뀌게 한다.
+ */
+function avalanche(value: number): number {
+  let hash = value | 0;
+
+  hash ^= hash >>> 16;
+  hash = Math.imul(hash, 0x21f0aaad);
+  hash ^= hash >>> 15;
+  hash = Math.imul(hash, 0x735a2d97);
+  hash ^= hash >>> 15;
+
+  return hash >>> 0;
+}
+
+/**
+ * 그 날에 찍을 스탬프 그림의 순번. 날짜 키를 섞어 만든다.
+ *
+ * Math.random()을 쓰면 다시 그릴 때마다(달을 옮기거나 출석을 누를 때) 이미
+ * 찍힌 스탬프가 바뀌어 깜빡인다. 날짜에서 값을 끌어내면 규칙은 보이지 않으면서
+ * 같은 날은 언제나 같은 그림이 된다.
+ *
+ * 연·월·일을 모두 섞으므로 다른 달·다른 해의 같은 날짜도 서로 다른 그림이 된다.
+ */
+export function stampVariantFor(key: DateKey, variantCount: number): number {
+  if (variantCount <= 0) return 0;
+
+  // FNV-1a: 글자마다 XOR 후 곱해, 자리마다 값이 크게 벌어진다.
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < key.length; index += 1) {
+    hash ^= key.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+
+  return avalanche(hash) % variantCount;
+}
+
 /** 출석체크 격자의 한 칸. */
 export interface AttendanceDay {
   readonly key: DateKey;
@@ -108,11 +151,6 @@ export interface AttendanceDay {
   readonly isAttended: boolean;
   /** 출석한 날이면 그 날 기준 연속 일수, 아니면 0. */
   readonly streak: number;
-  /**
-   * 연속 구간의 마지막 출석일인지(다음 날은 출석하지 않았다).
-   * 이 날에만 수달 스탬프와 연속 일수를 찍고, 나머지는 조개로 채운다.
-   */
-  readonly isRunEnd: boolean;
 }
 
 /** 격자 한 행(월~일)의 칸 수. */
@@ -183,10 +221,6 @@ export function buildMonthCalendar(
       isFuture: key > todayKey,
       isAttended,
       streak: isAttended ? streakEndingAt(attendedDates, date) : 0,
-      // 다음 날이 비어 있으면 이 날이 연속 구간의 끝이다. 보고 있는 달 밖도
-      // 같은 기준으로 판정해야 달을 넘길 때 스탬프가 달라지지 않는다.
-      isRunEnd:
-        isAttended && !attendedDates.includes(toDateKey(addDays(date, 1))),
     };
   });
 }
