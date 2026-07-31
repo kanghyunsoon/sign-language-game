@@ -70,6 +70,15 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
     return this.currentRooms();
   }
 
+  async refreshRooms(): Promise<readonly BattleRoomSummary[]> {
+    this.lobby.disconnect();
+    this.lobbyStarted = false;
+    this.lobbyCache.clear();
+    this.emitRooms();
+    this.ensureLobby();
+    return this.currentRooms();
+  }
+
   subscribeRooms(listener: RoomsListener, onError?: (error: Error) => void): () => void {
     this.listeners.add(listener);
     if (onError) this.errorListeners.add(onError);
@@ -115,10 +124,15 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
 
   async leaveRoom(roomId: string): Promise<void> {
     const id = parseRoomId(roomId);
-    await this.client.leave(id);
-    this.roomCache.delete(id);
-    this.lobbyCache.delete(id);
-    this.emitRooms();
+    try {
+      await this.client.leave(id);
+    } finally {
+      // A failed/already-completed remote leave must not keep a ghost room in
+      // this browser's authoritative-looking local lobby cache.
+      this.roomCache.delete(id);
+      this.lobbyCache.delete(id);
+      this.emitRooms();
+    }
   }
 
   async returnToWaiting(roomId: string): Promise<void> {

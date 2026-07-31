@@ -377,18 +377,20 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   const leaveRoom = async () => {
     if (!roomId || leaving) return;
     setLeaving(true);
+    roomSocketRef.current?.disconnect();
     try {
-      roomSocketRef.current?.disconnect();
       await gateway.leaveRoom(roomId);
-      await battleMediaSession.disconnect();
-      sharedCameraSession.stop();
-      activePlayerSession?.clearRegistration();
-      rememberSession(null);
-      navigate(lobbyPath, { replace: true });
     } catch (cause) {
-      setError(errorMessage(cause, "방을 나가지 못했습니다."));
-      setLeaving(false);
+      // Leaving is terminal for this browser. Do not retain a stale room
+      // bookmark merely because the server already removed the participant or
+      // the final leave request lost its network connection.
+      console.warn("Remote room leave failed; continuing local cleanup.", cause);
     }
+    await battleMediaSession.disconnect().catch(() => undefined);
+    sharedCameraSession.stop();
+    activePlayerSession?.clearRegistration();
+    rememberSession(null);
+    navigate(lobbyPath, { replace: true });
   };
 
   useEffect(() => {

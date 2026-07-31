@@ -6,10 +6,11 @@ import styles from "./BattleRoomUi.module.css";
 export interface BattleRoomCardProps {
   readonly room: BattleRoomSummary;
   readonly joining: boolean;
+  readonly currentRoom?: boolean;
   readonly onJoin: (roomId: string) => void;
 }
 
-export function BattleRoomCard({ room, joining, onJoin }: BattleRoomCardProps) {
+export function BattleRoomCard({ room, joining, currentRoom = false, onJoin }: BattleRoomCardProps) {
   return (
     <article className={styles.roomCard}>
       <header className={styles.roomCardHeader}>
@@ -22,8 +23,8 @@ export function BattleRoomCard({ room, joining, onJoin }: BattleRoomCardProps) {
         <div><dt>출제 범위</dt><dd>{room.symbolRange.join(" · ")}</dd></div>
         <div><dt><Clock3 aria-hidden="true" size={15} />생성</dt><dd>{formatCreatedAt(room.createdAt)}</dd></div>
       </dl>
-      <button type="button" className={styles.joinButton} disabled={!room.canJoin || joining} onClick={() => onJoin(room.roomId)}>
-        <LogIn aria-hidden="true" size={17} />{joining ? "입장 중" : room.canJoin ? "입장" : "입장 불가"}
+      <button type="button" className={styles.joinButton} disabled={(!room.canJoin && !currentRoom) || joining} onClick={() => onJoin(room.roomId)}>
+        <LogIn aria-hidden="true" size={17} />{joining ? "확인 중" : currentRoom ? "재입장" : room.canJoin ? "입장" : "입장 불가"}
       </button>
     </article>
   );

@@ -16,15 +16,11 @@ export class BattleExitCoordinator {
     try {
       if (this.options.shouldLeaveRemotely?.() !== false) await this.options.roomGateway.leaveRoom(roomId);
     } catch (cause) {
-      // The server can already have removed a browser that was refreshed.
-      // Leaving is terminal locally, so clean up rather than trapping it here.
-      if (!isAlreadyLeft(cause)) throw cause;
+      // Leaving is terminal locally. The server may already have removed the
+      // participant, or the last request may be lost while the tab disconnects.
+      console.warn("Remote room leave failed; continuing local cleanup.", cause);
     }
     await this.options.mediaSession.disconnect(); this.options.cameraSession.stop(); this.options.clearRoomSession(); this.options.navigate(destination);
   }
-}
-
-function isAlreadyLeft(cause: unknown): boolean {
-  return cause instanceof Error && /\((?:403|404|409)\)/.test(cause.message);
 }
 
