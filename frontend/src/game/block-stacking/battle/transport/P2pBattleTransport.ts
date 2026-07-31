@@ -7,7 +7,7 @@ type PeerCommand = ClientBattleMessage;
 interface PlayerState { score: number; combo: number; maxCombo: number; removedCount: number; gameOver: boolean; }
 interface PersistedAuthority { readonly roomId: string; readonly hostPlayerId: string; readonly playerIds: readonly string[]; readonly sequence: number; readonly startAt?: number; readonly spawnIndex: number; readonly targetIndex: number; readonly sharedTarget: { readonly id: string; readonly symbol: string } | null; readonly players: readonly [string, PlayerState][]; readonly letters: readonly [string, { readonly playerId: string; readonly symbol: string }][]; readonly boards: readonly [string, readonly BattleBodyTransform[]][]; }
 const CLAIM_EFFECT_DURATION_MS = 1_150;
-const NEXT_TARGET_DELAY_MS = 2_300;
+const NEXT_TARGET_DELAY_MS = CLAIM_EFFECT_DURATION_MS;
 const AUTHORITY_STORAGE_PREFIX = "sudal:block-battle:authority:";
 
 /** Browser-hosted authority carried only by the room WebRTC DataChannel. */

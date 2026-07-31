@@ -20,4 +20,19 @@ describe("RankingClient", () => {
       headers: { Authorization: "Bearer a" },
     }));
   });
+
+  it("keeps legacy solo ranking rows usable when playDurationMs is absent", async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({
+      top: [{ rank: 1, userId: 7, nickname: "수달왕", score: 18 }],
+      me: null,
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    const client = new RankingClient({
+      apiBaseUrl: "/api", userId: "42", gameType: "TETRIS_SOLO", fetcher,
+    });
+
+    await expect(client.get()).resolves.toEqual({
+      top: [{ rank: 1, userId: 7, nickname: "수달왕", score: 18, playDurationMs: 18_000 }],
+      me: null,
+    });
+  });
 });

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PhysicsWorld } from "../../physics/types";
 import type { GameRenderer } from "../../render/types";
 import { BattleLocalBoardRuntime } from "./BattleLocalBoardRuntime";
-import { DEFAULT_BATTLE_RUNTIME_CONFIG } from "./BattleRuntimeConfig";
+import { BATTLE_BURST_SPAWN_RATIO, DEFAULT_BATTLE_RUNTIME_CONFIG } from "./BattleRuntimeConfig";
 
 describe("BattleLocalBoardRuntime", () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -74,6 +74,10 @@ describe("BattleLocalBoardRuntime", () => {
 
     const xs = vi.mocked(world.createLetter).mock.calls.map(([spec]) => spec.x);
     expect(xs).toEqual([360, 360, 360]);
+    expect(vi.mocked(world.createLetter).mock.calls[0]?.[0]).toMatchObject({
+      y: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight * BATTLE_BURST_SPAWN_RATIO,
+      velocityY: 2.4,
+    });
   });
 
   it("picks up exactly the letter selected for the otter and promotes the next target", () => {

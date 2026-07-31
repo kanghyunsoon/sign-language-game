@@ -2,7 +2,7 @@ import type { PhysicsLetterState, PhysicsWorld } from "../../physics/types";
 import type { GameRenderer } from "../../render/types";
 import type { BattleBodyTransform, SpawnLetterEvent } from "../transport/battleTransportTypes";
 import type { LocalBoardPublisher } from "../sync/LocalBoardPublisher";
-import { BATTLE_LETTER_SIZE, type BattleRuntimeConfig } from "./BattleRuntimeConfig";
+import { BATTLE_BURST_SPAWN_RATIO, BATTLE_LETTER_SIZE, type BattleRuntimeConfig } from "./BattleRuntimeConfig";
 
 interface LetterRecord { readonly id: string; readonly symbol: string; readonly spawnedAt: number; settledAt?: number; pending: boolean; }
 
@@ -32,7 +32,16 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
     // This makes the local and opponent Matter.js simulations share identical
     // initial conditions, without depending on streamed transform positions.
     const x = this.width / 2;
-    this.physics.createLetter({ id: event.letterId, symbol: event.symbol, x, y: Math.max(-70, -Math.min(this.width, this.height) * .12), angle: event.initialAngle });
+    this.physics.createLetter({
+      id: event.letterId,
+      symbol: event.symbol,
+      x,
+      // The authoritative physical body begins at the burst itself. There is
+      // no second decorative glyph and no later duplicate drop from above.
+      y: this.height * BATTLE_BURST_SPAWN_RATIO,
+      angle: event.initialAngle,
+      velocityY: 2.4,
+    });
     this.letters.set(event.letterId, { id: event.letterId, symbol: event.symbol, spawnedAt: event.spawnAt, pending: false });
     if (event.targetPriority) this.priorityTargetId = event.letterId;
     this.updateTarget();

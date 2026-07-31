@@ -54,6 +54,11 @@ describe("P2pBattleTransport 1:1", () => {
       occurredAt: 2,
     });
     expect(guestEvents.filter((event) => event.type === "SPAWN_LETTER")).toHaveLength(1);
+    const targetCountAfterClaim = guestEvents.filter((event) => event.type === "SHARED_TARGET").length;
+    await vi.advanceTimersByTimeAsync(1_149);
+    expect(guestEvents.filter((event) => event.type === "SHARED_TARGET")).toHaveLength(targetCountAfterClaim);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(guestEvents.filter((event) => event.type === "SHARED_TARGET")).toHaveLength(targetCountAfterClaim + 1);
 
     guest.send({ type: "PLAYER_GAME_OVER_COMMAND", commandId: "over-1", matchId: "room-1", occurredAt: 3 });
     expect(hostEvents.find((event) => event.type === "MATCH_FINISHED")).toMatchObject({ winnerPlayerId: "host", loserPlayerId: "guest" });

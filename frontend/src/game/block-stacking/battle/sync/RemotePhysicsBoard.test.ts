@@ -8,7 +8,7 @@ describe("RemotePhysicsBoard", () => {
     const board = new RemotePhysicsBoard();
     board.resize(400, 600);
     expect(board.spawn(spawn, 0)).toBe(true);
-    expect(board.renderStates(0)[0]).toMatchObject({ id: "opponent-1", x: 200 });
+    expect(board.renderStates(0)[0]).toMatchObject({ id: "opponent-1", x: 200, y: 78 });
   });
 
   it("does not let incoming transform positions move the local physics drop", () => {

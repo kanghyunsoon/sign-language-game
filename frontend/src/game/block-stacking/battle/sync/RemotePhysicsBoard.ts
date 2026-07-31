@@ -1,6 +1,6 @@
 import { MatterPhysicsWorld } from "../../physics/MatterPhysicsWorld";
 import { DEFAULT_PHYSICS_CONFIG, type PhysicsLetterState } from "../../physics/types";
-import { BATTLE_LETTER_SIZE, DEFAULT_BATTLE_RUNTIME_CONFIG } from "../core/BattleRuntimeConfig";
+import { BATTLE_BURST_SPAWN_RATIO, BATTLE_LETTER_SIZE, DEFAULT_BATTLE_RUNTIME_CONFIG } from "../core/BattleRuntimeConfig";
 import type { BattleBodyTransform, SpawnLetterEvent } from "../transport/battleTransportTypes";
 import type { RemoteBoard, RemoteSyncMessage } from "./RemoteBoardReplica";
 
@@ -16,9 +16,17 @@ export class RemotePhysicsBoard implements RemoteBoard {
     height: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight,
     letterWidth: BATTLE_LETTER_SIZE,
     letterHeight: BATTLE_LETTER_SIZE,
-    letterColliderPadding: 7,
-    rotationInertiaScale: 1.15,
-    restitution: 0,
+    letterColliderPadding: 1,
+    gravityY: 0.48,
+    maxFallSpeed: 7,
+    friction: 0.14,
+    frictionAir: 0.0045,
+    restitution: 0.035,
+    rotationInertiaScale: 0.68,
+    settleDurationMs: 550,
+    linearVelocityThreshold: 0.045,
+    angularVelocityThreshold: 0.006,
+    freezeSettledBodies: false,
   });
   private readonly symbols = new Map<string, string>();
   private width = DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth;
@@ -90,8 +98,9 @@ export class RemotePhysicsBoard implements RemoteBoard {
       id,
       symbol,
       x: this.width / 2,
-      y: Math.max(-70, -Math.min(this.width, this.height) * .12),
+      y: this.height * BATTLE_BURST_SPAWN_RATIO,
       angle,
+      velocityY: 2.4,
     });
     this.symbols.set(id, symbol);
   }

@@ -47,7 +47,9 @@ export function BattleGamePage() {
   const [resultBusy, setResultBusy] = useState(false); const [resultError, setResultError] = useState<string | null>(null);
   const [resultRecorded, setResultRecorded] = useState(false);
   const [claimedSymbol, setClaimedSymbol] = useState<{ readonly id: number; readonly symbol: string; readonly winnerPlayerId: string } | null>(null);
+  const [drainingSymbol, setDrainingSymbol] = useState<{ readonly id: number; readonly symbol: string } | null>(null);
   const claimEffectTimerRef = useRef<number | null>(null);
+  const drainEffectTimerRef = useRef<number | null>(null);
   // Keep this latched after the first successful RTC connection. A peer's
   // refresh closes the channel briefly, but must not unmount the running
   // controller (and therefore must not reset the remaining player's board).
@@ -206,13 +208,33 @@ export function BattleGamePage() {
 
   useEffect(() => {
     if (!localRenderer || !remoteRenderer || !roomId || !mediaReady) return;
-    const physics = new MatterPhysicsWorld({ ...DEFAULT_PHYSICS_CONFIG, width: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, height: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight, letterWidth: BATTLE_LETTER_SIZE, letterHeight: BATTLE_LETTER_SIZE, letterColliderPadding: 7, rotationInertiaScale: 1.15, restitution: 0 });
+    const physics = new MatterPhysicsWorld({
+      ...DEFAULT_PHYSICS_CONFIG,
+      width: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth,
+      height: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight,
+      letterWidth: BATTLE_LETTER_SIZE,
+      letterHeight: BATTLE_LETTER_SIZE,
+      letterColliderPadding: 1,
+      gravityY: 0.48,
+      maxFallSpeed: 7,
+      friction: 0.14,
+      frictionAir: 0.0045,
+      restitution: 0.035,
+      rotationInertiaScale: 0.68,
+      settleDurationMs: 550,
+      linearVelocityThreshold: 0.045,
+      angularVelocityThreshold: 0.006,
+      freezeSettledBodies: false,
+    });
     const runtime = new BattleLocalBoardRuntime(physics, localRenderer, DEFAULT_BATTLE_RUNTIME_CONFIG); runtime.resize(localViewportRef.current.width, localViewportRef.current.height); const attack = new DefaultBattleAttackEffect();
     const controller = new BattleController({ playerId: user.userId, roomId, initialMatchId: battleRoomSession?.activeMatchId ?? undefined, transport, localBoard: runtime, remoteBoard: replica, attackEffect: attack, recognizer, sharedTargetMode: true, onMatchStarted: (matchId) => runtime.setPublisher(new LocalBoardPublisher(transport, DEFAULT_BATTLE_RUNTIME_CONFIG.sync, matchId, user.userId)), onSharedTargetClaimed: (event) => {
       const effect = { id: event.acceptedAt, symbol: event.symbol, winnerPlayerId: event.winnerPlayerId };
       setClaimedSymbol(effect);
+      setDrainingSymbol({ id: event.acceptedAt, symbol: event.symbol });
       if (claimEffectTimerRef.current !== null) window.clearTimeout(claimEffectTimerRef.current);
       claimEffectTimerRef.current = window.setTimeout(() => { claimEffectTimerRef.current = null; setClaimedSymbol(null); }, 2_300);
+      if (drainEffectTimerRef.current !== null) window.clearTimeout(drainEffectTimerRef.current);
+      drainEffectTimerRef.current = window.setTimeout(() => { drainEffectTimerRef.current = null; setDrainingSymbol(null); }, 1_150);
     } });
     localRuntimeRef.current = runtime; controllerRef.current = controller; const unsubscribe = controller.subscribe(setSnapshot);
     void controller.connect({ url: config.gameWebSocketUrl, roomId, playerId: user.userId, accessToken, headers: accessToken ? undefined : createDevAuthHeaders(user), hostPlayerId: battleRoomSession?.hostUserId, playerIds: [...new Set(battleRoomSession?.participants.map((participant) => participant.userId) ?? [user.userId])] });
@@ -224,7 +246,7 @@ export function BattleGamePage() {
       remoteLoopRef.current = requestAnimationFrame(renderRemote);
     };
     remoteLoopRef.current = requestAnimationFrame(renderRemote);
-    return () => { if (remoteLoopRef.current !== null) cancelAnimationFrame(remoteLoopRef.current); if (claimEffectTimerRef.current !== null) window.clearTimeout(claimEffectTimerRef.current); remoteLoopRef.current = null; unsubscribe(); controller.dispose(); controllerRef.current = null; localRuntimeRef.current = null; remote.clear(); };
+    return () => { if (remoteLoopRef.current !== null) cancelAnimationFrame(remoteLoopRef.current); if (claimEffectTimerRef.current !== null) window.clearTimeout(claimEffectTimerRef.current); if (drainEffectTimerRef.current !== null) window.clearTimeout(drainEffectTimerRef.current); remoteLoopRef.current = null; unsubscribe(); controller.dispose(); controllerRef.current = null; localRuntimeRef.current = null; remote.clear(); };
   }, [accessToken, battleRoomSession?.activeMatchId, config.gameWebSocketUrl, localRenderer, mediaReady, recognizer, remoteRenderer, replica, roomId, transport, user]);
 
   useEffect(() => {
@@ -333,10 +355,10 @@ export function BattleGamePage() {
           <BattleBoardPanel title={user.userId || localPlayerLabel} dropBurst={claimedSymbol?.winnerPlayerId === user.userId ? claimedSymbol : null} towerHeightRatio={towerHeights.local} toolbar={<div className={styles.boardStats}><span>콤보 <strong>{snapshot.combo}</strong></span></div>} rendererConfig={{ dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO, showScenery: false }} onRendererReady={(renderer, viewport) => { localViewportRef.current = viewport; setLocalRenderer(renderer); localRuntimeRef.current?.resize(viewport.width, viewport.height); }} onViewportResize={(viewport) => { localViewportRef.current = viewport; localRuntimeRef.current?.resize(viewport.width, viewport.height); }} />
           <BattleBoardPanel className={styles.remoteBoardPanel} title={opponent?.displayName ?? remotePlayerLabel} dropBurst={claimedSymbol && claimedSymbol.winnerPlayerId !== user.userId ? claimedSymbol : null} towerHeightRatio={towerHeights.remote} rendererConfig={{ dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO, showScenery: false }} onRendererReady={(renderer, viewport) => { remoteViewportRef.current = viewport; setRemoteRenderer(renderer); replica.resize(viewport.width, viewport.height); }} onViewportResize={(viewport) => { remoteViewportRef.current = viewport; replica.resize(viewport.width, viewport.height); }} />
         </div>
-        {showSharedTarget ? <div className={[styles.sharedTargetOtter, claimedSymbol ? styles.isDraining : ""].filter(Boolean).join(" ")} aria-label={`공유 목표 ${claimedSymbol?.symbol ?? snapshot.targetSymbol ?? "대기 중"}`}>
+        {showSharedTarget ? <div className={[styles.sharedTargetOtter, drainingSymbol ? styles.isDraining : ""].filter(Boolean).join(" ")} aria-label={`공유 목표 ${drainingSymbol?.symbol ?? snapshot.targetSymbol ?? "대기 중"}`}>
           <img src={letterOtter} alt="" draggable={false} />
-          <strong key={claimedSymbol?.id ?? snapshot.targetSymbol ?? "waiting"}>{claimedSymbol?.symbol ?? snapshot.targetSymbol ?? "·"}</strong>
-          {claimedSymbol ? <span key={`portal-${claimedSymbol.id}`} className={styles.paperBlackHole} aria-hidden="true"><i/><i/></span> : null}
+          <strong key={drainingSymbol?.id ?? snapshot.targetSymbol ?? "waiting"}>{drainingSymbol?.symbol ?? snapshot.targetSymbol ?? "·"}</strong>
+          {drainingSymbol ? <span key={`portal-${drainingSymbol.id}`} className={styles.paperBlackHole} aria-hidden="true"><i/><i/></span> : null}
           <span className={styles.sharedTargetHint}>먼저 맞히면 내 보드에 떨어져요!</span>
         </div> : null}
       </section>

@@ -169,9 +169,9 @@ export function SoloGamePage({
   const [soloRank, setSoloRank] = useState<number | null>(null);
   const [topRankingIds, setTopRankingIds] = useState<readonly string[]>(["-", "-", "-"]);
   const [topRankingScores, setTopRankingScores] = useState<readonly string[]>(["-", "-", "-"]);
-  const [myRanking, setMyRanking] = useState<{ rank: number | null; userId: string; playDurationMs: number | null }>({
+  const [myRanking, setMyRanking] = useState<{ rank: number | null; nickname: string; playDurationMs: number | null }>({
     rank: null,
-    userId: String(user.userId),
+    nickname: user.displayName,
     playDurationMs: null,
   });
   const [cameraStream,setCameraStream]=useState(()=>sharedCameraSession.getStream());
@@ -203,18 +203,18 @@ export function SoloGamePage({
     const loadRankings = async () => {
       try {
         const payload = await rankingClient.get({ cache: "no-store", signal: controller.signal });
-        const ids = payload.top.slice(0, 3).map((entry) => String(entry.userId));
+        const ids = payload.top.slice(0, 3).map((entry) => entry.nickname);
         const scores = payload.top.slice(0, 3).map((entry) => `${formatRankingSeconds(entry.playDurationMs)}초`);
         setTopRankingIds([ids[0] ?? "-", ids[1] ?? "-", ids[2] ?? "-"]);
         setTopRankingScores([scores[0] ?? "-", scores[1] ?? "-", scores[2] ?? "-"]);
         if (payload.me !== null) {
           setMyRanking({
             rank: payload.me.rank,
-            userId: String(payload.me.userId),
+            nickname: payload.me.nickname,
             playDurationMs: payload.me.playDurationMs,
           });
         } else {
-          setMyRanking({ rank: null, userId: String(user.userId), playDurationMs: null });
+          setMyRanking({ rank: null, nickname: user.displayName, playDurationMs: null });
         }
       } catch {
         // Keep the start screen usable while the ranking API is unavailable.
@@ -229,7 +229,7 @@ export function SoloGamePage({
       window.clearInterval(refreshTimer);
       window.removeEventListener("focus", refreshRankings);
     };
-  }, [rankingClient, user.userId]);
+  }, [rankingClient, user.displayName, user.userId]);
 
   // Runtime snapshots are normally published for gameplay events. Poll the
   // runtime clock separately while playing so the visible timer advances even
@@ -681,7 +681,7 @@ export function SoloGamePage({
                 </div>
                 <div className="solo-start-my-ranking" aria-label="내 솔로 랭킹">
                   <span><small>내 순위</small><b>{myRanking.rank === null ? "-" : `${myRanking.rank}위`}</b></span>
-                  <span><small>아이디</small><b>{myRanking.userId}</b></span>
+                  <span><small>닉네임</small><b>{myRanking.nickname}</b></span>
                   <span><small>기록</small><b>{myRanking.playDurationMs === null ? "-" : `${formatRankingSeconds(myRanking.playDurationMs)}초`}</b></span>
                 </div>
                 <button type="button" onClick={startOrResume} disabled={sessionStarting}>

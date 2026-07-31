@@ -47,12 +47,18 @@ export function parseRankingResponse(value: unknown): RankingResponse {
 }
 function parseEntry(value: unknown): RankingEntry {
   if (!isRecord(value)) throw new Error("Invalid ranking entry.");
+  const score = integer(value.score, "score");
   return {
     rank: integer(value.rank, "rank"),
     userId: integer(value.userId, "userId"),
     nickname: text(value.nickname, "nickname"),
-    score: integer(value.score, "score"),
-    playDurationMs: integer(value.playDurationMs, "playDurationMs"),
+    score,
+    // Older solo records can omit this recently-added field. Their score is
+    // the elapsed whole seconds, so retain a usable ranking instead of
+    // rejecting the complete Top 5 response.
+    playDurationMs: value.playDurationMs === null || value.playDurationMs === undefined
+      ? score * 1_000
+      : integer(value.playDurationMs, "playDurationMs"),
   };
 }
 function integer(value: unknown, name: string): number {
