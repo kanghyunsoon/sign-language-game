@@ -3,6 +3,12 @@ import type { PhysicsLetterState } from "../physics/types";
 export interface RendererConfig {
   readonly width: number;
   readonly height: number;
+  /**
+   * Optional fixed simulation space. Physics positions are expressed in this
+   * space and projected into the current renderer viewport.
+   */
+  readonly coordinateWidth?: number;
+  readonly coordinateHeight?: number;
   readonly dangerLineY: number;
   readonly dangerLineRatio: number;
   readonly letterWidth: number;

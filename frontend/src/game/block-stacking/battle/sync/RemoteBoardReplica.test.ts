@@ -19,12 +19,18 @@ describe("RemoteBoardReplica", () => {
   it("keeps an opponent spawn visible until the first complete board snapshot", () => {
     const r = new RemoteBoardReplica({ ...DEFAULT_BATTLE_SYNC_CONFIG, interpolationDelayMs: 0 }, 100, 100);
     r.spawn({ type: "SPAWN_LETTER", sequence: 9, matchId: "m", playerId: "opponent", letterId: "opponent-1", spawnIndex: 1, symbol: "ㄴ", spawnAt: 0, normalizedX: .3, initialAngle: 0 }, 10);
-    expect(r.renderStates(10)[0]).toMatchObject({ id: "opponent-1", x: 30, y: -10 });
+    expect(r.renderStates(10)[0]).toMatchObject({ id: "opponent-1", x: 30, y: 13 });
   });
   it("keeps sender timing when several transforms arrive in one browser burst", () => {
     const r = new RemoteBoardReplica({ ...DEFAULT_BATTLE_SYNC_CONFIG, interpolationDelayMs: 25 }, 100, 100);
     r.apply({ type: "BODY_TRANSFORM_BATCH", sequence: 1, matchId: "m", playerId: "p", sentAt: 0, bodies: [body("a", .1)] }, 1_000);
     r.apply({ type: "BODY_TRANSFORM_BATCH", sequence: 2, matchId: "m", playerId: "p", sentAt: 100, bodies: [body("a", .9)] }, 1_005);
     expect(r.renderStates(1_075)[0]?.x).toBeCloseTo(50);
+  });
+  it("rejects a corrupted recovery snapshot", () => {
+    const r = new RemoteBoardReplica(DEFAULT_BATTLE_SYNC_CONFIG);
+    expect(r.apply({ type: "BOARD_SNAPSHOT", sequence: 1, matchId: "m", playerId: "p", sentAt: 0, bodies: [body("a", .5)], boardChecksum: "corrupted" }, 0)).toBe(false);
+    expect(r.consumeIntegrityFailure()).toBe(true);
+    expect(r.renderStates(0)).toHaveLength(0);
   });
 });

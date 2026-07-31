@@ -1,6 +1,7 @@
 import type { PhysicsLetterState } from "../../physics/types";
 import type { BoardSnapshotEvent, LetterRemovedSyncEvent, LetterSpawnedSyncEvent, LetterStateSyncEvent, SpawnLetterEvent, TransformBatchEvent } from "../transport/battleTransportTypes";
 import type { BattleSyncConfig } from "./InterpolationConfig";
+import { boardStateChecksum } from "./BoardStateChecksum";
 import { RemoteTransformBuffer } from "./RemoteTransformBuffer";
 
 export type RemoteSyncMessage = TransformBatchEvent | BoardSnapshotEvent | LetterSpawnedSyncEvent | LetterStateSyncEvent | LetterRemovedSyncEvent;
@@ -13,17 +14,24 @@ export interface RemoteBoard {
   renderStates(now: number): readonly PhysicsLetterState[];
   targetId(): string | null;
   targetSymbol(): string | null;
+  removeLetter(letterId: string): boolean;
+  snapshotBodies?(now: number): readonly import("../transport/battleTransportTypes").BattleBodyTransform[];
+  consumeIntegrityFailure?(): boolean;
   clear(): void;
 }
 
 export class RemoteBoardReplica implements RemoteBoard {
-  private readonly buffer: RemoteTransformBuffer; private readonly states = new Map<string, string>(); private readonly symbols = new Map<string, string>(); private lastSequence = -1; private senderClockOffsetMs: number | null = null; private hasAuthoritativeSnapshot = false;
+  private readonly buffer: RemoteTransformBuffer; private readonly states = new Map<string, string>(); private readonly symbols = new Map<string, string>(); private lastSequence = -1; private senderClockOffsetMs: number | null = null; private hasAuthoritativeSnapshot = false; private integrityFailure = false;
   constructor(config: BattleSyncConfig, private width = 720, private height = 960) { this.buffer = new RemoteTransformBuffer(config); }
   resize(width: number, height: number): void { this.width = width; this.height = height; }
   apply(message: RemoteSyncMessage, receivedAt: number): boolean {
     const sampledAt = this.toLocalTimeline(message, receivedAt);
     if (message.sequence <= this.lastSequence && message.type !== "BODY_TRANSFORM_BATCH") return false;
     if (message.type === "BOARD_SNAPSHOT") {
+      if (message.boardChecksum && message.boardChecksum !== boardStateChecksum(message.bodies)) {
+        this.integrityFailure = true;
+        return false;
+      }
       const wasAuthoritative = this.hasAuthoritativeSnapshot;
       this.lastSequence = message.sequence; this.hasAuthoritativeSnapshot = true; const ids = message.bodies.filter((body) => body.state !== "REMOVED").map((body) => body.id); this.buffer.restore(ids); this.states.clear(); this.symbols.clear();
       for (const body of message.bodies) if (body.state !== "REMOVED") {
@@ -61,7 +69,7 @@ export class RemoteBoardReplica implements RemoteBoard {
       id: event.letterId,
       symbol: event.symbol,
       x: clamp(event.normalizedX),
-      y: -0.1,
+      y: clamp(event.normalizedY ?? .13),
       angle: event.initialAngle,
       velocityX: 0,
       velocityY: 0,
@@ -81,7 +89,24 @@ export class RemoteBoardReplica implements RemoteBoard {
   }
   targetId(): string | null { return this.buffer.ids()[0] ?? null; }
   targetSymbol(): string | null { const id = this.targetId(); return id ? this.symbols.get(id) ?? null : null; }
-  clear(): void { this.buffer.clear(); this.states.clear(); this.symbols.clear(); this.lastSequence = -1; this.senderClockOffsetMs = null; this.hasAuthoritativeSnapshot = false; }
+  removeLetter(letterId: string): boolean {
+    if (!this.states.has(letterId)) return false;
+    this.states.delete(letterId); this.symbols.delete(letterId); this.buffer.remove(letterId);
+    return true;
+  }
+  getStates(now = Date.now()): readonly PhysicsLetterState[] { return this.renderStates(now); }
+  snapshotBodies(now: number): readonly import("../transport/battleTransportTypes").BattleBodyTransform[] {
+    return this.buffer.ids().flatMap((id) => {
+      const value = this.buffer.sample(id, now);
+      return value && this.states.get(id) !== "REMOVED" ? [{ ...value, state: this.states.get(id) === "SETTLED" ? "SETTLED" as const : "FALLING" as const }] : [];
+    });
+  }
+  consumeIntegrityFailure(): boolean {
+    const failed = this.integrityFailure;
+    this.integrityFailure = false;
+    return failed;
+  }
+  clear(): void { this.buffer.clear(); this.states.clear(); this.symbols.clear(); this.lastSequence = -1; this.senderClockOffsetMs = null; this.hasAuthoritativeSnapshot = false; this.integrityFailure = false; }
   private toLocalTimeline(message: RemoteSyncMessage, receivedAt: number): number {
     if (!("sentAt" in message) || !Number.isFinite(message.sentAt)) return receivedAt;
     if (this.senderClockOffsetMs === null) this.senderClockOffsetMs = receivedAt - message.sentAt;

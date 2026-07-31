@@ -98,6 +98,11 @@ export class RemotePhysicsBoard implements RemoteBoard {
 
   targetId(): string | null { return this.physics.getLetterStates()[0]?.id ?? null; }
   targetSymbol(): string | null { const id = this.targetId(); return id ? this.symbols.get(id) ?? null : null; }
+  removeLetter(letterId: string): boolean {
+    if (!this.physics.getLetterState(letterId)) return false;
+    this.remove(letterId);
+    return true;
+  }
 
   clear(): void {
     this.physics.clear();

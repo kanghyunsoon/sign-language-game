@@ -82,6 +82,11 @@ export class WebRtcDataChannelTransport<TCommand, TEvent>
     this.sendEnvelope("EVENT", event);
   }
 
+  /** Delivers a peer-owned relay to this browser without echoing it back. */
+  publishLocal(event: TEvent): void {
+    this.emitEvent(event);
+  }
+
   /** Publishes a recovery snapshot locally and to every connected peer. */
   publishSnapshot(snapshot: TEvent): void {
     this.emitEvent(snapshot);

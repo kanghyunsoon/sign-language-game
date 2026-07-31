@@ -16,6 +16,7 @@ const DANGER_VISIBLE_HALF_HEIGHT = BATTLE_LETTER_SIZE * .32;
 export interface BattleLocalBoard {
   start(): void; stop(): void; spawn(event: SpawnLetterEvent): void; selectRemoval(symbol: string): string | null;
   acceptRemoval(letterId: string): void; rejectRemoval(letterId?: string): void; restore?(bodies: readonly BattleBodyTransform[], snapshotAt?: number, receivedAt?: number): void; getTargetSymbol(): string | null; takeTargetForOtter(): string | null; takeLetterForOtter(letterId: string): string | null; resize(width: number, height: number): void; setPublisher(publisher: LocalBoardPublisher): void; setGameOverHandler(handler: () => void): void; dispose(): void;
+  removeLetter(letterId: string): boolean;
 }
 
 export class BattleLocalBoardRuntime implements BattleLocalBoard {
@@ -61,6 +62,15 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
   }
   acceptRemoval(letterId: string): void { const record = this.letters.get(letterId); if (!record) return; if (this.priorityTargetId === letterId) this.priorityTargetId = null; this.renderer.highlightRemoval(letterId, this.config.removalEffectMs); this.updateTarget(); }
   rejectRemoval(letterId?: string): void { if (letterId) { const record = this.letters.get(letterId); if (record) record.pending = false; } else for (const record of this.letters.values()) record.pending = false; this.updateTarget(); }
+  removeLetter(letterId: string): boolean {
+    const record = this.letters.get(letterId);
+    if (!record || !this.physics.removeLetter(letterId)) return false;
+    if (this.priorityTargetId === letterId) this.priorityTargetId = null;
+    this.letters.delete(letterId);
+    this.updateTarget();
+    this.renderer.render(this.physics.getLetterStates());
+    return true;
+  }
   restore(bodies: readonly BattleBodyTransform[], snapshotAt = Date.now(), receivedAt = Date.now()): void {
     for (const body of bodies) {
       if (body.state === "REMOVED" || this.physics.getLetterState(body.id)) continue;
@@ -85,15 +95,13 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
   /** Removes the exact physical glyph selected by the authoritative transfer. */
   takeLetterForOtter(letterId: string): string | null {
     const target = this.letters.get(letterId);
-    if (!target || !this.physics.getLetterState(letterId)) return null;
-    if (this.priorityTargetId === letterId) this.priorityTargetId = null;
-    this.physics.removeLetter(letterId);
-    this.letters.delete(letterId);
-    this.updateTarget();
-    this.renderer.render(this.physics.getLetterStates());
-    return target.symbol;
+    return target && this.removeLetter(letterId) ? target.symbol : null;
   }
-  resize(width: number, height: number): void { this.width = width; this.height = height; this.physics.resize(width, height); }
+  resize(_width: number, _height: number): void {
+    // Battle physics always runs in the canonical board space. The renderer
+    // projects those coordinates into the current DOM viewport, so browser
+    // zoom and different panel sizes cannot move walls, the floor or bodies.
+  }
   setPublisher(publisher: LocalBoardPublisher): void { this.publisher = publisher; }
   setGameOverHandler(handler: () => void): void { this.gameOverHandler = handler; }
   dispose(): void { if (this.disposed) return; this.stop(); this.physics.destroy(); this.letters.clear(); this.disposed = true; }

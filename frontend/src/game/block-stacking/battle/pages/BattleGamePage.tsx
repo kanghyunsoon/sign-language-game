@@ -11,13 +11,13 @@ import { PythonWebSocketSignRecognizer } from "../../../recognition/websocket/Py
 import { RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG } from "../../../recognition/runtime";
 import { RESPONSIVE_GAMEPLAY_SIGN_DECODER_CONFIG } from "../../../recognition/temporal";
 import type { BattleControllerSnapshot } from "../core/BattleController";
-import type { MatchFinishedEvent } from "../transport/battleTransportTypes";
+import type { IdleRemovalTarget, MatchFinishedEvent } from "../transport/battleTransportTypes";
 import { BattleController } from "../core/BattleController";
 import { BattleExitCoordinator } from "../core/BattleExitCoordinator";
 import { BattleLocalBoardRuntime } from "../core/BattleLocalBoardRuntime";
 import { BATTLE_DANGER_LINE_RATIO, BATTLE_DANGER_LINE_Y, BATTLE_LETTER_SIZE, DEFAULT_BATTLE_RUNTIME_CONFIG } from "../core/BattleRuntimeConfig";
 import { DefaultBattleAttackEffect } from "../attack/DefaultBattleAttackEffect";
-import { RemotePhysicsBoard } from "../sync/RemotePhysicsBoard";
+import { RemoteBoardReplica } from "../sync/RemoteBoardReplica";
 import { RemoteBoardRenderer } from "../render/RemoteBoardRenderer";
 import { LocalBoardPublisher } from "../sync/LocalBoardPublisher";
 import { BattleBoardPanel } from "../components/BattleBoardPanel";
@@ -40,14 +40,21 @@ const BATTLE_HAND_DETECTION_CONFIG = Object.freeze({
   minimumHandPresenceConfidence: .5,
   minimumTrackingConfidence: .5,
 });
+// The landmark canvas is a cheap, presentation-only 2D pass. Draw it at
+// 30 FPS while keeping hand detection and AI submission latest-only, so the
+// skeleton feels immediate without increasing inference or WebSocket traffic.
+const BATTLE_RECOGNITION_RATE_CONFIG = Object.freeze({
+  ...RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG,
+  renderFps: 30,
+});
 
 export function BattleGamePage() {
   const { roomId = "" } = useParams(); const navigate = useNavigate();
   const { user, accessToken, config, services, battleMediaSession, sharedCameraSession, activePlayerSession, battleRoomSession, setBattleRoomSession } = useGameModuleContext();
   const transport = useMemo(() => services.battleGameTransportFactory.create(roomId), [roomId, services]);
   const resultClient = useMemo(() => new BattleResultClient({ apiBaseUrl: config.roomApiBaseUrl, userId: user.userId, headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : createDevAuthHeaders(user) }), [accessToken, config.roomApiBaseUrl, user]);
-  const recognizer = useMemo(() => new PythonWebSocketSignRecognizer({ url: config.aiWebSocketUrl, aiInferenceFps: RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG.aiInferenceFps, decoderConfig: RESPONSIVE_GAMEPLAY_SIGN_DECODER_CONFIG }), [config.aiWebSocketUrl]);
-  const replica = useMemo(() => new RemotePhysicsBoard(), []);
+  const recognizer = useMemo(() => new PythonWebSocketSignRecognizer({ url: config.aiWebSocketUrl, aiInferenceFps: BATTLE_RECOGNITION_RATE_CONFIG.aiInferenceFps, decoderConfig: RESPONSIVE_GAMEPLAY_SIGN_DECODER_CONFIG }), [config.aiWebSocketUrl]);
+  const replica = useMemo(() => new RemoteBoardReplica(DEFAULT_BATTLE_RUNTIME_CONFIG.sync), []);
   const exitCoordinator = useMemo(() => new BattleExitCoordinator({ roomGateway: services.battleRoomGateway, mediaSession: battleMediaSession, cameraSession: sharedCameraSession, clearRoomSession: () => setBattleRoomSession(null), navigate: (destination) => navigate(destination, { replace: true }), shouldLeaveRemotely: () => battleRoomSession?.roomId === roomId }), [battleMediaSession, battleRoomSession?.roomId, navigate, roomId, services.battleRoomGateway, setBattleRoomSession, sharedCameraSession]);
   const [snapshot, setSnapshot] = useState(INITIAL); const [participants, setParticipants] = useState<readonly RemoteGameParticipant[]>(() => battleMediaSession.getRemoteParticipants());
   const [resultBusy, setResultBusy] = useState(false); const [resultError, setResultError] = useState<string | null>(null);
@@ -58,6 +65,7 @@ export function BattleGamePage() {
   const [finalResult, setFinalResult] = useState<MatchFinishedEvent | null>(null);
   const [claimedSymbol, setClaimedSymbol] = useState<{ readonly id: number; readonly symbol: string; readonly winnerPlayerId: string } | null>(null);
   const [drainingSymbol, setDrainingSymbol] = useState<{ readonly id: number; readonly symbol: string } | null>(null);
+  const [idleRemoval, setIdleRemoval] = useState<{ readonly id: string; readonly targets: readonly IdleRemovalTarget[] } | null>(null);
   const claimEffectTimerRef = useRef<number | null>(null);
   const drainEffectTimerRef = useRef<number | null>(null);
   // Keep this latched after the first successful RTC connection. A peer's
@@ -228,7 +236,7 @@ export function BattleGamePage() {
       angularVelocityThreshold: 0.006,
       freezeSettledBodies: true,
     });
-    const runtime = new BattleLocalBoardRuntime(physics, localRenderer, DEFAULT_BATTLE_RUNTIME_CONFIG); runtime.resize(localViewportRef.current.width, localViewportRef.current.height); const attack = new DefaultBattleAttackEffect();
+    const runtime = new BattleLocalBoardRuntime(physics, localRenderer, DEFAULT_BATTLE_RUNTIME_CONFIG); const attack = new DefaultBattleAttackEffect();
     const controller = new BattleController({ playerId: user.userId, roomId, initialMatchId: battleRoomSession?.activeMatchId ?? undefined, transport, localBoard: runtime, remoteBoard: replica, attackEffect: attack, recognizer, sharedTargetMode: true, onMatchStarted: (matchId) => runtime.setPublisher(new LocalBoardPublisher(transport, DEFAULT_BATTLE_RUNTIME_CONFIG.sync, matchId, user.userId)), onSharedTargetClaimed: (event) => {
       const effect = { id: event.acceptedAt, symbol: event.symbol, winnerPlayerId: event.winnerPlayerId };
       setClaimedSymbol(effect);
@@ -237,6 +245,10 @@ export function BattleGamePage() {
       claimEffectTimerRef.current = window.setTimeout(() => { claimEffectTimerRef.current = null; setClaimedSymbol(null); }, 2_300);
       if (drainEffectTimerRef.current !== null) window.clearTimeout(drainEffectTimerRef.current);
       drainEffectTimerRef.current = window.setTimeout(() => { drainEffectTimerRef.current = null; setDrainingSymbol(null); }, 1_150);
+    }, onIdleRemovalSelected: (event) => {
+      setIdleRemoval({ id: event.removalId, targets: event.targets });
+    }, onIdleRemovalExecuted: (event) => {
+      setIdleRemoval((current) => current?.id === event.removalId ? null : current);
     } });
     localRuntimeRef.current = runtime; controllerRef.current = controller; const unsubscribe = controller.subscribe((next) => {
       setSnapshot(next);
@@ -246,15 +258,11 @@ export function BattleGamePage() {
       }
     });
     void controller.connect({ url: config.gameWebSocketUrl, roomId, playerId: user.userId, accessToken, headers: accessToken ? undefined : createDevAuthHeaders(user), hostPlayerId: battleRoomSession?.hostUserId, playerIds: [...new Set(battleRoomSession?.participants.map((participant) => participant.userId) ?? [user.userId])] });
-    // Opponent blocks are spawned locally after the server confirms them.
-    // Their motion is independent of remote transform packet timing.
+    // The opponent board is an interpolated view of owner-authoritative
+    // transforms. It deliberately does not run another Matter.js simulation.
     const remote = new RemoteBoardRenderer(remoteRenderer, replica);
-    let lastRemoteRenderAt = Number.NEGATIVE_INFINITY;
-    const renderRemote = (at: number) => {
-      if (at - lastRemoteRenderAt >= 1000 / 30) {
-        lastRemoteRenderAt = at;
-        remote.render(at);
-      }
+    const renderRemote = () => {
+      remote.render(Date.now());
       remoteLoopRef.current = requestAnimationFrame(renderRemote);
     };
     remoteLoopRef.current = requestAnimationFrame(renderRemote);
@@ -270,11 +278,9 @@ export function BattleGamePage() {
         return;
       }
       lastSampleAt = at;
-      const localViewport = localViewportRef.current;
-      const remoteViewport = remoteViewportRef.current;
       const next = {
-        local: settledTowerHeightRatio(settledTowerHeightsRef.current.local, localRuntimeRef.current?.getStates() ?? [], localViewport.height, localViewport.height * BATTLE_DANGER_LINE_RATIO, BATTLE_LETTER_SIZE),
-        remote: settledTowerHeightRatio(settledTowerHeightsRef.current.remote, replica.getStates(), remoteViewport.height, remoteViewport.height * BATTLE_DANGER_LINE_RATIO, BATTLE_LETTER_SIZE),
+        local: settledTowerHeightRatio(settledTowerHeightsRef.current.local, localRuntimeRef.current?.getStates() ?? [], DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight, DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight * BATTLE_DANGER_LINE_RATIO, BATTLE_LETTER_SIZE),
+        remote: settledTowerHeightRatio(settledTowerHeightsRef.current.remote, replica.getStates(), DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight, DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight * BATTLE_DANGER_LINE_RATIO, BATTLE_LETTER_SIZE),
       };
       settledTowerHeightsRef.current = next;
       setTowerHeights((current) => Math.abs(current.local - next.local) < .001 && Math.abs(current.remote - next.remote) < .001 ? current : next);
@@ -353,6 +359,8 @@ export function BattleGamePage() {
   }, [roomId]);
   const localPlayerLabel = localIsHost ? "PLAYER 1" : "PLAYER 2";
   const remotePlayerLabel = localIsHost ? "PLAYER 2" : "PLAYER 1";
+  const localIdleRemovalTarget = idleRemoval?.targets.find((target) => target.playerId === user.userId) ?? null;
+  const remoteIdleRemovalTarget = idleRemoval?.targets.find((target) => target.playerId !== user.userId) ?? null;
   const showSharedTarget = snapshot.state === "COUNTDOWN" || snapshot.state === "PLAYING" || snapshot.state === "RECONNECTING";
   return <main
     className={`${styles.page} ${styles.battleFixedPage}`}
@@ -369,8 +377,8 @@ export function BattleGamePage() {
             <i className={[styles.sharedCloud, styles.sharedCloudOne].join(" ")}/><i className={[styles.sharedCloud, styles.sharedCloudTwo].join(" ")}/><i className={[styles.sharedCloud, styles.sharedCloudThree].join(" ")}/>
             <i className={styles.sharedHills}/><span className={styles.sharedFireflies}><i/><i/><i/><i/><i/></span>
           </div>
-          <BattleBoardPanel title={user.userId || localPlayerLabel} dropBurst={claimedSymbol?.winnerPlayerId === user.userId ? claimedSymbol : null} towerHeightRatio={towerHeights.local} toolbar={<div className={styles.boardStats}><span>콤보 <strong>{snapshot.combo}</strong></span></div>} rendererConfig={{ dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO, showScenery: false }} onRendererReady={(renderer, viewport) => { localViewportRef.current = viewport; setLocalRenderer(renderer); localRuntimeRef.current?.resize(viewport.width, viewport.height); }} onViewportResize={(viewport) => { localViewportRef.current = viewport; localRuntimeRef.current?.resize(viewport.width, viewport.height); }} />
-          <BattleBoardPanel className={styles.remoteBoardPanel} title={opponent?.displayName ?? remotePlayerLabel} dropBurst={claimedSymbol && claimedSymbol.winnerPlayerId !== user.userId ? claimedSymbol : null} towerHeightRatio={towerHeights.remote} rendererConfig={{ dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO, showScenery: false }} onRendererReady={(renderer, viewport) => { remoteViewportRef.current = viewport; setRemoteRenderer(renderer); replica.resize(viewport.width, viewport.height); }} onViewportResize={(viewport) => { remoteViewportRef.current = viewport; replica.resize(viewport.width, viewport.height); }} />
+          <BattleBoardPanel title={user.userId || localPlayerLabel} dropBurst={claimedSymbol?.winnerPlayerId === user.userId ? claimedSymbol : null} idleRemovalTarget={localIdleRemovalTarget} towerHeightRatio={towerHeights.local} toolbar={<div className={styles.boardStats}><span>콤보 <strong>{snapshot.combo}</strong></span></div>} rendererConfig={{ coordinateWidth: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, coordinateHeight: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight, dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO, showScenery: false }} onRendererReady={(renderer, viewport) => { localViewportRef.current = viewport; setLocalRenderer(renderer); }} onViewportResize={(viewport) => { localViewportRef.current = viewport; }} />
+          <BattleBoardPanel className={styles.remoteBoardPanel} title={opponent?.displayName ?? remotePlayerLabel} dropBurst={claimedSymbol && claimedSymbol.winnerPlayerId !== user.userId ? claimedSymbol : null} idleRemovalTarget={remoteIdleRemovalTarget} towerHeightRatio={towerHeights.remote} rendererConfig={{ coordinateWidth: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, coordinateHeight: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight, dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO, showScenery: false }} onRendererReady={(renderer, viewport) => { remoteViewportRef.current = viewport; setRemoteRenderer(renderer); }} onViewportResize={(viewport) => { remoteViewportRef.current = viewport; }} />
         </div>
         {showSharedTarget ? <div className={[styles.sharedTargetOtter, drainingSymbol ? styles.isDraining : ""].filter(Boolean).join(" ")} aria-label={`공유 목표 ${drainingSymbol?.symbol ?? snapshot.targetSymbol ?? "대기 중"}`}>
           <img src={letterOtter} alt="" draggable={false} />
@@ -382,7 +390,7 @@ export function BattleGamePage() {
       <aside className={styles.duelCameraRail} aria-label="플레이어 카메라">
         <section className={styles.duelCameraCard} aria-label={`${user.displayName} 카메라`}>
           <header><div><strong>{user.userId} CAM</strong></div><em className={cameraState === "CONNECTED" ? styles.recordingIndicator : undefined}>{cameraState === "CONNECTED" ? "REC" : "WAIT"}</em></header>
-          <div className={styles.duelCameraViewport}>{localStream ? <HandCamera compact sharedStream={localStream} autoStart renderHandOverlay={false} rateConfig={RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG} handDetectionConfig={BATTLE_HAND_DETECTION_CONFIG} performanceMonitor={recognizer.getPerformanceMonitor()} temporalDecoder={recognizer.getTemporalDecoder()} activePlayerSession={activePlayerSession} onLandmarkFrame={(frame) => recognizer.sendLandmarkFrame(frame)} onHandNotDetected={(capturedAt) => recognizer.notifyHandNotDetected(capturedAt)} prediction={snapshot.prediction} connectionState={recognizer.getConnectionState()} /> : <GameVideoTile kind="LOCAL" label="내 영상" stream={null} cameraEnabled={false} connectionState="DISCONNECTED" />}
+          <div className={styles.duelCameraViewport}>{localStream ? <HandCamera compact sharedStream={localStream} autoStart renderHandOverlay rateConfig={BATTLE_RECOGNITION_RATE_CONFIG} handDetectionConfig={BATTLE_HAND_DETECTION_CONFIG} performanceMonitor={recognizer.getPerformanceMonitor()} temporalDecoder={recognizer.getTemporalDecoder()} activePlayerSession={activePlayerSession} onLandmarkFrame={(frame) => recognizer.sendLandmarkFrame(frame)} onHandNotDetected={(capturedAt) => recognizer.notifyHandNotDetected(capturedAt)} prediction={snapshot.prediction} connectionState={recognizer.getConnectionState()} /> : <GameVideoTile kind="LOCAL" label="내 영상" stream={null} cameraEnabled={false} connectionState="DISCONNECTED" />}
             <div className={styles.recognitionBadge}><span>현재 인식</span><strong>{snapshot.prediction?.symbol ?? "-"}</strong><small>{snapshot.prediction ? `${Math.round(snapshot.prediction.confidence * 100)}%` : "대기"}</small></div>
           </div>
         </section>

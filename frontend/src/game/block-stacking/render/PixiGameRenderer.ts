@@ -134,15 +134,16 @@ export class PixiGameRenderer implements GameRenderer {
     for (const letter of letters) {
       activeIds.add(letter.id);
       const view = this.getOrCreateView(letter);
+      const display = this.toDisplayState(letter);
       // Keep Pixi for scenery/effects only.  A separate DOM glyph is the one
       // visible to the player, so it can sit above the otter without raising
       // the entire board canvas above the start overlay.
       view.setVisible(false);
       if (
-        Math.abs(view.root.x - letter.x) >= POSITION_RENDER_EPSILON
-        || Math.abs(view.root.y - letter.y) >= POSITION_RENDER_EPSILON
+        Math.abs(view.root.x - display.x) >= POSITION_RENDER_EPSILON
+        || Math.abs(view.root.y - display.y) >= POSITION_RENDER_EPSILON
       ) {
-        view.root.position.set(letter.x, letter.y);
+        view.root.position.set(display.x, display.y);
       }
       if (Math.abs(view.root.rotation - letter.angle) >= ROTATION_RENDER_EPSILON) {
         view.root.rotation = letter.angle;
@@ -150,7 +151,7 @@ export class PixiGameRenderer implements GameRenderer {
       view.setMotionState(letter.velocityY, letter.settled);
       const spawnElapsedMs = this.spawnEffects.get(letter.id);
       view.setSpawnProgress(spawnElapsedMs === undefined ? null : Math.min(1, spawnElapsedMs / SPAWN_EFFECT_DURATION_MS));
-      this.renderFrontLetter(letter, spawnElapsedMs);
+      this.renderFrontLetter(letter, display.x, display.y, spawnElapsedMs);
     }
 
     for (const [id, view] of this.views) {
@@ -285,7 +286,12 @@ export class PixiGameRenderer implements GameRenderer {
     return view;
   }
 
-  private renderFrontLetter(letter: PhysicsLetterState, spawnElapsedMs: number | undefined): void {
+  private renderFrontLetter(
+    letter: PhysicsLetterState,
+    displayX: number,
+    displayY: number,
+    spawnElapsedMs: number | undefined,
+  ): void {
     let glyph = this.frontLetters.get(letter.id);
     if (!glyph) {
       glyph = document.createElement("span");
@@ -305,8 +311,8 @@ export class PixiGameRenderer implements GameRenderer {
       : `hsl(${16 + spawnProgress * 28} 88% ${57 - spawnProgress * 7}%)`;
     const motion = letter.settled ? 0 : Math.min(1, Math.abs(letter.velocityY) / 4.5);
     const signature = [
-      letter.x.toFixed(2),
-      letter.y.toFixed(2),
+      displayX.toFixed(2),
+      displayY.toFixed(2),
       letter.angle.toFixed(4),
       color,
       motion.toFixed(3),
@@ -316,7 +322,16 @@ export class PixiGameRenderer implements GameRenderer {
     this.frontLetterSignatures.set(letter.id, signature);
     glyph.style.display = this.hiddenLetterIds.has(letter.id) ? "none" : "block";
     glyph.style.backgroundColor = color;
-    glyph.style.transform = `translate(-50%, -50%) translate(${letter.x}px, ${letter.y}px) rotate(${letter.angle}rad) scale(${1 - motion * .018}, ${1 + motion * .032})`;
+    const scaleX = this.width / (this.config.coordinateWidth ?? this.width);
+    const scaleY = this.height / (this.config.coordinateHeight ?? this.height);
+    glyph.style.transform = `translate(-50%, -50%) translate(${displayX}px, ${displayY}px) rotate(${letter.angle}rad) scale(${scaleX * (1 - motion * .018)}, ${scaleY * (1 + motion * .032)})`;
+  }
+
+  private toDisplayState(letter: PhysicsLetterState): { readonly x: number; readonly y: number } {
+    return {
+      x: letter.x * this.width / (this.config.coordinateWidth ?? this.width),
+      y: letter.y * this.height / (this.config.coordinateHeight ?? this.height),
+    };
   }
 
   private getFrontLetterMask(symbol: string): {

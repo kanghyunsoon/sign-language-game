@@ -71,13 +71,13 @@ describe("BattleP2pAuthority", () => {
     authority.dispose();
   });
 
-  it("finishes the match with the opponent as winner on game over", () => {
+  it("finishes the match with the finish-line player as winner", () => {
     const { authority, events } = makeAuthority();
     authority.start();
     authority.submit(guestId, { type: "PLAYER_GAME_OVER_COMMAND", commandId: "g1", matchId, occurredAt: 1 });
     const finished = events.filter((event) => event.type === "MATCH_FINISHED");
     expect(finished).toHaveLength(1);
-    expect(finished[0]).toMatchObject({ winnerPlayerId: hostId, loserPlayerId: guestId, reason: "DANGER_LINE" });
+    expect(finished[0]).toMatchObject({ winnerPlayerId: guestId, loserPlayerId: hostId, reason: "DANGER_LINE" });
     // No further events after finish.
     authority.submit(hostId, { type: "REMOVE_LETTER_COMMAND", commandId: "c9", matchId, letterId: "L9", symbol: "ㄱ", occurredAt: 2 });
     expect(events.filter((event) => event.type === "REMOVE_LETTER_ACCEPTED")).toHaveLength(0);

@@ -2,6 +2,7 @@ import type { PhysicsLetterState } from "../../physics/types";
 import type { BattleGameTransport } from "../transport/BattleGameTransport";
 import type { BattleSyncConfig } from "./InterpolationConfig";
 import { serializeBoard } from "./BoardSnapshotSerializer";
+import { boardStateChecksum } from "./BoardStateChecksum";
 
 export class LocalBoardPublisher {
   private sequence = 0; private lastTransformAt = Number.NEGATIVE_INFINITY; private lastSnapshotAt = Number.NEGATIVE_INFINITY;
@@ -13,7 +14,14 @@ export class LocalBoardPublisher {
     const hasNewlySettledLetter = [...nextSettledIds].some((id) => !this.settledIds.has(id));
     this.settledIds.clear();
     for (const id of nextSettledIds) this.settledIds.add(id);
-    if (hasNewlySettledLetter || now - this.lastSnapshotAt >= this.config.snapshotPublishIntervalMs) { this.lastSnapshotAt = now; this.lastTransformAt = now; this.sequence += 1; this.transport.send({ type: "BOARD_SNAPSHOT", matchId: this.matchId, playerId: this.playerId, sequence: this.sequence, sentAt: now, bodies: serializeBoard(states, width, height) }); return; }
+    if (hasNewlySettledLetter || now - this.lastSnapshotAt >= this.config.snapshotPublishIntervalMs) {
+      this.lastSnapshotAt = now;
+      this.lastTransformAt = now;
+      this.sequence += 1;
+      const bodies = serializeBoard(states, width, height);
+      this.transport.send({ type: "BOARD_SNAPSHOT", matchId: this.matchId, playerId: this.playerId, sequence: this.sequence, sentAt: now, bodies, boardChecksum: boardStateChecksum(bodies) });
+      return;
+    }
     if (!this.config.publishMovingTransforms) return;
     if (now - this.lastTransformAt < this.config.transformPublishIntervalMs) return;
     this.lastTransformAt = now; const moving = states.filter((state) => !state.settled);

@@ -1,23 +1,19 @@
 export interface BattleSyncConfig {
   readonly transformPublishIntervalMs: number; readonly snapshotPublishIntervalMs: number; readonly interpolationDelayMs: number;
   readonly maxBufferedSnapshots: number; readonly snapDistanceThreshold: number; readonly snapAngleThreshold: number; readonly maxWebSocketBufferedAmount: number;
-  /**
-   * The battle screen simulates confirmed opponent spawns locally. Streaming
-   * moving transforms in that mode only congests the RTC channel and can never
-   * improve the rendered board.
-   */
+  /** Stream only the latest owner-authoritative moving transforms. */
   readonly publishMovingTransforms: boolean;
 }
-// Keep the remote board responsive without allowing stale transform samples to
-// accumulate behind a busy video/MediaPipe frame.  Periodic snapshots also
-// remove letters that were cleared while a transform packet was in flight.
+// The owner publishes a compact transform sample at 15 Hz. The remote board
+// renders at 60 Hz with a short interpolation delay and never runs a second
+// Matter simulation for the same board.
 export const DEFAULT_BATTLE_SYNC_CONFIG: BattleSyncConfig = {
-  transformPublishIntervalMs: 50,
-  snapshotPublishIntervalMs: 2_000,
-  interpolationDelayMs: 80,
-  maxBufferedSnapshots: 8,
+  transformPublishIntervalMs: 1000 / 15,
+  snapshotPublishIntervalMs: 1_500,
+  interpolationDelayMs: 100,
+  maxBufferedSnapshots: 6,
   snapDistanceThreshold: 2,
   snapAngleThreshold: Math.PI,
-  maxWebSocketBufferedAmount: 64_000,
-  publishMovingTransforms: false,
+  maxWebSocketBufferedAmount: 32_000,
+  publishMovingTransforms: true,
 };

@@ -47,7 +47,7 @@ describe("Battle bot practice runtime", () => {
     now = 8_201;
     board.advance(17);
 
-    expect(controller.snapshot()).toMatchObject({ state: "FINISHED", result: { reason: "DANGER_LINE", loserPlayerId: "me" } });
+    expect(controller.snapshot()).toMatchObject({ state: "FINISHED", result: { reason: "DANGER_LINE", winnerPlayerId: "me" } });
     controller.dispose();
   });
 });

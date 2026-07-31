@@ -3,12 +3,13 @@ import type { SignRecognitionEvent } from "../../../recognition/types/events";
 import type { BattleAttackEffect } from "../attack/BattleAttackEffect";
 import type { RemoteBoard, RemoteSyncMessage } from "../sync/RemoteBoardReplica";
 import type { BattleGameTransport } from "../transport/BattleGameTransport";
-import type { AttackCreatedEvent, BattleConnectionOptions, BattleConnectionState, BoardSnapshotEvent, MatchFinishedEvent, ServerBattleMessage, SharedTargetClaimedEvent } from "../transport/battleTransportTypes";
+import type { AttackCreatedEvent, BattleConnectionOptions, BattleConnectionState, BoardSnapshotEvent, IdleRemovalExecutedEvent, IdleRemovalSelectedEvent, MatchFinishedEvent, ServerBattleMessage, SharedTargetClaimedEvent } from "../transport/battleTransportTypes";
 import type { BattleLocalBoard } from "./BattleLocalBoardRuntime";
 import { BattleStateMachine, type BattlePageState } from "./BattleStateMachine";
+import { boardStateChecksum } from "../sync/BoardStateChecksum";
 
 export interface BattleControllerSnapshot { readonly state: BattlePageState; readonly gameConnectionState: BattleConnectionState; readonly aiConnectionState: string; readonly countdownMs: number; readonly reconnectDeadlineAt: number | null; readonly score: number; readonly combo: number; readonly maxCombo: number; readonly removedCount: number; readonly targetSymbol: string | null; readonly prediction: { readonly symbol: string; readonly confidence: number } | null; readonly message: string; readonly result: MatchFinishedEvent | null; }
-export interface BattleControllerOptions { readonly playerId: string; readonly roomId: string; readonly initialMatchId?: string; readonly transport: BattleGameTransport; readonly localBoard: BattleLocalBoard; readonly remoteBoard: RemoteBoard; readonly attackEffect: BattleAttackEffect; readonly recognizer?: SignRecognizer; readonly sharedTargetMode?: boolean; readonly reconnectIntervalMs?: number; readonly reconnectGraceMs?: number; readonly onMatchStarted?: (matchId: string) => void; readonly onSharedTargetClaimed?: (event: SharedTargetClaimedEvent) => void; readonly now?: () => number; readonly setTimer?: (callback: () => void, delay: number) => ReturnType<typeof setTimeout>; readonly clearTimer?: (timer: ReturnType<typeof setTimeout>) => void; readonly createCommandId?: () => string; }
+export interface BattleControllerOptions { readonly playerId: string; readonly roomId: string; readonly initialMatchId?: string; readonly transport: BattleGameTransport; readonly localBoard: BattleLocalBoard; readonly remoteBoard: RemoteBoard; readonly attackEffect: BattleAttackEffect; readonly recognizer?: SignRecognizer; readonly sharedTargetMode?: boolean; readonly reconnectIntervalMs?: number; readonly reconnectGraceMs?: number; readonly onMatchStarted?: (matchId: string) => void; readonly onSharedTargetClaimed?: (event: SharedTargetClaimedEvent) => void; readonly onIdleRemovalSelected?: (event: IdleRemovalSelectedEvent) => void; readonly onIdleRemovalExecuted?: (event: IdleRemovalExecutedEvent) => void; readonly now?: () => number; readonly setTimer?: (callback: () => void, delay: number) => ReturnType<typeof setTimeout>; readonly clearTimer?: (timer: ReturnType<typeof setTimeout>) => void; readonly createCommandId?: () => string; }
 
 export class BattleController {
   private readonly machine = new BattleStateMachine(); private readonly listeners = new Set<(snapshot: BattleControllerSnapshot) => void>();
@@ -65,6 +66,17 @@ export class BattleController {
     if (message.type === "START_MATCH" || message.type === "MATCH_STARTED" || message.type === "GAME_START") { const currentState = this.machine.getState(); if (!message.resume && this.matchId === message.matchId && (currentState === "COUNTDOWN" || currentState === "PLAYING")) return; this.matchId = message.matchId; this.gameOverReported = false; this.sharedTargetId = message.sharedTarget?.targetId ?? null; this.sharedTargetSymbol = message.sharedTarget?.symbol ?? null; this.pendingTargetId = null; this.pendingLetterId = null; const ownState = message.playerStates?.find((state) => state.playerId === this.options.playerId); if (ownState) { this.score = ownState.score; this.combo = ownState.combo; this.maxCombo = ownState.maxCombo; this.removedCount = ownState.removedCount; } if (message.resume) { this.clearReconnectTimers(); this.reconnectDeadlineAt = null; this.clearStartTimer(); this.countdownMs = 0; this.message = "Match state restored."; try { this.options.localBoard.start(); this.transition("PLAYING"); } catch (cause) { this.message = cause instanceof Error ? `Board start failed: ${cause.message}` : "Board start failed."; this.transition("ERROR"); } return; } this.options.recognizer?.resetRecognitionSession?.(); this.options.onMatchStarted?.(message.matchId); const startAt = message.startAt; const serverNow = message.serverTime ?? this.now(); const delay = Math.max(0, startAt - serverNow); this.countdownMs = delay; this.message = "Match countdown started."; this.transition("COUNTDOWN"); this.startDeadlineAt = this.now() + delay; this.scheduleStartTick(); return; }
     if (message.type === "SHARED_TARGET") { this.sharedTargetId = message.targetId; this.sharedTargetSymbol = message.symbol; this.pendingTargetId = null; this.message = `${message.symbol}를 먼저 맞혀보세요.`; this.publish(); return; }
     if (message.type === "SHARED_TARGET_CLAIMED") { if (message.targetId !== this.sharedTargetId) return; this.options.onSharedTargetClaimed?.(message); this.sharedTargetId = null; this.sharedTargetSymbol = null; this.pendingTargetId = null; if (message.winnerPlayerId === this.options.playerId) { this.score = message.score; this.combo = message.combo; this.maxCombo = message.maxCombo; this.removedCount = message.removedCount; this.message = `${message.symbol} 선점 성공!`; } else this.message = `상대가 ${message.symbol}를 먼저 맞혔습니다.`; this.publish(); return; }
+    if (message.type === "IDLE_REMOVAL_SELECTED") { this.options.onIdleRemovalSelected?.(message); this.message = "무응답 블록이 선택되었습니다."; this.publish(); return; }
+    if (message.type === "IDLE_REMOVAL_EXECUTED") {
+      for (const target of message.targets) {
+        if (target.playerId === this.options.playerId) this.options.localBoard.removeLetter(target.letterId);
+        else this.options.remoteBoard.removeLetter(target.letterId);
+      }
+      this.options.onIdleRemovalExecuted?.(message);
+      this.message = "양쪽 블록이 동시에 제거되었습니다.";
+      this.publish();
+      return;
+    }
     if (message.type === "SPAWN_LETTER") { this.scheduleSpawn(message); return; }
     if (message.type === "REMOVE_LETTER_ACCEPTED") { if (message.playerId !== this.options.playerId) return; this.pendingLetterId = null; this.options.localBoard.acceptRemoval(message.letterId); this.score = message.score; this.combo = message.combo; this.maxCombo = message.maxCombo; this.removedCount = message.removedCount; this.message = `${message.symbol} accepted.`; this.publish(); return; }
     if (message.type === "REMOVE_LETTER_REJECTED") { this.pendingLetterId = null; this.options.localBoard.rejectRemoval(message.letterId); this.message = message.message; this.publish(); return; }
@@ -75,12 +87,20 @@ export class BattleController {
     if (message.type === "PLAYER_DISCONNECTED") { if (message.playerId !== this.options.playerId) this.continueDuringPeerReconnect(true); return; }
     if (message.type === "PLAYER_RECONNECTED") { this.clearReconnectTimers(); this.reconnectDeadlineAt = null; this.message = "Opponent reconnected."; if (this.machine.getState() === "RECONNECTING") this.transition("PLAYING"); else this.publish(); return; }
     if (message.type === "BOARD_SNAPSHOT" && message.playerId === this.options.playerId) {
+      if (message.boardChecksum && message.boardChecksum !== boardStateChecksum(message.bodies)) {
+        this.requestMatchState();
+        return;
+      }
       this.options.localBoard.restore?.(message.bodies, message.sentAt, this.now());
       return;
     }
     if ("playerId" in message && message.playerId !== this.options.playerId) {
       if (message.type === "BOARD_SNAPSHOT") this.lastRemoteBoardSnapshot = message;
-      this.options.remoteBoard.apply(message as RemoteSyncMessage, this.now());
+      const applied = this.options.remoteBoard.apply(message as RemoteSyncMessage, this.now());
+      if (!applied && this.options.remoteBoard.consumeIntegrityFailure?.()) {
+        this.requestMatchState();
+        return;
+      }
       if (message.type === "BOARD_SNAPSHOT") { this.clearReconnectTimers(); this.reconnectDeadlineAt = null; }
       if (message.type === "BOARD_SNAPSHOT" && this.machine.getState() === "RECONNECTING") { this.clearReconnectTimers(); this.reconnectDeadlineAt = null; this.options.localBoard.start(); this.message = "Match state restored."; this.transition("PLAYING"); }
     }
@@ -94,7 +114,9 @@ export class BattleController {
     }
     if (state === "CONNECTED" && this.peerRecoveryObserved && this.matchId && this.lastRemoteBoardSnapshot) {
       const observed = this.lastRemoteBoardSnapshot;
-      this.options.transport.send({ type: "PEER_BOARD_VIEW", commandId: this.createCommandId(), matchId: this.matchId, observerPlayerId: this.options.playerId, subjectPlayerId: observed.playerId, sentAt: observed.sentAt, bodies: observed.bodies });
+      const now = this.now();
+      const currentBodies = this.options.remoteBoard.snapshotBodies?.(now);
+      this.options.transport.send({ type: "PEER_BOARD_VIEW", commandId: this.createCommandId(), matchId: this.matchId, observerPlayerId: this.options.playerId, subjectPlayerId: observed.playerId, sentAt: currentBodies ? now : observed.sentAt, bodies: currentBodies ?? observed.bodies });
       this.peerRecoveryObserved = false;
     }
     this.publish();
@@ -216,7 +238,7 @@ export class BattleController {
   private reportLocalGameOver(): void {
     if (this.disposed || this.gameOverReported || !this.matchId || this.machine.getState() !== "PLAYING") return;
     this.gameOverReported = true;
-    this.message = "Danger line reached. Waiting for the official result.";
+    this.message = "Finish line reached. Confirming your win...";
     this.options.transport.send({ type: "PLAYER_GAME_OVER_COMMAND", commandId: this.createCommandId(), matchId: this.matchId, occurredAt: this.now() });
     this.publish();
   }

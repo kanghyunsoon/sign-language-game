@@ -79,7 +79,7 @@ export class LocalBattleBotTransport implements BattleGameTransport {
   private finishPracticeMatch(){
     const playerId=this.options?.playerId;if(!playerId)return;
     this.clearTimers();const finishedAt=Date.now();
-    this.emit({type:"MATCH_FINISHED",sequence:++this.sequence,matchId:this.matchId,winnerPlayerId:this.botPlayerId,loserPlayerId:playerId,reason:"DANGER_LINE",finishedAt,results:[{playerId,score:this.score,maxCombo:this.combo,removedCount:this.score/100,attackCount:0},{playerId:this.botPlayerId,score:this.botScore,maxCombo:0,removedCount:this.botScore/100,attackCount:0}]});
+    this.emit({type:"MATCH_FINISHED",sequence:++this.sequence,matchId:this.matchId,winnerPlayerId:playerId,loserPlayerId:this.botPlayerId,reason:"DANGER_LINE",finishedAt,results:[{playerId,score:this.score,maxCombo:this.combo,removedCount:this.score/100,attackCount:0},{playerId:this.botPlayerId,score:this.botScore,maxCombo:0,removedCount:this.botScore/100,attackCount:0}]});
   }
   private later(callback:()=>void,delay:number){const timer=setTimeout(()=>{this.timers.delete(timer);if(this.state==="CONNECTED")callback();},delay);this.timers.add(timer);}
   private clearTimers(){this.timers.forEach(clearTimeout);this.timers.clear();}

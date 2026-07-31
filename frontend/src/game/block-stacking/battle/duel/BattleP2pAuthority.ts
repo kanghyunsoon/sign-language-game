@@ -160,16 +160,20 @@ export class BattleP2pAuthority {
     this.later(() => this.spawnFor(playerId), SPAWN_AFTER_ACCEPT_MS);
   }
 
-  private finish(loserPlayerId: string, reason: string): void {
+  private finish(reportedPlayerId: string, reason: string): void {
     if (this.finished) return;
     this.finished = true;
     this.clearTimers();
     const finishedAt = this.now();
+    const winnerPlayerId = reason === "DANGER_LINE"
+      ? reportedPlayerId
+      : this.opponentOf(reportedPlayerId);
+    const loserPlayerId = this.opponentOf(winnerPlayerId);
     const finished: MatchFinishedEvent = {
       type: "MATCH_FINISHED",
       sequence: ++this.sequence,
       matchId: this.matchId,
-      winnerPlayerId: this.opponentOf(loserPlayerId),
+      winnerPlayerId,
       loserPlayerId,
       reason,
       finishedAt,

@@ -81,6 +81,24 @@ describe("BattleLocalBoardRuntime", () => {
     });
   });
 
+  it("keeps physics in the canonical board after viewport resize", () => {
+    const world = physics();
+    const states = new Map<string, ReturnType<typeof letterState>>();
+    vi.mocked(world.createLetter).mockImplementation((spec) => {
+      const state = letterState(spec.id, spec.symbol, spec.x, spec.y);
+      states.set(spec.id, state);
+      return state;
+    });
+    vi.mocked(world.getLetterState).mockImplementation((id) => states.get(id));
+    const runtime = new BattleLocalBoardRuntime(world, renderer(), DEFAULT_BATTLE_RUNTIME_CONFIG, undefined, () => 0, () => 1, () => undefined);
+
+    runtime.resize(420, 700);
+    runtime.spawn(spawn("fixed", "ㄱ", 1));
+
+    expect(world.resize).not.toHaveBeenCalled();
+    expect(vi.mocked(world.createLetter).mock.calls[0]?.[0].x).toBe(DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth / 2);
+  });
+
   it("picks up exactly the letter selected for the otter and promotes the next target", () => {
     const states = new Map<string, ReturnType<typeof letterState>>();
     const world = physics();

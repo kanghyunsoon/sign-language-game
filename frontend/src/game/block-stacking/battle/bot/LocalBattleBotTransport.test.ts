@@ -22,9 +22,9 @@ describe("LocalBattleBotTransport",()=>{
     await vi.advanceTimersByTimeAsync(1800);const next=snapshots.at(-1)!;expect(next.bodies.some((body)=>body.id===targetId)).toBe(false);expect(scores).toEqual([100]);transport.disconnect();
   });
   it("finishes practice when the player reports the danger line",async()=>{
-    vi.useFakeTimers();const transport=new LocalBattleBotTransport();const events:string[]=[];
-    transport.subscribe((event)=>events.push(event.type));await transport.connect({url:"local://bot",roomId:"practice",playerId:"PLAYER"});await vi.advanceTimersByTimeAsync(50);
+    vi.useFakeTimers();const transport=new LocalBattleBotTransport();const events:string[]=[];let winnerPlayerId:string|null|undefined;
+    transport.subscribe((event)=>{events.push(event.type);if(event.type==="MATCH_FINISHED")winnerPlayerId=event.winnerPlayerId;});await transport.connect({url:"local://bot",roomId:"practice",playerId:"PLAYER"});await vi.advanceTimersByTimeAsync(50);
     transport.send({type:"PLAYER_GAME_OVER_COMMAND",commandId:"over",matchId:"block-bot-practice",occurredAt:Date.now()});
-    expect(events).toContain("MATCH_FINISHED");expect(vi.getTimerCount()).toBe(0);transport.disconnect();
+    expect(events).toContain("MATCH_FINISHED");expect(winnerPlayerId).toBe("PLAYER");expect(vi.getTimerCount()).toBe(0);transport.disconnect();
   });
 });
