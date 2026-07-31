@@ -1,7 +1,6 @@
 import { useEffect, useState, type TransitionEvent } from "react";
 import { Link } from "react-router-dom";
 
-import { SiteFooter } from "../../../shared/components/SiteFooter";
 import { AttendanceCard } from "../components/AttendanceCard";
 import {
   findHabitatIndex,
@@ -402,8 +401,6 @@ export function MainPage() {
             </div>
           </section>
         </main>
-
-        <SiteFooter sizing="fixed" />
 
         {isAttendanceOpen && (
           <div

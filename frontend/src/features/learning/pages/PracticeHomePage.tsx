@@ -1,7 +1,6 @@
 import "./PracticeHomePage.css";
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { SiteFooter } from "../../../shared/components/SiteFooter";
 import otterImage from "../assets/otter.png";
 import type { FingerspellingCategoryId } from "../data/fingerspelling";
 import { SYMBOLS_PARAM, parseSymbolSelection } from "../data/symbolSelection";
@@ -204,8 +203,6 @@ export function PracticeHomePage() {
           </div>
         </section>
       </main>
-
-      <SiteFooter />
 
       {isGuideOpen && (
         <div

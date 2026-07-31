@@ -2,7 +2,6 @@ import "./PracticeSessionPage.css";
 import "./WordPracticeSessionPage.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { SiteFooter } from "../../../shared/components/SiteFooter";
 import { WordHandCamera } from "../components/WordHandCamera";
 import { getWordAiWebSocketUrl } from "../data/aiRecognition";
 import { wordSigns } from "../data/wordSigns";
@@ -349,7 +348,6 @@ export function WordPracticeSessionPage({
           )}
         </main>
 
-        <SiteFooter />
       </div>
     </div>
   );
