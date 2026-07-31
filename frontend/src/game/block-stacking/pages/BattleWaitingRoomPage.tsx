@@ -75,6 +75,30 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
 
   useEffect(() => {
     if (mode !== "BLOCK") return;
+    let cancelled = false;
+    const existingStream = sharedCameraSession.getStream();
+    if (existingStream) {
+      setLocalStream(existingStream);
+      setCameraEnabled(sharedCameraSession.getVideoTrack()?.enabled ?? false);
+      return;
+    }
+    // Acquire the camera while the players are preparing instead of waiting
+    // until GAME_STARTED. The play route can then reuse the live track and
+    // begin WebRTC negotiation immediately.
+    void sharedCameraSession.start()
+      .then((stream) => {
+        if (cancelled) return;
+        setLocalStream(stream);
+        setCameraEnabled(sharedCameraSession.getVideoTrack()?.enabled ?? true);
+      })
+      .catch((cause) => {
+        if (!cancelled) setError(errorMessage(cause, "카메라를 시작하지 못했습니다."));
+      });
+    return () => { cancelled = true; };
+  }, [mode, sharedCameraSession]);
+
+  useEffect(() => {
+    if (mode !== "BLOCK") return;
     if (room?.status === "PLAYING" && !enteringGameRef.current) setRejoinPromptOpen(true);
     if (room?.status === "FINISHED") {
       setRejoinPromptOpen(false);
@@ -178,7 +202,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
         canJoin: summary.canJoin,
         participants,
       });
-    }, (cause) => setError(errorMessage(cause, "?湲곗떎 ?ㅼ떆媛??곹깭瑜?媛깆떊?섏? 紐삵뻽?듬땲??")));
+    }, (cause) => setError(errorMessage(cause, "대기실 실시간 상태를 갱신하지 못했습니다.")));
   }, [gateway, mode, roomId, rememberRoom]);
 
   useEffect(() => {
@@ -248,7 +272,27 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
             participants: remaining,
           });
         }
-        setError("?곷?諛⑹씠 諛⑹쓣 ?섍컮?듬땲??");
+        setError("상대방이 방을 나갔습니다.");
+      }
+      if (message.type === "PEER_READY_CHANGED") {
+        const current = roomRef.current;
+        const changedUserId = payloadUserId(message.payload);
+        const isReady = payloadBoolean(message.payload, "isReady");
+        if (current && changedUserId && isReady !== null) {
+          const participants = current.participants.map((participant) =>
+            participant.userId === changedUserId ? { ...participant, ready: isReady } : participant
+          );
+          const hostReady = changedUserId === current.hostUserId ? isReady : current.hostReady;
+          const guestReady = changedUserId !== current.hostUserId ? isReady : current.guestReady;
+          rememberRoomRef.current({
+            ...current,
+            hostReady,
+            guestReady,
+            currentUserReady: changedUserId === user.userId ? isReady : current.currentUserReady,
+            canStart: Boolean(current.playerCount >= current.maxPlayers && hostReady && guestReady),
+            participants,
+          });
+        }
       }
       if (message.type === "ERROR") {
         const code = payloadString(message.payload, "code");
@@ -303,12 +347,27 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   const toggleReady = async () => {
     if (!roomId || !room || !gateway.setReady || readyBusy) return;
     const nextReady = !room.currentUserReady;
+    const previous = room;
+    const isCurrentUserHost = room.hostUserId === user.userId;
+    const optimisticHostReady = isCurrentUserHost ? nextReady : room.hostReady;
+    const optimisticGuestReady = isCurrentUserHost ? room.guestReady : nextReady;
+    rememberRoom({
+      ...room,
+      hostReady: optimisticHostReady,
+      guestReady: optimisticGuestReady,
+      currentUserReady: nextReady,
+      canStart: Boolean(room.playerCount >= room.maxPlayers && optimisticHostReady && optimisticGuestReady),
+      participants: room.participants.map((participant) =>
+        participant.userId === user.userId ? { ...participant, ready: nextReady } : participant
+      ),
+    });
     setReadyBusy(true);
     setError(null);
     try {
       const next = await gateway.setReady(roomId, nextReady);
       rememberRoom(next);
     } catch (cause) {
+      rememberRoom(previous);
       setError(errorMessage(cause, "준비 상태를 변경하지 못했습니다."));
     } finally {
       setReadyBusy(false);
@@ -488,4 +547,10 @@ function payloadUserId(payload: unknown, key = "userId"): string | null {
   if (!payload || typeof payload !== "object") return null;
   const value = (payload as Record<string, unknown>)[key];
   return typeof value === "string" || typeof value === "number" ? String(value) : null;
+}
+
+function payloadBoolean(payload: unknown, key: string): boolean | null {
+  if (!payload || typeof payload !== "object") return null;
+  const value = (payload as Record<string, unknown>)[key];
+  return typeof value === "boolean" ? value : null;
 }

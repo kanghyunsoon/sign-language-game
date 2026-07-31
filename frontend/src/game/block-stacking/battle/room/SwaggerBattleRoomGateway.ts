@@ -52,12 +52,10 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
     });
     this.lobby = new LobbySseClient({ apiBaseUrl: options.baseUrl, ticketClient });
     this.lobby.subscribe((event) => {
-      if (event.type === "snapshot") this.lobbyCache.clear();
-      for (const room of event.rooms) {
-        if (room.status === "CLOSED") this.lobbyCache.delete(room.id);
-        else this.lobbyCache.set(room.id, room);
-      }
-      this.emitRooms();
+      // Both `snapshot` and `update` carry the backend's complete WAITING-room
+      // list. Replacing the cache is required so a room omitted after its last
+      // participant leaves disappears for every connected lobby client.
+      this.applyLobbySnapshot(event.rooms);
     });
     this.lobby.subscribeError((error) => {
       for (const listener of this.errorListeners) listener(error);
@@ -181,6 +179,14 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
     return [...this.lobbyCache.values()]
       .filter((room) => room.gameType === expected)
       .map(toSummary);
+  }
+
+  private applyLobbySnapshot(rooms: readonly LobbyRoomSummary[]): void {
+    this.lobbyCache.clear();
+    for (const room of rooms) {
+      if (room.status !== "CLOSED") this.lobbyCache.set(room.id, room);
+    }
+    this.emitRooms();
   }
 
   private emitRooms(): void {

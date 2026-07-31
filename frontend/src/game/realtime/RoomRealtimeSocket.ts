@@ -4,6 +4,7 @@ export type RoomServerMessageType =
   | "PEER_DISCONNECTED"
   | "PEER_RECONNECTED"
   | "PEER_LEFT"
+  | "PEER_READY_CHANGED"
   | "GAME_STARTED"
   | "SIGNAL"
   | "ERROR";
@@ -42,7 +43,7 @@ const DEFAULT_RECONNECT_BUDGET_MS = 8_000;
 const RETRY_DELAYS_MS = [0, 300, 600, 1_000, 1_500, 2_000, 2_500] as const;
 const MESSAGE_TYPES = new Set<RoomServerMessageType>([
   "PEER_DISCONNECTED", "PEER_RECONNECTED", "PEER_LEFT",
-  "GAME_STARTED", "SIGNAL", "ERROR",
+  "PEER_READY_CHANGED", "GAME_STARTED", "SIGNAL", "ERROR",
 ]);
 
 export class RoomRealtimeSocket {

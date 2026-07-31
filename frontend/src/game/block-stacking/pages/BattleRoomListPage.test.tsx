@@ -59,6 +59,27 @@ describe("BattleRoomListPage", () => {
     expect(await screen.findByText("WAITING_ROUTE")).toBeTruthy();
   });
 
+  it("keeps creation locked when the server rejects before the second click", async () => {
+    const createRoom = vi.fn(async () => {
+      throw new Error("Game room request failed (500).");
+    });
+    renderPage(gateway({ createRoom }));
+    const openButton = document.querySelector("button[class*='createButton']");
+    if (!openButton) throw new Error("Create room button was not rendered.");
+    fireEvent.click(openButton);
+    const dialog = screen.getByRole("dialog");
+    const titleInput = dialog.querySelector("input[required]");
+    const submitButton = dialog.querySelector("button[type='submit']");
+    if (!titleInput || !submitButton) throw new Error("Create room form was not rendered.");
+    fireEvent.change(titleInput, { target: { value: "rapid failure" } });
+
+    fireEvent.click(submitButton);
+    await screen.findByRole("alert");
+    fireEvent.click(submitButton);
+
+    expect(createRoom).toHaveBeenCalledTimes(1);
+  });
+
   it("does not create another room while the user has an active room session", async () => {
     const createRoom = vi.fn(async () => session());
     renderPage(gateway({ createRoom }), 2_500, session());

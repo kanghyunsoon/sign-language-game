@@ -7,6 +7,7 @@ import { CreateRoomModal } from "../battle/components/CreateRoomModal";
 import styles from "../battle/components/BattleRoomUi.module.css";
 import type { BattleRoomSummary, CreateRoomRequest } from "../battle/room";
 const DEFAULT_POLLING_INTERVAL_MS = 2_500;
+const CREATE_ROOM_LOCK_MS = 1_500;
 const BATTLE_LOBBY_CANVAS_WIDTH = 1280;
 const BATTLE_LOBBY_CANVAS_HEIGHT = 720;
 const RANKING = ["수달왕", "손톡이", "지문자고수", "새콩이", "수어초보"] as const;
@@ -70,6 +71,7 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
     creatingRef.current = true;
     setCreating(true);
     setError(null);
+    const lockedAt = Date.now();
     try {
       const session = await gateway.createRoom(request);
       rememberSession(session);
@@ -77,9 +79,11 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
       navigate(session.roomId);
     } catch (cause) {
       setError(errorMessage(cause, "방을 만들지 못했습니다."));
-    } finally {
-      creatingRef.current = false;
-      setCreating(false);
+      const remainingLockMs = Math.max(0, CREATE_ROOM_LOCK_MS - (Date.now() - lockedAt));
+      window.setTimeout(() => {
+        creatingRef.current = false;
+        setCreating(false);
+      }, remainingLockMs);
     }
   };
   const joinRoom = async (roomId: string) => { setJoiningRoomId(roomId); setError(null); try { const session = await gateway.joinRoom(roomId); rememberSession(session); navigate(session.roomId); } catch (cause) { if (activeRoomSession?.roomCode === roomId && isMissingRoom(cause)) rememberSession(null); setError(errorMessage(cause, "방에 입장하지 못했습니다.")); } finally { setJoiningRoomId(null); } };

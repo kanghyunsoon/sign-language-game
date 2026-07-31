@@ -160,7 +160,7 @@ describe("RoomRealtimeSocket", () => {
     expect(wait.mock.calls.flat()).toEqual([300, 600, 100]);
   });
 
-  it.each(["PEER_DISCONNECTED", "PEER_RECONNECTED"] as const)("accepts the documented backend %s event", async (type) => {
+  it.each(["PEER_DISCONNECTED", "PEER_RECONNECTED", "PEER_READY_CHANGED"] as const)("accepts the documented backend %s event", async (type) => {
     const socket = new FakeSocket();
     const client = new RoomRealtimeSocket({
       webSocketBaseUrl: "ws://host/ws/game-rooms", roomId: "7", localUserId: "42",

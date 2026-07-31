@@ -48,6 +48,24 @@ describe("SwaggerBattleRoomGateway", () => {
     ]);
   });
 
+  it("removes rooms omitted from a complete lobby update", () => {
+    const gateway = createGateway(vi.fn());
+    const lobbyState = gateway as unknown as {
+      lobbyCache: Map<number, unknown>;
+      applyLobbySnapshot(rooms: readonly unknown[]): void;
+    };
+    lobbyState.lobbyCache.set(1, {
+      id: 1, roomCode: "CLOSED", status: "WAITING",
+      participantCount: 1, capacity: 2, gameType: "TETRIS_DUEL",
+    });
+    lobbyState.applyLobbySnapshot([{
+      id: 2, roomCode: "ACTIVE", status: "WAITING",
+      participantCount: 1, capacity: 2, gameType: "TETRIS_DUEL",
+    }]);
+
+    expect([...lobbyState.lobbyCache.keys()]).toEqual([2]);
+  });
+
   it("does not hide an authoritative join conflict behind stale cache", async () => {
     const fetcher = vi.fn()
       .mockResolvedValueOnce(response(room({ guestUserId: 2, participantCount: 2 })))

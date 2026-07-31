@@ -778,6 +778,18 @@
 .battleFixedPage .duelBoards > .boardPanel { position:relative; z-index:1; }
 .battleFixedPage .duelBoards .boardPlayArea { background:transparent; }
 .battleFixedPage .duelBoards .boardPanel { background:transparent; }
+.battleFixedPage .boardFinishLine {
+  position: absolute;
+  z-index: 5;
+  right: 0;
+  left: 0;
+  height: 5px;
+  border-top: 3px dashed rgba(240, 186, 85, .95);
+  border-bottom: 2px solid rgba(255, 255, 255, .92);
+  filter: drop-shadow(0 2px 2px rgba(181, 128, 39, .2));
+  pointer-events: none;
+  transform: translateY(-50%);
+}
 .battleFixedPage .paperBlackHole { position:absolute; z-index:4; top:63%; left:50%; display:grid; width:116px; height:116px; place-items:center; border-radius:50%; background:radial-gradient(circle,#01020a 0 15%,#17102f 16% 25%,#5b2785 31%,rgba(116,56,170,.53) 46%,rgba(50,26,94,0) 74%); box-shadow:0 0 24px 10px rgba(133,83,215,.58),inset 0 0 25px #01020a; pointer-events:none; transform:translate(-50%,-50%); animation:paper-black-hole 1.15s cubic-bezier(.16,.76,.22,1) both; }
 .battleFixedPage .paperBlackHole::before,.battleFixedPage .paperBlackHole::after { position:absolute; inset:7px; border:3px dashed rgba(235,193,255,.9); border-radius:50%; content:""; animation:target-drain-ring .48s linear infinite; }
 .battleFixedPage .paperBlackHole::after { inset:19px; border-color:rgba(113,222,255,.8); animation-direction:reverse; animation-duration:.32s; }
@@ -787,7 +799,7 @@
 .battleFixedPage .claimDropBurst { position:absolute; z-index:10; top:13%; left:50%; display:grid; width:152px; height:152px; place-items:center; border-radius:50%; background:radial-gradient(circle,#fffef3 0 10%,#fff3a2 13% 24%,rgba(255,185,77,.88) 29%,rgba(255,109,111,.46) 43%,rgba(255,210,86,0) 72%); box-shadow:0 0 0 0 rgba(255,235,133,.8); pointer-events:none; transform:translate(-50%,-50%); animation:claim-drop-burst 1.35s cubic-bezier(.12,.82,.22,1) .9s both; }
 .battleFixedPage .claimDropBurst::before,.battleFixedPage .claimDropBurst::after { position:absolute; width:14px; height:14px; border-radius:3px; background:#fff6a5; box-shadow:0 0 13px #fff7aa; content:""; animation:claim-burst-shard 1.28s cubic-bezier(.13,.76,.21,1) .9s both; }.battleFixedPage .claimDropBurst::after { background:#ff8aa6; animation-delay:.96s; animation-direction:reverse; }
 .battleFixedPage .claimDropBurst i { position:absolute; width:5px; height:5px; border-radius:50%; background:#fff; box-shadow:0 0 11px 3px #fff3a3; animation:claim-burst-spark 1.14s ease-out .9s both; }.battleFixedPage .claimDropBurst i:first-child { transform:translate(-44px,26px); }.battleFixedPage .claimDropBurst i:nth-child(2) { transform:translate(46px,-18px); animation-delay:1.02s; }
-.battleFixedPage .claimDropBurst b { position:relative; z-index:2; color:#df5b87; font-family:"Arial Rounded MT Bold","Malgun Gothic",sans-serif; font-size:64px; font-weight:1000; line-height:1; text-shadow:-2px -2px 0 #fff,2px 2px 0 #fff,0 0 18px #fff2a2; animation:claim-drop-glyph 1.35s cubic-bezier(.13,.82,.22,1) .9s both; }
+.battleFixedPage .claimDropBurst b { position:relative; z-index:2; color:#df5b87; font-family:"Noto Sans KR","Malgun Gothic",sans-serif; font-size:64px; font-weight:700; line-height:1; text-shadow:-2px -2px 0 #fff,2px 2px 0 #fff,0 0 18px #fff2a2; animation:claim-drop-glyph 1.35s cubic-bezier(.13,.82,.22,1) .9s both; }
 @keyframes paper-black-hole { 0%,12%{opacity:0;transform:translate(-50%,-50%) scale(.25)}28%,72%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(.1)} } @keyframes target-drain-ring { to{transform:rotate(360deg) scale(.72)} } @keyframes paper-glyph-drain { 0%,12%{opacity:1;transform:translate(-50%,-50%) rotate(0) scale(1)}42%{opacity:1;transform:translate(-50%,-50%) rotate(360deg) scale(.78)}76%{opacity:1;transform:translate(-50%,-50%) rotate(900deg) scale(.24)}100%{opacity:0;transform:translate(-50%,-50%) rotate(1260deg) scale(.01)} } @keyframes target-drain-spark { 0%,18%{opacity:0}35%{opacity:1;transform:rotate(180deg) translate(20px) scale(1)}100%{opacity:0;transform:rotate(810deg) translate(0) scale(.1)} } @keyframes claim-drop-burst { 0%{opacity:0;transform:translate(-50%,-50%) scale(.08)}18%{opacity:1;transform:translate(-50%,-50%) scale(1.25)}34%{opacity:1;transform:translate(-50%,-50%) scale(.82)}57%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}100%{opacity:0;transform:translate(-50%,105px) scale(.42)} } @keyframes claim-drop-glyph { 0%,17%{opacity:0;transform:translateY(8px) scale(.15) rotate(-30deg)}28%{opacity:1;transform:translateY(-24px) scale(1.48) rotate(14deg)}48%{opacity:1;transform:translateY(-9px) scale(.92) rotate(-5deg)}68%{opacity:1;transform:translateY(17px) scale(1.05) rotate(5deg)}100%{opacity:0;transform:translateY(112px) scale(.64) rotate(13deg)} } @keyframes claim-burst-shard { 0%,19%{opacity:0;transform:scale(.2) rotate(0)}36%{opacity:1;transform:translate(63px,-53px) scale(1.3) rotate(210deg)}100%{opacity:0;transform:translate(-75px,75px) scale(.2) rotate(570deg)} } @keyframes claim-burst-spark { 0%,25%{opacity:0}38%{opacity:1;transform:translate(0,0) scale(1.7)}100%{opacity:0;transform:translate(-20px,76px) scale(.2)} }
 @keyframes shared-day-night-overlay { 0%,27%,100%{opacity:0}40%{opacity:.28}53%,74%{opacity:.72}88%{opacity:.2} } @keyframes shared-night-stars { 0%,41%,92%,100%{opacity:0}54%,77%{opacity:.92} } @keyframes shared-sun-journey { 0%,100%{opacity:1;transform:translate3d(0,64px,0) scale(.82)}25%{opacity:1;transform:translate3d(calc(50cqw + 46px),-20px,0) scale(1)}46%{opacity:.25;transform:translate3d(calc(100cqw + 150px),72px,0) scale(.82)}47%,91%{opacity:0;transform:translate3d(calc(100cqw + 150px),72px,0) scale(.82)}92%{opacity:0;transform:translate3d(0,64px,0) scale(.82)} } @keyframes shared-moon-journey { 0%,42%,100%{opacity:0;transform:translate3d(0,64px,0) scale(.78)}53%{opacity:1;transform:translate3d(calc(50cqw + 46px),-20px,0) scale(1)}78%{opacity:1;transform:translate3d(calc(100cqw + 150px),72px,0) scale(.82)}91%{opacity:0;transform:translate3d(calc(100cqw + 150px),72px,0) scale(.78)} } @keyframes shared-shooting-star { 0%,68%,100%{opacity:0;transform:translate3d(0,0,0) rotate(-24deg)}72%{opacity:1}84%{opacity:0;transform:translate3d(-200px,100px,0) rotate(-24deg)} } @keyframes shared-hill-breeze { from{transform:translateX(-1.1%) scaleX(1.01)}to{transform:translateX(1.1%) scaleX(.99)} } @keyframes shared-hill-night { 0%,34%,100%{filter:none}55%,79%{filter:brightness(.73) saturate(.78)} } @keyframes shared-firefly-cycle { 0%,46%,89%,100%{opacity:0}57%,78%{opacity:1} } @keyframes shared-firefly-float { from{transform:translate3d(-4px,5px,0) scale(.65);opacity:.38}to{transform:translate3d(10px,-12px,0) scale(1.12);opacity:1} } @keyframes shared-cloud-cross { from{transform:translate3d(-20px,0,0)}50%{transform:translate3d(calc(50cqw + 30px),-7px,0)}to{transform:translate3d(calc(100cqw + 180px),1px,0)} }
 .battleFixedPage .duelBoards {
@@ -832,9 +844,9 @@
   top: 63%;
   left: 50%;
   color: #db5c82;
-  font-family: "Arial Rounded MT Bold", "Malgun Gothic", sans-serif;
+  font-family: "Noto Sans KR", "Malgun Gothic", sans-serif;
   font-size: 50px;
-  font-weight: 1000;
+  font-weight: 700;
   line-height: 1;
   text-shadow: 0 3px 0 rgba(130, 48, 75, .13);
   transform: translate(-50%, -50%);

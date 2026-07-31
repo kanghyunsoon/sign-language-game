@@ -19,6 +19,13 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe("BattleWaitingRoomPage backend flow", () => {
+  it("prewarms the shared camera while players are in the block battle waiting room", async () => {
+    const { camera } = cameraFixture();
+    renderPage({ camera });
+
+    await waitFor(() => expect(camera.start).toHaveBeenCalledTimes(1));
+  });
+
   it("opens the room WebSocket while waiting", async () => {
     const socket = new FakeRoomSocket();
     renderPage({ socket });
@@ -71,6 +78,35 @@ describe("BattleWaitingRoomPage backend flow", () => {
     fireEvent.click(await screen.findByRole("button", { name: "준비 완료" }));
     await waitFor(() => expect(setReady).toHaveBeenCalledWith("1", true));
     expect(await screen.findByRole("button", { name: "준비 취소" })).toBeTruthy();
+  });
+
+  it("enables the start button immediately before the ready request resolves", async () => {
+    let resolveReady!: (value: BattleRoomSession) => void;
+    const setReady = vi.fn(() => new Promise<BattleRoomSession>((resolve) => {
+      resolveReady = resolve;
+    }));
+    renderPage({
+      detail: room({ full: true, hostReady: false, guestReady: true, currentUserReady: false }),
+      gateway: gateway({ setReady }),
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "준비 완료" }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "게임 시작" })).toHaveProperty("disabled", false));
+    resolveReady(session({ full: true, hostReady: true, guestReady: true, currentUserReady: true }));
+  });
+
+  it("updates the start button immediately from a peer ready event", async () => {
+    const socket = new FakeRoomSocket();
+    renderPage({
+      detail: room({ full: true, hostReady: true, guestReady: false, currentUserReady: true }),
+      socket,
+    });
+
+    expect(await screen.findByRole("button", { name: "게임 시작" })).toHaveProperty("disabled", true);
+    socket.emit({ type: "PEER_READY_CHANGED", payload: { userId: 2, isReady: true } });
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "게임 시작" })).toHaveProperty("disabled", false));
   });
 
   it("starts WebRTC after a successful host start request", async () => {
