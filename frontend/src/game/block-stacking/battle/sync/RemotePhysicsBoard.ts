@@ -4,6 +4,9 @@ import { BATTLE_BURST_SPAWN_RATIO, BATTLE_LETTER_SIZE, DEFAULT_BATTLE_RUNTIME_CO
 import type { BattleBodyTransform, SpawnLetterEvent } from "../transport/battleTransportTypes";
 import type { RemoteBoard, RemoteSyncMessage } from "./RemoteBoardReplica";
 
+const FIXED_PHYSICS_STEP_MS = 1000 / 60;
+const MAX_CATCH_UP_STEPS = 4;
+
 /**
  * Renders an opponent's confirmed block locally instead of replaying their
  * streamed transform packets.  Network jitter therefore cannot affect the
@@ -26,12 +29,14 @@ export class RemotePhysicsBoard implements RemoteBoard {
     settleDurationMs: 550,
     linearVelocityThreshold: 0.045,
     angularVelocityThreshold: 0.006,
-    freezeSettledBodies: false,
+    freezeSettledBodies: true,
   });
   private readonly symbols = new Map<string, string>();
+  private readonly authoritativeSettledIds = new Set<string>();
   private width = DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth;
   private height = DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight;
   private previousAt: number | null = null;
+  private physicsAccumulatorMs = 0;
 
   resize(width: number, height: number): void {
     this.width = width;
@@ -53,13 +58,20 @@ export class RemotePhysicsBoard implements RemoteBoard {
     if (message.type === "BOARD_SNAPSHOT") {
       const activeIds = new Set(message.bodies.filter((body) => body.state !== "REMOVED").map((body) => body.id));
       for (const id of [...this.symbols.keys()]) if (!activeIds.has(id)) this.remove(id);
+      let restoredFallingLetter = false;
       for (const body of message.bodies) {
         if (body.state === "REMOVED") continue;
-        if (!this.physics.getLetterState(body.id)) this.restoreSnapshotLetter(body);
-        else if (body.state === "SETTLED") this.synchronizeSettledLetter(body);
+        if (!this.physics.getLetterState(body.id)) {
+          this.restoreSnapshotLetter(body);
+          restoredFallingLetter ||= body.state === "FALLING";
+        } else if (body.state === "SETTLED" && !this.authoritativeSettledIds.has(body.id)) {
+          // Correct each final body once. Reapplying the same snapshot every
+          // interval made stable letters visibly blink between simulations.
+          this.synchronizeSettledLetter(body);
+        }
       }
-      const correctionMs = Math.max(0, Math.min(250, receivedAt - message.sentAt));
-      if (correctionMs > 0 && message.bodies.some((body) => body.state === "FALLING")) this.physics.update(correctionMs);
+      const correctionMs = Math.max(0, Math.min(FIXED_PHYSICS_STEP_MS * MAX_CATCH_UP_STEPS, receivedAt - message.sentAt));
+      if (restoredFallingLetter && correctionMs > 0) this.advancePhysics(correctionMs);
       return true;
     }
     if (message.type === "LETTER_SPAWNED_SYNC") {
@@ -73,8 +85,8 @@ export class RemotePhysicsBoard implements RemoteBoard {
 
   renderStates(now: number): readonly PhysicsLetterState[] {
     if (this.previousAt !== null) {
-      const deltaMs = Math.min(32, now - this.previousAt);
-      if (deltaMs > 0) this.physics.update(deltaMs);
+      const deltaMs = Math.min(FIXED_PHYSICS_STEP_MS * MAX_CATCH_UP_STEPS, now - this.previousAt);
+      if (deltaMs > 0) this.advancePhysics(deltaMs);
     }
     this.previousAt = now;
     return this.physics.getLetterStates();
@@ -90,7 +102,9 @@ export class RemotePhysicsBoard implements RemoteBoard {
   clear(): void {
     this.physics.clear();
     this.symbols.clear();
+    this.authoritativeSettledIds.clear();
     this.previousAt = null;
+    this.physicsAccumulatorMs = 0;
   }
 
   private createCenteredLetter(id: string, symbol: string, angle: number): void {
@@ -108,6 +122,7 @@ export class RemotePhysicsBoard implements RemoteBoard {
   private remove(id: string): void {
     this.physics.removeLetter(id);
     this.symbols.delete(id);
+    this.authoritativeSettledIds.delete(id);
   }
 
   private synchronizeSettledLetter(body: BattleBodyTransform): void {
@@ -116,6 +131,7 @@ export class RemotePhysicsBoard implements RemoteBoard {
       y: body.y * this.height,
       angle: body.angle,
     });
+    this.authoritativeSettledIds.add(body.id);
   }
 
   private restoreSnapshotLetter(body: BattleBodyTransform): void {
@@ -132,5 +148,17 @@ export class RemotePhysicsBoard implements RemoteBoard {
       settled,
     });
     this.symbols.set(body.id, body.symbol);
+    if (settled) this.authoritativeSettledIds.add(body.id);
+  }
+
+  private advancePhysics(deltaMs: number): void {
+    this.physicsAccumulatorMs = Math.min(
+      this.physicsAccumulatorMs + deltaMs,
+      FIXED_PHYSICS_STEP_MS * MAX_CATCH_UP_STEPS,
+    );
+    while (this.physicsAccumulatorMs + .001 >= FIXED_PHYSICS_STEP_MS) {
+      this.physics.update(FIXED_PHYSICS_STEP_MS);
+      this.physicsAccumulatorMs -= FIXED_PHYSICS_STEP_MS;
+    }
   }
 }

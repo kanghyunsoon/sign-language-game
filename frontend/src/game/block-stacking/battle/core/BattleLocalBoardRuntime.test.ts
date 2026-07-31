@@ -39,7 +39,8 @@ describe("BattleLocalBoardRuntime", () => {
       id: "saved", x: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth * .4, y: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight * .75,
       velocityX: 18, velocityY: -12, angularVelocity: .2, settled: false,
     }));
-    expect(world.update).toHaveBeenCalledWith(250);
+    expect(world.update).toHaveBeenCalledTimes(4);
+    expect(world.update).toHaveBeenLastCalledWith(1000 / 60);
   });
 
   it("allows removal of only the currently designated oldest block", () => {
@@ -119,9 +120,9 @@ describe("BattleLocalBoardRuntime", () => {
     runtime.spawn(spawn("danger", "ㄱ", 1));
     vi.mocked(world.update).mockReturnValue([{ type: "LETTER_SETTLED", id: "danger" }]);
     const handler = vi.fn(); runtime.setGameOverHandler(handler); runtime.start();
-    runtime.advance(16); now = 751; vi.mocked(world.update).mockReturnValue([]); runtime.advance(16);
+    runtime.advance(17); now = 1_201; vi.mocked(world.update).mockReturnValue([]); runtime.advance(17);
     expect(handler).not.toHaveBeenCalled();
-    now = 6_751; runtime.advance(16);
+    now = 7_201; runtime.advance(17);
     expect(handler).toHaveBeenCalledOnce();
   });
 });

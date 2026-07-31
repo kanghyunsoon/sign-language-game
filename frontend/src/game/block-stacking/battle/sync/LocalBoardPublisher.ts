@@ -14,6 +14,7 @@ export class LocalBoardPublisher {
     this.settledIds.clear();
     for (const id of nextSettledIds) this.settledIds.add(id);
     if (hasNewlySettledLetter || now - this.lastSnapshotAt >= this.config.snapshotPublishIntervalMs) { this.lastSnapshotAt = now; this.lastTransformAt = now; this.sequence += 1; this.transport.send({ type: "BOARD_SNAPSHOT", matchId: this.matchId, playerId: this.playerId, sequence: this.sequence, sentAt: now, bodies: serializeBoard(states, width, height) }); return; }
+    if (!this.config.publishMovingTransforms) return;
     if (now - this.lastTransformAt < this.config.transformPublishIntervalMs) return;
     this.lastTransformAt = now; const moving = states.filter((state) => !state.settled);
     if (!moving.length) return; this.sequence += 1; this.transport.send({ type: "BODY_TRANSFORM_BATCH", matchId: this.matchId, playerId: this.playerId, sequence: this.sequence, sentAt: now, bodies: serializeBoard(moving, width, height) });

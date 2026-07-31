@@ -14,7 +14,7 @@ export class BattleController {
   private readonly machine = new BattleStateMachine(); private readonly listeners = new Set<(snapshot: BattleControllerSnapshot) => void>();
   private readonly now: () => number; private readonly setTimer: NonNullable<BattleControllerOptions["setTimer"]>; private readonly clearTimer: NonNullable<BattleControllerOptions["clearTimer"]>; private readonly createCommandId: () => string;
   private transportUnsubscribe: (() => void) | null = null; private transportStateUnsubscribe: (() => void) | null = null; private recognizerUnsubscribe: (() => void) | null = null; private startTimer: ReturnType<typeof setTimeout> | null = null; private startDeadlineAt: number | null = null; private reconnectTimer: ReturnType<typeof setTimeout> | null = null; private graceTimer: ReturnType<typeof setTimeout> | null = null; private readonly pendingSpawnTimers = new Set<ReturnType<typeof setTimeout>>();
-  private connectionOptions: BattleConnectionOptions | null = null; private matchId: string | null = null; private opponentPlayerId: string | null = null; private gameConnectionState: BattleConnectionState = "DISCONNECTED"; private aiConnectionState = "DISCONNECTED"; private reconnectDeadlineAt: number | null = null; private countdownMs = 0; private score = 0; private combo = 0; private maxCombo = 0; private removedCount = 0; private sharedTargetId: string | null = null; private sharedTargetSymbol: string | null = null; private pendingTargetId: string | null = null; private pendingLetterId: string | null = null; private prediction: BattleControllerSnapshot["prediction"] = null; private message = "Waiting for server start."; private result: MatchFinishedEvent | null = null; private disposed = false; private gameOverReported = false; private peerRecoveryObserved = false; private lastRemoteBoardSnapshot: BoardSnapshotEvent | null = null;
+  private connectionOptions: BattleConnectionOptions | null = null; private matchId: string | null = null; private opponentPlayerId: string | null = null; private gameConnectionState: BattleConnectionState = "DISCONNECTED"; private aiConnectionState = "DISCONNECTED"; private reconnectDeadlineAt: number | null = null; private countdownMs = 0; private score = 0; private combo = 0; private maxCombo = 0; private removedCount = 0; private sharedTargetId: string | null = null; private sharedTargetSymbol: string | null = null; private pendingTargetId: string | null = null; private pendingLetterId: string | null = null; private prediction: BattleControllerSnapshot["prediction"] = null; private lastPredictionPublishedAt = Number.NEGATIVE_INFINITY; private message = "Waiting for server start."; private result: MatchFinishedEvent | null = null; private disposed = false; private gameOverReported = false; private peerRecoveryObserved = false; private lastRemoteBoardSnapshot: BoardSnapshotEvent | null = null;
   constructor(private readonly options: BattleControllerOptions) { this.now = options.now ?? Date.now; this.setTimer = options.setTimer ?? ((callback, delay) => setTimeout(callback, delay)); this.clearTimer = options.clearTimer ?? ((timer) => clearTimeout(timer)); this.createCommandId = options.createCommandId ?? (() => crypto.randomUUID()); options.localBoard.setGameOverHandler(() => this.reportLocalGameOver()); }
   subscribe(listener: (snapshot: BattleControllerSnapshot) => void): () => void { this.listeners.add(listener); listener(this.snapshot()); return () => this.listeners.delete(listener); }
   async connect(connection: BattleConnectionOptions): Promise<void> { if (this.machine.getState() !== "IDLE" && this.machine.getState() !== "ERROR") return; this.connectionOptions = connection; this.transition("CONNECTING"); this.transportUnsubscribe = this.options.transport.subscribe((message) => this.handleServer(message)); this.transportStateUnsubscribe = this.options.transport.subscribeConnectionState((state) => this.handleTransportState(state)); this.recognizerUnsubscribe = this.options.recognizer?.subscribe((event) => this.handleRecognition(event)) ?? null;
@@ -52,10 +52,13 @@ export class BattleController {
     this.options.transport.send({ type: "PLAYER_FORFEIT_COMMAND", commandId: this.createCommandId(), matchId: this.matchId, occurredAt: this.now() });
     return true;
   }
-  handleRecognition(event: SignRecognitionEvent): void { if (event.type === "CONNECTION_STATE") { this.aiConnectionState = event.state; this.publish(); } else if (event.type === "PREDICTION") { this.prediction = { symbol: event.symbol, confidence: event.confidence }; this.publish(); } else if (event.type === "SIGN_CONFIRMED") this.submitRecognizedSymbol(event.symbol, event.confidence); }
+  handleRecognition(event: SignRecognitionEvent): void { if (event.type === "CONNECTION_STATE") { this.aiConnectionState = event.state; this.publish(); } else if (event.type === "PREDICTION") { this.prediction = { symbol: event.symbol, confidence: event.confidence }; const at=this.now(); if(at-this.lastPredictionPublishedAt>=100){this.lastPredictionPublishedAt=at;this.publish();} } else if (event.type === "SIGN_CONFIRMED") this.submitRecognizedSymbol(event.symbol, event.confidence); }
   snapshot(): BattleControllerSnapshot { return { state: this.machine.getState(), gameConnectionState: this.gameConnectionState, aiConnectionState: this.aiConnectionState, countdownMs: this.countdownMs, reconnectDeadlineAt: this.reconnectDeadlineAt, score: this.score, combo: this.combo, maxCombo: this.maxCombo, removedCount: this.removedCount, targetSymbol: this.options.sharedTargetMode ? this.sharedTargetSymbol : this.options.localBoard.getTargetSymbol(), prediction: this.prediction, message: this.message, result: this.result }; }
   dispose(): void { if (this.disposed) return; this.disposed = true; this.clearReconnectTimers(); this.clearStartTimer(); for (const timer of this.pendingSpawnTimers) this.clearTimer(timer); this.pendingSpawnTimers.clear(); this.transportUnsubscribe?.(); this.transportStateUnsubscribe?.(); this.recognizerUnsubscribe?.(); this.options.transport.disconnect(); this.options.recognizer?.disconnect(); this.options.localBoard.dispose(); this.options.remoteBoard.clear(); this.options.attackEffect.dispose(); this.listeners.clear(); }
   private handleServer(message: ServerBattleMessage): void {
+    // MATCH_FINISHED is terminal for a mounted game page. Late recovery/start
+    // snapshots from signaling must not resurrect PLAYING and erase the result.
+    if (this.result && message.type !== "RESULT_RECORDED") return;
     if (message.type === "START_MATCH" || message.type === "MATCH_STARTED" || message.type === "GAME_START") {
       this.opponentPlayerId = message.playerIds.find((playerId) => playerId !== this.options.playerId) ?? null;
     }
@@ -69,7 +72,7 @@ export class BattleController {
     if (message.type === "COMBO_UPDATED") { if (message.playerId === this.options.playerId) { this.combo = message.combo; this.maxCombo = message.maxCombo; this.publish(); } return; }
     if (message.type === "ATTACK_CREATED" || message.type === "ATTACK_APPLIED") { if (message.targetPlayerId === this.options.playerId) this.options.attackEffect.apply(message as AttackCreatedEvent); return; }
     if (message.type === "MATCH_FINISHED") { this.result = message; this.options.localBoard.stop(); this.message = "Match finished."; this.transition("FINISHED"); return; }
-    if (message.type === "PLAYER_DISCONNECTED") { if (message.playerId !== this.options.playerId) this.continueDuringPeerReconnect(); return; }
+    if (message.type === "PLAYER_DISCONNECTED") { if (message.playerId !== this.options.playerId) this.continueDuringPeerReconnect(true); return; }
     if (message.type === "PLAYER_RECONNECTED") { this.clearReconnectTimers(); this.reconnectDeadlineAt = null; this.message = "Opponent reconnected."; if (this.machine.getState() === "RECONNECTING") this.transition("PLAYING"); else this.publish(); return; }
     if (message.type === "BOARD_SNAPSHOT" && message.playerId === this.options.playerId) {
       this.options.localBoard.restore?.(message.bodies, message.sentAt, this.now());
@@ -87,7 +90,7 @@ export class BattleController {
     const matchState = this.machine.getState();
     if ((state === "DISCONNECTED" || state === "ERROR") && (matchState === "PLAYING" || matchState === "COUNTDOWN" || matchState === "RECONNECTING")) {
       this.peerRecoveryObserved = true;
-      this.continueDuringPeerReconnect();
+      this.continueDuringPeerReconnect(false);
     }
     if (state === "CONNECTED" && this.peerRecoveryObserved && this.matchId && this.lastRemoteBoardSnapshot) {
       const observed = this.lastRemoteBoardSnapshot;
@@ -142,13 +145,13 @@ export class BattleController {
     this.message = "Game server disconnected. Reconnecting...";
     this.scheduleReconnect();
   }
-  private continueDuringPeerReconnect(): void {
+  private continueDuringPeerReconnect(opponentDisconnectConfirmed: boolean): void {
     if (this.disposed || !this.connectionOptions || !this.matchId) return;
     // The player who remains must keep their local physics board and input
     // active. Only the returning browser restores a snapshot; the active
     // browser retries the channel in the background without a countdown.
     this.message = "Opponent reconnecting. Game continues.";
-    if (this.reconnectDeadlineAt === null) {
+    if (opponentDisconnectConfirmed && this.reconnectDeadlineAt === null) {
       this.reconnectDeadlineAt = this.now() + (this.options.reconnectGraceMs ?? 10_000);
       this.graceTimer = this.setTimer(() => {
         this.graceTimer = null;

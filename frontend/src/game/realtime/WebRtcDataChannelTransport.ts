@@ -106,6 +106,7 @@ export class WebRtcDataChannelTransport<TCommand, TEvent>
   }
 
   getConnectionState(): WebRtcGameTransportState { return this.state; }
+  getBufferedAmount(): number { return this.getChannel()?.getBufferedAmount?.() ?? 0; }
 
   private sendEnvelope(kind: GameEnvelope["kind"], payload: unknown): void {
     if (this.state !== "CONNECTED" || !this.roomId) throw new Error("WebRTC game transport is not connected.");

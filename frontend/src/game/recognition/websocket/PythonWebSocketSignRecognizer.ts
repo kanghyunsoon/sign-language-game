@@ -9,6 +9,7 @@ import type { ContextualPredictionSelector, PredictionEvent } from "../contextua
 const HAND_MISSING_SEND_INTERVAL_MS = 80;
 const RECONNECT_INITIAL_DELAY_MS = 500;
 const RECONNECT_MAX_DELAY_MS = 8_000;
+const DIRECT_INFERENCE_TIMEOUT_MS = 900;
 
 export interface LandmarkFrameSink {
   sendLandmarkFrame(frame: HandLandmarkFrame): void;
@@ -62,6 +63,7 @@ export class PythonWebSocketSignRecognizer implements SignRecognizer, LandmarkFr
   private readonly directInferenceIntervalMs: number;
   private directInferenceFrameId: number | null = null;
   private pendingDirectFrame: HandLandmarkFrame | null = null;
+  private directInferenceTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly predictionSelector?: ContextualPredictionSelector;
   private decoderContextRevision: string | undefined;
 
@@ -139,6 +141,7 @@ export class PythonWebSocketSignRecognizer implements SignRecognizer, LandmarkFr
         void this.decoder.stop();
         this.directInferenceFrameId = null;
         this.pendingDirectFrame = null;
+        this.clearDirectInferenceTimer();
         this.legacyFrames.clear();
         this.decoderContextRevision = undefined;
         this.lastLandmarkSentAt = Number.NEGATIVE_INFINITY;
@@ -166,6 +169,7 @@ export class PythonWebSocketSignRecognizer implements SignRecognizer, LandmarkFr
     this.lastLandmarkSentAt = Number.NEGATIVE_INFINITY;
     this.directInferenceFrameId = null;
     this.pendingDirectFrame = null;
+    this.clearDirectInferenceTimer();
     this.legacyFrames.clear();
     this.decoderContextRevision = undefined;
     this.activeHandSessionId = undefined;
@@ -199,6 +203,7 @@ export class PythonWebSocketSignRecognizer implements SignRecognizer, LandmarkFr
     this.legacyPredictionSequence = 0;
     this.directInferenceFrameId = null;
     this.pendingDirectFrame = null;
+    this.clearDirectInferenceTimer();
     this.lastLandmarkSentAt = Number.NEGATIVE_INFINITY;
     this.lastMissingSentAt = Number.NEGATIVE_INFINITY;
     this.activeHandSessionId = undefined;
@@ -256,7 +261,7 @@ export class PythonWebSocketSignRecognizer implements SignRecognizer, LandmarkFr
       if (message.type === "PREDICTION") {
         const metadata=this.legacyFrames.get(message.frameId);
         this.legacyFrames.delete(message.frameId);
-        if(this.directInferenceFrameId===message.frameId)this.directInferenceFrameId=null;
+        if(this.directInferenceFrameId===message.frameId){this.directInferenceFrameId=null;this.clearDirectInferenceTimer();}
         const filteredPrediction = withoutNumericPrediction(message);
         if(metadata&&metadata.sessionId===this.activeHandSessionId){
           this.performanceMonitor.mark("aiResponse");
@@ -325,6 +330,15 @@ export class PythonWebSocketSignRecognizer implements SignRecognizer, LandmarkFr
     this.legacyFrames.set(frame.frameId,{capturedAt:frame.capturedAt,sentAt:Date.now(),sessionId:frame.activeHandSessionId,contextRevision:this.predictionSelector?.captureContext(this.supportedSymbols)});
     this.performanceMonitor.mark("aiRequest");
     this.sendMessage({type:"LANDMARK_FRAME",frameId:frame.frameId,capturedAt:frame.capturedAt,handedness:frame.handedness,landmarks:frame.landmarks});
+    this.clearDirectInferenceTimer();
+    this.directInferenceTimer=setTimeout(()=>{
+      this.directInferenceTimer=null;
+      if(this.directInferenceFrameId!==frame.frameId)return;
+      this.directInferenceFrameId=null;
+      this.legacyFrames.delete(frame.frameId);
+      this.performanceMonitor.stale();
+      this.dispatchPendingDirectFrame();
+    },DIRECT_INFERENCE_TIMEOUT_MS);
   }
 
   private dispatchPendingDirectFrame(): void {
@@ -332,6 +346,11 @@ export class PythonWebSocketSignRecognizer implements SignRecognizer, LandmarkFr
     this.pendingDirectFrame=null;
     if(!pending||pending.activeHandSessionId!==this.activeHandSessionId)return;
     this.dispatchDirectFrame(pending);
+  }
+
+  private clearDirectInferenceTimer(): void {
+    if(this.directInferenceTimer!==null)clearTimeout(this.directInferenceTimer);
+    this.directInferenceTimer=null;
   }
 
   private applyPredictionToDecoder(prediction: PredictionEvent, sequence: number, capturedAt: number, capturedContextRevision?: string): void {

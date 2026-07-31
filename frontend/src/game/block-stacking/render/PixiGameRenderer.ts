@@ -40,6 +40,7 @@ export class PixiGameRenderer implements GameRenderer {
   private readonly frontLetterHost: HTMLElement;
   private readonly rendererHost: HTMLElement;
   private readonly frontLetters = new Map<string, HTMLSpanElement>();
+  private readonly frontLetterSignatures = new Map<string, string>();
   private readonly frontLetterMasks = new Map<string, {
     readonly url: string;
     readonly width: number;
@@ -123,7 +124,7 @@ export class PixiGameRenderer implements GameRenderer {
     this.drawBoardScenery();
     this.drawBoardGrid();
     this.drawDangerLine();
-    this.app.render();
+    if (this.config.showScenery) this.app.render();
   }
 
   render(letters: readonly PhysicsLetterState[]): void {
@@ -162,9 +163,13 @@ export class PixiGameRenderer implements GameRenderer {
         this.hiddenLetterIds.delete(id);
         this.frontLetters.get(id)?.remove();
         this.frontLetters.delete(id);
+        this.frontLetterSignatures.delete(id);
       }
     }
-    this.app.render();
+    // Battle and solo DOM scenery modes render glyphs in the foreground DOM
+    // layer. Their Pixi canvas is hidden, so submitting a WebGL frame here
+    // wastes a full GPU render for every physics tick.
+    if (this.config.showScenery) this.app.render();
   }
 
   highlightRemoval(
@@ -246,6 +251,7 @@ export class PixiGameRenderer implements GameRenderer {
     this.hiddenLetterIds.clear();
     for (const glyph of this.frontLetters.values()) glyph.remove();
     this.frontLetters.clear();
+    this.frontLetterSignatures.clear();
     this.targetId = null;
   }
 
@@ -298,6 +304,16 @@ export class PixiGameRenderer implements GameRenderer {
       ? (letter.id === this.targetId ? "#d95b7d" : "#416d72")
       : `hsl(${16 + spawnProgress * 28} 88% ${57 - spawnProgress * 7}%)`;
     const motion = letter.settled ? 0 : Math.min(1, Math.abs(letter.velocityY) / 4.5);
+    const signature = [
+      letter.x.toFixed(2),
+      letter.y.toFixed(2),
+      letter.angle.toFixed(4),
+      color,
+      motion.toFixed(3),
+      this.hiddenLetterIds.has(letter.id) ? "0" : "1",
+    ].join(":");
+    if (this.frontLetterSignatures.get(letter.id) === signature) return;
+    this.frontLetterSignatures.set(letter.id, signature);
     glyph.style.display = this.hiddenLetterIds.has(letter.id) ? "none" : "block";
     glyph.style.backgroundColor = color;
     glyph.style.transform = `translate(-50%, -50%) translate(${letter.x}px, ${letter.y}px) rotate(${letter.angle}rad) scale(${1 - motion * .018}, ${1 + motion * .032})`;

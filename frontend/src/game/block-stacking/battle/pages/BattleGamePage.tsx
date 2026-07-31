@@ -34,6 +34,12 @@ import { BattleRoomRecoveryCancelledError, isMissingOrForbiddenRoom, recoverBatt
 const INITIAL: BattleControllerSnapshot = { state: "IDLE", gameConnectionState: "DISCONNECTED", aiConnectionState: "DISCONNECTED", countdownMs: 0, reconnectDeadlineAt: null, score: 0, combo: 0, maxCombo: 0, removedCount: 0, targetSymbol: null, prediction: null, message: "Waiting for board initialization.", result: null };
 const BATTLE_CANVAS_WIDTH = 1680;
 const BATTLE_CANVAS_HEIGHT = 945;
+const BATTLE_HAND_DETECTION_CONFIG = Object.freeze({
+  maximumDetectedHands: 1,
+  minimumHandDetectionConfidence: .5,
+  minimumHandPresenceConfidence: .5,
+  minimumTrackingConfidence: .5,
+});
 
 export function BattleGamePage() {
   const { roomId = "" } = useParams(); const navigate = useNavigate();
@@ -46,6 +52,10 @@ export function BattleGamePage() {
   const [snapshot, setSnapshot] = useState(INITIAL); const [participants, setParticipants] = useState<readonly RemoteGameParticipant[]>(() => battleMediaSession.getRemoteParticipants());
   const [resultBusy, setResultBusy] = useState(false); const [resultError, setResultError] = useState<string | null>(null);
   const [resultRecorded, setResultRecorded] = useState(false);
+  // A finished result is terminal for this page. Keep it outside the
+  // controller lifecycle so a media reconnect or room-cache refresh cannot
+  // briefly recreate a controller and make the modal disappear.
+  const [finalResult, setFinalResult] = useState<MatchFinishedEvent | null>(null);
   const [claimedSymbol, setClaimedSymbol] = useState<{ readonly id: number; readonly symbol: string; readonly winnerPlayerId: string } | null>(null);
   const [drainingSymbol, setDrainingSymbol] = useState<{ readonly id: number; readonly symbol: string } | null>(null);
   const claimEffectTimerRef = useRef<number | null>(null);
@@ -58,6 +68,7 @@ export function BattleGamePage() {
   const [rtcState, setRtcState] = useState(() => battleMediaSession.getConnectionState()); const [localRenderer, setLocalRenderer] = useState<GameRenderer | null>(null); const [remoteRenderer, setRemoteRenderer] = useState<GameRenderer | null>(null);
   const resultReportedRef = useRef(false);
   const resultRecordedRef = useRef(false);
+  const finalResultRef = useRef<MatchFinishedEvent | null>(null);
   const resultReportPromiseRef = useRef<Promise<void> | null>(null);
   const exitInFlightRef = useRef(false);
   const forfeitAndLeaveRef = useRef<() => Promise<void>>(async () => undefined);
@@ -79,18 +90,6 @@ export function BattleGamePage() {
     return () => window.removeEventListener("resize", updatePageScale);
   }, []);
   const localIsHost = battleRoomSession?.hostUserId === user.userId;
-  const markRoomWaiting = useCallback(() => {
-    if (!battleRoomSession) return;
-    setBattleRoomSession({
-      ...battleRoomSession,
-      status: battleRoomSession.playerCount >= battleRoomSession.maxPlayers ? "FULL" : "WAITING",
-      hostReady: false,
-      guestReady: false,
-      currentUserReady: false,
-      canStart: false,
-      activeMatchId: null,
-    });
-  }, [battleRoomSession, setBattleRoomSession]);
   const reportMatchResult = useCallback((result: MatchFinishedEvent): Promise<void> => {
     if (!Number.isSafeInteger(Number(roomId))) return Promise.resolve();
     if (resultReportPromiseRef.current) return resultReportPromiseRef.current;
@@ -103,10 +102,9 @@ export function BattleGamePage() {
     })
       .then((outcome) => {
         if (outcome === "CANCELLED") return;
-        // Swagger guarantees a 201 result returns the room to WAITING. Update
-        // the persisted copy at the same time so it cannot issue a stale
-        // ready/start request before the user presses the rematch button.
-        markRoomWaiting();
+        // Keep the finished match latched until the player explicitly leaves
+        // or requests a rematch. Changing activeMatchId here recreated the
+        // controller, hid the result modal and started false reconnect logic.
         resultRecordedRef.current = true;
         setResultRecorded(true);
         try {
@@ -131,7 +129,7 @@ export function BattleGamePage() {
       .finally(() => setResultBusy(false));
     resultReportPromiseRef.current = request;
     return request;
-  }, [battleMediaSession, localIsHost, markRoomWaiting, resultClient, roomId, setBattleRoomSession, sharedCameraSession, transport]);
+  }, [battleMediaSession, localIsHost, resultClient, roomId, setBattleRoomSession, sharedCameraSession, transport]);
   const refreshMedia = useCallback(() => {
     const nextState = battleMediaSession.getConnectionState();
     setParticipants(battleMediaSession.getRemoteParticipants());
@@ -146,6 +144,10 @@ export function BattleGamePage() {
       setMediaReady(true);
       return;
     }
+    // Reporting a result changes the backend room back to WAITING, which can
+    // close signaling/media. That is not a gameplay disconnect and must never
+    // navigate away from the already-rendered result.
+    if (resultRecordedRef.current || finalResultRef.current || controllerRef.current?.snapshot().result) return;
     if (rtcState === "FAILED") recoveredMediaRoomRef.current = null;
     if (recoveredMediaRoomRef.current === roomId && rtcState !== "FAILED") return;
     if (!battleRoomSession || recoveryInFlightRef.current) return;
@@ -224,7 +226,7 @@ export function BattleGamePage() {
       settleDurationMs: 550,
       linearVelocityThreshold: 0.045,
       angularVelocityThreshold: 0.006,
-      freezeSettledBodies: false,
+      freezeSettledBodies: true,
     });
     const runtime = new BattleLocalBoardRuntime(physics, localRenderer, DEFAULT_BATTLE_RUNTIME_CONFIG); runtime.resize(localViewportRef.current.width, localViewportRef.current.height); const attack = new DefaultBattleAttackEffect();
     const controller = new BattleController({ playerId: user.userId, roomId, initialMatchId: battleRoomSession?.activeMatchId ?? undefined, transport, localBoard: runtime, remoteBoard: replica, attackEffect: attack, recognizer, sharedTargetMode: true, onMatchStarted: (matchId) => runtime.setPublisher(new LocalBoardPublisher(transport, DEFAULT_BATTLE_RUNTIME_CONFIG.sync, matchId, user.userId)), onSharedTargetClaimed: (event) => {
@@ -236,13 +238,23 @@ export function BattleGamePage() {
       if (drainEffectTimerRef.current !== null) window.clearTimeout(drainEffectTimerRef.current);
       drainEffectTimerRef.current = window.setTimeout(() => { drainEffectTimerRef.current = null; setDrainingSymbol(null); }, 1_150);
     } });
-    localRuntimeRef.current = runtime; controllerRef.current = controller; const unsubscribe = controller.subscribe(setSnapshot);
+    localRuntimeRef.current = runtime; controllerRef.current = controller; const unsubscribe = controller.subscribe((next) => {
+      setSnapshot(next);
+      if (next.result && !finalResultRef.current) {
+        finalResultRef.current = next.result;
+        setFinalResult(next.result);
+      }
+    });
     void controller.connect({ url: config.gameWebSocketUrl, roomId, playerId: user.userId, accessToken, headers: accessToken ? undefined : createDevAuthHeaders(user), hostPlayerId: battleRoomSession?.hostUserId, playerIds: [...new Set(battleRoomSession?.participants.map((participant) => participant.userId) ?? [user.userId])] });
     // Opponent blocks are spawned locally after the server confirms them.
     // Their motion is independent of remote transform packet timing.
     const remote = new RemoteBoardRenderer(remoteRenderer, replica);
+    let lastRemoteRenderAt = Number.NEGATIVE_INFINITY;
     const renderRemote = (at: number) => {
-      remote.render(at);
+      if (at - lastRemoteRenderAt >= 1000 / 30) {
+        lastRemoteRenderAt = at;
+        remote.render(at);
+      }
       remoteLoopRef.current = requestAnimationFrame(renderRemote);
     };
     remoteLoopRef.current = requestAnimationFrame(renderRemote);
@@ -251,7 +263,13 @@ export function BattleGamePage() {
 
   useEffect(() => {
     let frame = 0;
-    const sampleTowerHeights = () => {
+    let lastSampleAt = Number.NEGATIVE_INFINITY;
+    const sampleTowerHeights = (at: number) => {
+      if (at - lastSampleAt < 100) {
+        frame = requestAnimationFrame(sampleTowerHeights);
+        return;
+      }
+      lastSampleAt = at;
       const localViewport = localViewportRef.current;
       const remoteViewport = remoteViewportRef.current;
       const next = {
@@ -267,20 +285,19 @@ export function BattleGamePage() {
   }, [localRenderer, remoteRenderer, replica]);
 
   useEffect(() => {
-    const result = snapshot.result;
+    const result = finalResult;
     if (!result || resultReportedRef.current) return;
     resultReportedRef.current = true;
     void reportMatchResult(result).catch(() => { resultReportedRef.current = false; });
-  }, [reportMatchResult, snapshot.result]);
+  }, [finalResult, reportMatchResult]);
 
   useEffect(() => transport.subscribe((message) => {
     if (message.type !== "RESULT_RECORDED") return;
-    const result = controllerRef.current?.snapshot().result;
+    const result = finalResultRef.current ?? controllerRef.current?.snapshot().result;
     if (result && result.matchId !== message.matchId) return;
-    markRoomWaiting();
     resultRecordedRef.current = true;
     setResultRecorded(true);
-  }), [markRoomWaiting, transport]);
+  }), [transport]);
 
   const localStream = sharedCameraSession.getStream(); const opponent = participants[0] ?? null;
   const returnToWaiting = async () => { if (!roomId || resultBusy) return; setResultBusy(true); setResultError(null); try {
@@ -306,7 +323,7 @@ export function BattleGamePage() {
     if (forfeited && controllerRef.current) {
       await waitForMatchResult(controllerRef.current);
     }
-    const result = controllerRef.current?.snapshot().result;
+    const result = finalResultRef.current ?? controllerRef.current?.snapshot().result;
     if (result) {
       try {
         // reportResult receives the winner. The backend records the other
@@ -365,7 +382,7 @@ export function BattleGamePage() {
       <aside className={styles.duelCameraRail} aria-label="플레이어 카메라">
         <section className={styles.duelCameraCard} aria-label={`${user.displayName} 카메라`}>
           <header><div><strong>{user.userId} CAM</strong></div><em className={cameraState === "CONNECTED" ? styles.recordingIndicator : undefined}>{cameraState === "CONNECTED" ? "REC" : "WAIT"}</em></header>
-          <div className={styles.duelCameraViewport}>{localStream ? <HandCamera compact sharedStream={localStream} autoStart rateConfig={RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG} performanceMonitor={recognizer.getPerformanceMonitor()} temporalDecoder={recognizer.getTemporalDecoder()} activePlayerSession={activePlayerSession} onLandmarkFrame={(frame) => recognizer.sendLandmarkFrame(frame)} onHandNotDetected={(capturedAt) => recognizer.notifyHandNotDetected(capturedAt)} prediction={snapshot.prediction} connectionState={recognizer.getConnectionState()} /> : <GameVideoTile kind="LOCAL" label="내 영상" stream={null} cameraEnabled={false} connectionState="DISCONNECTED" />}
+          <div className={styles.duelCameraViewport}>{localStream ? <HandCamera compact sharedStream={localStream} autoStart renderHandOverlay={false} rateConfig={RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG} handDetectionConfig={BATTLE_HAND_DETECTION_CONFIG} performanceMonitor={recognizer.getPerformanceMonitor()} temporalDecoder={recognizer.getTemporalDecoder()} activePlayerSession={activePlayerSession} onLandmarkFrame={(frame) => recognizer.sendLandmarkFrame(frame)} onHandNotDetected={(capturedAt) => recognizer.notifyHandNotDetected(capturedAt)} prediction={snapshot.prediction} connectionState={recognizer.getConnectionState()} /> : <GameVideoTile kind="LOCAL" label="내 영상" stream={null} cameraEnabled={false} connectionState="DISCONNECTED" />}
             <div className={styles.recognitionBadge}><span>현재 인식</span><strong>{snapshot.prediction?.symbol ?? "-"}</strong><small>{snapshot.prediction ? `${Math.round(snapshot.prediction.confidence * 100)}%` : "대기"}</small></div>
           </div>
         </section>
@@ -376,7 +393,7 @@ export function BattleGamePage() {
       </aside>
     </div>
     {snapshot.state === "COUNTDOWN" ? <div className={styles.countdown}>{Math.max(1, Math.ceil(snapshot.countdownMs / 1000))}</div> : null}
-    <BattleResultModal result={snapshot.result} playerId={user.userId} busy={resultBusy} readyForRematch={resultRecorded} error={resultError} onReturnToWaiting={() => void returnToWaiting()} onRoomList={() => void leaveBattle("/game/battle")} onModeSelect={() => void leaveBattle("/game")} />
+    <BattleResultModal result={finalResult} playerId={user.userId} busy={resultBusy} readyForRematch={resultRecorded} error={resultError} onReturnToWaiting={() => void returnToWaiting()} onRoomList={() => void leaveBattle("/game/battle")} onModeSelect={() => void leaveBattle("/game")} />
   </main>;
 }
 

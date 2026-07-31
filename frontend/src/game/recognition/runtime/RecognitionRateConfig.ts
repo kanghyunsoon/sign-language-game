@@ -21,10 +21,12 @@ export const LOW_POWER_RECOGNITION_RATE_CONFIG: RecognitionRateConfig = Object.f
 
 /** Active game screens favour response time; stale work is dropped. */
 export const RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG: RecognitionRateConfig = Object.freeze({
-  renderFps: 60,
-  handTrackingFps: 60,
+  // A 24 Hz latest-only tracker has lower end-to-end latency than an overloaded
+  // 30/60 Hz queue and leaves the main thread available for game physics.
+  renderFps: 20,
+  handTrackingFps: 24,
   poseTrackingFps: 4,
-  aiInferenceFps: 24,
+  aiInferenceFps: 18,
 });
 
 export function validateRecognitionRateConfig(config: RecognitionRateConfig): RecognitionRateConfig {

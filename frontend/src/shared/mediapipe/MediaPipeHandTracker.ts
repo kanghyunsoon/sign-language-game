@@ -8,7 +8,10 @@ import { DEFAULT_HAND_DETECTION_CONFIG, type HandDetectionConfig, type Handednes
 
 export type { TrackedHand } from "./types";
 
-const MAX_MAIN_THREAD_INFERENCE_EDGE = 480;
+// Match the worker input budget. A 480px fallback frame performs more than
+// three times as much pixel work and used to freeze physics whenever worker
+// initialization was unavailable.
+const MAX_MAIN_THREAD_INFERENCE_EDGE = 256;
 
 export class MediaPipeHandTracker {
   private handLandmarker: HandLandmarker | null = null;

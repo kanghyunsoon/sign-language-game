@@ -5,6 +5,13 @@ import type { LocalBoardPublisher } from "../sync/LocalBoardPublisher";
 import { BATTLE_BURST_SPAWN_RATIO, BATTLE_LETTER_SIZE, type BattleRuntimeConfig } from "./BattleRuntimeConfig";
 
 interface LetterRecord { readonly id: string; readonly symbol: string; readonly spawnedAt: number; settledAt?: number; pending: boolean; }
+const FIXED_PHYSICS_STEP_MS = 1000 / 60;
+const MAX_CATCH_UP_STEPS = 4;
+const DANGER_CONFIRMATION_MS = 1_200;
+// Hangul glyph masks do not occupy the full square physics box. Requiring the
+// visible glyph body to cross farther than the box edge avoids a game-over
+// while the rendered letter still appears just below the finish line.
+const DANGER_VISIBLE_HALF_HEIGHT = BATTLE_LETTER_SIZE * .32;
 
 export interface BattleLocalBoard {
   start(): void; stop(): void; spawn(event: SpawnLetterEvent): void; selectRemoval(symbol: string): string | null;
@@ -15,6 +22,7 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
   private readonly letters = new Map<string, LetterRecord>(); private frame: number | null = null; private previousAt: number | null = null; private priorityTargetId: string | null = null;
   private width: number; private height: number; private running = false; private disposed = false; private publisher?: LocalBoardPublisher;
   private gameOverHandler: (() => void) | null = null; private gameOverReported = false; private dangerArmedAt: number | null = null;
+  private physicsAccumulatorMs = 0;
   constructor(
     private readonly physics: PhysicsWorld,
     private readonly renderer: GameRenderer,
@@ -64,8 +72,8 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
     // Continue falling bodies from the authoritative capture point. Limit the
     // correction so clock skew or a suspended tab cannot fast-forward a whole
     // tower through multiple collisions in one restore.
-    const correctionMs = Math.max(0, Math.min(250, receivedAt - snapshotAt));
-    if (correctionMs > 0 && bodies.some((body) => body.state === "FALLING")) this.physics.update(correctionMs);
+    const correctionMs = Math.max(0, Math.min(FIXED_PHYSICS_STEP_MS * MAX_CATCH_UP_STEPS, receivedAt - snapshotAt));
+    if (correctionMs > 0 && bodies.some((body) => body.state === "FALLING")) this.advancePhysics(correctionMs);
     this.updateTarget(); this.renderer.render(this.physics.getLetterStates());
   }
   getTargetSymbol(): string | null { return this.currentTarget()?.symbol ?? null; }
@@ -90,8 +98,9 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
   setGameOverHandler(handler: () => void): void { this.gameOverHandler = handler; }
   dispose(): void { if (this.disposed) return; this.stop(); this.physics.destroy(); this.letters.clear(); this.disposed = true; }
   advance(deltaMs: number): void {
-    if (!this.running) return; const bounded = Math.max(1, Math.min(32, deltaMs));
-    for (const event of this.physics.update(bounded)) { const record = this.letters.get(event.id); if (record && event.type === "LETTER_SETTLED") record.settledAt = this.now(); if (record && event.type === "LETTER_MOVED") record.settledAt = undefined; }
+    if (!this.running) return;
+    const bounded = Math.max(0, Math.min(FIXED_PHYSICS_STEP_MS * MAX_CATCH_UP_STEPS, deltaMs));
+    this.advancePhysics(bounded);
     for (const event of this.renderer.updateEffects(bounded)) { if (this.physics.removeLetter(event.id)) { this.letters.delete(event.id); this.updateTarget(); } }
     const states = this.physics.getLetterStates(); this.renderer.render(states); this.publisher?.update(Date.now(), states, this.width, this.height); this.checkDangerLine(states);
   }
@@ -105,17 +114,32 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
     // has taken effect. It is not a stack yet, so it must never end the match.
     // Arm the danger line only after a real LETTER_SETTLED event has persisted.
     const now = this.now();
+    if (states.some((state) => !state.settled)) return;
     const reached = states.some((state) => {
       const record = this.letters.get(state.id);
       return state.settled
         && record?.settledAt !== undefined
-        && now - record.settledAt >= 750
-        && state.y - BATTLE_LETTER_SIZE / 2 <= dangerLineY;
+        && now - record.settledAt >= DANGER_CONFIRMATION_MS
+        && state.y - DANGER_VISIBLE_HALF_HEIGHT <= dangerLineY;
     });
     if (!reached) return;
     this.gameOverReported = true;
     this.stop();
     this.gameOverHandler?.();
+  }
+  private advancePhysics(deltaMs: number): void {
+    this.physicsAccumulatorMs = Math.min(
+      this.physicsAccumulatorMs + deltaMs,
+      FIXED_PHYSICS_STEP_MS * MAX_CATCH_UP_STEPS,
+    );
+    while (this.physicsAccumulatorMs + .001 >= FIXED_PHYSICS_STEP_MS) {
+      for (const event of this.physics.update(FIXED_PHYSICS_STEP_MS)) {
+        const record = this.letters.get(event.id);
+        if (record && event.type === "LETTER_SETTLED") record.settledAt = this.now();
+        if (record && event.type === "LETTER_MOVED") record.settledAt = undefined;
+      }
+      this.physicsAccumulatorMs -= FIXED_PHYSICS_STEP_MS;
+    }
   }
   private schedule(): void { this.frame = this.requestFrame((at) => { this.frame = null; const delta = this.previousAt === null ? 1000 / 60 : at - this.previousAt; this.previousAt = at; this.advance(delta); if (this.running) this.schedule(); }); }
 }

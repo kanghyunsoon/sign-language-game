@@ -63,10 +63,12 @@ export interface HandCameraProps {
   readonly showNoHandPrompt?: boolean;
   readonly hideCompactStatus?: boolean;
   readonly showCompactRecognition?: boolean;
+  /** Disable the decorative landmark canvas while retaining hand inference. */
+  readonly renderHandOverlay?: boolean;
   readonly visionAdapterFactory?: RecognitionVisionAdapterFactory;
 }
 
-export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE_CONFIG, performanceMonitor, temporalDecoder, activePlayerSession, recognitionSession, handDetectionConfig = GAMEPLAY_HAND_DETECTION_CONFIG, autoStart = false, onLandmarkFrame, onHandNotDetected, targetSymbol, prediction, referenceTemplate, onPoseFeedback, connectionState, modelVersion, connectionError, awaitingHandRelease = false, showDebug = false, compact = false, showNoHandPrompt = false, hideCompactStatus = false, showCompactRecognition = false, visionAdapterFactory }: HandCameraProps) {
+export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE_CONFIG, performanceMonitor, temporalDecoder, activePlayerSession, recognitionSession, handDetectionConfig = GAMEPLAY_HAND_DETECTION_CONFIG, autoStart = false, onLandmarkFrame, onHandNotDetected, targetSymbol, prediction, referenceTemplate, onPoseFeedback, connectionState, modelVersion, connectionError, awaitingHandRelease = false, showDebug = false, compact = false, showNoHandPrompt = false, hideCompactStatus = false, showCompactRecognition = false, renderHandOverlay = true, visionAdapterFactory }: HandCameraProps) {
   // Registration/ownership is a debug-only tool. Gameplay always uses the
   // first detected hand, so a registration state can never block recognition.
   // Registration is not used by any game mode. Keep the prop surface for
@@ -96,6 +98,7 @@ export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE
   const feedbackHandlersRef = useRef({ referenceTemplate, onPoseFeedback });
   const lastFeedbackReportAtRef = useRef(0);
   const lastActiveHandSessionIdRef = useRef<string | undefined>(undefined);
+  const workerModeRef = useRef("MAIN_THREAD");
   const startGenerationRef = useRef(0);
   const startingRef = useRef(false);
 
@@ -178,7 +181,7 @@ export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE
     }
   },[]);
 
-  const processPendingHands=useCallback(async()=>{if(processingHandRef.current)return;processingHandRef.current=true;try{while(mountedRef.current){const frame=handBufferRef.current.takeLatest();if(!frame)break;const adapter=visionAdapterRef.current;if(!adapter)break;let hands:readonly TrackedHand[];try{const detectionStartedAt=performance.now();hands=await adapter.detectHands({video:frame.video,timestamp:detectionStartedAt,frameId:frame.frameId});const detectionFinishedAt=performance.now();monitorRef.current.recordHandLatency(detectionFinishedAt-detectionStartedAt);monitorRef.current.mark("hand",detectionFinishedAt);setWorkerMode(adapter.getExecutionMode());}catch{setError({kind:"MEDIAPIPE_INIT_FAILED",message:"손 추적 처리에 실패했습니다. 영상과 게임은 계속됩니다."});break;}
+    const processPendingHands=useCallback(async()=>{if(processingHandRef.current)return;processingHandRef.current=true;try{while(mountedRef.current){const frame=handBufferRef.current.takeLatest();if(!frame)break;const adapter=visionAdapterRef.current;if(!adapter)break;let hands:readonly TrackedHand[];try{const detectionStartedAt=performance.now();hands=await adapter.detectHands({video:frame.video,timestamp:detectionStartedAt,frameId:frame.frameId});const detectionFinishedAt=performance.now();monitorRef.current.recordHandLatency(detectionFinishedAt-detectionStartedAt);monitorRef.current.mark("hand",detectionFinishedAt);const executionMode=adapter.getExecutionMode();if(executionMode!==workerModeRef.current){workerModeRef.current=executionMode;setWorkerMode(executionMode);}}catch{setError({kind:"MEDIAPIPE_INIT_FAILED",message:"손 추적 처리에 실패했습니다. 영상과 게임은 계속됩니다."});break;}
     let primary:TrackedHand|undefined,preview:TrackedHand|undefined,activeSessionId:string|undefined,activeHandId:string|undefined;
     const stage=stageRef.current;
     hands=hands.filter((hand)=>isHandVisibleInViewport(hand.landmarks,frame.video.videoWidth,frame.video.videoHeight,stage?.clientWidth??0,stage?.clientHeight??0,videoObjectFit(frame.video)));
@@ -231,7 +234,7 @@ export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE
       video.srcObject = sharedStream;
       await video.play();
       if (!mountedRef.current || generation !== startGenerationRef.current) return;
-      const scheduler=new BrowserRecognitionFrameScheduler({video,config:rateConfig,monitor:monitorRef.current});scheduler.subscribeRenderFrame(drawLatest);scheduler.subscribeHandFrame(queueHandFrame);if(userRegistrationEnabled)scheduler.subscribePoseFrame(queuePoseFrame);schedulerRef.current=scheduler;scheduler.start();
+      const scheduler=new BrowserRecognitionFrameScheduler({video,config:rateConfig,monitor:monitorRef.current});if(renderHandOverlay)scheduler.subscribeRenderFrame(drawLatest);scheduler.subscribeHandFrame(queueHandFrame);if(userRegistrationEnabled)scheduler.subscribePoseFrame(queuePoseFrame);schedulerRef.current=scheduler;scheduler.start();
       startingRef.current = false;
       setStatus("RUNNING");
     } catch (cause) {
@@ -246,7 +249,7 @@ export function HandCamera({ sharedStream, rateConfig = DEFAULT_RECOGNITION_RATE
       setError(classifyCameraError(cause, initializationStage));
       setStatus("ERROR");
     }
-  }, [activePlayerSession, drawLatest, handDetectionConfig, queueHandFrame, queuePoseFrame, rateConfig, releaseResources, resolvedVisionAdapterFactory, sharedStream, userRegistrationEnabled]);
+  }, [activePlayerSession, drawLatest, handDetectionConfig, queueHandFrame, queuePoseFrame, rateConfig, releaseResources, renderHandOverlay, resolvedVisionAdapterFactory, sharedStream, userRegistrationEnabled]);
 
   useEffect(() => {
     if (autoStart && sharedStream) void startCamera();
@@ -385,7 +388,10 @@ function overlayCanvasSize(video: HTMLVideoElement, stage: HTMLDivElement | null
   const stageWidth = stage?.clientWidth ?? 0;
   const stageHeight = stage?.clientHeight ?? 0;
   if (stageWidth <= 0 || stageHeight <= 0) return { width: video.videoWidth, height: video.videoHeight };
-  const pixelRatio = Math.min(globalThis.devicePixelRatio || 1, 1.5);
+  // The camera tile is an input preview, not a full-resolution drawing
+  // surface. A 1x overlay avoids redrawing 2.25x as many pixels on high-DPI
+  // screens while MediaPipe and both battle boards are active.
+  const pixelRatio = 1;
   return {
     width: Math.max(1, Math.round(stageWidth * pixelRatio)),
     height: Math.max(1, Math.round(stageHeight * pixelRatio)),

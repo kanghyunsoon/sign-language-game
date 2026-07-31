@@ -139,6 +139,8 @@ export class MeshWebRtcMediaSession implements GameMediaSession {
         if (channels.length === 0) throw new Error("The WebRTC game data channel is not connected.");
         for (const channel of channels) channel.send(payload);
       },
+      getBufferedAmount: () => this.registry.values()
+        .reduce((total, slot) => total + (slot.dataChannel?.bufferedAmount ?? 0), 0),
       subscribe: (listener) => {
         this.gameDataListeners.add(listener);
         return () => this.gameDataListeners.delete(listener);

@@ -1,14 +1,17 @@
 import type { GameDataChannel } from "../../../media/core/GameDataChannel";
 import { WebRtcDataChannelTransport } from "../../../realtime";
+import { GAME_SYMBOLS } from "../../../recognition/core/symbols";
+import { isCompetitiveRecognitionReady } from "../../../recognition/readiness/recognitionReadiness";
 import type { BattleGameTransport } from "./BattleGameTransport";
 import type { BattleBodyTransform, BattleConnectionOptions, BattleConnectionState, ClientBattleMessage, ServerBattleMessage } from "./battleTransportTypes";
 
 type PeerCommand = ClientBattleMessage;
 interface PlayerState { score: number; combo: number; maxCombo: number; removedCount: number; gameOver: boolean; }
-interface PersistedAuthority { readonly roomId: string; readonly hostPlayerId: string; readonly playerIds: readonly string[]; readonly sequence: number; readonly startAt?: number; readonly spawnIndex: number; readonly targetIndex: number; readonly sharedTarget: { readonly id: string; readonly symbol: string } | null; readonly players: readonly [string, PlayerState][]; readonly letters: readonly [string, { readonly playerId: string; readonly symbol: string }][]; readonly boards: readonly [string, readonly BattleBodyTransform[]][]; }
+interface PersistedAuthority { readonly roomId: string; readonly hostPlayerId: string; readonly playerIds: readonly string[]; readonly sequence: number; readonly startAt?: number; readonly spawnIndex: number; readonly targetIndex: number; readonly symbolBag?: readonly string[]; readonly lastTargetSymbol?: string | null; readonly sharedTarget: { readonly id: string; readonly symbol: string } | null; readonly players: readonly [string, PlayerState][]; readonly letters: readonly [string, { readonly playerId: string; readonly symbol: string }][]; readonly boards: readonly [string, readonly BattleBodyTransform[]][]; }
 const CLAIM_EFFECT_DURATION_MS = 1_150;
 const NEXT_TARGET_DELAY_MS = CLAIM_EFFECT_DURATION_MS;
 const AUTHORITY_STORAGE_PREFIX = "sudal:block-battle:authority:";
+const BATTLE_TARGET_SYMBOLS = GAME_SYMBOLS.filter(isCompetitiveRecognitionReady);
 
 /** Browser-hosted authority carried only by the room WebRTC DataChannel. */
 export class P2pBattleTransport implements BattleGameTransport {
@@ -25,6 +28,8 @@ export class P2pBattleTransport implements BattleGameTransport {
   private startAt = 0;
   private spawnIndex = 0;
   private targetIndex = 0;
+  private symbolBag: string[] = [];
+  private lastTargetSymbol: string | null = null;
   private sharedTarget: { readonly id: string; readonly symbol: string } | null = null;
   private targetTimer: ReturnType<typeof setTimeout> | null = null;
   private resumeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -58,6 +63,7 @@ export class P2pBattleTransport implements BattleGameTransport {
   subscribe(listener: (message: ServerBattleMessage) => void): () => void { return this.delegate.subscribe(listener); }
   subscribeConnectionState(listener: (state: BattleConnectionState) => void): () => void { return this.delegate.subscribeConnectionState(listener); }
   getConnectionState(): BattleConnectionState { return this.delegate.getConnectionState(); }
+  getBufferedAmount(): number { return this.delegate.getBufferedAmount(); }
 
   private isHost(): boolean { return this.localPlayerId === this.hostPlayerId; }
   private startAuthority(): void {
@@ -93,7 +99,7 @@ export class P2pBattleTransport implements BattleGameTransport {
   }
   private publishNextTarget(): void {
     if (this.playerIds.length !== 2 || this.sharedTarget || [...this.players.values()].some((player) => player.gameOver)) return;
-    const symbol = SYMBOLS[this.targetIndex % SYMBOLS.length];
+    const symbol = this.takeRandomSymbol();
     const targetId = `${this.matchId}-target-${this.targetIndex}`;
     this.targetIndex += 1;
     this.sharedTarget = { id: targetId, symbol };
@@ -127,7 +133,11 @@ export class P2pBattleTransport implements BattleGameTransport {
       else this.scheduleNextTarget();
       return;
     }
-    if (message.type === "BODY_TRANSFORM_BATCH") { if (message.playerId !== playerId) return; this.delegate.publishEvent({ ...message, sequence: ++this.sequence }); return; }
+    // Current battle clients run the exact same fixed-step simulation from the
+    // authoritative SPAWN_LETTER event. Legacy transform batches are accepted
+    // but deliberately not relayed; forwarding them creates channel backlog
+    // and was the main source of progressive gameplay latency.
+    if (message.type === "BODY_TRANSFORM_BATCH") return;
     if (message.type === "BOARD_SNAPSHOT") { if (message.playerId !== playerId) return; this.boards.set(playerId, message.bodies); this.persistAuthority(); this.delegate.publishSnapshot({ ...message, sequence: ++this.sequence }); return; }
     if (message.type === "PEER_BOARD_VIEW") {
       if (message.observerPlayerId !== playerId || message.subjectPlayerId === playerId || !this.playerIds.includes(message.subjectPlayerId)) return;
@@ -168,7 +178,7 @@ export class P2pBattleTransport implements BattleGameTransport {
   private storageKey(): string { return `${AUTHORITY_STORAGE_PREFIX}${this.localPlayerId}:${this.roomId}`; }
   private persistAuthority(): void {
     if (!this.isHost() || !this.roomId || typeof window === "undefined") return;
-    const value: PersistedAuthority = { roomId: this.roomId, hostPlayerId: this.hostPlayerId, playerIds: this.playerIds, sequence: this.sequence, startAt: this.startAt, spawnIndex: this.spawnIndex, targetIndex: this.targetIndex, sharedTarget: this.sharedTarget, players: [...this.players.entries()], letters: [...this.letters.entries()], boards: [...this.boards.entries()] };
+    const value: PersistedAuthority = { roomId: this.roomId, hostPlayerId: this.hostPlayerId, playerIds: this.playerIds, sequence: this.sequence, startAt: this.startAt, spawnIndex: this.spawnIndex, targetIndex: this.targetIndex, symbolBag: this.symbolBag, lastTargetSymbol: this.lastTargetSymbol, sharedTarget: this.sharedTarget, players: [...this.players.entries()], letters: [...this.letters.entries()], boards: [...this.boards.entries()] };
     try { window.sessionStorage.setItem(this.storageKey(), JSON.stringify(value)); } catch { /* Storage is optional; a connected peer can still resync. */ }
   }
   private restoreAuthority(): void {
@@ -177,15 +187,29 @@ export class P2pBattleTransport implements BattleGameTransport {
       const raw = window.sessionStorage.getItem(this.storageKey()); if (!raw) return;
       const saved = JSON.parse(raw) as PersistedAuthority;
       if (saved.roomId !== this.roomId || saved.hostPlayerId !== this.hostPlayerId || saved.playerIds.length !== this.playerIds.length || saved.playerIds.some((id) => !this.playerIds.includes(id))) return;
-      this.sequence = saved.sequence; this.startAt = saved.startAt ?? Date.now(); this.spawnIndex = saved.spawnIndex; this.targetIndex = saved.targetIndex; this.sharedTarget = saved.sharedTarget;
+      this.sequence = saved.sequence; this.startAt = saved.startAt ?? Date.now(); this.spawnIndex = saved.spawnIndex; this.targetIndex = saved.targetIndex; this.symbolBag = [...(saved.symbolBag ?? [])]; this.lastTargetSymbol = saved.lastTargetSymbol ?? saved.sharedTarget?.symbol ?? null; this.sharedTarget = saved.sharedTarget;
       this.players.clear(); for (const [id, state] of saved.players) this.players.set(id, state);
       this.letters.clear(); for (const [id, letter] of saved.letters) this.letters.set(id, letter);
       this.boards.clear(); for (const [id, bodies] of saved.boards) this.boards.set(id, bodies);
       this.restoredAuthority = true;
     } catch { this.clearPersistedAuthority(); }
   }
+  private takeRandomSymbol(): string {
+    if (this.symbolBag.length === 0) {
+      this.symbolBag = [...BATTLE_TARGET_SYMBOLS];
+      for (let index = this.symbolBag.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [this.symbolBag[index], this.symbolBag[swapIndex]] = [this.symbolBag[swapIndex]!, this.symbolBag[index]!];
+      }
+      if (this.symbolBag.length > 1 && this.symbolBag[0] === this.lastTargetSymbol) {
+        [this.symbolBag[0], this.symbolBag[1]] = [this.symbolBag[1]!, this.symbolBag[0]!];
+      }
+    }
+    const symbol = this.symbolBag.shift() ?? BATTLE_TARGET_SYMBOLS[0]!;
+    this.lastTargetSymbol = symbol;
+    return symbol;
+  }
   private clearPersistedAuthority(): void { try { if (typeof window !== "undefined") window.sessionStorage.removeItem(this.storageKey()); } catch { /* no-op */ } }
 }
 function freshPlayer(): PlayerState { return { score: 0, combo: 0, maxCombo: 0, removedCount: 0, gameOver: false }; }
-const SYMBOLS = ["ㄱ", "ㄴ", "ㄷ", "ㄹ", "ㅁ", "ㅂ", "ㅅ", "ㅇ", "ㅈ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ", "ㅏ", "ㅑ", "ㅓ", "ㅕ", "ㅗ", "ㅛ", "ㅜ", "ㅠ", "ㅡ", "ㅣ", "ㅐ", "ㅔ", "ㅚ", "ㅟ", "ㅢ"] as const;
 function isBattleEvent(value: unknown): value is ServerBattleMessage { return !!value && typeof value === "object" && typeof (value as { type?: unknown }).type === "string" && ["START_MATCH", "MATCH_STARTED", "GAME_START", "SHARED_TARGET", "SHARED_TARGET_CLAIMED", "SPAWN_LETTER", "REMOVE_LETTER_ACCEPTED", "REMOVE_LETTER_REJECTED", "SCORE_UPDATED", "COMBO_UPDATED", "ATTACK_CREATED", "ATTACK_APPLIED", "MATCH_FINISHED", "RESULT_RECORDED", "PLAYER_DISCONNECTED", "PLAYER_RECONNECTED", "BODY_TRANSFORM_BATCH", "BOARD_SNAPSHOT", "LETTER_SPAWNED_SYNC", "LETTER_STATE_SYNC", "LETTER_REMOVED_SYNC", "OTTER_TRANSFER"].includes((value as { type: string }).type); }

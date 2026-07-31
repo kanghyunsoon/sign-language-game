@@ -34,13 +34,18 @@ describe("Battle bot practice runtime", () => {
 
   it("finishes the bot match when the local settled pile reaches the danger line", async () => {
     const world = physics();
-    vi.mocked(world.getLetterStates).mockReturnValue([{ id: "danger", symbol: "ㄱ", x: 200, y: 150, angle: 0, velocityX: 0, velocityY: 0, angularVelocity: 0, settled: true }]);
-    const board = new BattleLocalBoardRuntime(world, renderer(), DEFAULT_BATTLE_RUNTIME_CONFIG, undefined, () => 0, () => 1, () => undefined);
+    let now = 0;
+    vi.mocked(world.getLetterStates).mockReturnValue([{ id: "practice-local-0", symbol: "ㄱ", x: 200, y: 150, angle: 0, velocityX: 0, velocityY: 0, angularVelocity: 0, settled: true }]);
+    vi.mocked(world.update).mockReturnValueOnce([{ type: "LETTER_SETTLED", id: "practice-local-0" }]).mockReturnValue([]);
+    const board = new BattleLocalBoardRuntime(world, renderer(), DEFAULT_BATTLE_RUNTIME_CONFIG, undefined, () => now, () => 1, () => undefined);
     const controller = new BattleController({ playerId: "me", roomId: "block-bot-practice", transport: new LocalBattleBotTransport(), localBoard: board, remoteBoard: new RemoteBoardReplica(DEFAULT_BATTLE_RUNTIME_CONFIG.sync), attackEffect: new DefaultBattleAttackEffect(), createCommandId: () => "game-over" });
 
     await controller.connect({ url: "local://block-bot", roomId: "block-bot-practice", playerId: "me" });
     await vi.advanceTimersByTimeAsync(50);
-    board.advance(16);
+    now = 7_000;
+    board.advance(17);
+    now = 8_201;
+    board.advance(17);
 
     expect(controller.snapshot()).toMatchObject({ state: "FINISHED", result: { reason: "DANGER_LINE", loserPlayerId: "me" } });
     controller.dispose();
