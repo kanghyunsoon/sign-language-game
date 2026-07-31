@@ -17,6 +17,7 @@ public class ParticipantLiveState {
     private Instant pendingDeadline;
     private ScheduledFuture<?> pendingTask;
     private boolean expectingIntentionalClose;
+    private Instant lastSeenAt;
 
     /** create()/join() 직후 false로 시작해, 첫 핸드셰이크 성공 시 true로 전환된 뒤 계속 유지된다(FR-029). */
     public synchronized boolean isConfirmed() {
@@ -73,6 +74,20 @@ public class ParticipantLiveState {
     }
 
     /**
+     * close 프레임 없이 조용히 끊긴 연결을 감지하기 위한 마지막 생존 확인 시각(버그픽스,
+     * research.md 없음). {@link #attachSession}에서 연결이 확정될 때, 그리고 PONG 응답을 받을
+     * 때마다 갱신된다. {@code RoomWebSocketHeartbeat}가 이 값이 idle timeout보다 오래됐는지
+     * 주기적으로 확인해, PONG이 없는 세션을 직접 닫는다.
+     */
+    public synchronized Instant getLastSeenAt() {
+        return lastSeenAt;
+    }
+
+    public synchronized void markSeen(Instant now) {
+        this.lastSeenAt = now;
+    }
+
+    /**
      * 새 연결 수립에 따른 상태 전이를 한 번에 수행하고, 호출자가 보내야 할 신호와 정리해야 할
      * 이전 세션을 반환한다.
      *
@@ -95,6 +110,9 @@ public class ParticipantLiveState {
         // 한 번 보낸 참가자는 이후 어떤 비정상 이탈에서도 유예 타이머가 걸리지 않아 이탈 감지가
         // 영구히 죽는다.
         expectingIntentionalClose = false;
+        // 연결이 막 확정된 시점이므로 살아있다고 본다 — 다음 PING 주기까지 곧바로 stale
+        // 판정되지 않게 한다.
+        lastSeenAt = Instant.now();
 
         WebSocketSession previous = session;
         session = newSession;

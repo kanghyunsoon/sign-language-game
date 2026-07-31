@@ -53,6 +53,9 @@ class GameRoomWebSocketHandlerTest {
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
+    @Autowired
+    private RoomParticipantRegistry roomParticipantRegistry;
+
     private Long hostId;
     private Long guestId;
 
@@ -102,6 +105,35 @@ class GameRoomWebSocketHandlerTest {
                 .as("신규 참가자의 최초 확정 시 이미 접속 중인 상대에게 PEER_JOINED가 가야 한다")
                 .contains("PEER_JOINED")
                 .contains("\"userId\":" + guestId);
+    }
+
+    @Test
+    void pong_updatesLastSeenAt() throws Exception {
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
+
+        WebSocketSession hostSession = connect(room.id(), hostId, new LinkedBlockingQueue<>());
+        java.time.Instant afterConnect = roomParticipantRegistry.getRoom(room.id())
+                .getParticipant(hostId)
+                .getLastSeenAt();
+        assertThat(afterConnect).as("연결 확정 시점에 이미 생존 시각이 찍혀 있어야 한다").isNotNull();
+
+        Thread.sleep(50);
+        hostSession.sendMessage(new org.springframework.web.socket.PongMessage());
+
+        assertThat(hostSession.isOpen()).isTrue();
+        java.time.Instant afterPong = pollUntilUpdated(room.id(), afterConnect);
+        assertThat(afterPong).isAfter(afterConnect);
+    }
+
+    private java.time.Instant pollUntilUpdated(Long roomId, java.time.Instant previous) throws InterruptedException {
+        for (int i = 0; i < 50; i++) {
+            java.time.Instant current = roomParticipantRegistry.getRoom(roomId).getParticipant(hostId).getLastSeenAt();
+            if (current.isAfter(previous)) {
+                return current;
+            }
+            Thread.sleep(100);
+        }
+        throw new AssertionError("PONG이 lastSeenAt을 갱신하지 않았다");
     }
 
     @Test
