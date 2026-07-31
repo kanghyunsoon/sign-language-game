@@ -276,6 +276,14 @@
     transform 0.2s ease;
 }
 
+.practice-guide-button {
+  padding: 0 min(0.833333vw, 1.333333vh);
+  font-size: min(1.041667vw, 1.666667vh);
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
 .practice-start-button:hover,
 .practice-guide-button:hover {
   transform: translateY(max(-0.104167vw, -0.166667vh));
