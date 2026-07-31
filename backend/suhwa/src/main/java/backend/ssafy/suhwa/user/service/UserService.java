@@ -80,9 +80,9 @@ public class UserService {
     }
 
     @Transactional
-    public User updateProfile(Long userId, String nickname, String profileImageUrl) {
+    public User updateProfile(Long userId, String nickname) {
         User user = getActiveUser(userId);
-        user.updateProfile(nickname, profileImageUrl);
+        user.updateProfile(nickname);
         return user;
     }
 

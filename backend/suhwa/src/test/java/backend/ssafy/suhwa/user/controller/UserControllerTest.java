@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 import backend.ssafy.suhwa.user.domain.User;
 import backend.ssafy.suhwa.user.dto.UpdateProfileRequest;
@@ -55,17 +56,18 @@ class UserControllerTest {
                 .willReturn(User.builder().email("a@a.com").passwordHash("hash").nickname("nick").build());
 
         mockMvc.perform(get("/users/me"))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.profileImageUrl").doesNotExist());
     }
 
     @Test
     void updateMyProfile_returns200() throws Exception {
-        given(userService.updateProfile(anyLong(), any(), any()))
+        given(userService.updateProfile(anyLong(), any()))
                 .willReturn(User.builder().email("a@a.com").passwordHash("hash").nickname("new-nick").build());
 
         mockMvc.perform(patch("/users/me")
                         .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(new UpdateProfileRequest("new-nick", null))))
+                        .content(objectMapper.writeValueAsString(new UpdateProfileRequest("new-nick"))))
                 .andExpect(status().isOk());
     }
 

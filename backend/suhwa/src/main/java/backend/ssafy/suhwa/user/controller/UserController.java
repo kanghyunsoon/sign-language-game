@@ -21,7 +21,7 @@ public class UserController implements UserApi {
 
     @Override
     public ResponseEntity<UserProfileResponse> updateMyProfile(Long userId, UpdateProfileRequest request) {
-        User user = userService.updateProfile(userId, request.nickname(), request.profileImageUrl());
+        User user = userService.updateProfile(userId, request.nickname());
         return ResponseEntity.ok(UserProfileResponse.from(user));
     }
 
