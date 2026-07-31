@@ -1,7 +1,6 @@
 import "./TestPage.css";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { SiteFooter } from "../../../shared/components/SiteFooter";
 import { TestProgressView } from "../components/TestProgressView";
 import { TestResultView } from "../components/TestResultView";
 import { TestSetupView } from "../components/TestSetupView";
@@ -151,7 +150,6 @@ export function TestPage() {
           <TestResultView results={results} onRetry={handleRetry} />
         )}
 
-        <SiteFooter sizing="fixed" />
       </div>
     </div>
   );

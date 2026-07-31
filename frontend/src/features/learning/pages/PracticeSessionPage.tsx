@@ -1,7 +1,6 @@
 import "./PracticeSessionPage.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { SiteFooter } from "../../../shared/components/SiteFooter";
 import otterClapImage from "../assets/otter_clap.png";
 import {
   HandCamera,
@@ -560,7 +559,6 @@ export function PracticeSessionPage({
         )}
       </main>
 
-      <SiteFooter />
       </div>
     </div>
   );

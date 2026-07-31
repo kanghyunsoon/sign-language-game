@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import type { ChangeEvent } from "react";
 import { ChevronDown, Search, X } from "lucide-react";
 import { Link } from "react-router-dom";
-import { SiteFooter } from "../../../shared/components/SiteFooter";
 import { FingerspellingDetail } from "../components/FingerspellingDetail";
 import type { FingerspellingCategoryId } from "../data/fingerspelling";
 import {
@@ -290,7 +289,6 @@ export function DictionaryPage() {
         </div>
       </main>
 
-      <SiteFooter sizing="fixed" />
       </div>
     </div>
   );
