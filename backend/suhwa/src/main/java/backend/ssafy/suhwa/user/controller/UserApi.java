@@ -20,18 +20,18 @@ import org.springframework.web.bind.annotation.RequestBody;
 public interface UserApi {
 
     @Operation(summary = "내 프로필 조회")
-    @ApiResponse(responseCode = "200", description = "조회 성공")
+    @ApiResponse(responseCode = "200", description = "프로필 조회 성공")
     @GetMapping("/users/me")
     ResponseEntity<UserProfileResponse> getMyProfile(@LoginUser Long userId);
 
-    @Operation(summary = "내 프로필 수정", description = "닉네임/프로필 이미지 URL 수정 (FR-012)")
-    @ApiResponse(responseCode = "200", description = "수정 성공")
+    @Operation(summary = "내 프로필 수정", description = "닉네임을 수정합니다.")
+    @ApiResponse(responseCode = "200", description = "프로필 수정 성공")
     @PatchMapping("/users/me")
     ResponseEntity<UserProfileResponse> updateMyProfile(
             @LoginUser Long userId, @RequestBody @Valid UpdateProfileRequest request);
 
-    @Operation(summary = "회원 탈퇴", description = "Soft Delete 처리, 보유 refresh token 일괄 무효화 (FR-013/014)")
-    @ApiResponse(responseCode = "204", description = "탈퇴 처리 완료")
+    @Operation(summary = "회원 탈퇴", description = "사용자를 Soft Delete하고 Refresh Token을 모두 무효화합니다.")
+    @ApiResponse(responseCode = "204", description = "회원 탈퇴 완료")
     @DeleteMapping("/users/me")
     ResponseEntity<Void> withdraw(@LoginUser Long userId);
 }

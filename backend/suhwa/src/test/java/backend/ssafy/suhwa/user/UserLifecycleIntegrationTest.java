@@ -83,7 +83,7 @@ class UserLifecycleIntegrationTest {
         mockMvc.perform(patch("/users/me")
                         .header("Authorization", "Bearer " + tokens.accessToken())
                         .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(new UpdateProfileRequest("새닉네임", null))))
+                        .content(objectMapper.writeValueAsString(new UpdateProfileRequest("새닉네임"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nickname").value("새닉네임"));
 

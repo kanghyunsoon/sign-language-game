@@ -65,6 +65,18 @@ class OpenApiConfigTest {
                 .andExpect(jsonPath("$.components.schemas.ErrorMessage").exists());
     }
 
+    @Test
+    void apiDocsDoesNotExposeRemovedUserProfileImage() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.components.schemas.SignupRequest.properties.profileImageUrl")
+                        .doesNotExist())
+                .andExpect(jsonPath("$.components.schemas.UpdateProfileRequest.properties.profileImageUrl")
+                        .doesNotExist())
+                .andExpect(jsonPath("$.components.schemas.UserProfileResponse.properties.profileImageUrl")
+                        .doesNotExist());
+    }
+
     /**
      * 운영 nginx가 /api/ 하위 요청만 백엔드로 넘기고 X-Forwarded-Prefix: /api 를 보내는 구조라,
      * 백엔드가 이 헤더를 반영해 자기참조 URL에 /api를 붙이지 않으면 swagger-ui가 그 다음 요청을

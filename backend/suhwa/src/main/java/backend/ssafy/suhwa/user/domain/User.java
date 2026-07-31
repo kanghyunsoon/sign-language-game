@@ -36,9 +36,6 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false, length = 50)
     private String nickname;
 
-    @Column(name = "profile_image_url", length = 500)
-    private String profileImageUrl;
-
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
@@ -53,12 +50,9 @@ public class User extends BaseTimeEntity {
         return deletedAt != null;
     }
 
-    public void updateProfile(String nickname, String profileImageUrl) {
+    public void updateProfile(String nickname) {
         if (nickname != null) {
             this.nickname = nickname;
-        }
-        if (profileImageUrl != null) {
-            this.profileImageUrl = profileImageUrl;
         }
     }
 

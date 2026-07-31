@@ -59,7 +59,7 @@ class FlywayMigrationTest {
         assertThat(result.success).isTrue();
         assertThat(result.migrationsExecuted)
                 .as("신규 DB에서는 V1부터 전부 실행돼야 한다")
-                .isGreaterThanOrEqualTo(7);
+                .isGreaterThanOrEqualTo(8);
         assertThat(appliedVersions(schema))
                 .as("버전이 빠짐없이 성공으로 기록돼야 한다")
                 .containsEntry("1", true)
@@ -68,12 +68,14 @@ class FlywayMigrationTest {
                 .containsEntry("5", true)
                 .containsEntry("6", true)
                 .containsEntry("7", true)
-                .containsEntry("8", true);
+                .containsEntry("8", true)
+                .containsEntry("9", true);
         assertGameRoomIndexReplaced(schema);
         assertTestSessionSchemaCreated(schema);
         assertGrowthSchemaMigrated(schema);
         assertExpandedPetGrowthConstraints(schema);
         assertObsoleteActivitySessionSchemaRemoved(schema);
+        assertUserProfileImageRemoved(schema);
     }
 
     @Test
@@ -93,7 +95,8 @@ class FlywayMigrationTest {
                 .containsEntry("5", true)
                 .containsEntry("6", true)
                 .containsEntry("7", true)
-                .containsEntry("8", true);
+                .containsEntry("8", true)
+                .containsEntry("9", true);
         assertThat(baselineRowExists(schema))
                 .as("baseline-on-migrate가 동작했다면 BASELINE 타입 행이 있어야 한다")
                 .isTrue();
@@ -102,6 +105,7 @@ class FlywayMigrationTest {
         assertGrowthSchemaMigrated(schema);
         assertExpandedPetGrowthConstraints(schema);
         assertObsoleteActivitySessionSchemaRemoved(schema);
+        assertUserProfileImageRemoved(schema);
     }
 
     @Test
@@ -157,6 +161,25 @@ class FlywayMigrationTest {
         assertObsoleteActivitySessionSchemaRemoved(schema);
     }
 
+    @Test
+    void v9RemovesProfileImageColumnAndPreservesUsers() throws Exception {
+        String schema = resetDatabase();
+        flyway(schema, "8").migrate();
+        try (Connection connection = connect(schema);
+                Statement statement = connection.createStatement()) {
+            statement.executeUpdate(
+                    "INSERT INTO users (email, password_hash, nickname, profile_image_url) "
+                            + "VALUES ('profile@test.com', 'hash', 'profile', 'https://example.com/profile.png')");
+        }
+
+        flyway(schema).migrate();
+
+        assertThat(count(schema, "SELECT COUNT(*) FROM users WHERE email = 'profile@test.com'"))
+                .as("V9 must preserve existing users")
+                .isEqualTo(1);
+        assertUserProfileImageRemoved(schema);
+    }
+
     private void assertObsoleteActivitySessionSchemaRemoved(String schema) throws SQLException {
         assertThat(count(schema,
                 "SELECT COUNT(*) FROM information_schema.TABLES "
@@ -178,6 +201,16 @@ class FlywayMigrationTest {
                         + "AND TABLE_NAME = 'game_results' "
                         + "AND COLUMN_NAME IN ('solo_session_id', 'play_duration_ms')"))
                 .as("V8 restores game_results to game_type and score only")
+                .isZero();
+    }
+
+    private void assertUserProfileImageRemoved(String schema) throws SQLException {
+        assertThat(count(schema,
+                "SELECT COUNT(*) FROM information_schema.COLUMNS "
+                        + "WHERE TABLE_SCHEMA = '" + schema + "' "
+                        + "AND TABLE_NAME = 'users' "
+                        + "AND COLUMN_NAME = 'profile_image_url'"))
+                .as("V9 removes the unused user profile image column")
                 .isZero();
     }
 
