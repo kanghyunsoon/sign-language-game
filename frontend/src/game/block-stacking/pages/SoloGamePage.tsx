@@ -1,4 +1,4 @@
-import { ArrowLeft, Pause, Play, RotateCcw } from "lucide-react";
+import { ArrowLeft, Play } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -546,7 +546,6 @@ export function SoloGamePage({
       setSessionStarting(false);
     }
   }, [accessToken, recognition.playableSymbols, recognitionController, sessionStarting, tetrisWeightApi]);
-  const pause = useCallback(() => runtimeRef.current?.pause(), []);
   const leaveGame = useCallback(() => {
     runtimeRef.current?.pause();
     navigate("/game/block");
@@ -604,18 +603,9 @@ export function SoloGamePage({
           <button type="button" className="solo-back-button" onClick={leaveGame} aria-label="게임 모드 선택으로 돌아가기">
             <ArrowLeft aria-hidden="true" size={18} />
           </button>
-          <div>
-          <p className="eyebrow">SOLO · BLOCK STACK</p>
-          <h1 aria-label="지문자 테트리수">지문자 테트리<span aria-hidden="true">수</span></h1>
-        </div>
-        </div>
-        <div className="solo-controls">
-          <button type="button" className="secondary" onClick={pause} disabled={snapshot.runState !== "RUNNING"}>
-            <Pause aria-hidden="true" size={17} /> 일시정지
-          </button>
-          <button type="button" className="secondary icon" title="Restart game" aria-label="Restart game" onClick={restart}>
-            <RotateCcw aria-hidden="true" size={17} />
-          </button>
+          <h1 className="solo-header-logo">
+            <img src={startTitle} alt="프링글수" />
+          </h1>
         </div>
       </header>
 
@@ -665,9 +655,7 @@ export function SoloGamePage({
               <div>
                 {snapshot.runState === "PAUSED" ? (
                   <strong>계속하기</strong>
-                ) : (
-                  <img className="solo-start-title" src={startTitle} alt="지문자 테트리수" />
-                )}
+                ) : null}
                 <img className="solo-start-podium-otters" src={startPodiumOtters} alt="" aria-hidden="true" />
                 <div className="solo-start-ranking-scores" aria-label="솔로 랭킹 상위 3명 기록">
                   <span className="score-1">{topRankingScores[0]}</span>
