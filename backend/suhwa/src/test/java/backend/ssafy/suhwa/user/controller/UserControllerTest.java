@@ -75,7 +75,7 @@ class UserControllerTest {
     void updateMyProfile_nicknameUnderMinLength_returns400() throws Exception {
         mockMvc.perform(patch("/users/me")
                         .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(new UpdateProfileRequest("a", null))))
+                        .content(objectMapper.writeValueAsString(new UpdateProfileRequest("a"))))
                 .andExpect(status().isBadRequest());
     }
 
@@ -84,7 +84,7 @@ class UserControllerTest {
         mockMvc.perform(patch("/users/me")
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(
-                                new UpdateProfileRequest("a".repeat(11), null))))
+                                new UpdateProfileRequest("a".repeat(11)))))
                 .andExpect(status().isBadRequest());
     }
 
