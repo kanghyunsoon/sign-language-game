@@ -18,6 +18,7 @@ import {
   type RankingEntry,
 } from "../api/profileApi";
 import { DeleteAccountModal } from "../components/DeleteAccountModal";
+import { HabitatSelectionView } from "../components/HabitatSelectionView";
 import homeIcon from "../assets/home.png";
 import otterProfile from "../assets/otter_profile.png";
 import profileRingLeft from "../assets/profile-ring-left.png";
@@ -47,6 +48,7 @@ export function ProfilePage() {
   const [statsLoading, setStatsLoading] = useState(Boolean(accessToken));
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
   const [isExperienceGuideOpen, setIsExperienceGuideOpen] = useState(false);
+  const [isHabitatSelectionOpen, setIsHabitatSelectionOpen] = useState(false);
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
   const [deleteAccountError, setDeleteAccountError] = useState<string | null>(null);
   const [deletingAccount, setDeletingAccount] = useState(false);
@@ -246,10 +248,14 @@ export function ProfilePage() {
             <img src={sproutIcon} alt="" />
             <span>출석 현황</span>
           </button>
-          <Link className="profile-floating-item profile-item-home" to="/main">
+          <button
+            className="profile-floating-item profile-item-home"
+            type="button"
+            onClick={() => setIsHabitatSelectionOpen(true)}
+          >
             <img src={homeIcon} alt="" />
             <span>이사가기</span>
-          </Link>
+          </button>
           <Link className="profile-floating-item profile-item-note" to="/review-notes">
             <img src={wrongAnswerNoteIcon} alt="" />
             <span>오답 노트</span>
@@ -504,6 +510,12 @@ export function ProfilePage() {
           submitting={deletingAccount}
           onClose={() => setIsDeleteAccountModalOpen(false)}
           onConfirmDelete={handleDeleteAccount}
+        />
+      )}
+      {isHabitatSelectionOpen && (
+        <HabitatSelectionView
+          currentLevel={growth?.level ?? 1}
+          onClose={() => setIsHabitatSelectionOpen(false)}
         />
       )}
     </main>

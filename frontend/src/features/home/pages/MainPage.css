@@ -706,7 +706,7 @@ a {
 .main-hero-actions {
   /* 버튼 한 칸(70px) + 간격(48px)만큼 올려, [학습 방법 보기]가 이전
      [출석체크] 자리에 오고 [출석체크]는 그 위로 간다. */
-  top: calc(58% - 118px);
+  top: 58%;
   right: 460px;
   bottom: auto;
   width: auto;
@@ -988,6 +988,7 @@ a {
  */
 .main-hero-actions {
   gap: 0;
+  flex-direction: row;
   border: 1px solid #d8cfc2;
   border-radius: 36px;
   background: #fff;
@@ -1011,6 +1012,10 @@ a {
 .main-hero-actions .main-secondary-button:hover {
   background: #f7f1e7;
   transform: none;
+}
+
+.main-hero-actions .main-secondary-button + .main-secondary-button {
+  border-left: 1px solid #e4dbcf;
 }
 
 /* 꼬리는 묶음 아래에 하나만 둔다. */
@@ -1076,11 +1081,10 @@ a {
   transform: translateY(-2%) scale(0.85);
 }
 
-/* [이사하기]도 히어로의 다른 버튼과 같은 흰 알약으로 맞추고, 화면 끝이 아니라
-   수달 왼쪽 위에 붙인다. */
-.main-habitat-button {
+.main-otter-attendance-button {
   position: absolute;
   top: 23%;
+  left: -5%;
   z-index: 3;
   height: 56px;
   padding: 0 24px;
@@ -1097,15 +1101,39 @@ a {
   transition: background 0.2s ease, transform 0.2s ease;
 }
 
-.main-habitat-button:hover {
+.main-otter-attendance-button:hover {
   background: #f7f1e7;
   transform: translateY(-2px);
 }
 
-.main-habitat-button:active {
+.main-otter-attendance-button:active {
   transform: none;
 }
 
+.main-otter-attendance-button::before,
+.main-otter-attendance-button::after {
+  position: absolute;
+  width: 0;
+  height: 0;
+  content: "";
+}
+
+.main-otter-attendance-button::before {
+  bottom: -16px;
+  right: 24px;
+  border-top: 16px solid #d8cfc2;
+  border-left: 16px solid transparent;
+}
+
+.main-otter-attendance-button::after {
+  bottom: -13px;
+  right: 25px;
+  border-top: 14px solid #fff;
+  border-left: 14px solid transparent;
+}
+
+/* [이사하기]도 히어로의 다른 버튼과 같은 흰 알약으로 맞추고, 화면 끝이 아니라
+   수달 왼쪽 위에 붙인다. */
 /* ---------------- 학습 메뉴 캐러셀 (839) ---------------- */
 
 /*
