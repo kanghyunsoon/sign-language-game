@@ -55,6 +55,8 @@ export function BattleGamePage() {
   const [rtcState, setRtcState] = useState(() => battleMediaSession.getConnectionState()); const [localRenderer, setLocalRenderer] = useState<GameRenderer | null>(null); const [remoteRenderer, setRemoteRenderer] = useState<GameRenderer | null>(null);
   const resultReportedRef = useRef(false);
   const resultReportPromiseRef = useRef<Promise<void> | null>(null);
+  const exitInFlightRef = useRef(false);
+  const forfeitAndLeaveRef = useRef<() => Promise<void>>(async () => undefined);
   const recoveryInFlightRef = useRef(false);
   const recoveredMediaRoomRef = useRef<string | null>(null);
   const controllerRef = useRef<BattleController | null>(null); const localRuntimeRef = useRef<BattleLocalBoardRuntime | null>(null); const localViewportRef = useRef({ width: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, height: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight }); const remoteViewportRef = useRef({ width: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, height: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight }); const remoteLoopRef = useRef<number | null>(null);
@@ -268,10 +270,14 @@ export function BattleGamePage() {
   } catch (cause) { setResultError(cause instanceof Error ? cause.message : "대기방으로 돌아가지 못했습니다."); setResultBusy(false); } };
   const leaveBattle = async (destination: string) => { if (!roomId || resultBusy) return; setResultBusy(true); setResultError(null); try { await exitCoordinator.leaveRoom(roomId, destination); activePlayerSession?.clearRegistration(); } catch (cause) { setResultError(cause instanceof Error ? cause.message : "방을 나가지 못했습니다."); setResultBusy(false); } };
   const forfeitAndLeave = async () => {
+    if (exitInFlightRef.current) return;
+    exitInFlightRef.current = true;
     const forfeited = controllerRef.current?.forfeit() ?? false;
-    // Give the P2P data channel one short turn to deliver MATCH_FINISHED
-    // before this browser releases the game and media connections.
-    if (forfeited) await new Promise<void>((resolve) => window.setTimeout(resolve, 80));
+    // Wait for the authoritative host to turn PLAYER_FORFEIT_COMMAND into
+    // MATCH_FINISHED. A fixed 80 ms delay loses the result on real networks.
+    if (forfeited && controllerRef.current) {
+      await waitForMatchResult(controllerRef.current);
+    }
     const result = controllerRef.current?.snapshot().result;
     if (result) {
       try {
@@ -279,16 +285,27 @@ export function BattleGamePage() {
         // participant as the loser under the documented room-result contract.
         await reportMatchResult(result);
       } catch {
-        return;
+        // Leaving is still terminal. The server-side leave/disconnect path can
+        // finish the match even when this browser's explicit report races it.
       }
     }
     await leaveBattle("/game/battle");
   };
+  forfeitAndLeaveRef.current = forfeitAndLeave;
   useEffect(() => {
-    const handleBrowserBack = () => { void forfeitAndLeave(); };
+    const guardedState = { ...(window.history.state ?? {}), battleForfeitGuard: roomId };
+    // Keep one same-URL entry in front of the actual game entry. Browser Back
+    // first lands here, so the controller remains mounted until forfeiture and
+    // the result request have completed.
+    window.history.replaceState(guardedState, "", window.location.href);
+    window.history.pushState({ ...guardedState, battleForfeitSentinel: true }, "", window.location.href);
+    const handleBrowserBack = () => {
+      window.history.pushState({ ...guardedState, battleForfeitSentinel: true }, "", window.location.href);
+      void forfeitAndLeaveRef.current();
+    };
     window.addEventListener("popstate", handleBrowserBack);
     return () => window.removeEventListener("popstate", handleBrowserBack);
-  });
+  }, [roomId]);
   const localPlayerLabel = localIsHost ? "PLAYER 1" : "PLAYER 2";
   const remotePlayerLabel = localIsHost ? "PLAYER 2" : "PLAYER 1";
   const showSharedTarget = snapshot.state === "COUNTDOWN" || snapshot.state === "PLAYING" || snapshot.state === "RECONNECTING";
@@ -333,4 +350,16 @@ export function BattleGamePage() {
     {snapshot.state === "COUNTDOWN" ? <div className={styles.countdown}>{Math.max(1, Math.ceil(snapshot.countdownMs / 1000))}</div> : null}
     <BattleResultModal result={snapshot.result} playerId={user.userId} busy={resultBusy} readyForRematch={resultRecorded} error={resultError} onReturnToWaiting={() => void returnToWaiting()} onRoomList={() => void leaveBattle("/game/battle")} onModeSelect={() => void leaveBattle("/game")} />
   </main>;
+}
+
+function waitForMatchResult(controller: BattleController, timeoutMs = 1_500): Promise<void> {
+  if (controller.snapshot().result) return Promise.resolve();
+  return new Promise((resolve) => {
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => {
+      if (!controller.snapshot().result && Date.now() - startedAt < timeoutMs) return;
+      window.clearInterval(timer);
+      resolve();
+    }, 25);
+  });
 }
