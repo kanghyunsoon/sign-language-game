@@ -2,14 +2,13 @@ import { useEffect, useState, type TransitionEvent } from "react";
 import { Link } from "react-router-dom";
 
 import { useAuth } from "../../auth/AuthContext";
+import { getSelectedHabitatId } from "../../profile/data/selectedHabitat";
+import otterInBed from "../../profile/assets/habitats/otter_in_bed.png";
 import { AttendanceCard } from "../components/AttendanceCard";
 import {
   findHabitatIndex,
-  readOtterHabitatId,
-  writeOtterHabitatId,
 } from "../data/otterHabitat";
 import otterInCave from "../assets/otter_in_cave.webp";
-import otterInCave2 from "../assets/otter_in_cave_2.webp";
 import otterInRock from "../assets/otter_in_rock.webp";
 import otterWithLog from "../assets/otter_with_log.webp";
 import otterWithLog2 from "../assets/otter_with_log_2.webp";
@@ -95,27 +94,27 @@ interface OtterHabitat {
  */
 const otterHabitats: readonly OtterHabitat[] = [
   {
-    id: "log",
+    id: "log-pond",
     image: otterWithLog,
     alt: "통나무에 기대어 쉬고 있는 수달",
     imageClass: "main-otter-log",
   },
   {
-    id: "on-log",
+    id: "log-rest",
     image: otterWithLog2,
     alt: "물 위 통나무에 앉아 있는 수달",
     imageClass: "main-otter-on-log",
   },
-  { id: "rock", image: otterInRock, alt: "바위 안에서 쉬고 있는 수달" },
+  { id: "rock-home", image: otterInRock, alt: "바위 안에서 쉬고 있는 수달" },
   {
-    id: "cave",
+    id: "forest-cave",
     image: otterInCave,
     alt: "굴 안에서 쉬고 있는 수달",
     imageClass: "main-otter-cave",
   },
   {
-    id: "riverside-cave",
-    image: otterInCave2,
+    id: "cozy-bed",
+    image: otterInBed,
     alt: "물가 굴 안에서 쉬고 있는 수달",
     imageClass: "main-otter-riverside",
   },
@@ -156,23 +155,14 @@ export function MainPage() {
   const [isLearningGuideOpen, setIsLearningGuideOpen] = useState(false);
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
   /** 지난번에 골라 둔 집에서 시작한다. 기록이 없으면 첫 집이다. */
-  const [habitatIndex, setHabitatIndex] = useState(() =>
+  const [habitatIndex] = useState(() =>
     findHabitatIndex(
       otterHabitats.map((option) => option.id),
-      readOtterHabitatId(),
+      getSelectedHabitatId(),
     ),
   );
 
   const habitat = otterHabitats[habitatIndex];
-
-  /** 다음 집으로 옮긴다. 마지막이면 처음으로 돌아가 그림이 계속 바뀐다. */
-  const moveHabitat = () => {
-    const next = (habitatIndex + 1) % otterHabitats.length;
-
-    setHabitatIndex(next);
-    // 새로고침해도 같은 집이 나오도록 바로 남긴다.
-    writeOtterHabitatId(otterHabitats[next].id);
-  };
 
   useEffect(() => {
     const updatePageScale = () => {
@@ -286,11 +276,11 @@ export function MainPage() {
             {/* 프레임이 위치를 맡아, [이사하기]를 수달 왼쪽 위에 붙일 수 있다. */}
             <div className="main-otter-frame">
               <button
-                className="main-habitat-button"
+                className="main-otter-attendance-button"
                 type="button"
-                onClick={moveHabitat}
+                onClick={() => setIsAttendanceOpen(true)}
               >
-                이사하기
+                출석체크
               </button>
 
               <img
@@ -318,14 +308,6 @@ export function MainPage() {
             /> */}
 
             <div className="main-hero-actions">
-              <button
-                className="main-secondary-button"
-                type="button"
-                onClick={() => setIsAttendanceOpen(true)}
-              >
-                출석체크
-              </button>
-
               <button
                 className="main-secondary-button"
                 type="button"
