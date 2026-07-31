@@ -111,29 +111,31 @@ class GameRoomWebSocketHandlerTest {
     void pong_updatesLastSeenAt() throws Exception {
         GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
 
+        // connect()의 Future는 클라이언트 쪽 핸드셰이크 완료 시점에 끝나는 것이라, 서버의
+        // afterConnectionEstablished(→attachSession→lastSeenAt 기록)가 그 시점까지 반드시
+        // 끝났다는 보장이 없다(로컬 루프백은 거의 항상 이겼지만 CI 컨테이너 네트워크에서는
+        // 실제로 졌다 — 직접 재현해 확인함). 그래서 초기값도 폴링으로 기다린다.
         WebSocketSession hostSession = connect(room.id(), hostId, new LinkedBlockingQueue<>());
-        java.time.Instant afterConnect = roomParticipantRegistry.getRoom(room.id())
-                .getParticipant(hostId)
-                .getLastSeenAt();
-        assertThat(afterConnect).as("연결 확정 시점에 이미 생존 시각이 찍혀 있어야 한다").isNotNull();
+        java.time.Instant afterConnect = pollUntilLastSeenAtSatisfies(room.id(), null);
 
-        Thread.sleep(50);
         hostSession.sendMessage(new org.springframework.web.socket.PongMessage());
 
         assertThat(hostSession.isOpen()).isTrue();
-        java.time.Instant afterPong = pollUntilUpdated(room.id(), afterConnect);
+        java.time.Instant afterPong = pollUntilLastSeenAtSatisfies(room.id(), afterConnect);
         assertThat(afterPong).isAfter(afterConnect);
     }
 
-    private java.time.Instant pollUntilUpdated(Long roomId, java.time.Instant previous) throws InterruptedException {
+    /** lastSeenAt이 null이 아니고(mustBeAfter가 있으면 그 시각 이후일 때까지) 최대 5초 폴링한다. */
+    private java.time.Instant pollUntilLastSeenAtSatisfies(Long roomId, java.time.Instant mustBeAfter)
+            throws InterruptedException {
         for (int i = 0; i < 50; i++) {
             java.time.Instant current = roomParticipantRegistry.getRoom(roomId).getParticipant(hostId).getLastSeenAt();
-            if (current.isAfter(previous)) {
+            if (current != null && (mustBeAfter == null || current.isAfter(mustBeAfter))) {
                 return current;
             }
             Thread.sleep(100);
         }
-        throw new AssertionError("PONG이 lastSeenAt을 갱신하지 않았다");
+        throw new AssertionError("lastSeenAt이 기대한 대로 갱신되지 않았다");
     }
 
     @Test
