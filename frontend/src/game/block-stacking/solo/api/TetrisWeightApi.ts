@@ -12,6 +12,7 @@ export type TetrisWeightFetch = (input: RequestInfo | URL, init?: RequestInit) =
 
 export interface TetrisWeightApiOptions {
   readonly baseUrl?: string;
+  readonly userId: string;
   readonly fetcher?: TetrisWeightFetch;
   readonly credentials?: RequestCredentials;
   readonly headers?: HeadersInit;
@@ -37,7 +38,7 @@ export class TetrisWeightApi {
   private readonly credentials: RequestCredentials;
   private readonly headers: HeadersInit;
 
-  constructor(options: TetrisWeightApiOptions = {}) {
+  constructor(private readonly options: TetrisWeightApiOptions) {
     this.baseUrl = (options.baseUrl ?? "/api").replace(/\/$/, "");
     this.fetcher = options.fetcher ?? globalThis.fetch.bind(globalThis);
     this.credentials = options.credentials ?? "same-origin";
@@ -51,7 +52,7 @@ export class TetrisWeightApi {
   async getSymbolWeights(): Promise<Readonly<Record<string, number>>> {
     try {
       const [weights, consonants, vowels] = await Promise.all([
-        this.getArray("/wrong-answers/tetris-weights", parseWeight),
+        this.getArray(`/wrong-answers/tetris-weights?userId=${encodeURIComponent(this.options.userId)}`, parseWeight),
         this.getArray("/signs?category=CONSONANT", parseSign),
         this.getArray("/signs?category=VOWEL", parseSign),
       ]);

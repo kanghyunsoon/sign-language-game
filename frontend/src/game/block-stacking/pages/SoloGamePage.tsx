@@ -123,9 +123,10 @@ export function SoloGamePage({
   const { accessToken, config, services, sharedCameraSession, user } = useGameModuleContext();
   const tetrisWeightApi = useMemo(() => new TetrisWeightApi({
     baseUrl: config.soloApiBaseUrl,
+    userId: user.userId,
     credentials: "include",
     headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-  }), [accessToken, config.soloApiBaseUrl]);
+  }), [accessToken, config.soloApiBaseUrl, user.userId]);
   const rankingClient = useMemo(() => new RankingClient({
     apiBaseUrl: config.soloApiBaseUrl,
     userId: user.userId,

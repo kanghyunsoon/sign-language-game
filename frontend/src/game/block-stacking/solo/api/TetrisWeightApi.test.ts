@@ -6,7 +6,7 @@ describe("TetrisWeightApi", () => {
   it("maps sign ids to labels and applies only a mild capped bias", async () => {
     const fetcher = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
-      if (url.endsWith("/wrong-answers/tetris-weights")) {
+      if (url.includes("/wrong-answers/tetris-weights?")) {
         return Response.json([
           { signId: 5, weight: 1.4 },
           { signId: 6, weight: 1 },
@@ -20,6 +20,7 @@ describe("TetrisWeightApi", () => {
     });
     const api = new TetrisWeightApi({
       baseUrl: "/api",
+      userId: "42",
       fetcher,
       headers: { Authorization: "Bearer token" },
     });
@@ -31,13 +32,14 @@ describe("TetrisWeightApi", () => {
     });
     expect(fetcher).toHaveBeenCalledTimes(3);
     expect(fetcher).toHaveBeenCalledWith(
-      "/api/wrong-answers/tetris-weights",
+      "/api/wrong-answers/tetris-weights?userId=42",
       expect.objectContaining({ headers: { Authorization: "Bearer token" } }),
     );
   });
 
   it("falls back to uniform runtime weights when any request fails", async () => {
     const api = new TetrisWeightApi({
+      userId: "42",
       fetcher: vi.fn(async () => new Response(null, { status: 503 })),
     });
 
