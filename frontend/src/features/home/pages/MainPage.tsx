@@ -94,7 +94,12 @@ interface OtterHabitat {
  * id는 선택을 저장하는 값이므로, 순서를 바꿔도 id는 그대로 둬야 한다.
  */
 const otterHabitats: readonly OtterHabitat[] = [
-  { id: "log", image: otterWithLog, alt: "통나무에 기대어 쉬고 있는 수달" },
+  {
+    id: "log",
+    image: otterWithLog,
+    alt: "통나무에 기대어 쉬고 있는 수달",
+    imageClass: "main-otter-log",
+  },
   {
     id: "on-log",
     image: otterWithLog2,
@@ -102,7 +107,12 @@ const otterHabitats: readonly OtterHabitat[] = [
     imageClass: "main-otter-on-log",
   },
   { id: "rock", image: otterInRock, alt: "바위 안에서 쉬고 있는 수달" },
-  { id: "cave", image: otterInCave, alt: "굴 안에서 쉬고 있는 수달" },
+  {
+    id: "cave",
+    image: otterInCave,
+    alt: "굴 안에서 쉬고 있는 수달",
+    imageClass: "main-otter-cave",
+  },
   {
     id: "riverside-cave",
     image: otterInCave2,
