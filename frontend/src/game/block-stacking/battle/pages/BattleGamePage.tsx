@@ -28,6 +28,7 @@ import letterOtter from "../../assets/solo-letter-otter.png";
 import styles from "../battle.module.css";
 import { createDevAuthHeaders } from "../../../app/devAuthHeaders";
 import { BattleResultClient, BattleResultRequestError } from "../../../results/BattleResultClient";
+import { BattleRoomRecoveryCancelledError, isMissingOrForbiddenRoom, recoverBattleRoom } from "../core/BattleRoomRecovery";
 
 const INITIAL: BattleControllerSnapshot = { state: "IDLE", gameConnectionState: "DISCONNECTED", aiConnectionState: "DISCONNECTED", countdownMs: 0, reconnectDeadlineAt: null, score: 0, combo: 0, maxCombo: 0, removedCount: 0, targetSymbol: null, prediction: null, message: "Waiting for board initialization.", result: null };
 const BATTLE_CANVAS_WIDTH = 1680;
@@ -54,6 +55,8 @@ export function BattleGamePage() {
   const [rtcState, setRtcState] = useState(() => battleMediaSession.getConnectionState()); const [localRenderer, setLocalRenderer] = useState<GameRenderer | null>(null); const [remoteRenderer, setRemoteRenderer] = useState<GameRenderer | null>(null);
   const resultReportedRef = useRef(false);
   const resultReportPromiseRef = useRef<Promise<void> | null>(null);
+  const recoveryInFlightRef = useRef(false);
+  const recoveredMediaRoomRef = useRef<string | null>(null);
   const controllerRef = useRef<BattleController | null>(null); const localRuntimeRef = useRef<BattleLocalBoardRuntime | null>(null); const localViewportRef = useRef({ width: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, height: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight }); const remoteViewportRef = useRef({ width: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, height: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight }); const remoteLoopRef = useRef<number | null>(null);
   const settledTowerHeightsRef = useRef({ local: 0, remote: 0 });
   const [towerHeights, setTowerHeights] = useState({ local: 0, remote: 0 });
@@ -130,10 +133,13 @@ export function BattleGamePage() {
 
   useEffect(() => {
     if (battleMediaSession.getConnectionState() === "CONNECTED") {
+      recoveredMediaRoomRef.current = roomId;
       setMediaReady(true);
       return;
     }
-    if (!battleRoomSession || battleRoomSession.status !== "PLAYING") return;
+    if (rtcState === "FAILED") recoveredMediaRoomRef.current = null;
+    if (recoveredMediaRoomRef.current === roomId && rtcState !== "FAILED") return;
+    if (!battleRoomSession || recoveryInFlightRef.current) return;
     const authoritativeRoomCode = battleRoomSession.roomCode;
     if (!authoritativeRoomCode) {
       setBattleRoomSession(null);
@@ -141,9 +147,17 @@ export function BattleGamePage() {
       return;
     }
     let cancelled = false;
+    recoveryInFlightRef.current = true;
     void (async () => {
       try {
-        const authoritative = await services.battleRoomGateway.joinRoom(authoritativeRoomCode);
+        const authoritative = await recoverBattleRoom({
+          roomCode: authoritativeRoomCode,
+          joinRoom: (roomCode) => services.battleRoomGateway.joinRoom(roomCode),
+          active: () => !cancelled,
+        });
+        if (authoritative.roomId !== roomId) {
+          throw new Error("Recovered room does not match the current game URL.");
+        }
         if (authoritative.status !== "PLAYING") {
           if (!cancelled) {
             setBattleRoomSession(authoritative.status === "FINISHED" ? null : authoritative);
@@ -153,14 +167,26 @@ export function BattleGamePage() {
         }
         const stream = await sharedCameraSession.start();
         await battleMediaSession.connect(authoritative, stream);
+        recoveredMediaRoomRef.current = roomId;
         // `connect` finishes after signaling and peer setup, not after the
         // RTCPeerConnection/DataChannel is open. Starting the game here races
         // the channel handshake and leaves the controller stuck CONNECTING.
         // The media-session subscription above is the single authority that
         // enables the board once it reports CONNECTED.
-        if (!cancelled) refreshMedia();
+        if (!cancelled) {
+          setBattleRoomSession(authoritative);
+          refreshMedia();
+        }
       } catch (cause) {
-        if (!cancelled) setResultError(cause instanceof Error ? `게임 재연결에 실패했습니다: ${cause.message}` : "게임 재연결에 실패했습니다.");
+        if (cancelled || cause instanceof BattleRoomRecoveryCancelledError) return;
+        if (isMissingOrForbiddenRoom(cause)) {
+          setBattleRoomSession(null);
+          navigate("/game/battle", { replace: true });
+          return;
+        }
+        setResultError(cause instanceof Error ? `게임 재연결에 실패했습니다: ${cause.message}` : "게임 재연결에 실패했습니다.");
+      } finally {
+        recoveryInFlightRef.current = false;
       }
     })();
     return () => { cancelled = true; };
