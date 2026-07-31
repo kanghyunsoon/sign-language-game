@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "modelVersion": "jamo-31-v1",
+  "modelVersionNote": "modelVersion is the CLASS CONTRACT version — the 31-jamo label set and output order that app/model_adapter.py verifies at startup (mismatch raises ValueError). It is intentionally NOT the trained-weights version: retraining the head keeps the same contract, so this stays jamo-31-v1. Bump it only when a label is added/removed or the output order changes. The weights that produced the numbers below are recorded in evaluation.measuredModel.",
   "confirmationAuthority": "FRONTEND_TEMPORAL_DECODER",
   "evaluation": {
     "sampleCount": 1900,
