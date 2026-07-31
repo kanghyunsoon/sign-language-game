@@ -139,6 +139,28 @@ class GameRoomServiceTest {
     }
 
     @Test
+    void join_rejectedWhenAlreadyParticipantOfAnotherActiveRoom() {
+        GameRoomResponse roomA = gameRoomService.create(hostId, GameType.SIGN_DUEL);
+        GameRoomResponse roomB = gameRoomService.create(guestId, GameType.SIGN_DUEL);
+
+        assertThatThrownBy(() -> gameRoomService.join(roomB.roomCode(), hostId))
+                .isInstanceOf(BusinessException.class);
+        assertThat(gameRoomRepository.findById(roomA.id()).orElseThrow().getStatus())
+                .isEqualTo(GameRoomStatus.WAITING);
+    }
+
+    @Test
+    void join_allowedAgainAfterPreviousRoomClosed() {
+        GameRoomResponse roomA = gameRoomService.create(hostId, GameType.SIGN_DUEL);
+        gameRoomService.leave(roomA.id(), hostId);
+        GameRoomResponse roomB = gameRoomService.create(guestId, GameType.SIGN_DUEL);
+
+        GameRoomResponse joined = gameRoomService.join(roomB.roomCode(), hostId);
+
+        assertThat(joined.guestUserId()).isEqualTo(hostId);
+    }
+
+    @Test
     void join_reentryByExistingGuest_doesNotIncreaseParticipantCountOrReject() {
         GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
         gameRoomService.join(room.roomCode(), guestId);
