@@ -70,7 +70,7 @@ class RecognitionSessionTests(unittest.TestCase):
         readiness = load_recognition_readiness()
         message = capabilities_message(MODEL_VERSION, LABELS, 10, readiness)
         self.assertEqual(message["confirmationAuthority"], "FRONTEND_TEMPORAL_DECODER")
-        self.assertEqual(len(message["competitiveSymbols"]), 24)
+        self.assertEqual(len(message["competitiveSymbols"]), 27)
         self.assertEqual(set(message["competitiveSymbols"]), {
             item["symbol"] for item in readiness["classes"] if item["competitiveEligible"]
         })
