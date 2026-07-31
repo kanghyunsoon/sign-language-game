@@ -1,5 +1,12 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
+import otterClapImage from "../../learning/assets/otter_clap.png";
+import {
+  checkIn,
+  type AttendanceCompletion,
+  type PetGrowth,
+} from "../../profile/api/profileApi";
 import seashell01 from "../assets/seashell_01.webp";
 import seashell02 from "../assets/seashell_02.webp";
 import seashell03 from "../assets/seashell_03.webp";
@@ -16,6 +23,7 @@ import {
   useAttendance,
   useMarkAttendance,
 } from "../data/attendance";
+import "./AttendanceCard.css";
 
 /** 출석한 날에 찍는 조개. 어느 것이 놓일지는 날짜마다 무작위로 정해진다. */
 const seashellImages = [seashell01, seashell02, seashell03, seashell04];
@@ -23,17 +31,52 @@ const seashellImages = [seashell01, seashell02, seashell03, seashell04];
 interface AttendanceCardProps {
   /** 기준일. 테스트에서 시점을 고정하려고 주입할 수 있다. */
   readonly today?: Date;
+  readonly accessToken?: string | null;
+  readonly onPetUpdated?: (pet: PetGrowth) => void;
 }
 
 /** 한 달 출석 현황을 보여주고 오늘 출석을 남기는 카드. */
-export function AttendanceCard({ today = new Date() }: AttendanceCardProps) {
+export function AttendanceCard({
+  today = new Date(),
+  accessToken,
+  onPetUpdated,
+}: AttendanceCardProps) {
   const attendedDates = useAttendance();
   const markAttendance = useMarkAttendance();
 
   const [cursor, setCursor] = useState(() => toMonthCursor(today));
+  const [checkingIn, setCheckingIn] = useState(false);
+  const [checkInError, setCheckInError] = useState<string | null>(null);
+  const [completion, setCompletion] =
+    useState<AttendanceCompletion | null>(null);
 
   const days = buildMonthCalendar(attendedDates, cursor, today);
   const streak = currentStreak(attendedDates, today);
+
+  const handleCheckIn = async (date: Date) => {
+    if (!accessToken) {
+      markAttendance(date);
+      return;
+    }
+
+    setCheckingIn(true);
+    setCheckInError(null);
+
+    try {
+      const result = await checkIn(accessToken);
+      markAttendance(date);
+      onPetUpdated?.(result.pet);
+      if (result.newlyAttended && result.awardedExp > 0) setCompletion(result);
+    } catch (caught) {
+      setCheckInError(
+        caught instanceof Error
+          ? caught.message
+          : "출석체크를 완료하지 못했습니다.",
+      );
+    } finally {
+      setCheckingIn(false);
+    }
+  };
 
   return (
     <section className="attendance-card" aria-label="출석체크">
@@ -114,7 +157,8 @@ export function AttendanceCard({ today = new Date() }: AttendanceCardProps) {
               <button
                 className="attendance-check-button"
                 type="button"
-                onClick={() => markAttendance(fromDateKey(day.key))}
+                disabled={checkingIn}
+                onClick={() => void handleCheckIn(fromDateKey(day.key))}
               >
                 출석하기
               </button>
@@ -122,6 +166,30 @@ export function AttendanceCard({ today = new Date() }: AttendanceCardProps) {
           </li>
         ))}
       </ol>
+
+      {checkInError && (
+        <p className="attendance-check-error" role="alert">
+          {checkInError}
+        </p>
+      )}
+
+      {completion && (
+        <div
+          className="attendance-reward-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="attendance-reward-title"
+        >
+          <section className="attendance-reward-card">
+            <img src={otterClapImage} alt="" aria-hidden="true" />
+            <h2 id="attendance-reward-title">
+              {completion.awardedExp}XP를 얻었어요!
+            </h2>
+            <p>출석체크를 해서 {completion.awardedExp}XP를 얻었어요.</p>
+            <Link to="/profile">총 경험치 보러 가기</Link>
+          </section>
+        </div>
+      )}
     </section>
   );
 }

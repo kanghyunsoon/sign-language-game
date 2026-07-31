@@ -1,6 +1,12 @@
 import "./TestPage.css";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { getAccessToken } from "../../auth/token/tokenStore";
+import {
+  completeTestSession,
+  startTestSession,
+} from "../api/testSessionApi";
+import otterClapImage from "../assets/otter_clap.png";
 import { TestProgressView } from "../components/TestProgressView";
 import { TestResultView } from "../components/TestResultView";
 import { TestSetupView } from "../components/TestSetupView";
@@ -25,6 +31,20 @@ export function TestPage() {
   const [phase, setPhase] = useState<TestPhase>("setup");
   const [questions, setQuestions] = useState<TestQuestion[]>([]);
   const [results, setResults] = useState<TestQuestionResult[]>([]);
+  const [awardedExp, setAwardedExp] = useState(0);
+  const [rewardAccuracy, setRewardAccuracy] = useState(0);
+  const testSessionRef = useRef<Promise<number | null> | null>(null);
+
+  const beginRewardSession = () => {
+    const accessToken = getAccessToken();
+    setAwardedExp(0);
+    setRewardAccuracy(0);
+    testSessionRef.current = accessToken
+      ? startTestSession(accessToken)
+          .then((session) => session.testSessionId)
+          .catch(() => null)
+      : Promise.resolve(null);
+  };
 
   // 오답노트에서 넘어온 글자 묶음. 없으면 평소처럼 설정 화면부터 시작한다.
   const symbolsParam = searchParams.get(SYMBOLS_PARAM);
@@ -43,6 +63,7 @@ export function TestPage() {
 
     setQuestions(builtQuestions);
     setResults([]);
+    beginRewardSession();
     setPhase("progress");
   }, [hasSelection, selectedQuestions]);
 
@@ -67,12 +88,48 @@ export function TestPage() {
 
     setQuestions(builtQuestions);
     setResults([]);
+    beginRewardSession();
     setPhase("progress");
   };
 
   const handleFinish = (finalResults: TestQuestionResult[]) => {
     setResults(finalResults);
     setPhase("result");
+
+    const accessToken = getAccessToken();
+    const session = testSessionRef.current;
+    if (!accessToken || !session) return;
+
+    const correctCount = finalResults.filter(
+      (result) => result.state === "correct",
+    ).length;
+
+    void session
+      .then((testSessionId) =>
+        testSessionId === null
+          ? null
+          : completeTestSession(accessToken, testSessionId, {
+              correctCount,
+              totalCount: finalResults.length,
+            }),
+      )
+      .then((completion) => {
+        if (
+          completion?.passedRewardThreshold &&
+          completion.awardedExp > 0
+        ) {
+          const completedCorrectCount = completion.correctCount ?? correctCount;
+          const completedTotalCount =
+            completion.totalCount ?? finalResults.length;
+          setAwardedExp(completion.awardedExp);
+          setRewardAccuracy(
+            Math.round((completedCorrectCount / completedTotalCount) * 100),
+          );
+        }
+      })
+      .catch(() => {
+        // 결과 화면은 유지하고, 보상 저장 실패 시 XP 성공 화면만 표시하지 않는다.
+      });
   };
 
   /**
@@ -87,6 +144,8 @@ export function TestPage() {
 
     setQuestions([]);
     setResults([]);
+    setAwardedExp(0);
+    setRewardAccuracy(0);
     setPhase("setup");
   };
 
@@ -99,6 +158,7 @@ export function TestPage() {
 
       if (builtQuestions.length > 0) {
         setQuestions(builtQuestions);
+        beginRewardSession();
         setPhase("progress");
         return;
       }
@@ -148,6 +208,25 @@ export function TestPage() {
 
         {phase === "result" && (
           <TestResultView results={results} onRetry={handleRetry} />
+        )}
+
+        {awardedExp > 0 && (
+          <div
+            className="test-reward-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="test-reward-title"
+          >
+            <section className="test-reward-card">
+              <img src={otterClapImage} alt="" aria-hidden="true" />
+              <h2 id="test-reward-title">{awardedExp}XP를 얻었어요!</h2>
+              <p>
+                정답률 {rewardAccuracy}% 달성! 보상으로 {awardedExp}XP를
+                받았어요.
+              </p>
+              <Link to="/profile">총 경험치 보러 가기</Link>
+            </section>
+          </div>
         )}
 
       </div>
