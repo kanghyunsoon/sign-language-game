@@ -159,8 +159,8 @@ export function SoloGamePage({
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [savedResult, setSavedResult] = useState<SoloGameResult | null>(null);
   const [soloRank, setSoloRank] = useState<number | null>(null);
-  const [topRankingIds, setTopRankingIds] = useState<readonly string[]>(["수달왕", "손톡이", "지문자고수"]);
-  const [topRankingScores, setTopRankingScores] = useState<readonly string[]>(["18초", "21초", "25초"]);
+  const [topRankingIds, setTopRankingIds] = useState<readonly string[]>(["-", "-", "-"]);
+  const [topRankingScores, setTopRankingScores] = useState<readonly string[]>(["-", "-", "-"]);
   const [myRanking, setMyRanking] = useState<{ rank: number | null; userId: string; score: number | null }>({
     rank: null,
     userId: String(user.userId),
@@ -192,11 +192,12 @@ export function SoloGamePage({
 
   useEffect(() => {
     const controller = new AbortController();
-    const loadTopRankingIds = async () => {
+    const loadRankings = async () => {
       try {
         const response = await fetch(
-          `${config.soloApiBaseUrl.replace(/\/$/, "")}/rankings?userId=${encodeURIComponent(user.userId)}&gameType=TETRIS_SOLO`,
+          `${config.soloApiBaseUrl.replace(/\/$/, "")}/rankings?userId=${encodeURIComponent(user.userId)}&gameType=TETRIS_SOLO&_=${Date.now()}`,
           {
+            cache: "no-store",
             credentials: "include",
             headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
             signal: controller.signal,
@@ -215,8 +216,8 @@ export function SoloGamePage({
           const score = (entry as { score?: unknown }).score;
           return typeof score === "number" ? `${score}초` : null;
         });
-        setTopRankingIds([ids[0] ?? "수달왕", ids[1] ?? "손톡이", ids[2] ?? "지문자고수"]);
-        setTopRankingScores([scores[0] ?? "18초", scores[1] ?? "21초", scores[2] ?? "25초"]);
+        setTopRankingIds([ids[0] ?? "-", ids[1] ?? "-", ids[2] ?? "-"]);
+        setTopRankingScores([scores[0] ?? "-", scores[1] ?? "-", scores[2] ?? "-"]);
         if (typeof payload.me === "object" && payload.me !== null) {
           const me = payload.me as { rank?: unknown; userId?: unknown; score?: unknown };
           setMyRanking({
@@ -226,13 +227,22 @@ export function SoloGamePage({
               : String(user.userId),
             score: typeof me.score === "number" ? me.score : null,
           });
+        } else {
+          setMyRanking({ rank: null, userId: String(user.userId), score: null });
         }
       } catch {
         // Keep the start screen usable while the ranking API is unavailable.
       }
     };
-    void loadTopRankingIds();
-    return () => controller.abort();
+    const refreshRankings = () => void loadRankings();
+    refreshRankings();
+    const refreshTimer = window.setInterval(refreshRankings, 15_000);
+    window.addEventListener("focus", refreshRankings);
+    return () => {
+      controller.abort();
+      window.clearInterval(refreshTimer);
+      window.removeEventListener("focus", refreshRankings);
+    };
   }, [accessToken, config.soloApiBaseUrl, user.userId]);
 
   // Runtime snapshots are normally published for gameplay events. Poll the
