@@ -285,7 +285,13 @@ export function TestProgressView({
               <span className="test-question-tag">{currentQuestion.name}</span>
             </div>
 
-            <span className="test-question-symbol">
+            <span
+              className={`test-question-symbol ${
+                currentQuestion.categoryId === "word"
+                  ? "test-question-symbol-word"
+                  : ""
+              }`}
+            >
               {currentQuestion.symbol}
             </span>
           </div>

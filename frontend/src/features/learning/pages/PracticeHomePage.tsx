@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import otterImage from "../assets/otter.png";
 import type { FingerspellingCategoryId } from "../data/fingerspelling";
 import { SYMBOLS_PARAM, parseSymbolSelection } from "../data/symbolSelection";
+import { wordSigns } from "../data/wordSigns";
 import { PracticeSessionPage } from "./PracticeSessionPage";
 import { WordPracticeSessionPage } from "./WordPracticeSessionPage";
 
@@ -45,8 +46,8 @@ const practiceCategories: PracticeCategory[] = [
     id: "word",
     symbol: "별",
     title: "단어 연습",
-    description: "기본 단어 13개를 연습합니다.",
-    count: 13,
+    description: `기본 단어 ${wordSigns.length}개를 연습합니다.`,
+    count: wordSigns.length,
   },
 ];
 

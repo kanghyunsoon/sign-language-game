@@ -11,7 +11,13 @@ export type WordSignId =
   | "swim"
   | "train"
   | "walk"
-  | "wind";
+  | "wind"
+  | "bad"
+  | "bus"
+  | "car"
+  | "good"
+  | "helicopter"
+  | "sun";
 
 export interface WordSignItem {
   readonly id: WordSignId;
@@ -32,4 +38,10 @@ export const wordSigns: readonly WordSignItem[] = [
   { id: "train", name: "기차" },
   { id: "walk", name: "걷다" },
   { id: "wind", name: "바람" },
+  { id: "bad", name: "나쁘다" },
+  { id: "bus", name: "버스" },
+  { id: "car", name: "자동차" },
+  { id: "good", name: "좋다" },
+  { id: "helicopter", name: "헬리콥터" },
+  { id: "sun", name: "해" },
 ];

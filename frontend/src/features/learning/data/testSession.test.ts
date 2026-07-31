@@ -24,7 +24,7 @@ describe("testQuestionPool", () => {
     expect(testQuestionPool(["number"])).toHaveLength(10);
     expect(testQuestionPool(["consonant"])).toHaveLength(14);
     expect(testQuestionPool(["vowel"])).toHaveLength(17);
-    expect(testQuestionPool(["word"])).toHaveLength(13);
+    expect(testQuestionPool(["word"])).toHaveLength(19);
   });
 
   it("여러 분류를 자음 → 모음 → 숫자 순서로 합친다", () => {
