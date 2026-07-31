@@ -7,7 +7,7 @@ export interface LobbyRoomSummary {
   readonly status: BackendGameRoomStatus;
   readonly participantCount: number;
   readonly capacity: number;
-  readonly gameType?: BackendGameType;
+  readonly gameType: BackendGameType;
 }
 
 export interface LobbySseEvent {
@@ -94,8 +94,8 @@ export function parseLobbyRooms(value: unknown): readonly LobbyRoomSummary[] {
     const status = item.status;
     if (status !== "WAITING" && status !== "IN_PROGRESS" && status !== "CLOSED") throw new Error("Invalid lobby room status.");
     const gameType = item.gameType;
-    if (gameType !== undefined && (typeof gameType !== "string" || gameType.trim().length === 0)) throw new Error("Invalid lobby game type.");
-    return { id: integer(item.id), roomCode: text(item.roomCode), status, participantCount: integer(item.participantCount), capacity: integer(item.capacity), ...(gameType ? { gameType } : {}) };
+    if (gameType !== "SIGN_DUEL" && gameType !== "TETRIS_DUEL") throw new Error("Invalid lobby game type.");
+    return { id: integer(item.id), roomCode: text(item.roomCode), status, participantCount: integer(item.participantCount), capacity: integer(item.capacity), gameType };
   });
 }
 function integer(value: unknown): number { if (typeof value !== "number" || !Number.isSafeInteger(value)) throw new Error("Invalid integer."); return value; }

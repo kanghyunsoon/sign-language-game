@@ -28,6 +28,26 @@ describe("SwaggerBattleRoomGateway", () => {
     );
   });
 
+  it("shows only rooms for the gateway's documented game type", async () => {
+    const gateway = createGateway(vi.fn());
+    const currentRooms = (gateway as unknown as {
+      lobbyCache: Map<number, unknown>;
+      currentRooms(): readonly unknown[];
+    });
+    currentRooms.lobbyCache.set(1, {
+      id: 1, roomCode: "BLOCK1", status: "WAITING",
+      participantCount: 1, capacity: 2, gameType: "TETRIS_DUEL",
+    });
+    currentRooms.lobbyCache.set(2, {
+      id: 2, roomCode: "SIGN01", status: "WAITING",
+      participantCount: 1, capacity: 2, gameType: "SIGN_DUEL",
+    });
+
+    expect(currentRooms.currentRooms()).toEqual([
+      expect.objectContaining({ roomCode: "BLOCK1" }),
+    ]);
+  });
+
   it("does not hide an authoritative join conflict behind stale cache", async () => {
     const fetcher = vi.fn()
       .mockResolvedValueOnce(response(room({ guestUserId: 2, participantCount: 2 })))
@@ -112,6 +132,7 @@ function room(overrides: Partial<{
     status: "WAITING",
     participantCount: 1,
     capacity: 2,
+    gameType: "TETRIS_DUEL",
     ...overrides,
   };
 }

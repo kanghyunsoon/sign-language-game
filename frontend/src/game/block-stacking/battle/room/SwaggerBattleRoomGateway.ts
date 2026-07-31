@@ -179,7 +179,7 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   private currentRooms(): readonly BattleRoomSummary[] {
     const expected = this.options.gameType ?? "TETRIS_DUEL";
     return [...this.lobbyCache.values()]
-      .filter((room) => !room.gameType || room.gameType === expected)
+      .filter((room) => room.gameType === expected)
       .map(toSummary);
   }
 

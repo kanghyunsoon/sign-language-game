@@ -1,6 +1,5 @@
 export type BackendGameRoomStatus = "WAITING" | "IN_PROGRESS" | "CLOSED";
-/** The backend owns this enum. Keep the client forward-compatible until Swagger publishes it. */
-export type BackendGameType = string;
+export type BackendGameType = "SIGN_DUEL" | "TETRIS_DUEL";
 
 export interface BackendGameRoom {
   readonly id: number;
@@ -12,8 +11,8 @@ export interface BackendGameRoom {
   readonly status: BackendGameRoomStatus;
   readonly participantCount: number;
   readonly capacity: number;
-  /** Optional until the backend's announced Swagger update is deployed. */
-  readonly gameType?: BackendGameType;
+  readonly gameType: BackendGameType;
+  readonly realtimeTicket?: string;
 }
 
 export interface BackendGameRoomClientOptions {
@@ -32,10 +31,10 @@ export class BackendGameRoomClient {
     this.fetcher = options.fetcher ?? globalThis.fetch.bind(globalThis);
   }
 
-  create(gameType?: BackendGameType): Promise<BackendGameRoom> {
+  create(gameType: BackendGameType): Promise<BackendGameRoom> {
     return this.roomRequest("", {
       method: "POST",
-      body: gameType ? JSON.stringify({ gameType }) : undefined,
+      body: JSON.stringify({ gameType }),
     });
   }
 
@@ -111,8 +110,12 @@ export function parseBackendGameRoom(value: unknown): BackendGameRoom {
     throw new Error("Invalid game room status.");
   }
   const gameType = value.gameType;
-  if (gameType !== undefined && (typeof gameType !== "string" || gameType.trim().length === 0)) {
+  if (gameType !== "SIGN_DUEL" && gameType !== "TETRIS_DUEL") {
     throw new Error("Invalid game room type.");
+  }
+  const realtimeTicket = value.realtimeTicket;
+  if (realtimeTicket !== undefined && typeof realtimeTicket !== "string") {
+    throw new Error("Invalid realtime ticket.");
   }
   return {
     id: number(value.id, "id"),
@@ -126,7 +129,8 @@ export function parseBackendGameRoom(value: unknown): BackendGameRoom {
     status,
     participantCount: number(value.participantCount, "participantCount"),
     capacity: number(value.capacity, "capacity"),
-    ...(gameType ? { gameType } : {}),
+    gameType,
+    ...(realtimeTicket ? { realtimeTicket } : {}),
   };
 }
 

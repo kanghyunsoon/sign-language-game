@@ -28,7 +28,7 @@ describe("LobbySseClient", () => {
     await client.connect();
     source.emit("snapshot", { rooms: [{
       id: 1, roomCode: "ABC123", status: "WAITING",
-      participantCount: 1, capacity: 2, gameType: "BLOCK_STACKING",
+      participantCount: 1, capacity: 2, gameType: "TETRIS_DUEL",
     }] });
 
     expect(createEventSource).toHaveBeenCalledWith("/api/game-rooms/subscribe?ticket=sse%20ticket");
@@ -36,7 +36,7 @@ describe("LobbySseClient", () => {
       type: "snapshot",
       rooms: [{
         id: 1, roomCode: "ABC123", status: "WAITING",
-        participantCount: 1, capacity: 2, gameType: "BLOCK_STACKING",
+        participantCount: 1, capacity: 2, gameType: "TETRIS_DUEL",
       }],
     }]);
   });

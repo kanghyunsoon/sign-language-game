@@ -4,7 +4,8 @@ import { BackendGameRoomClient } from "./BackendGameRoomClient";
 const room = {
   id: 7, roomCode: "ABC123", hostUserId: 42, guestUserId: null,
   hostReady: false, guestReady: false, status: "WAITING",
-  participantCount: 1, capacity: 2,
+  participantCount: 1, capacity: 2, gameType: "TETRIS_DUEL",
+  realtimeTicket: "room-ticket",
 };
 
 describe("BackendGameRoomClient", () => {
@@ -20,31 +21,32 @@ describe("BackendGameRoomClient", () => {
       apiBaseUrl: "/api", userId: "42", headers: { Authorization: "Bearer a" }, fetcher,
     });
 
-    await client.create();
-    await client.join(" abc123 ");
+    await client.create("TETRIS_DUEL");
+    const joined = await client.join(" abc123 ");
 
     expect(calls[0].url).toBe("/api/game-rooms?userId=42");
-    expect(calls[0].init?.body).toBeUndefined();
+    expect(JSON.parse(String(calls[0].init?.body))).toEqual({ gameType: "TETRIS_DUEL" });
     expect(calls[1].url).toBe("/api/game-rooms/join?userId=42");
     expect(JSON.parse(String(calls[1].init?.body))).toEqual({ roomCode: "abc123" });
+    expect(joined.realtimeTicket).toBe("room-ticket");
   });
 
-  it("supports the announced gameType extension without requiring it before rollout", async () => {
+  it("accepts the documented SIGN_DUEL game type", async () => {
     const calls: Array<{ init?: RequestInit }> = [];
     const fetcher = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       calls.push({ init });
       return new Response(JSON.stringify({
-        ...room, gameType: "OTTER_TURN_BATTLE",
+        ...room, gameType: "SIGN_DUEL",
       }), { status: 201, headers: { "Content-Type": "application/json" } });
     });
     const client = new BackendGameRoomClient({
       apiBaseUrl: "/api", userId: "42", fetcher,
     });
-    await expect(client.create("OTTER_TURN_BATTLE")).resolves.toMatchObject({
-      id: 7, gameType: "OTTER_TURN_BATTLE",
+    await expect(client.create("SIGN_DUEL")).resolves.toMatchObject({
+      id: 7, gameType: "SIGN_DUEL",
     });
     expect(JSON.parse(String(calls[0]?.init?.body))).toEqual({
-      gameType: "OTTER_TURN_BATTLE",
+      gameType: "SIGN_DUEL",
     });
   });
 
