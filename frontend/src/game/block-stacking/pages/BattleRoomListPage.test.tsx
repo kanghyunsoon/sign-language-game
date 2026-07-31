@@ -41,6 +41,24 @@ describe("BattleRoomListPage", () => {
     expect(await screen.findByText("WAITING_ROUTE")).toBeTruthy();
   });
 
+  it("sends only one create request when the form is submitted repeatedly", async () => {
+    let resolveCreate!: (value: BattleRoomSession) => void;
+    const createRoom = vi.fn(() => new Promise<BattleRoomSession>((resolve) => { resolveCreate = resolve; }));
+    renderPage(gateway({ createRoom }));
+    fireEvent.click(screen.getByRole("button", { name: "방 만들기" }));
+    fireEvent.change(screen.getByLabelText("방 제목"), { target: { value: "중복 방지" } });
+    const submitButton = screen.getAllByRole("button", { name: "방 만들기" })[1];
+    const form = submitButton.closest("form");
+    if (!form) throw new Error("Create room form was not rendered.");
+
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+
+    expect(createRoom).toHaveBeenCalledTimes(1);
+    resolveCreate(session());
+    expect(await screen.findByText("WAITING_ROUTE")).toBeTruthy();
+  });
+
   it("joins an available room", async () => {
     const joinRoom = vi.fn(async () => session());
     renderPage(gateway({ getRooms: vi.fn(async () => [summary()]), joinRoom }));

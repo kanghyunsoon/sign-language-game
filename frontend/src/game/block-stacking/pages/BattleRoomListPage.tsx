@@ -1,5 +1,5 @@
 import { ArrowLeft, Plus, RefreshCw, Search, Trophy } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGameModuleContext } from "../../app/GameModuleContext";
 import { BattleRoomCard } from "../battle/components/BattleRoomCard";
@@ -22,6 +22,7 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [creating, setCreating] = useState(false);
+  const creatingRef = useRef(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [joiningRoomId, setJoiningRoomId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +57,25 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
     );
   }, [gateway]);
   const visibleRooms = useMemo(() => rooms.filter((room) => { const byName = room.title.toLowerCase().includes(query.trim().toLowerCase()); const byStatus = filter === "ALL" || (filter === "WAITING" ? room.status === "WAITING" : room.canJoin); return byName && byStatus; }), [filter, query, rooms]);
-  const createRoom = async (request: CreateRoomRequest) => { setCreating(true); setError(null); try { const session = await gateway.createRoom(request); rememberSession(session); setModalOpen(false); navigate(session.roomId); } catch (cause) { setError(errorMessage(cause, "방을 만들지 못했습니다.")); } finally { setCreating(false); } };
+  const createRoom = async (request: CreateRoomRequest) => {
+    // React state is applied after the current event turn, so rapid submit
+    // events can otherwise pass `creating === false` more than once.
+    if (creatingRef.current) return;
+    creatingRef.current = true;
+    setCreating(true);
+    setError(null);
+    try {
+      const session = await gateway.createRoom(request);
+      rememberSession(session);
+      setModalOpen(false);
+      navigate(session.roomId);
+    } catch (cause) {
+      setError(errorMessage(cause, "방을 만들지 못했습니다."));
+    } finally {
+      creatingRef.current = false;
+      setCreating(false);
+    }
+  };
   const joinRoom = async (roomId: string) => { setJoiningRoomId(roomId); setError(null); try { const session = await gateway.joinRoom(roomId); rememberSession(session); navigate(session.roomId); } catch (cause) { if (activeRoomSession?.roomCode === roomId && isMissingRoom(cause)) rememberSession(null); setError(errorMessage(cause, "방에 입장하지 못했습니다.")); } finally { setJoiningRoomId(null); } };
   const joinByCode = () => { const normalized = roomCode.trim(); if (!normalized || joiningRoomId) return; void joinRoom(normalized); };
   return <main
