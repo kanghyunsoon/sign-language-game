@@ -3,6 +3,7 @@ package backend.ssafy.suhwa.gameresult.service;
 import backend.ssafy.suhwa.gameresult.domain.GameResult;
 import backend.ssafy.suhwa.gameresult.domain.GameResultType;
 import backend.ssafy.suhwa.gameresult.repository.GameResultRepository;
+import backend.ssafy.suhwa.gameresult.dto.SoloBestScore;
 import backend.ssafy.suhwa.growth.config.GrowthPolicyProperties;
 import backend.ssafy.suhwa.growth.domain.UserPet;
 import backend.ssafy.suhwa.growth.service.GrowthRewardService;
@@ -58,5 +59,9 @@ public class GameResultService {
     /** 랭킹 집계 원본. 해당 게임 종류의 기록 전체를 돌려준다. */
     public List<GameResult> findByGameType(GameResultType gameType) {
         return gameResultRepository.findByGameType(gameType);
+    }
+
+    public List<SoloBestScore> findBestScoresByGameType(GameResultType gameType) {
+        return gameResultRepository.findBestScoresByGameType(gameType);
     }
 }

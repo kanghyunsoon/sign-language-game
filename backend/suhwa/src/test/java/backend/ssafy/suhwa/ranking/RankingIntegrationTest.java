@@ -27,37 +27,28 @@ import org.springframework.transaction.PlatformTransactionManager;
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 class RankingIntegrationTest {
 
-    @Autowired
-    private GameResultRepository gameResultRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private PlatformTransactionManager transactionManager;
+    @Autowired private GameResultRepository gameResultRepository;
+    @Autowired private UserRepository userRepository;
+    @Autowired private PlatformTransactionManager transactionManager;
 
     @Test
-    void ranksEachUsersFastestTimedRunAndExcludesLegacyRows() {
+    void ranksMinimumScoresAscendingWithCompetitionRanks() {
         Long first = createUser("first");
-        Long second = createUser("second");
-        Long legacy = createUser("legacy");
-        saveTimed(first, 100, 95_000, "first-1");
-        saveTimed(first, 200, 90_000, "first-2");
-        saveTimed(second, 999, 100_000, "second-1");
-        gameResultRepository.save(GameResult.builder()
-                .userId(legacy)
-                .gameType(GameResultType.TETRIS_SOLO)
-                .score(10_000)
-                .build());
+        Long tied = createUser("tied");
+        Long third = createUser("third");
+        save(first, 100);
+        save(first, 90);
+        save(tied, 90);
+        save(third, 110);
 
-        RankingResponse response = rankingService().getRankings(first, GameResultType.TETRIS_SOLO);
+        RankingResponse response = rankingService().getRankings(third, GameResultType.TETRIS_SOLO);
 
-        assertThat(response.top()).extracting(entry -> entry.userId())
-                .containsExactly(first, second);
-        assertThat(response.top()).extracting(entry -> entry.playDurationMs())
-                .containsExactly(90_000L, 100_000L);
-        assertThat(response.me().rank()).isEqualTo(1);
-        assertThat(response.me().score()).isEqualTo(200);
+        assertThat(response.top()).extracting(entry -> entry.score())
+                .containsExactly(90, 90, 110);
+        assertThat(response.top()).extracting(entry -> entry.rank())
+                .containsExactly(1, 1, 3);
+        assertThat(response.me().rank()).isEqualTo(3);
+        assertThat(response.me().score()).isEqualTo(110);
     }
 
     private RankingService rankingService() {
@@ -83,13 +74,11 @@ class RankingIntegrationTest {
                 .getId();
     }
 
-    private void saveTimed(Long userId, int score, long duration, String sessionId) {
+    private void save(Long userId, int score) {
         gameResultRepository.save(GameResult.builder()
                 .userId(userId)
                 .gameType(GameResultType.TETRIS_SOLO)
                 .score(score)
-                .soloSessionId(sessionId)
-                .playDurationMs(duration)
                 .build());
     }
 }

@@ -8,6 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import backend.ssafy.suhwa.common.security.JwtTokenProvider;
 import backend.ssafy.suhwa.gameresult.domain.GameResultType;
 import backend.ssafy.suhwa.gameresult.repository.GameResultRepository;
+import backend.ssafy.suhwa.growth.domain.UserPet;
+import backend.ssafy.suhwa.growth.repository.UserPetRepository;
 import backend.ssafy.suhwa.user.domain.User;
 import backend.ssafy.suhwa.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -38,11 +40,15 @@ class SoloResultControllerTest {
     @Autowired
     private GameResultRepository gameResultRepository;
 
+    @Autowired
+    private UserPetRepository userPetRepository;
+
     private String tokenFor(String label) {
         Long userId = userRepository.save(User.builder()
                         .email(label + "-" + System.nanoTime() + "@test.com").passwordHash("h").nickname(label)
                         .build())
                 .getId();
+        userPetRepository.save(UserPet.builder().userId(userId).build());
         return "Bearer " + jwtTokenProvider.createAccessToken(userId);
     }
 
@@ -73,6 +79,17 @@ class SoloResultControllerTest {
                         .header("Authorization", token)
                         .contentType("application/json")
                         .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void reportSoloResult_zeroScore_returns400() throws Exception {
+        String token = tokenFor("solouser-zero");
+
+        mockMvc.perform(post("/solo-results")
+                        .header("Authorization", token)
+                        .contentType("application/json")
+                        .content("{\"score\":0}"))
                 .andExpect(status().isBadRequest());
     }
 

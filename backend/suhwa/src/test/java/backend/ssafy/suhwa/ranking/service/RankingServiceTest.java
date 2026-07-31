@@ -68,16 +68,6 @@ class RankingServiceTest {
         gameResultRepository.save(GameResult.builder().userId(userId).gameType(gameType).score(score).build());
     }
 
-    private void recordSolo(Long userId, int score, long duration, String sessionId) {
-        gameResultRepository.save(GameResult.builder()
-                .userId(userId)
-                .gameType(GameResultType.TETRIS_SOLO)
-                .score(score)
-                .soloSessionId(sessionId)
-                .playDurationMs(duration)
-                .build());
-    }
-
     @Test
     void differentGameTypesAreCompletelyIsolated() {
         Long userId = createUser("isolated");
@@ -110,30 +100,23 @@ class RankingServiceTest {
     }
 
     @Test
-    void soloRanking_ordersByEachUsersFastestCompletionTime() {
+    void soloRanking_usesEachUsersMinimumScoreAndSharedCompetitionRanks() {
         Long fastUser = createUser("fast");
+        Long equallyFastUser = createUser("equally-fast");
         Long slowUser = createUser("slow");
-        recordSolo(fastUser, 500, 100_000, "fast-1");
-        recordSolo(fastUser, 900, 90_000, "fast-2");
-        recordSolo(slowUser, 2_000, 110_000, "slow-1");
+        record(fastUser, GameResultType.TETRIS_SOLO, 100);
+        record(fastUser, GameResultType.TETRIS_SOLO, 90);
+        record(equallyFastUser, GameResultType.TETRIS_SOLO, 90);
+        record(slowUser, GameResultType.TETRIS_SOLO, 110);
 
         RankingResponse response = rankingService.getRankings(fastUser, GameResultType.TETRIS_SOLO);
 
-        assertThat(response.top()).extracting(entry -> entry.userId())
-                .containsExactly(fastUser, slowUser);
-        assertThat(response.me().playDurationMs()).isEqualTo(90_000);
-        assertThat(response.me().score()).isEqualTo(900);
-    }
-
-    @Test
-    void legacySoloResultsWithoutDurationAreExcluded() {
-        Long userId = createUser("legacy");
-        record(userId, GameResultType.TETRIS_SOLO, 9999);
-
-        RankingResponse response = rankingService.getRankings(userId, GameResultType.TETRIS_SOLO);
-
-        assertThat(response.top()).isEmpty();
-        assertThat(response.me()).isNull();
+        assertThat(response.top()).extracting(entry -> entry.rank())
+                .containsExactly(1, 1, 3);
+        assertThat(response.top()).extracting(entry -> entry.score())
+                .containsExactly(90, 90, 110);
+        assertThat(response.me().score()).isEqualTo(90);
+        assertThat(response.me().rank()).isEqualTo(1);
     }
 
     @Test

@@ -8,8 +8,10 @@ import org.springframework.stereotype.Component;
 public class GrowthPolicyProperties {
 
     private int attendanceExp = 3;
-    private int practiceExp = 10;
     private int testExp = 7;
+    private int soloFastScoreMax = 60;
+    private int soloMediumScoreMax = 90;
+    private int soloSlowScoreMax = 120;
     private int soloFastExp = 15;
     private int soloMediumExp = 10;
     private int soloSlowExp = 5;
@@ -17,8 +19,10 @@ public class GrowthPolicyProperties {
     private int duelLoserExp = 3;
     private int expPerLevel = 20;
     private int firstEvolutionLevel = 5;
-    private int finalEvolutionLevel = 10;
-    private int maxLevel = 10;
+    private int secondEvolutionLevel = 10;
+    private int thirdEvolutionLevel = 15;
+    private int finalEvolutionLevel = 20;
+    private int maxLevel = 20;
 
     public int getAttendanceExp() {
         return attendanceExp;
@@ -28,20 +32,36 @@ public class GrowthPolicyProperties {
         this.attendanceExp = attendanceExp;
     }
 
-    public int getPracticeExp() {
-        return practiceExp;
-    }
-
-    public void setPracticeExp(int practiceExp) {
-        this.practiceExp = practiceExp;
-    }
-
     public int getTestExp() {
         return testExp;
     }
 
     public void setTestExp(int testExp) {
         this.testExp = testExp;
+    }
+
+    public int getSoloFastScoreMax() {
+        return soloFastScoreMax;
+    }
+
+    public void setSoloFastScoreMax(int soloFastScoreMax) {
+        this.soloFastScoreMax = soloFastScoreMax;
+    }
+
+    public int getSoloMediumScoreMax() {
+        return soloMediumScoreMax;
+    }
+
+    public void setSoloMediumScoreMax(int soloMediumScoreMax) {
+        this.soloMediumScoreMax = soloMediumScoreMax;
+    }
+
+    public int getSoloSlowScoreMax() {
+        return soloSlowScoreMax;
+    }
+
+    public void setSoloSlowScoreMax(int soloSlowScoreMax) {
+        this.soloSlowScoreMax = soloSlowScoreMax;
     }
 
     public int getSoloFastExp() {
@@ -98,6 +118,22 @@ public class GrowthPolicyProperties {
 
     public void setFirstEvolutionLevel(int firstEvolutionLevel) {
         this.firstEvolutionLevel = firstEvolutionLevel;
+    }
+
+    public int getSecondEvolutionLevel() {
+        return secondEvolutionLevel;
+    }
+
+    public void setSecondEvolutionLevel(int secondEvolutionLevel) {
+        this.secondEvolutionLevel = secondEvolutionLevel;
+    }
+
+    public int getThirdEvolutionLevel() {
+        return thirdEvolutionLevel;
+    }
+
+    public void setThirdEvolutionLevel(int thirdEvolutionLevel) {
+        this.thirdEvolutionLevel = thirdEvolutionLevel;
     }
 
     public int getFinalEvolutionLevel() {

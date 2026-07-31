@@ -43,14 +43,35 @@ class PetQueryServiceTest {
     }
 
     @Test
-    void maximumLevelHasNoNextLevelTarget() {
+    void legacyLevelTenShowsThirdStageAndNextLevelTarget() {
         given(repository.findByUserId(1L))
                 .willReturn(Optional.of(UserPet.builder().userId(1L).level(10).exp(0).build()));
 
         PetStatusResponse response = service.getStatus(1L);
 
         assertThat(response.evolutionStage()).isEqualTo(EvolutionStage.STAGE_3);
+        assertThat(response.expToNextLevel()).isEqualTo(20);
+        assertThat(response.maxLevel()).isEqualTo(20);
+    }
+
+    @Test
+    void levelFifteenShowsFourthStage() {
+        given(repository.findByUserId(1L))
+                .willReturn(Optional.of(UserPet.builder().userId(1L).level(15).exp(0).build()));
+
+        assertThat(service.getStatus(1L).evolutionStage()).isEqualTo(EvolutionStage.STAGE_4);
+    }
+
+    @Test
+    void maximumLevelHasNoNextLevelTarget() {
+        given(repository.findByUserId(1L))
+                .willReturn(Optional.of(UserPet.builder().userId(1L).level(20).exp(0).build()));
+
+        PetStatusResponse response = service.getStatus(1L);
+
+        assertThat(response.evolutionStage()).isEqualTo(EvolutionStage.STAGE_5);
         assertThat(response.expToNextLevel()).isNull();
+        assertThat(response.maxLevel()).isEqualTo(20);
     }
 
     @Test

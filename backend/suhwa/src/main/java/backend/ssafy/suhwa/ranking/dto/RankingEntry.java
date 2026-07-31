@@ -1,14 +1,14 @@
 package backend.ssafy.suhwa.ranking.dto;
 
-/** score는 게임 종류에 따라 승수(대전, SUM) 또는 최고 점수(솔로, MAX)를 의미한다(FR-026/029). */
-public record RankingEntry(
-        int rank,
-        Long userId,
-        String nickname,
-        int score,
-        Long playDurationMs) {
+import io.swagger.v3.oas.annotations.media.Schema;
 
-    public RankingEntry(int rank, Long userId, String nickname, int score) {
-        this(rank, userId, nickname, score, null);
-    }
+public record RankingEntry(
+        @Schema(description = "순위. 솔로에서는 같은 최소 score가 같은 순위", example = "1")
+        int rank,
+        @Schema(description = "사용자 ID", example = "12")
+        Long userId,
+        @Schema(description = "사용자 닉네임", example = "수어왕")
+        String nickname,
+        @Schema(description = "대전 승수 또는 솔로 최소 진행 시간(초)", example = "75")
+        int score) {
 }

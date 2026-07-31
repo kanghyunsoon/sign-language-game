@@ -13,17 +13,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@Tag(name = "SoloResults")
+@Tag(name = "SoloResults", description = "테트리스 솔로 결과")
 @SecurityRequirement(name = OpenApiConfig.BEARER_SCHEME_NAME)
 public interface SoloResultApi {
 
-    @Operation(summary = "테트리스 솔로 결과(점수) 보고", description =
-            "대전 모드의 게임방 개념과 완전히 별도인 엔드포인트다(FR-027) — 방 생성, 실시간 연결, "
-                    + "준비/시작 절차를 전혀 요구하지 않는다. 점수만 받아 기록하며(FR-028), 위·변조 여부는 "
-                    + "검증하지 않는다(spec.md Assumptions, 의도적 결정). 동일 사용자가 여러 번 호출해도 "
-                    + "각각 개별 기록으로 남는다(중복 방지 없음).")
-    @ApiResponse(responseCode = "201", description = "점수 기록 완료")
-    @ApiResponse(responseCode = "400", description = "score 누락 또는 음수")
+    @Operation(
+            summary = "테트리스 솔로 결과 저장",
+            description = "완료까지 걸린 시간을 초 단위 score로 전송합니다. "
+                    + "60초 이하 15 XP, 90초 이하 10 XP, 120초 이하 5 XP를 지급하며 "
+                    + "120초 초과는 XP를 지급하지 않습니다.")
+    @ApiResponse(responseCode = "201", description = "결과 저장과 XP 반영 완료")
+    @ApiResponse(responseCode = "400", description = "score 누락 또는 1 미만")
+    @ApiResponse(responseCode = "401", description = "인증 필요")
     @PostMapping("/solo-results")
     ResponseEntity<SoloResultResponse> reportSoloResult(
             @LoginUser Long userId, @RequestBody @Valid SoloResultRequest request);
