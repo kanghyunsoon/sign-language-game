@@ -18,38 +18,37 @@ const completionRequest: CompleteSoloSessionRequest = {
 };
 
 describe("HttpSoloGameApi", () => {
-  it("starts and completes the documented backend solo session", async () => {
-    const fetcher = vi.fn()
-      .mockResolvedValueOnce(jsonResponse({
-        ...startRequest, soloSessionId: "session-1", userId: "42", startedAt: 1_000,
-      }))
-      .mockResolvedValueOnce(jsonResponse({
-        ...completionRequest, soloSessionId: "session-1", userId: "42",
-        playMode: "AI", difficulty: "BEGINNER", startedAt: 1_000, awardedExp: 3,
-      }));
+  it("keeps the gameplay session local and reports the documented solo result", async () => {
+    const fetcher = vi.fn().mockResolvedValue(jsonResponse({
+      resultId: 123,
+      score: 37,
+    }, 201));
     const api = new HttpSoloGameApi({
       baseUrl: "/api",
       userId: "42",
       headers: { Authorization: "Bearer token" },
       fetcher,
+      now: () => 1_000,
+      createId: () => "session-1",
     });
 
     const session = await api.startSession(startRequest);
     const result = await api.completeSession(session.soloSessionId, completionRequest);
 
     expect(session).toMatchObject({ soloSessionId: "session-1", userId: "42", startedAt: 1_000 });
-    expect(result).toMatchObject({ finalScore: 37, soloSessionId: "session-1", awardedExp: 3 });
-    expect(fetcher).toHaveBeenCalledTimes(2);
-    expect(fetcher).toHaveBeenNthCalledWith(1, "/api/game/solo/sessions?userId=42", expect.objectContaining({
+    expect(result).toMatchObject({
+      finalScore: 37,
+      playDurationMs: 36_250,
+      soloSessionId: "session-1",
+      awardedExp: 0,
+    });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher).toHaveBeenCalledWith("/api/solo-results?userId=42", expect.objectContaining({
       method: "POST",
       credentials: "same-origin",
-      body: JSON.stringify(startRequest),
+      body: JSON.stringify({ score: 37 }),
     }));
-    expect(fetcher).toHaveBeenNthCalledWith(2, "/api/game/solo/sessions/session-1/complete?userId=42", expect.objectContaining({
-      method: "POST",
-      credentials: "same-origin",
-      body: JSON.stringify(completionRequest),
-    }));
+    await expect(api.getResults()).resolves.toMatchObject([{ soloSessionId: "session-1", finalScore: 37 }]);
   });
 
   it("uses the official TETRIS_SOLO rank returned by the backend", async () => {
@@ -79,8 +78,10 @@ describe("HttpSoloGameApi", () => {
     const api = new HttpSoloGameApi({
       userId: "42",
       fetcher: vi.fn(async () => new Response("failure", { status: 503 })),
+      createId: () => "session-1",
     });
 
+    await api.startSession(startRequest);
     await expect(api.completeSession("session-1", completionRequest)).rejects.toMatchObject({
       name: "SoloGameApiError",
       status: 503,

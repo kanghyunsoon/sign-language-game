@@ -175,7 +175,8 @@ function createDefaultServices(
   const useSwaggerContract =
     Boolean(accessToken) || import.meta.env.VITE_P2P_E2E === "true" || isProduction;
   return {
-    // Production uses the documented solo session start/complete/results API.
+    // Production keeps the gameplay session locally and reports completion
+    // through the documented POST /solo-results API.
     soloGameApi: useSwaggerContract
       ? new HttpSoloGameApi({ baseUrl: config.soloApiBaseUrl, userId: user.userId, credentials: "include", headers })
       : new LocalSoloGameApi({ userId: user.userId }),

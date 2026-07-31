@@ -15,6 +15,8 @@ export interface HttpSoloGameApiOptions {
   readonly fetcher?: SoloFetch;
   readonly credentials?: RequestCredentials;
   readonly headers?: HeadersInit | SoloHeadersProvider;
+  readonly now?: () => number;
+  readonly createId?: () => string;
 }
 
 export class SoloGameApiError extends Error {
@@ -24,41 +26,73 @@ export class SoloGameApiError extends Error {
   }
 }
 
-/** OpenAPI-backed solo session, result, and ranking client. */
+/**
+ * OpenAPI-backed solo result and ranking client.
+ *
+ * The backend no longer exposes a solo-session resource. The richer session
+ * model remains local so gameplay can keep its existing lifecycle, while game
+ * completion is translated to the documented POST /solo-results contract.
+ */
 export class HttpSoloGameApi implements SoloGameApi {
   private readonly baseUrl: string;
   private readonly fetcher: SoloFetch;
   private readonly credentials: RequestCredentials;
   private readonly configuredHeaders: HeadersInit | SoloHeadersProvider;
+  private readonly now: () => number;
+  private readonly createId: () => string;
+  private readonly sessions = new Map<string, StartSoloSessionResponse>();
+  private readonly completedResults: SoloGameResult[] = [];
 
   constructor(private readonly options: HttpSoloGameApiOptions) {
     this.baseUrl = (options.baseUrl ?? "/api").replace(/\/$/, "");
     this.fetcher = options.fetcher ?? globalThis.fetch.bind(globalThis);
     this.credentials = options.credentials ?? "same-origin";
     this.configuredHeaders = options.headers ?? {};
+    this.now = options.now ?? Date.now;
+    this.createId = options.createId ?? createSessionId;
   }
 
   async startSession(request: StartSoloSessionRequest): Promise<StartSoloSessionResponse> {
-    return parseStartSoloSession(await this.request(
-      `/game/solo/sessions?userId=${encodeURIComponent(this.options.userId)}`,
-      { method: "POST", body: JSON.stringify(request) },
-    ));
+    const session: StartSoloSessionResponse = {
+      ...request,
+      symbolRange: [...request.symbolRange],
+      soloSessionId: this.createId(),
+      userId: this.options.userId,
+      startedAt: this.now(),
+    };
+    this.sessions.set(session.soloSessionId, session);
+    return session;
   }
 
   async completeSession(soloSessionId: string, request: CompleteSoloSessionRequest): Promise<SoloGameResult> {
-    return parseSoloGameResult(await this.request(
-      `/game/solo/sessions/${encodeURIComponent(soloSessionId)}/complete?userId=${encodeURIComponent(this.options.userId)}`,
-      { method: "POST", body: JSON.stringify(request) },
+    const session = this.sessions.get(soloSessionId);
+    if (!session) throw new SoloGameApiError("Local solo session was not found.");
+    const response = parseSoloResultResponse(await this.request(
+      `/solo-results?userId=${encodeURIComponent(this.options.userId)}`,
+      {
+        method: "POST",
+        body: JSON.stringify({ score: toElapsedScoreSeconds(request.playDurationMs) }),
+      },
     ));
+    const result: SoloGameResult = {
+      ...request,
+      finalScore: response.score,
+      symbolStatistics: [...request.symbolStatistics],
+      soloSessionId,
+      userId: session.userId,
+      playMode: session.playMode,
+      difficulty: session.difficulty,
+      startedAt: session.startedAt,
+      // The current SoloResultResponse contains resultId and score only.
+      awardedExp: 0,
+    };
+    this.sessions.delete(soloSessionId);
+    this.completedResults.push(result);
+    return result;
   }
 
   async getResults(): Promise<readonly SoloGameResult[]> {
-    const payload = await this.request(
-      `/game/solo/results?userId=${encodeURIComponent(this.options.userId)}`,
-      { method: "GET" },
-    );
-    if (!Array.isArray(payload)) throw new SoloGameApiError("solo results must be an array.");
-    return payload.map(parseSoloGameResult);
+    return [...this.completedResults];
   }
 
   async getRank(): Promise<number | null> {
@@ -94,33 +128,11 @@ export class HttpSoloGameApi implements SoloGameApi {
   }
 }
 
-function parseStartSoloSession(value: unknown): StartSoloSessionResponse {
-  const record = requireRecord(value, "solo session");
-  return {
-    soloSessionId: requireString(record.soloSessionId, "soloSessionId"),
-    userId: requireString(record.userId, "userId"),
-    difficulty: requireString(record.difficulty, "difficulty"),
-    symbolRange: requireStringArray(record.symbolRange, "symbolRange"),
-    playMode: requirePlayMode(record.playMode),
-    startedAt: requireInteger(record.startedAt, "startedAt"),
-  };
-}
-
-function parseSoloGameResult(value: unknown): SoloGameResult {
+function parseSoloResultResponse(value: unknown): { readonly resultId: number; readonly score: number } {
   const record = requireRecord(value, "solo result");
   return {
-    soloSessionId: requireString(record.soloSessionId, "soloSessionId"),
-    userId: requireString(record.userId, "userId"),
-    difficulty: requireString(record.difficulty, "difficulty"),
-    playMode: requirePlayMode(record.playMode),
-    finalScore: requireInteger(record.finalScore, "finalScore"),
-    maxCombo: requireInteger(record.maxCombo, "maxCombo"),
-    removedSymbolCount: requireInteger(record.removedSymbolCount, "removedSymbolCount"),
-    playDurationMs: requireInteger(record.playDurationMs, "playDurationMs"),
-    symbolStatistics: requireSymbolStatistics(record.symbolStatistics),
-    startedAt: requireInteger(record.startedAt, "startedAt"),
-    endedAt: requireInteger(record.endedAt, "endedAt"),
-    awardedExp: requireInteger(record.awardedExp, "awardedExp"),
+    resultId: requireInteger(record.resultId, "resultId"),
+    score: requirePositiveInteger(record.score, "score"),
   };
 }
 
@@ -145,32 +157,18 @@ function requireInteger(value: unknown, name: string): number {
   return value;
 }
 
-function requireString(value: unknown, name: string): string {
-  if (typeof value !== "string" || value.length === 0) {
-    throw new SoloGameApiError(`${name} must be a non-empty string.`);
+function requirePositiveInteger(value: unknown, name: string): number {
+  const integer = requireInteger(value, name);
+  if (integer < 1) {
+    throw new SoloGameApiError(`${name} must be a positive integer.`);
   }
-  return value;
+  return integer;
 }
 
-function requireStringArray(value: unknown, name: string): readonly string[] {
-  if (!Array.isArray(value)) throw new SoloGameApiError(`${name} must be an array.`);
-  return value.map((item) => requireString(item, name));
+function toElapsedScoreSeconds(playDurationMs: number): number {
+  return Math.max(1, Math.ceil(playDurationMs / 1_000));
 }
 
-function requirePlayMode(value: unknown): StartSoloSessionResponse["playMode"] {
-  if (value !== "KEYBOARD" && value !== "AI") throw new SoloGameApiError("Invalid playMode.");
-  return value;
-}
-
-function requireSymbolStatistics(value: unknown): SoloGameResult["symbolStatistics"] {
-  if (!Array.isArray(value)) throw new SoloGameApiError("symbolStatistics must be an array.");
-  return value.map((item) => {
-    const record = requireRecord(item, "symbol statistic");
-    return {
-      symbol: requireString(record.symbol, "symbol"),
-      correctCount: requireInteger(record.correctCount, "correctCount"),
-      incorrectCount: requireInteger(record.incorrectCount, "incorrectCount"),
-      confirmedCount: requireInteger(record.confirmedCount, "confirmedCount"),
-    };
-  });
+function createSessionId(): string {
+  return globalThis.crypto?.randomUUID?.() ?? `solo-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }

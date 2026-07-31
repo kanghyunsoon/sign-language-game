@@ -1,43 +1,28 @@
 export type ExternalUuid = string;
 export type EpochMillis = number;
-export type SoloPlayMode = "KEYBOARD" | "AI";
 
-export interface StartSoloSessionRequest {
-  readonly difficulty: string;
-  readonly symbolRange: readonly string[];
-  readonly playMode: SoloPlayMode;
+/** POST /solo-results request body from the current OpenAPI document. */
+export interface SoloResultRequest {
+  /** Completed play duration in whole seconds. Minimum 1. */
+  readonly score: number;
 }
 
-export interface StartSoloSessionResponse {
-  readonly soloSessionId: ExternalUuid;
-  readonly userId: ExternalUuid;
-  readonly difficulty: string;
-  readonly symbolRange: readonly string[];
-  readonly playMode: SoloPlayMode;
-  readonly startedAt: EpochMillis;
+/** POST /solo-results response body from the current OpenAPI document. */
+export interface SoloResultResponse {
+  readonly resultId: number;
+  readonly score: number;
 }
 
-export interface SoloSymbolStatistic {
-  readonly symbol: string;
-  readonly correctCount: number;
-  readonly incorrectCount: number;
-  readonly confirmedCount: number;
+export interface SoloRankingEntry {
+  readonly rank: number;
+  readonly userId: number;
+  readonly nickname: string;
+  readonly score: number;
 }
 
-export interface CompleteSoloSessionRequest {
-  readonly finalScore: number;
-  readonly maxCombo: number;
-  readonly removedSymbolCount: number;
-  readonly playDurationMs: number;
-  readonly symbolStatistics: readonly SoloSymbolStatistic[];
-  readonly endedAt: EpochMillis;
-}
-
-export interface SoloGameResult extends CompleteSoloSessionRequest {
-  readonly soloSessionId: ExternalUuid;
-  readonly userId: ExternalUuid;
-  readonly playMode: SoloPlayMode;
-  readonly difficulty: string;
-  readonly startedAt: EpochMillis;
+/** GET /rankings?gameType=TETRIS_SOLO response body. */
+export interface SoloRankingResponse {
+  readonly top: readonly SoloRankingEntry[];
+  readonly me: SoloRankingEntry | null;
 }
 
