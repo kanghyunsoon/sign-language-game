@@ -65,6 +65,17 @@ export function GameServiceProvider({ children, user, accessToken, config, onExi
     // instead of leaving a refreshed /play route with an empty session.
     setBattleRoomSessionState((current) => current && String(current.currentUser.userId) === String(user.userId) ? current : readBattleRoomSession(user.userId));
   }, [user.userId]);
+  useEffect(() => {
+    const storageKey = BATTLE_ROOM_SESSION_KEY_PREFIX + user.userId;
+    const synchronizeRoomSession = (event: StorageEvent) => {
+      if (event.storageArea !== window.localStorage || event.key !== storageKey) return;
+      // A room created or left in another tab must immediately affect this
+      // tab's create guard. Otherwise both tabs can host rooms for one user.
+      setBattleRoomSessionState(readBattleRoomSession(user.userId));
+    };
+    window.addEventListener("storage", synchronizeRoomSession);
+    return () => window.removeEventListener("storage", synchronizeRoomSession);
+  }, [user.userId]);
   const services = useMemo(
     () => ({ ...createDefaultServices(user, accessToken, config, () => battleMediaSession.getGameDataChannel()), ...serviceOverrides }),
     [accessToken, config, serviceOverrides, user],

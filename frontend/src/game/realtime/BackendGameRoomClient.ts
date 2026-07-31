@@ -76,9 +76,31 @@ export class BackendGameRoomClient {
       `${this.baseUrl}/game-rooms${path}${separator}userId=${encodeURIComponent(this.options.userId)}`,
       { ...init, credentials: "include", headers },
     );
-    if (!response.ok) throw new Error(`Game room request failed (${response.status}).`);
+    if (!response.ok) {
+      const detail = await readErrorDetail(response);
+      throw new Error(`Game room request failed (${response.status})${detail ? `: ${detail}` : "."}`);
+    }
     if (response.status === 204) return undefined;
     return response.json();
+  }
+}
+
+async function readErrorDetail(response: Response): Promise<string> {
+  try {
+    const contentType = response.headers?.get("content-type") ?? "";
+    if (contentType.includes("application/json")) {
+      const payload = await response.json() as unknown;
+      if (isRecord(payload)) {
+        for (const key of ["message", "detail", "error"]) {
+          const value = payload[key];
+          if (typeof value === "string" && value.trim()) return value.trim().slice(0, 300);
+        }
+      }
+      return "";
+    }
+    return (await response.text()).trim().slice(0, 300);
+  } catch {
+    return "";
   }
 }
 

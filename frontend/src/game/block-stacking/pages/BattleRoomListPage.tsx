@@ -58,6 +58,12 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
   }, [gateway]);
   const visibleRooms = useMemo(() => rooms.filter((room) => { const byName = room.title.toLowerCase().includes(query.trim().toLowerCase()); const byStatus = filter === "ALL" || (filter === "WAITING" ? room.status === "WAITING" : room.canJoin); return byName && byStatus; }), [filter, query, rooms]);
   const createRoom = async (request: CreateRoomRequest) => {
+    if (activeRoomSession && activeRoomSession.status !== "FINISHED") {
+      setModalOpen(false);
+      setError("이미 참가 중인 방이 있습니다. 기존 방에 재입장하거나 먼저 나가 주세요.");
+      return;
+    }
+    if (activeRoomSession?.status === "FINISHED") rememberSession(null);
     // React state is applied after the current event turn, so rapid submit
     // events can otherwise pass `creating === false` more than once.
     if (creatingRef.current) return;

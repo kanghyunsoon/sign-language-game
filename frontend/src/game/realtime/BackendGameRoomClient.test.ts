@@ -48,6 +48,23 @@ describe("BackendGameRoomClient", () => {
     });
   });
 
+  it("includes the backend error message without retrying a failed room creation", async () => {
+    const fetcher = vi.fn(async () => new Response(
+      JSON.stringify({ message: "User already has an active room" }),
+      { status: 500, headers: { "Content-Type": "application/json" } },
+    ));
+    const client = new BackendGameRoomClient({
+      apiBaseUrl: "/api",
+      userId: "42",
+      fetcher,
+    });
+
+    await expect(client.create("TETRIS_DUEL")).rejects.toThrow(
+      "Game room request failed (500): User already has an active room",
+    );
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
   it("sends ready and start through their role-aware endpoints", async () => {
     const calls: Array<{ url: string; init?: RequestInit }> = [];
     const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {

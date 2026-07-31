@@ -51,8 +51,11 @@ export class MeshWebRtcMediaSession implements GameMediaSession {
     this.createMediaStream = options.createMediaStream ?? (() => new MediaStream());
     this.createConnectionId = options.createConnectionId ?? defaultConnectionId;
     this.disconnectGraceMs = options.disconnectGraceMs ?? 3_000;
-    this.setTimer = options.setTimer ?? setTimeout;
-    this.clearTimer = options.clearTimer ?? clearTimeout;
+    // Browser timer functions are Web-IDL methods in some engines. Keeping an
+    // unbound reference and later invoking it as `this.clearTimer(...)` can
+    // throw "Illegal invocation" exactly when a peer becomes connected.
+    this.setTimer = options.setTimer ?? ((handler, timeout, ...args) => globalThis.setTimeout(handler, timeout, ...args));
+    this.clearTimer = options.clearTimer ?? ((timer) => globalThis.clearTimeout(timer));
     this.now = options.now ?? Date.now;
     this.shouldConnectParticipant = options.shouldConnectParticipant ?? (() => true);
     this.shouldCreateOffer = options.shouldCreateOffer ?? isLocalPeerOfferer;

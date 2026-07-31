@@ -59,6 +59,17 @@ describe("BattleRoomListPage", () => {
     expect(await screen.findByText("WAITING_ROUTE")).toBeTruthy();
   });
 
+  it("does not create another room while the user has an active room session", async () => {
+    const createRoom = vi.fn(async () => session());
+    renderPage(gateway({ createRoom }), 2_500, session());
+    fireEvent.click(screen.getByRole("button", { name: "방 만들기" }));
+    fireEvent.change(screen.getByLabelText("방 제목"), { target: { value: "중복 방지" } });
+    fireEvent.click(screen.getAllByRole("button", { name: "방 만들기" })[1]);
+
+    expect((await screen.findByRole("alert")).textContent).toContain("이미 참가 중인 방이 있습니다.");
+    expect(createRoom).not.toHaveBeenCalled();
+  });
+
   it("joins an available room", async () => {
     const joinRoom = vi.fn(async () => session());
     renderPage(gateway({ getRooms: vi.fn(async () => [summary()]), joinRoom }));
@@ -81,18 +92,18 @@ describe("BattleRoomListPage", () => {
   });
 });
 
-function renderPage(roomGateway: BattleRoomGateway, interval = 2_500) {
-  const value = contextValue(roomGateway, interval);
+function renderPage(roomGateway: BattleRoomGateway, interval = 2_500, activeSession: BattleRoomSession | null = null) {
+  const value = contextValue(roomGateway, interval, activeSession);
   return render(<GameModuleContext.Provider value={value}><MemoryRouter initialEntries={["/game/battle"]}><Routes><Route path="/game/battle" element={<BattleRoomListPage />} /><Route path="/game/battle/:roomId" element={<span>WAITING_ROUTE</span>} /></Routes></MemoryRouter></GameModuleContext.Provider>);
 }
 
-function contextValue(roomGateway: BattleRoomGateway, interval: number): GameModuleContextValue {
+function contextValue(roomGateway: BattleRoomGateway, interval: number, activeSession: BattleRoomSession | null): GameModuleContextValue {
   return {
     user: { userId: "user-1", displayName: "나사용자" }, accessToken: undefined,
     config: { soloApiBaseUrl: "/solo", roomApiBaseUrl: "/rooms", gameWebSocketUrl: "ws://game", rtcConfigApiBaseUrl: "/rtc", aiWebSocketUrl: "ws://ai", battleRoomPollingIntervalMs: interval },
     services: { battleRoomGateway: roomGateway } as unknown as GameModuleServices,
     battleMediaSession: new MockBattleMediaSession(), sharedCameraSession: { start: vi.fn(), getStream: () => null, getVideoTrack: () => null, stop: vi.fn() },
-    battleRoomSession: null, setBattleRoomSession: vi.fn(),
+    battleRoomSession: activeSession, setBattleRoomSession: vi.fn(),
   };
 }
 

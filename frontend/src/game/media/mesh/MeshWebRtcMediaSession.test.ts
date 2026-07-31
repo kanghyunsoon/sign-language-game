@@ -143,6 +143,25 @@ describe("MeshWebRtcMediaSession", () => {
     expect(harness.transport.suspend).toHaveBeenCalledTimes(1);
   });
 
+  it("calls browser timers with the global receiver while recovering a peer", async () => {
+    const originalClearTimeout = globalThis.clearTimeout;
+    const clearTimeoutGuard = vi.fn(function (this: unknown, timer: ReturnType<typeof setTimeout>) {
+      if (this !== globalThis) throw new TypeError("Illegal invocation");
+      return originalClearTimeout.call(globalThis, timer);
+    });
+    vi.stubGlobal("clearTimeout", clearTimeoutGuard);
+
+    try {
+      const harness = createHarness();
+      await harness.connect(participants(2));
+      harness.peers[0].changeState("disconnected");
+      expect(() => harness.peers[0].changeState("connected")).not.toThrow();
+      expect(clearTimeoutGuard).toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("issues a signaling reconnect before WebRTC recovery", async () => {
     const harness = createHarness();
     await harness.connect(participants(2));
