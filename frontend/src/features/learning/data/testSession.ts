@@ -3,12 +3,18 @@ import type {
   FingerspellingEntry,
 } from "./fingerspelling";
 import { fingerspellingCategories, fingerspellingItems } from "./fingerspelling";
+import { wordSigns } from "./wordSigns";
 
 /** 테스트에서 출제 대상이 되는 분류. 지문자 분류를 그대로 사용한다. */
-export type TestCategoryId = FingerspellingCategoryId;
+export type TestCategoryId = FingerspellingCategoryId | "word";
 
 /** 한 문항. 지문자 항목에 분류 정보를 붙인 형태다. */
-export type TestQuestion = FingerspellingEntry;
+export interface TestQuestion
+  extends Omit<FingerspellingEntry, "categoryId"> {
+  readonly categoryId: TestCategoryId;
+  /** 화면 표시값과 AI 응답값이 다른 단어 문항에서 사용하는 정답 ID. */
+  readonly recognitionSymbol?: string;
+}
 
 /** 문항 채점 결과. 시간 초과와 넘어가기는 모두 오답으로 처리한다. */
 export type TestAnswerState = "correct" | "wrong";
@@ -46,8 +52,15 @@ export const TEST_COUNT_PRESETS: readonly TestCountPreset[] = [
 /** 문항당 제한 시간(초). */
 export const TEST_TIME_LIMIT_SECONDS = 10;
 
-/** 설정 화면에서 사용할 분류 목록. 지문자 분류와 동일하다. */
-export const testCategories = fingerspellingCategories;
+/** 설정 화면에서 사용할 분류 목록. */
+export const testCategories: readonly {
+  readonly id: TestCategoryId;
+  readonly label: string;
+  readonly symbol: string;
+}[] = [
+  ...fingerspellingCategories,
+  { id: "word", label: "단어", symbol: "가" },
+];
 
 /** AI 인식 모델이 아직 지원하지 않아 테스트를 막아 둔 분류. */
 export const UNSUPPORTED_TEST_CATEGORIES: readonly TestCategoryId[] = [];
@@ -88,13 +101,25 @@ export function testQuestionPool(
 
   return testCategories
     .filter((category) => selected.has(category.id))
-    .flatMap((category) =>
-      fingerspellingItems[category.id].map((item) => ({
+    .flatMap((category) => {
+      if (category.id === "word") {
+        return wordSigns.map((word) => ({
+          symbol: word.name,
+          name: word.name,
+          image: "",
+          description: ["수어 동작 영상은 준비 중입니다."],
+          categoryId: category.id,
+          categoryLabel: category.label,
+          recognitionSymbol: word.id,
+        }));
+      }
+
+      return fingerspellingItems[category.id].map((item) => ({
         ...item,
         categoryId: category.id,
         categoryLabel: category.label,
-      })),
-    );
+      }));
+    });
 }
 
 /**

@@ -3,8 +3,13 @@ import {
   HandCamera,
   type RecognitionConnectionState,
 } from "../../../game/recognition";
-import { getAiWebSocketUrl } from "../data/aiRecognition";
+import { WordHandCamera } from "./WordHandCamera";
+import {
+  getAiWebSocketUrl,
+  getWordAiWebSocketUrl,
+} from "../data/aiRecognition";
 import { PracticeWebSocketSignRecognizer } from "../recognition/PracticeWebSocketSignRecognizer";
+import { WordWebSocketSignRecognizer } from "../recognition/WordWebSocketSignRecognizer";
 import type {
   TestAnswerState,
   TestQuestion,
@@ -55,13 +60,21 @@ export function TestProgressView({
   );
 
   const currentQuestion = questions[currentIndex];
+  const useWordEndpoint = currentQuestion?.categoryId === "word";
   const useNumberEndpoint = currentQuestion?.categoryId === "number";
   const recognizer = useMemo(
-    () =>
-      new PracticeWebSocketSignRecognizer({
+    () => {
+      if (useWordEndpoint) {
+        return new WordWebSocketSignRecognizer({
+          url: getWordAiWebSocketUrl(),
+        });
+      }
+
+      return new PracticeWebSocketSignRecognizer({
         url: getAiWebSocketUrl(useNumberEndpoint),
-      }),
-    [useNumberEndpoint],
+      });
+    },
+    [useNumberEndpoint, useWordEndpoint],
   );
   const totalCount = questions.length;
   const remainingSeconds = Math.ceil(remainingMs / 1000);
@@ -213,7 +226,8 @@ export function TestProgressView({
   // 문항이 바뀔 때마다 목표 글자와 제한 시간을 초기화한다. 시간이 다 되면 오답 처리한다.
   useEffect(() => {
     answeredRef.current = false;
-    targetSymbolRef.current = currentQuestion?.symbol ?? "";
+    targetSymbolRef.current =
+      currentQuestion?.recognitionSymbol ?? currentQuestion?.symbol ?? "";
     setPrediction(null);
     setRemainingMs(TIME_LIMIT_MS);
 
@@ -284,7 +298,16 @@ export function TestProgressView({
 
           {/* 영상은 LIVE 뱃지만 얹고, 안내·컨트롤은 영상 아래에 따로 둔다. */}
           <div className="test-camera-placeholder">
-            {cameraStream ? (
+            {cameraStream && recognizer instanceof WordWebSocketSignRecognizer ? (
+              <WordHandCamera
+                sharedStream={cameraStream}
+                onLandmarkFrame={(frame) => recognizer.sendLandmarkFrame(frame)}
+                onHandsNotDetected={(capturedAt) =>
+                  recognizer.notifyHandsNotDetected(capturedAt)
+                }
+              />
+            ) : cameraStream &&
+              recognizer instanceof PracticeWebSocketSignRecognizer ? (
               <HandCamera
                 sharedStream={cameraStream}
                 autoStart

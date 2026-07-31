@@ -46,30 +46,49 @@ const startTest = (categoryLabel: string, count: string) => {
 
 /** 자음만 남기고 시작해 문항 수를 통제한다. */
 const startConsonantOnly = (count: string) => {
-  fireEvent.click(screen.getByRole("button", { name: /자음/ })); // 기본 선택 해제
-  fireEvent.click(screen.getByRole("button", { name: /자음/ })); // 다시 선택
   startTest("자음", count);
 };
 
 describe("TestPage 설정 화면", () => {
-  it("기본으로 자음이 선택되고 최대 문항 수를 안내한다", () => {
+  it("기본으로 분류와 문항 수가 선택되지 않고 시작할 수 없다", () => {
     renderPage();
 
     expect(
       screen.getByRole("button", { name: /자음/ }).getAttribute("aria-pressed"),
-    ).toBe("true");
-    expect(screen.getByText("최대 14문항")).toBeTruthy();
+    ).toBe("false");
+    expect(
+      screen.getByRole("button", { name: "5개" }).getAttribute("aria-pressed"),
+    ).toBe("false");
+    expect(screen.getByText("최대 0문항")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "테스트 시작" })).toHaveProperty(
+      "disabled",
+      true,
+    );
   });
 
   it("분류를 모두 해제하면 시작할 수 없다", () => {
     renderPage();
 
-    fireEvent.click(screen.getByRole("button", { name: /자음/ }));
-
     expect(screen.getByText("분류를 한 개 이상 선택해 주세요.")).toBeTruthy();
     expect(
       screen.getByRole("button", { name: "테스트 시작" }),
     ).toHaveProperty("disabled", true);
+  });
+
+  it("선택한 문항 수를 다시 누르면 선택이 해제된다", () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: /자음/ }));
+    const countButton = screen.getByRole("button", { name: "5개" });
+    fireEvent.click(countButton);
+    fireEvent.click(countButton);
+
+    expect(countButton.getAttribute("aria-pressed")).toBe("false");
+    expect(screen.getByText("문항 수를 선택해 주세요.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "테스트 시작" })).toHaveProperty(
+      "disabled",
+      true,
+    );
   });
 
   it("숫자 분류를 선택할 수 있다", () => {
@@ -83,6 +102,7 @@ describe("TestPage 설정 화면", () => {
   it("전체를 고르면 보유 글자 수만큼 출제한다", () => {
     renderPage();
 
+    fireEvent.click(screen.getByRole("button", { name: /자음/ }));
     fireEvent.click(screen.getByRole("button", { name: "전체" }));
 
     expect(
@@ -93,6 +113,7 @@ describe("TestPage 설정 화면", () => {
   it("직접 입력으로 문항 수를 지정할 수 있다", () => {
     renderPage();
 
+    fireEvent.click(screen.getByRole("button", { name: /자음/ }));
     fireEvent.click(screen.getByRole("button", { name: "직접 입력" }));
     fireEvent.change(screen.getByLabelText("문항 수 직접 입력"), {
       target: { value: "3" },
@@ -104,6 +125,7 @@ describe("TestPage 설정 화면", () => {
   it("보유 글자보다 많이 직접 입력하면 최대 문항 수로 바뀐다", () => {
     renderPage();
 
+    fireEvent.click(screen.getByRole("button", { name: /자음/ }));
     fireEvent.click(screen.getByRole("button", { name: "직접 입력" }));
     const input = screen.getByLabelText("문항 수 직접 입력");
     fireEvent.change(input, { target: { value: "20" } });
@@ -116,6 +138,7 @@ describe("TestPage 설정 화면", () => {
   it("최대치 이하로 직접 입력하면 입력값을 그대로 쓴다", () => {
     renderPage();
 
+    fireEvent.click(screen.getByRole("button", { name: /자음/ }));
     fireEvent.click(screen.getByRole("button", { name: "직접 입력" }));
     const input = screen.getByLabelText("문항 수 직접 입력");
     fireEvent.change(input, { target: { value: "7" } });
@@ -127,6 +150,7 @@ describe("TestPage 설정 화면", () => {
   it("분류를 넓히면 그만큼 더 큰 문항 수를 입력할 수 있다", () => {
     renderPage();
 
+    fireEvent.click(screen.getByRole("button", { name: /자음/ }));
     // 자음(14)만 고른 상태에서는 20이 14로 잘린다.
     fireEvent.click(screen.getByRole("button", { name: "직접 입력" }));
     const input = screen.getByLabelText("문항 수 직접 입력");
@@ -144,6 +168,7 @@ describe("TestPage 설정 화면", () => {
   it("직접 입력을 0으로 두면 시작할 수 없다", () => {
     renderPage();
 
+    fireEvent.click(screen.getByRole("button", { name: /자음/ }));
     fireEvent.click(screen.getByRole("button", { name: "직접 입력" }));
     fireEvent.change(screen.getByLabelText("문항 수 직접 입력"), {
       target: { value: "0" },
@@ -159,6 +184,7 @@ describe("TestPage 설정 화면", () => {
   it("분류를 중복 선택할 수 있다", () => {
     renderPage();
 
+    fireEvent.click(screen.getByRole("button", { name: /자음/ }));
     fireEvent.click(screen.getByRole("button", { name: /모음/ }));
 
     expect(screen.getByText("최대 31문항")).toBeTruthy();
@@ -203,9 +229,8 @@ describe("TestPage 진행 화면", () => {
 
   it("모음 문항도 분류 뱃지가 모음으로 표시된다", () => {
     renderPage();
-    // 자음 해제 후 모음만 선택
-    fireEvent.click(screen.getByRole("button", { name: /자음/ }));
     fireEvent.click(screen.getByRole("button", { name: /모음/ }));
+    fireEvent.click(screen.getByRole("button", { name: "5개" }));
     fireEvent.click(screen.getByRole("button", { name: "테스트 시작" }));
 
     const tags = document.querySelector(".test-question-tags") as HTMLElement;
@@ -454,6 +479,7 @@ describe("TestPage 결과 화면", () => {
   it("문항이 많아도 목록과 하단 버튼이 모두 렌더된다", () => {
     renderPage();
     // 자음 전체(14문항)로 목록이 길어지는 상황을 만든다.
+    fireEvent.click(screen.getByRole("button", { name: /자음/ }));
     fireEvent.click(screen.getByRole("button", { name: "전체" }));
     fireEvent.click(screen.getByRole("button", { name: "테스트 시작" }));
     for (let index = 0; index < 14; index += 1) {
