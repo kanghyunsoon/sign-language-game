@@ -34,6 +34,7 @@ export interface SoloGameResult extends CompleteSoloSessionRequest {
   readonly playMode: SoloPlayMode;
   readonly difficulty: string;
   readonly startedAt: number;
+  readonly awardedExp: number;
 }
 
 export interface SoloGameApi {

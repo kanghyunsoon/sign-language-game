@@ -2,16 +2,18 @@ export interface RankingEntry {
   readonly rank: number;
   readonly userId: number;
   readonly nickname: string;
-  readonly winCount: number;
-  readonly lossCount: number;
+  readonly score: number;
+  readonly playDurationMs: number;
 }
 export interface RankingResponse {
   readonly top: readonly RankingEntry[];
   readonly me: RankingEntry | null;
 }
+export type RankingGameType = "SIGN_DUEL" | "TETRIS_DUEL" | "TETRIS_SOLO";
 export interface RankingClientOptions {
   readonly apiBaseUrl: string;
   readonly userId: string;
+  readonly gameType: RankingGameType;
   readonly headers?: HeadersInit | (() => HeadersInit | Promise<HeadersInit>);
   readonly fetcher?: typeof globalThis.fetch;
 }
@@ -23,13 +25,13 @@ export class RankingClient {
     this.baseUrl = options.apiBaseUrl.replace(/\/$/, "");
     this.fetcher = options.fetcher ?? globalThis.fetch.bind(globalThis);
   }
-  async get(): Promise<RankingResponse> {
+  async get(init: Pick<RequestInit, "cache" | "signal"> = {}): Promise<RankingResponse> {
     const headers = typeof this.options.headers === "function"
       ? await this.options.headers()
       : this.options.headers ?? {};
     const response = await this.fetcher(
-      `${this.baseUrl}/rankings?userId=${encodeURIComponent(this.options.userId)}`,
-      { credentials: "include", headers },
+      `${this.baseUrl}/rankings?userId=${encodeURIComponent(this.options.userId)}&gameType=${encodeURIComponent(this.options.gameType)}`,
+      { ...init, credentials: "include", headers },
     );
     if (!response.ok) throw new Error(`Ranking request failed (${response.status}).`);
     return parseRankingResponse(await response.json());
@@ -49,8 +51,8 @@ function parseEntry(value: unknown): RankingEntry {
     rank: integer(value.rank, "rank"),
     userId: integer(value.userId, "userId"),
     nickname: text(value.nickname, "nickname"),
-    winCount: integer(value.winCount, "winCount"),
-    lossCount: integer(value.lossCount, "lossCount"),
+    score: integer(value.score, "score"),
+    playDurationMs: integer(value.playDurationMs, "playDurationMs"),
   };
 }
 function integer(value: unknown, name: string): number {

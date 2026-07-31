@@ -15,8 +15,6 @@ export interface HttpSoloGameApiOptions {
   readonly fetcher?: SoloFetch;
   readonly credentials?: RequestCredentials;
   readonly headers?: HeadersInit | SoloHeadersProvider;
-  readonly now?: () => number;
-  readonly createId?: () => string;
 }
 
 export class SoloGameApiError extends Error {
@@ -29,71 +27,42 @@ export class SoloGameApiError extends Error {
 /**
  * Swagger-backed solo result client.
  *
- * The backend deliberately has no solo room/session endpoint. Session lifetime
- * remains local and only the elapsed-second score is reported on completion.
+ * OpenAPI-backed solo session and result client.
  */
 export class HttpSoloGameApi implements SoloGameApi {
   private readonly baseUrl: string;
   private readonly fetcher: SoloFetch;
   private readonly credentials: RequestCredentials;
   private readonly configuredHeaders: HeadersInit | SoloHeadersProvider;
-  private readonly now: () => number;
-  private readonly createId: () => string;
-  private activeSession: StartSoloSessionResponse | null = null;
-  private latestResult: SoloGameResult | null = null;
 
   constructor(private readonly options: HttpSoloGameApiOptions) {
     this.baseUrl = (options.baseUrl ?? "/api").replace(/\/$/, "");
     this.fetcher = options.fetcher ?? globalThis.fetch.bind(globalThis);
     this.credentials = options.credentials ?? "same-origin";
     this.configuredHeaders = options.headers ?? {};
-    this.now = options.now ?? Date.now;
-    this.createId = options.createId ?? createSessionId;
   }
 
   async startSession(request: StartSoloSessionRequest): Promise<StartSoloSessionResponse> {
-    const session: StartSoloSessionResponse = {
-      ...request,
-      symbolRange: [...request.symbolRange],
-      soloSessionId: this.createId(),
-      userId: this.options.userId,
-      startedAt: this.now(),
-    };
-    this.activeSession = session;
-    return session;
+    return parseStartSoloSession(await this.request(
+      `/game/solo/sessions?userId=${encodeURIComponent(this.options.userId)}`,
+      { method: "POST", body: JSON.stringify(request) },
+    ));
   }
 
   async completeSession(soloSessionId: string, request: CompleteSoloSessionRequest): Promise<SoloGameResult> {
-    const session = this.activeSession;
-    if (session === null || session.soloSessionId !== soloSessionId) {
-      throw new SoloGameApiError("Solo session was not found.");
-    }
-
-    const payload = await this.request(
-      `/solo-results?userId=${encodeURIComponent(this.options.userId)}`,
-      {
-        method: "POST",
-        body: JSON.stringify({ score: request.finalScore }),
-      },
-    );
-    const recordedScore = parseReportedScore(payload);
-    const result: SoloGameResult = {
-      ...request,
-      finalScore: recordedScore,
-      symbolStatistics: [...request.symbolStatistics],
-      soloSessionId,
-      userId: session.userId,
-      playMode: session.playMode,
-      difficulty: session.difficulty,
-      startedAt: session.startedAt,
-    };
-    this.latestResult = result;
-    this.activeSession = null;
-    return result;
+    return parseSoloGameResult(await this.request(
+      `/game/solo/sessions/${encodeURIComponent(soloSessionId)}/complete?userId=${encodeURIComponent(this.options.userId)}`,
+      { method: "POST", body: JSON.stringify(request) },
+    ));
   }
 
   async getResults(): Promise<readonly SoloGameResult[]> {
-    return this.latestResult === null ? [] : [this.latestResult];
+    const payload = await this.request(
+      `/game/solo/results?userId=${encodeURIComponent(this.options.userId)}`,
+      { method: "GET" },
+    );
+    if (!Array.isArray(payload)) throw new SoloGameApiError("solo results must be an array.");
+    return payload.map(parseSoloGameResult);
   }
 
   async getRank(): Promise<number | null> {
@@ -129,9 +98,34 @@ export class HttpSoloGameApi implements SoloGameApi {
   }
 }
 
-function parseReportedScore(value: unknown): number {
+function parseStartSoloSession(value: unknown): StartSoloSessionResponse {
+  const record = requireRecord(value, "solo session");
+  return {
+    soloSessionId: requireString(record.soloSessionId, "soloSessionId"),
+    userId: requireString(record.userId, "userId"),
+    difficulty: requireString(record.difficulty, "difficulty"),
+    symbolRange: requireStringArray(record.symbolRange, "symbolRange"),
+    playMode: requirePlayMode(record.playMode),
+    startedAt: requireInteger(record.startedAt, "startedAt"),
+  };
+}
+
+function parseSoloGameResult(value: unknown): SoloGameResult {
   const record = requireRecord(value, "solo result");
-  return requireInteger(record.score, "score");
+  return {
+    soloSessionId: requireString(record.soloSessionId, "soloSessionId"),
+    userId: requireString(record.userId, "userId"),
+    difficulty: requireString(record.difficulty, "difficulty"),
+    playMode: requirePlayMode(record.playMode),
+    finalScore: requireInteger(record.finalScore, "finalScore"),
+    maxCombo: requireInteger(record.maxCombo, "maxCombo"),
+    removedSymbolCount: requireInteger(record.removedSymbolCount, "removedSymbolCount"),
+    playDurationMs: requireInteger(record.playDurationMs, "playDurationMs"),
+    symbolStatistics: requireSymbolStatistics(record.symbolStatistics),
+    startedAt: requireInteger(record.startedAt, "startedAt"),
+    endedAt: requireInteger(record.endedAt, "endedAt"),
+    awardedExp: requireInteger(record.awardedExp, "awardedExp"),
+  };
 }
 
 function parseMyRank(value: unknown): number | null {
@@ -155,6 +149,32 @@ function requireInteger(value: unknown, name: string): number {
   return value;
 }
 
-function createSessionId(): string {
-  return globalThis.crypto?.randomUUID?.() ?? `solo-${Date.now()}`;
+function requireString(value: unknown, name: string): string {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new SoloGameApiError(`${name} must be a non-empty string.`);
+  }
+  return value;
+}
+
+function requireStringArray(value: unknown, name: string): readonly string[] {
+  if (!Array.isArray(value)) throw new SoloGameApiError(`${name} must be an array.`);
+  return value.map((item) => requireString(item, name));
+}
+
+function requirePlayMode(value: unknown): StartSoloSessionResponse["playMode"] {
+  if (value !== "KEYBOARD" && value !== "AI") throw new SoloGameApiError("Invalid playMode.");
+  return value;
+}
+
+function requireSymbolStatistics(value: unknown): SoloGameResult["symbolStatistics"] {
+  if (!Array.isArray(value)) throw new SoloGameApiError("symbolStatistics must be an array.");
+  return value.map((item) => {
+    const record = requireRecord(item, "symbol statistic");
+    return {
+      symbol: requireString(record.symbol, "symbol"),
+      correctCount: requireInteger(record.correctCount, "correctCount"),
+      incorrectCount: requireInteger(record.incorrectCount, "incorrectCount"),
+      confirmedCount: requireInteger(record.confirmedCount, "confirmedCount"),
+    };
+  });
 }

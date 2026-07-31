@@ -64,6 +64,7 @@ export class LocalSoloGameApi implements SoloGameApi {
       playMode: session.playMode,
       difficulty: session.difficulty,
       startedAt: session.startedAt,
+      awardedExp: 0,
     };
     this.writeResults([...results, result]);
     this.sessions.delete(soloSessionId);

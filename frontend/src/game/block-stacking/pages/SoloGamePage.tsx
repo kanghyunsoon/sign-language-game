@@ -30,6 +30,7 @@ import { RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG } from "../../recognition/r
 import { RESPONSIVE_GAMEPLAY_SIGN_DECODER_CONFIG } from "../../recognition/temporal";
 import { SignGuideImage } from "../../recognition/components/SignGuideImage";
 import { useSharedCameraOwnerCleanup } from "../../media/camera/useSharedCameraOwnerCleanup";
+import { RankingClient } from "../../ranking";
 import resultOtter from "../assets/game-menu-otter.png";
 import letterOtter from "../assets/solo-letter-otter.png";
 import startTitle from "../assets/solo-start-title.png";
@@ -125,6 +126,12 @@ export function SoloGamePage({
     credentials: "include",
     headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
   }), [accessToken, config.soloApiBaseUrl]);
+  const rankingClient = useMemo(() => new RankingClient({
+    apiBaseUrl: config.soloApiBaseUrl,
+    userId: user.userId,
+    gameType: "TETRIS_SOLO",
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+  }), [accessToken, config.soloApiBaseUrl, user.userId]);
   const resolvedSoloGameApiFactory = useMemo(
     () => soloGameApiFactory ?? (() => services.soloGameApi),
     [services.soloGameApi, soloGameApiFactory],
@@ -161,10 +168,10 @@ export function SoloGamePage({
   const [soloRank, setSoloRank] = useState<number | null>(null);
   const [topRankingIds, setTopRankingIds] = useState<readonly string[]>(["-", "-", "-"]);
   const [topRankingScores, setTopRankingScores] = useState<readonly string[]>(["-", "-", "-"]);
-  const [myRanking, setMyRanking] = useState<{ rank: number | null; userId: string; score: number | null }>({
+  const [myRanking, setMyRanking] = useState<{ rank: number | null; userId: string; playDurationMs: number | null }>({
     rank: null,
     userId: String(user.userId),
-    score: null,
+    playDurationMs: null,
   });
   const [cameraStream,setCameraStream]=useState(()=>sharedCameraSession.getStream());
   const [pageScale, setPageScale] = useState(1);
@@ -194,41 +201,19 @@ export function SoloGamePage({
     const controller = new AbortController();
     const loadRankings = async () => {
       try {
-        const response = await fetch(
-          `${config.soloApiBaseUrl.replace(/\/$/, "")}/rankings?userId=${encodeURIComponent(user.userId)}&gameType=TETRIS_SOLO&_=${Date.now()}`,
-          {
-            cache: "no-store",
-            credentials: "include",
-            headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-            signal: controller.signal,
-          },
-        );
-        if (!response.ok) return;
-        const payload = await response.json() as { top?: unknown; me?: unknown };
-        if (!Array.isArray(payload.top)) return;
-        const ids = payload.top.slice(0, 3).map((entry) => {
-          if (typeof entry !== "object" || entry === null || !("userId" in entry)) return "-";
-          const id = (entry as { userId?: unknown }).userId;
-          return typeof id === "string" || typeof id === "number" ? String(id) : "-";
-        });
-        const scores = payload.top.slice(0, 3).map((entry) => {
-          if (typeof entry !== "object" || entry === null || !("score" in entry)) return null;
-          const score = (entry as { score?: unknown }).score;
-          return typeof score === "number" ? `${score}초` : null;
-        });
+        const payload = await rankingClient.get({ cache: "no-store", signal: controller.signal });
+        const ids = payload.top.slice(0, 3).map((entry) => String(entry.userId));
+        const scores = payload.top.slice(0, 3).map((entry) => `${formatRankingSeconds(entry.playDurationMs)}초`);
         setTopRankingIds([ids[0] ?? "-", ids[1] ?? "-", ids[2] ?? "-"]);
         setTopRankingScores([scores[0] ?? "-", scores[1] ?? "-", scores[2] ?? "-"]);
-        if (typeof payload.me === "object" && payload.me !== null) {
-          const me = payload.me as { rank?: unknown; userId?: unknown; score?: unknown };
+        if (payload.me !== null) {
           setMyRanking({
-            rank: typeof me.rank === "number" ? me.rank : null,
-            userId: typeof me.userId === "string" || typeof me.userId === "number"
-              ? String(me.userId)
-              : String(user.userId),
-            score: typeof me.score === "number" ? me.score : null,
+            rank: payload.me.rank,
+            userId: String(payload.me.userId),
+            playDurationMs: payload.me.playDurationMs,
           });
         } else {
-          setMyRanking({ rank: null, userId: String(user.userId), score: null });
+          setMyRanking({ rank: null, userId: String(user.userId), playDurationMs: null });
         }
       } catch {
         // Keep the start screen usable while the ranking API is unavailable.
@@ -243,7 +228,7 @@ export function SoloGamePage({
       window.clearInterval(refreshTimer);
       window.removeEventListener("focus", refreshRankings);
     };
-  }, [accessToken, config.soloApiBaseUrl, user.userId]);
+  }, [rankingClient, user.userId]);
 
   // Runtime snapshots are normally published for gameplay events. Poll the
   // runtime clock separately while playing so the visible timer advances even
@@ -696,7 +681,7 @@ export function SoloGamePage({
                 <div className="solo-start-my-ranking" aria-label="내 솔로 랭킹">
                   <span><small>내 순위</small><b>{myRanking.rank === null ? "-" : `${myRanking.rank}위`}</b></span>
                   <span><small>아이디</small><b>{myRanking.userId}</b></span>
-                  <span><small>기록</small><b>{myRanking.score === null ? "-" : `${myRanking.score}초`}</b></span>
+                  <span><small>기록</small><b>{myRanking.playDurationMs === null ? "-" : `${formatRankingSeconds(myRanking.playDurationMs)}초`}</b></span>
                 </div>
                 <button type="button" onClick={startOrResume} disabled={sessionStarting}>
                   <Play aria-hidden="true" size={28} />
@@ -821,6 +806,12 @@ function ResultStatistics({ statistics }: { readonly statistics: RecognitionGame
 function formatPlayTime(playTimeMs: number): string {
   const totalSeconds = Math.floor(playTimeMs / 1000);
   return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
+}
+
+function formatRankingSeconds(playDurationMs: number): string {
+  return (playDurationMs / 1000).toLocaleString("ko-KR", {
+    maximumFractionDigits: playDurationMs % 1000 === 0 ? 0 : 1,
+  });
 }
 
 const SOLO_GAME_SYMBOLS = GAME_SYMBOLS.filter((symbol) => !/^\d+$/.test(symbol));

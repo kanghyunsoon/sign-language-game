@@ -12,7 +12,7 @@ import type {
 const startRequest: StartSoloSessionRequest = { difficulty: "BEGINNER", symbolRange: ["ㄱ"], playMode: "AI" };
 const session: StartSoloSessionResponse = { ...startRequest, soloSessionId: "session-1", userId: "user-1", startedAt: 1_000 };
 const completion: CompleteSoloSessionRequest = { finalScore: 100, maxCombo: 1, removedSymbolCount: 1, playDurationMs: 1_000, symbolStatistics: [{ symbol: "ㄱ", correctCount: 1, incorrectCount: 0, confirmedCount: 1 }], endedAt: 2_000 };
-const result: SoloGameResult = { ...completion, soloSessionId: "session-1", userId: "user-1", playMode: "AI", difficulty: "BEGINNER", startedAt: 1_000 };
+const result: SoloGameResult = { ...completion, soloSessionId: "session-1", userId: "user-1", playMode: "AI", difficulty: "BEGINNER", startedAt: 1_000, awardedExp: 3 };
 
 describe("SoloSessionCoordinator", () => {
   it("creates a server session before exposing an active game", async () => {

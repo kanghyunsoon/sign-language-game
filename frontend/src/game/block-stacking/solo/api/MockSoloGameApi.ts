@@ -35,7 +35,7 @@ export class MockSoloGameApi implements SoloGameApi {
     const session = this.sessions.get(soloSessionId);
     if (!session) throw new Error("Mock solo session was not found.");
     if (this.results.some((result) => result.soloSessionId === soloSessionId)) throw new Error("Mock solo session is already completed.");
-    const result = { ...request, symbolStatistics: [...request.symbolStatistics], soloSessionId, userId: session.userId, playMode: session.playMode, difficulty: session.difficulty, startedAt: session.startedAt };
+    const result = { ...request, symbolStatistics: [...request.symbolStatistics], soloSessionId, userId: session.userId, playMode: session.playMode, difficulty: session.difficulty, startedAt: session.startedAt, awardedExp: 0 };
     this.results.push(result);
     return result;
   }
