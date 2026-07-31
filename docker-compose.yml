@@ -31,3 +31,23 @@ services:
 
     ports:
       - "127.0.0.1:8766:8766"
+  word-ai:
+    image: sudal-word-ai:latest
+    container_name: sudal-word-ai
+    restart: unless-stopped
+    init: true
+
+    environment:
+      HANDPRACTICE_WORD_HOST: 0.0.0.0
+      HANDPRACTICE_WORD_PORT: 8767
+      HANDPRACTICE_WORD_PATH: /word
+      HANDPRACTICE_WORD_CHECKPOINT: /app/models/word-13-v1/best_model.pt
+      HANDPRACTICE_WORD_CHECKPOINT_SHA256: ${HANDPRACTICE_WORD_CHECKPOINT_SHA256:-8ea4b248bdd270d21ff90e83be4ce7cd21a1916635357e7a75dcd0098a292a9f}
+      HANDPRACTICE_WORD_TORCH_THREADS: ${HANDPRACTICE_WORD_TORCH_THREADS:-2}
+      HANDPRACTICE_WORD_INFERENCE_WORKERS: ${HANDPRACTICE_WORD_INFERENCE_WORKERS:-1}
+
+    ports:
+      - "127.0.0.1:8767:8767"
+
+    volumes:
+      - ${AI_MODEL_DIR:-/opt/sudal/ai/models}:/app/models:ro
