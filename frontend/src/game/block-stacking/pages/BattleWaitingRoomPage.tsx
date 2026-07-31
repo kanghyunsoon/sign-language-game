@@ -306,7 +306,10 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
       unsubscribe();
       unsubscribeError();
       if (roomSocketRef.current === socket) roomSocketRef.current = null;
-      socket.disconnect();
+      // The media session reuses this exact room socket for WebRTC signaling.
+      // Closing it while the waiting route unmounts would make the backend
+      // observe a participant disconnect during the transition to /play.
+      if (!enteringGameRef.current) socket.disconnect();
     };
   }, [gateway, roomId, services.roomRealtimeSocketFactory]);
 

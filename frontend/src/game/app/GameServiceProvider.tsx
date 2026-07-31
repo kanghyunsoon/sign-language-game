@@ -32,25 +32,31 @@ export function GameServiceProvider({ children, user, accessToken, config, onExi
     import.meta.env.VITE_P2P_E2E === "true" ? { getUserMedia: async () => createE2eCameraStream() } : {},
   ));
   const [activePlayerSession] = useState(() => new DefaultActivePlayerSession());
+  const roomSocketsRef = useRef(new Map<string, RoomRealtimeSocket>());
+  const getRoomRealtimeSocket = useCallback((roomId: string) => {
+    const existing = roomSocketsRef.current.get(roomId);
+    if (existing) return existing;
+    const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : createDevAuthHeaders(user);
+    const ticketClient = new RealtimeTicketClient({
+      apiBaseUrl: config.roomApiBaseUrl,
+      userId: user.userId,
+      headers,
+    });
+    const socket = new RoomRealtimeSocket({
+      webSocketBaseUrl: config.roomWebSocketBaseUrl ?? config.gameWebSocketUrl,
+      roomId,
+      localUserId: user.userId,
+      ticketClient,
+    });
+    roomSocketsRef.current.set(roomId, socket);
+    return socket;
+  }, [accessToken, config.gameWebSocketUrl, config.roomApiBaseUrl, config.roomWebSocketBaseUrl, user]);
   const [battleMediaSession] = useState(() => {
     const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : createDevAuthHeaders(user);
     return new MeshBattleMediaSession({
       localUser: user,
       loadIceServers: async () => (await requestWebRtcClientConfig(config.rtcConfigApiBaseUrl ?? "/api/webrtc/ice-servers", { headers })).iceServers,
-      createSignalingTransport: (roomId) => {
-        const ticketClient = new RealtimeTicketClient({
-          apiBaseUrl: config.roomApiBaseUrl,
-          userId: user.userId,
-          headers,
-        });
-        const roomSocket = new RoomRealtimeSocket({
-          webSocketBaseUrl: config.roomWebSocketBaseUrl ?? config.gameWebSocketUrl,
-          roomId,
-          localUserId: user.userId,
-          ticketClient,
-        });
-        return new NativeRoomWebRtcSignalingTransport(roomSocket);
-      },
+      createSignalingTransport: (roomId) => new NativeRoomWebRtcSignalingTransport(getRoomRealtimeSocket(roomId)),
     });
   });
   const [battleRoomSession, setBattleRoomSessionState] = useState<BattleRoomSession | null>(() => readBattleRoomSession(user.userId));
@@ -77,8 +83,8 @@ export function GameServiceProvider({ children, user, accessToken, config, onExi
     return () => window.removeEventListener("storage", synchronizeRoomSession);
   }, [user.userId]);
   const services = useMemo(
-    () => ({ ...createDefaultServices(user, accessToken, config, () => battleMediaSession.getGameDataChannel()), ...serviceOverrides }),
-    [accessToken, config, serviceOverrides, user],
+    () => ({ ...createDefaultServices(user, accessToken, config, () => battleMediaSession.getGameDataChannel(), getRoomRealtimeSocket), ...serviceOverrides }),
+    [accessToken, config, getRoomRealtimeSocket, serviceOverrides, user],
   );
   const [glyphTurnTransport] = useState(() => new P2pGlyphTurnMatchTransport({
     getChannel: () => battleMediaSession.getGameDataChannel(),
@@ -101,7 +107,11 @@ export function GameServiceProvider({ children, user, accessToken, config, onExi
         if (cleanupGenerationRef.current !== cleanupGeneration) return;
         activePlayerSession.dispose();
         glyphTurnTransport.disconnect();
-        void battleMediaSession.disconnect().finally(() => sharedCameraSession.stop());
+        void battleMediaSession.disconnect().finally(() => {
+          for (const socket of roomSocketsRef.current.values()) socket.disconnect();
+          roomSocketsRef.current.clear();
+          sharedCameraSession.stop();
+        });
       });
     };
   }, [activePlayerSession, battleMediaSession, glyphTurnTransport, sharedCameraSession]);
@@ -147,7 +157,13 @@ function persistBattleRoomSession(userId: string, session: BattleRoomSession | n
   }
 }
 
-function createDefaultServices(user: GameModuleUser, accessToken: string | undefined, config: GameModuleConfig, getGameDataChannel: () => import("../media/core/GameDataChannel").GameDataChannel | null): GameModuleServices {
+function createDefaultServices(
+  user: GameModuleUser,
+  accessToken: string | undefined,
+  config: GameModuleConfig,
+  getGameDataChannel: () => import("../media/core/GameDataChannel").GameDataChannel | null,
+  getRoomRealtimeSocket: (roomId: string) => RoomRealtimeSocket,
+): GameModuleServices {
   // 운영 빌드에서는 dev 폴백(DevBattleRoomGateway + X-Dev-User 헤더)을 차단한다.
   // /game 진입은 ProtectedRoute가 accessToken을 보장하므로 여기서는 방어적 처리다.
   const isProduction = import.meta.env.PROD;
@@ -171,19 +187,7 @@ function createDefaultServices(user: GameModuleUser, accessToken: string | undef
       ? new SwaggerBattleRoomGateway({ baseUrl: config.roomApiBaseUrl, currentUser: user, credentials: "include", headers, gameType: "SIGN_DUEL" })
       : new DevBattleRoomGateway({ baseUrl: config.roomApiBaseUrl, currentUser: user, credentials: "include", headers }),
     roomRealtimeSocketFactory: {
-      create: (roomId) => {
-        const ticketClient = new RealtimeTicketClient({
-          apiBaseUrl: config.roomApiBaseUrl,
-          userId: user.userId,
-          headers,
-        });
-        return new RoomRealtimeSocket({
-          webSocketBaseUrl: config.roomWebSocketBaseUrl ?? config.gameWebSocketUrl,
-          roomId,
-          localUserId: user.userId,
-          ticketClient,
-        });
-      },
+      create: getRoomRealtimeSocket,
     },
     battleGameTransportFactory: {
       create: () => new P2pBattleTransport(getGameDataChannel, user.userId),

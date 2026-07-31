@@ -133,6 +133,7 @@ describe("BattleWaitingRoomPage backend flow", () => {
     await waitFor(() => expect(joinRoom).toHaveBeenCalledWith("ABC123"));
     expect(await screen.findByText("PLAY_ROUTE")).toBeTruthy();
     expect(connect).toHaveBeenCalledTimes(1);
+    expect(socket.disconnect).not.toHaveBeenCalled();
   });
 
   it("does not enter the play page from GAME_STARTED until the backend confirms PLAYING", async () => {
