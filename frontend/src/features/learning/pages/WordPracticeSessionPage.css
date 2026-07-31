@@ -1,25 +1,23 @@
 .word-answer-guide {
+  min-width: 0;
+  overflow: hidden;
   justify-content: center;
 }
 
-.word-current-index {
-  position: absolute;
-  top: min(1.458333vw, 2.333333vh);
-  left: min(1.458333vw, 2.333333vh);
-  width: min(3.385417vw, 5.416667vh);
-  height: min(3.385417vw, 5.416667vh);
-  display: grid;
-  place-items: center;
-  border-radius: min(0.885417vw, 1.416667vh);
-  color: #485052;
-  font-size: min(1.5625vw, 2.5vh);
-  font-weight: 900;
-  background: #ffffff;
+.word-practice-session-page .practice-camera-button {
+  width: min(8.854167vw, 14.166667vh);
+  padding: 0 min(0.625vw, 1vh);
+  font-size: min(0.9375vw, 1.5vh);
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .word-guide-placeholder {
   width: min(19.270833vw, 30.833333vh);
   height: min(15.625vw, 25vh);
+  max-width: 100%;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -28,27 +26,23 @@
   border: min(0.104167vw, 0.166667vh) dashed #cbbda9;
   border-radius: min(1.145833vw, 1.833333vh);
   color: #7d6d61;
+  text-align: center;
   background: rgba(255, 255, 255, 0.68);
+  overflow: hidden;
 }
 
-.word-guide-placeholder span {
-  font-size: min(3.125vw, 5vh);
-}
-
-.word-guide-placeholder p,
-.word-id-label {
+.word-guide-placeholder p {
   margin: 0;
 }
 
 .word-guide-placeholder p {
+  width: 100%;
+  padding: 0 min(0.625vw, 1vh);
   font-size: min(1.041667vw, 1.666667vh);
   font-weight: 700;
-}
-
-.word-id-label {
-  color: #9a8d82;
-  font-size: min(0.885417vw, 1.416667vh);
-  font-weight: 700;
+  line-height: 1.45;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 .word-hand-camera,
@@ -80,41 +74,14 @@
   inset: 50% auto auto 50%;
   z-index: 3;
   margin: 0;
+  width: 80%;
   color: #ffffff;
+  font-size: min(0.989583vw, 1.583333vh);
   font-weight: 800;
+  line-height: 1.45;
+  text-align: center;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
   transform: translate(-50%, -50%);
 }
 
-.word-prediction-badge {
-  position: absolute;
-  top: min(0.833333vw, 1.333333vh);
-  right: min(0.833333vw, 1.333333vh);
-  z-index: 4;
-  padding: min(0.364583vw, 0.583333vh) min(0.625vw, 1vh);
-  border-radius: 999px;
-  color: #ffffff;
-  font-size: min(0.78125vw, 1.25vh);
-  font-weight: 900;
-  background: rgba(30, 37, 41, 0.78);
-}
-
-.word-single-user-notice {
-  min-height: min(2.5vw, 4vh);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: min(0.625vw, 1vh);
-  margin: 0;
-  padding: 0 min(1.041667vw, 1.666667vh);
-  color: #7d6d61;
-  font-size: min(0.78125vw, 1.25vh);
-  font-weight: 700;
-}
-
-.word-single-user-notice span {
-  white-space: nowrap;
-}
-
-.word-single-user-notice span[data-state="CONNECTED"] {
-  color: #67824f;
-}

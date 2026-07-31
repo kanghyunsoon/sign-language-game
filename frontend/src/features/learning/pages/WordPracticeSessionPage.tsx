@@ -2,7 +2,6 @@ import "./PracticeSessionPage.css";
 import "./WordPracticeSessionPage.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import type { RecognitionConnectionState } from "../../../game/recognition";
 import { SiteFooter } from "../../../shared/components/SiteFooter";
 import { WordHandCamera } from "../components/WordHandCamera";
 import { getWordAiWebSocketUrl } from "../data/aiRecognition";
@@ -33,12 +32,6 @@ export function WordPracticeSessionPage({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
-  const [connectionState, setConnectionState] =
-    useState<RecognitionConnectionState>("DISCONNECTED");
-  const [prediction, setPrediction] = useState<{
-    readonly symbol: string;
-    readonly confidence: number;
-  } | null>(null);
   const [recognitionMessage, setRecognitionMessage] =
     useState("단어 AI 연결을 준비하고 있습니다.");
   const [cameraMessage, setCameraMessage] =
@@ -55,7 +48,6 @@ export function WordPracticeSessionPage({
   useEffect(() => {
     targetWordIdRef.current = currentWord.id;
     answeredRef.current = false;
-    setPrediction(null);
     setIsCorrect(false);
     recognizer.resetSequence();
     setRecognitionMessage(
@@ -68,7 +60,6 @@ export function WordPracticeSessionPage({
   useEffect(() => {
     const unsubscribe = recognizer.subscribe((event) => {
       if (event.type === "CONNECTION_STATE") {
-        setConnectionState(event.state);
         if (event.state === "CONNECTED") {
           setRecognitionMessage(
             "카메라에 한 명만 들어와 수어 동작을 보여주세요.",
@@ -82,10 +73,6 @@ export function WordPracticeSessionPage({
       }
 
       if (event.type === "PREDICTION") {
-        setPrediction({
-          symbol: event.symbol,
-          confidence: event.confidence,
-        });
         setRecognitionMessage(`AI 인식 중: ${event.symbol}`);
         return;
       }
@@ -108,7 +95,6 @@ export function WordPracticeSessionPage({
       }
 
       if (event.type === "HAND_RELEASED" && !answeredRef.current) {
-        setPrediction(null);
         setRecognitionMessage(
           "카메라에 한 명만 들어와 수어 동작을 보여주세요.",
         );
@@ -242,17 +228,12 @@ export function WordPracticeSessionPage({
               </span>
               <div className="practice-answer-content">
                 <div className="practice-answer-guide word-answer-guide">
-                  <span className="word-current-index">
-                    {currentIndex + 1}
-                  </span>
-                  <div className="word-guide-placeholder" aria-label="수어 동작 영상 준비 중">
-                    <span>🎬</span>
-                    <p>수어 동작 영상은 준비 중입니다.</p>
+                  <div className="word-guide-placeholder" aria-label="영상 준비 중">
+                    <p>수어 영상은 준비 중입니다.</p>
                   </div>
                   <div className="practice-item-navigation">
                     <strong>{currentWord.name}</strong>
                   </div>
-                  <p className="word-id-label">{currentWord.id}</p>
                 </div>
               </div>
             </article>
@@ -284,21 +265,9 @@ export function WordPracticeSessionPage({
                     <p className="practice-recognition-message" role="status">
                       {recognitionMessage}
                     </p>
-                    {prediction && (
-                      <span className="word-prediction-badge">
-                        AI {prediction.symbol}{" "}
-                        {Math.round(prediction.confidence * 100)}%
-                      </span>
-                    )}
                   </>
                 )}
               </div>
-              <p className="word-single-user-notice">
-                카메라 영역에는 한 명만 들어와 주세요.
-                <span data-state={connectionState}>
-                  AI {connectionState === "CONNECTED" ? "연결됨" : "연결 대기"}
-                </span>
-              </p>
             </article>
           </section>
 
