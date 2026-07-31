@@ -6,6 +6,7 @@ import {
   currentStreak,
   formatMonthTitle,
   shiftMonth,
+  stampVariantFor,
   startOfWeek,
   streakEndingAt,
   toDateKey,
@@ -125,6 +126,125 @@ describe("월 이동", () => {
   });
 });
 
+describe("stampVariantFor", () => {
+  const COUNT = 4;
+
+  it("같은 날은 늘 같은 그림을 준다", () => {
+    // 다시 그려도 이미 찍힌 스탬프가 바뀌지 않아야 한다.
+    expect(stampVariantFor("2026-07-14", COUNT)).toBe(
+      stampVariantFor("2026-07-14", COUNT),
+    );
+  });
+
+  it("고른 값이 그림 개수 안에 든다", () => {
+    const keys = Array.from(
+      { length: 31 },
+      (_, index) => `2026-07-${String(index + 1).padStart(2, "0")}`,
+    );
+
+    keys.forEach((key) => {
+      const variant = stampVariantFor(key, COUNT);
+
+      expect(variant).toBeGreaterThanOrEqual(0);
+      expect(variant).toBeLessThan(COUNT);
+    });
+  });
+
+  it("한 달 안에서 네 그림이 모두 나온다", () => {
+    const variants = new Set(
+      Array.from({ length: 31 }, (_, index) =>
+        stampVariantFor(
+          `2026-07-${String(index + 1).padStart(2, "0")}`,
+          COUNT,
+        ),
+      ),
+    );
+
+    expect(variants.size).toBe(COUNT);
+  });
+
+  it("이어진 날짜가 같은 그림으로 몰리지 않는다", () => {
+    // 하루 차이로 값이 벌어지지 않으면 줄줄이 같은 조개가 찍혀 규칙이 보인다.
+    const first = Array.from({ length: 5 }, (_, index) =>
+      stampVariantFor(`2026-07-0${index + 1}`, COUNT),
+    );
+
+    expect(new Set(first).size).toBeGreaterThan(1);
+  });
+
+  it("7일 간격이 같은 그림으로 몰리지 않는다", () => {
+    /*
+     * 달력은 7열이라, 7일 간격이 같은 값으로 떨어지면 같은 요일 열에 같은
+     * 조개가 줄줄이 찍힌다. 처음 쓴 곱셈 해시(×31)가 실제로 그랬고
+     * 일치율이 67%였다. 무작위라면 1/4이므로 넉넉히 40%로 잠근다.
+     */
+    let sameCount = 0;
+    let total = 0;
+
+    for (let month = 1; month <= 12; month += 1) {
+      for (let day = 1; day <= 21; day += 1) {
+        const monthText = String(month).padStart(2, "0");
+        const variant = stampVariantFor(
+          `2026-${monthText}-${String(day).padStart(2, "0")}`,
+          COUNT,
+        );
+        const nextWeek = stampVariantFor(
+          `2026-${monthText}-${String(day + 7).padStart(2, "0")}`,
+          COUNT,
+        );
+
+        if (variant === nextWeek) sameCount += 1;
+        total += 1;
+      }
+    }
+
+    expect(sameCount / total).toBeLessThan(0.4);
+  });
+
+  it("어느 요일에 몰려 찍히지도 않는다", () => {
+    // 요일마다 네 종류가 모두 나와야 한 열이 한 조개로 덮이지 않는다.
+    const byWeekday = new Map<number, Set<number>>();
+
+    for (let month = 1; month <= 12; month += 1) {
+      for (let day = 1; day <= 28; day += 1) {
+        const weekday = new Date(2026, month - 1, day).getDay();
+        const key = `2026-${String(month).padStart(2, "0")}-${String(
+          day,
+        ).padStart(2, "0")}`;
+
+        const seen = byWeekday.get(weekday) ?? new Set<number>();
+        seen.add(stampVariantFor(key, COUNT));
+        byWeekday.set(weekday, seen);
+      }
+    }
+
+    expect(byWeekday.size).toBe(DAYS_PER_WEEK);
+    byWeekday.forEach((seen) => {
+      expect(seen.size).toBe(COUNT);
+    });
+  });
+
+  it("다른 달·다른 해의 같은 날짜가 한 그림으로 굳지 않는다", () => {
+    const acrossMonths = new Set(
+      Array.from({ length: 12 }, (_, index) =>
+        stampVariantFor(`2026-${String(index + 1).padStart(2, "0")}-14`, COUNT),
+      ),
+    );
+    const acrossYears = new Set(
+      Array.from({ length: 12 }, (_, index) =>
+        stampVariantFor(`${2020 + index}-07-14`, COUNT),
+      ),
+    );
+
+    expect(acrossMonths.size).toBeGreaterThan(1);
+    expect(acrossYears.size).toBeGreaterThan(1);
+  });
+
+  it("그림이 없으면 0으로 버틴다", () => {
+    expect(stampVariantFor("2026-07-14", 0)).toBe(0);
+  });
+});
+
 describe("buildMonthCalendar", () => {
   const july = { year: 2026, month: 7 };
   const today = at(2026, 7, 30);
@@ -213,63 +333,6 @@ describe("buildMonthCalendar", () => {
     expect(byKey.get("2026-07-28")?.streak).toBe(1);
     expect(byKey.get("2026-07-30")?.streak).toBe(3);
     expect(byKey.get("2026-07-27")?.streak).toBe(0);
-  });
-
-  it("연속 구간의 마지막 날만 isRunEnd로 표시한다", () => {
-    // 1~4일, 6~10일 출석하고 오늘(11일)은 아직 누르지 않은 상태.
-    const attended = [
-      "2026-07-01",
-      "2026-07-02",
-      "2026-07-03",
-      "2026-07-04",
-      "2026-07-06",
-      "2026-07-07",
-      "2026-07-08",
-      "2026-07-09",
-      "2026-07-10",
-    ];
-    const days = buildMonthCalendar(attended, july, at(2026, 7, 11));
-    const byKey = new Map(days.map((day) => [day.key, day]));
-    const runEnds = days
-      .filter((day) => day.isRunEnd)
-      .map((day) => `${day.key}:${day.streak}`);
-
-    // 구간의 끝인 4일·10일에만 수달 스탬프와 연속 일수가 찍힌다.
-    expect(runEnds).toEqual(["2026-07-04:4", "2026-07-10:5"]);
-    // 구간 안쪽은 조개로 채우고, 빈 날은 아무것도 없다.
-    expect(byKey.get("2026-07-03")?.isRunEnd).toBe(false);
-    expect(byKey.get("2026-07-05")?.isAttended).toBe(false);
-  });
-
-  it("오늘 출석하면 구간의 끝이 오늘로 넘어온다", () => {
-    const attended = [
-      "2026-07-06",
-      "2026-07-07",
-      "2026-07-08",
-      "2026-07-09",
-      "2026-07-10",
-      "2026-07-11",
-    ];
-    const days = buildMonthCalendar(attended, july, at(2026, 7, 11));
-    const byKey = new Map(days.map((day) => [day.key, day]));
-
-    // 10일은 조개로 바뀌고, 11일이 6일 연속 스탬프가 된다.
-    expect(byKey.get("2026-07-10")?.isRunEnd).toBe(false);
-    expect(byKey.get("2026-07-11")?.isRunEnd).toBe(true);
-    expect(byKey.get("2026-07-11")?.streak).toBe(6);
-  });
-
-  it("보고 있는 달을 넘어 이어진 출석은 구간의 끝으로 보지 않는다", () => {
-    // 7/31과 8/1이 이어지면 7월 달력에서 31일은 아직 끝이 아니다.
-    const days = buildMonthCalendar(
-      ["2026-07-31", "2026-08-01"],
-      july,
-      at(2026, 8, 5),
-    );
-    const byKey = new Map(days.map((day) => [day.key, day]));
-
-    expect(byKey.get("2026-07-31")?.isRunEnd).toBe(false);
-    expect(byKey.get("2026-08-01")?.isRunEnd).toBe(true);
   });
 
   it("2월처럼 짧은 달도 주 단위로 맞춘다", () => {

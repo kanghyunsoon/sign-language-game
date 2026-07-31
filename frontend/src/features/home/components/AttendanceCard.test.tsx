@@ -139,8 +139,8 @@ describe("AttendanceCard 헤더", () => {
 });
 
 describe("AttendanceCard 스탬프", () => {
-  /** 그 날 칸에 찍힌 그림의 종류. 아무것도 없으면 null. */
-  const stampKind = (day: number) => {
+  /** 그 날 칸에 찍힌 그림의 주소. 아무것도 없으면 null. */
+  const stampSrc = (day: number) => {
     // 6/30과 7/30이 모두 "30"이므로 이번 달 칸만 고른다.
     const cell = cells().find(
       (item) =>
@@ -148,69 +148,61 @@ describe("AttendanceCard 스탬프", () => {
         item.querySelector(".attendance-day-label")?.textContent ===
           String(day),
     );
-    const image = cell?.querySelector("img");
-    if (!image) return null;
 
-    return image.getAttribute("src")?.includes("seashell")
-      ? "조개"
-      : "수달";
+    return cell?.querySelector("img")?.getAttribute("src") ?? null;
   };
 
-  it("연속 구간의 마지막 날만 수달 스탬프에 연속 일수를 얹는다", () => {
-    // 26~29일 출석, 오늘(30일)은 아직 누르지 않은 상태.
+  it("출석한 날은 모두 조개로 찍는다", () => {
     [26, 27, 28, 29].forEach((day) => markAttendance(at(day)));
     renderCard();
 
-    expect(stampKind(26)).toBe("조개");
-    expect(stampKind(28)).toBe("조개");
-    expect(stampKind(29)).toBe("수달");
-
-    // 숫자는 구간의 끝에만 하나 붙는다.
-    const numbers = Array.from(
-      grid().querySelectorAll(".attendance-stamp-streak"),
-      (item) => item.textContent,
-    );
-
-    expect(numbers).toEqual(["4"]);
-  });
-
-  it("오늘 출석하면 어제 스탬프가 조개로 바뀐다", () => {
-    [28, 29].forEach((day) => markAttendance(at(day)));
-    renderCard();
-
-    expect(stampKind(29)).toBe("수달");
-
-    fireEvent.click(screen.getByRole("button", { name: "출석하기" }));
-
-    expect(stampKind(29)).toBe("조개");
-    expect(stampKind(30)).toBe("수달");
+    [26, 27, 28, 29].forEach((day) => {
+      expect(stampSrc(day)).toContain("seashell");
+    });
   });
 
   it("빈 날에는 아무 스탬프도 찍지 않는다", () => {
     markAttendance(at(29));
     renderCard();
 
-    expect(stampKind(27)).toBeNull();
+    expect(stampSrc(27)).toBeNull();
   });
 
-  it("조개는 구간 안에서 네 종류를 돌려 쓴다", () => {
-    // 24~29일 여섯 날이면 앞의 다섯 날이 조개로 채워진다.
-    [24, 25, 26, 27, 28, 29].forEach((day) => markAttendance(at(day)));
+  it("출석을 누르면 그 날에도 조개가 찍힌다", () => {
     renderCard();
 
-    const seashells = [24, 25, 26, 27, 28].map((day) => {
-      const cell = cells().find(
-        (item) =>
-          item.querySelector(".attendance-day-label")?.textContent ===
-          String(day),
-      );
+    fireEvent.click(screen.getByRole("button", { name: "출석하기" }));
 
-      return cell?.querySelector("img")?.getAttribute("src");
-    });
+    expect(stampSrc(30)).toContain("seashell");
+  });
 
-    // 다섯 번째에서 처음 그림으로 돌아온다.
-    expect(new Set(seashells).size).toBe(4);
-    expect(seashells[4]).toBe(seashells[0]);
+  it("이미 찍힌 조개는 다시 그려도 바뀌지 않는다", () => {
+    [26, 27, 28].forEach((day) => markAttendance(at(day)));
+    renderCard();
+
+    const before = [26, 27, 28].map(stampSrc);
+
+    // 달을 옮겼다 돌아오고, 오늘 출석까지 눌러 화면을 다시 그린다.
+    fireEvent.click(screen.getByRole("button", { name: "지난 달 보기" }));
+    fireEvent.click(screen.getByRole("button", { name: "다음 달 보기" }));
+    fireEvent.click(screen.getByRole("button", { name: "출석하기" }));
+
+    expect([26, 27, 28].map(stampSrc)).toEqual(before);
+  });
+
+  it("한 달 안에서 네 종류가 모두 나온다", () => {
+    Array.from({ length: 29 }, (_, index) => index + 1).forEach((day) =>
+      markAttendance(at(day)),
+    );
+    renderCard();
+
+    const shells = new Set(
+      Array.from(grid().querySelectorAll("img"), (image) =>
+        image.getAttribute("src"),
+      ),
+    );
+
+    expect(shells.size).toBe(4);
   });
 });
 
