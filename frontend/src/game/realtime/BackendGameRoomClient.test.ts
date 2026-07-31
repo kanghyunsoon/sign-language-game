@@ -71,15 +71,17 @@ describe("BackendGameRoomClient", () => {
     const calls: Array<{ url: string; init?: RequestInit }> = [];
     const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       calls.push({ url: String(input), init });
-      return new Response(JSON.stringify(room), {
+      return new Response(JSON.stringify({ ...room, realtimeTicket: null }), {
         status: 200, headers: { "Content-Type": "application/json" },
       });
     });
     const client = new BackendGameRoomClient({ apiBaseUrl: "/api", userId: "42", fetcher });
-    await client.ready(7, true);
-    await client.start(7);
+    const ready = await client.ready(7, true);
+    const started = await client.start(7);
     expect(calls[0]?.url).toBe("/api/game-rooms/7/ready?userId=42");
     expect(JSON.parse(String(calls[0]?.init?.body))).toEqual({ isReady: true });
     expect(calls[1]?.url).toBe("/api/game-rooms/7/start?userId=42");
+    expect(ready.realtimeTicket).toBeUndefined();
+    expect(started.realtimeTicket).toBeUndefined();
   });
 });

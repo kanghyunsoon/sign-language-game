@@ -114,7 +114,7 @@ export function parseBackendGameRoom(value: unknown): BackendGameRoom {
     throw new Error("Invalid game room type.");
   }
   const realtimeTicket = value.realtimeTicket;
-  if (realtimeTicket !== undefined && typeof realtimeTicket !== "string") {
+  if (realtimeTicket !== undefined && realtimeTicket !== null && typeof realtimeTicket !== "string") {
     throw new Error("Invalid realtime ticket.");
   }
   return {
@@ -130,7 +130,7 @@ export function parseBackendGameRoom(value: unknown): BackendGameRoom {
     participantCount: number(value.participantCount, "participantCount"),
     capacity: number(value.capacity, "capacity"),
     gameType,
-    ...(realtimeTicket ? { realtimeTicket } : {}),
+    ...(typeof realtimeTicket === "string" && realtimeTicket.length > 0 ? { realtimeTicket } : {}),
   };
 }
 
