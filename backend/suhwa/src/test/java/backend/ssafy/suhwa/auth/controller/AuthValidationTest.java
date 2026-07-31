@@ -51,6 +51,24 @@ class AuthValidationTest {
     }
 
     @Test
+    void signup_nicknameUnderMinLength_returns400() throws Exception {
+        mockMvc.perform(post("/auth/signup")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(
+                                new SignupRequest("a@a.com", "password123", "a"))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void signup_nicknameOverMaxLength_returns400() throws Exception {
+        mockMvc.perform(post("/auth/signup")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(
+                                new SignupRequest("a@a.com", "password123", "a".repeat(11)))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void login_passwordOverMaxLength_returns400() throws Exception {
         mockMvc.perform(post("/auth/login")
                         .contentType("application/json")

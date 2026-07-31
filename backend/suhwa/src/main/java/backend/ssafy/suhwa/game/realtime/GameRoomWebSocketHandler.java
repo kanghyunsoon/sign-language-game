@@ -15,6 +15,7 @@ import org.springframework.core.task.TaskRejectedException;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.PongMessage;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
@@ -117,6 +118,21 @@ public class GameRoomWebSocketHandler extends TextWebSocketHandler {
         participant.schedulePending(deadline, task);
 
         notifier.notifyPeerDisconnected(roomId, userId);
+    }
+
+    /**
+     * 브라우저는 WebSocket 표준에 따라 {@code RoomWebSocketHeartbeat}가 보낸 PING에 자동으로
+     * PONG을 응답한다(버그픽스, research.md 없음). 이 응답을 받았다는 건 연결이 살아있다는
+     * 뜻이므로 생존 시각을 갱신한다 — {@code RoomWebSocketHeartbeat}가 다음 주기에 이 값을 보고
+     * PONG 없는(=close 프레임 없이 조용히 끊긴) 세션만 골라 닫는다.
+     */
+    @Override
+    protected void handlePongMessage(@NonNull WebSocketSession session, @NonNull PongMessage message) {
+        RoomLiveState room = registry.getRoom(roomId(session));
+        ParticipantLiveState participant = room == null ? null : room.getParticipant(userId(session));
+        if (participant != null) {
+            participant.markSeen(Instant.now());
+        }
     }
 
     @Override

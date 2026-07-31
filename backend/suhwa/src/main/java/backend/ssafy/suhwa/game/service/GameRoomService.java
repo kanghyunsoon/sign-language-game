@@ -77,6 +77,13 @@ public class GameRoomService {
 
     @Transactional
     public GameRoomResponse create(Long hostUserId, GameType gameType) {
+        // 한 유저가 활성 방(WAITING/IN_PROGRESS)을 여러 개 갖지 못하게 막는다(버그픽스) — 이전엔
+        // 이 확인이 전혀 없어 재요청/재접속마다 방이 방치된 채 계속 쌓일 수 있었다. 조회 후 삽입
+        // 방식이라 완벽한 동시성 보장은 아니다(같은 유저의 거의 동시 create() 요청은 이론상 둘 다
+        // 통과할 수 있음) — DB 유니크 제약까지는 이번 범위에서 넣지 않기로 했다.
+        if (gameRoomRepository.existsActiveRoomForUser(hostUserId)) {
+            throw new BusinessException(ErrorCode.ALREADY_IN_ACTIVE_ROOM);
+        }
         GameRoom room = GameRoom.builder()
                 .roomCode(generateUniqueRoomCode())
                 .hostUserId(hostUserId)
@@ -105,6 +112,12 @@ public class GameRoomService {
         // 하므로 새 티켓은 매번 발급한다(FR-016).
         if (room.isParticipant(userId)) {
             return GameRoomResponse.from(room, realtimeTicketService.issue(userId));
+        }
+        // create()와 같은 이유(버그픽스)로, 다른 활성 방에 이미 참여 중인 유저는 이 방에도
+        // 새로 들어올 수 없다 — 위 재입장 체크를 통과 못 했다는 건 "이 방"의 참가자가
+        // 아니라는 뜻이므로, 그런데도 다른 방에 활성 상태로 남아있다면 그게 바로 그 경우다.
+        if (gameRoomRepository.existsActiveRoomForUser(userId)) {
+            throw new BusinessException(ErrorCode.ALREADY_IN_ACTIVE_ROOM);
         }
         if (room.getStatus() != GameRoomStatus.WAITING) {
             throw new BusinessException(ErrorCode.ROOM_NOT_WAITING);

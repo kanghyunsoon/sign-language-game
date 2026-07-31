@@ -12,6 +12,7 @@ import java.time.LocalDate;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -38,7 +39,16 @@ public class AttendanceService {
         return new AttendanceResponse(serviceDate, false, activeStreak);
     }
 
-    @Transactional
+    /**
+     * READ COMMITTED로 실행한다. 기본 격리수준(MySQL REPEATABLE READ)이면 lockPet()이
+     * 순서를 강제해도, 아래 재확인이 이 트랜잭션이 시작된 시점의 스냅샷을 볼 수 있어 다른
+     * 트랜잭션이 이미 커밋한 출석 행을 "없음"으로 잘못 판단할 수 있다(동시 체크인 경쟁으로
+     * 직접 재현함 — UNIQUE 제약 위반까지 흘러갔고, 그 이후 같은 트랜잭션에서 재조회를
+     * 시도하면 Hibernate 세션이 깨진 채라 AssertionFailure로 죽었다). READ COMMITTED는
+     * 매 SELECT가 그 순간의 최신 커밋값을 보므로, lockPet() 대기가 끝난 뒤의 재확인은
+     * 항상 정확하다 — 예외를 잡아 새 트랜잭션에서 재조회하는 복구 로직 자체가 필요 없다.
+     */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public AttendanceCompletionResponse checkIn(Long userId) {
         LocalDate serviceDate = LocalDate.now(growthClock);
         UserPet pet = growthRewardService.lockPet(userId);

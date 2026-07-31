@@ -53,6 +53,9 @@ class GameRoomWebSocketHandlerTest {
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
+    @Autowired
+    private RoomParticipantRegistry roomParticipantRegistry;
+
     private Long hostId;
     private Long guestId;
 
@@ -102,6 +105,37 @@ class GameRoomWebSocketHandlerTest {
                 .as("신규 참가자의 최초 확정 시 이미 접속 중인 상대에게 PEER_JOINED가 가야 한다")
                 .contains("PEER_JOINED")
                 .contains("\"userId\":" + guestId);
+    }
+
+    @Test
+    void pong_updatesLastSeenAt() throws Exception {
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
+
+        // connect()의 Future는 클라이언트 쪽 핸드셰이크 완료 시점에 끝나는 것이라, 서버의
+        // afterConnectionEstablished(→attachSession→lastSeenAt 기록)가 그 시점까지 반드시
+        // 끝났다는 보장이 없다(로컬 루프백은 거의 항상 이겼지만 CI 컨테이너 네트워크에서는
+        // 실제로 졌다 — 직접 재현해 확인함). 그래서 초기값도 폴링으로 기다린다.
+        WebSocketSession hostSession = connect(room.id(), hostId, new LinkedBlockingQueue<>());
+        java.time.Instant afterConnect = pollUntilLastSeenAtSatisfies(room.id(), null);
+
+        hostSession.sendMessage(new org.springframework.web.socket.PongMessage());
+
+        assertThat(hostSession.isOpen()).isTrue();
+        java.time.Instant afterPong = pollUntilLastSeenAtSatisfies(room.id(), afterConnect);
+        assertThat(afterPong).isAfter(afterConnect);
+    }
+
+    /** lastSeenAt이 null이 아니고(mustBeAfter가 있으면 그 시각 이후일 때까지) 최대 5초 폴링한다. */
+    private java.time.Instant pollUntilLastSeenAtSatisfies(Long roomId, java.time.Instant mustBeAfter)
+            throws InterruptedException {
+        for (int i = 0; i < 50; i++) {
+            java.time.Instant current = roomParticipantRegistry.getRoom(roomId).getParticipant(hostId).getLastSeenAt();
+            if (current != null && (mustBeAfter == null || current.isAfter(mustBeAfter))) {
+                return current;
+            }
+            Thread.sleep(100);
+        }
+        throw new AssertionError("lastSeenAt이 기대한 대로 갱신되지 않았다");
     }
 
     @Test

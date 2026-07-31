@@ -100,6 +100,33 @@ class GameRoomServiceTest {
     }
 
     @Test
+    void create_rejectedWhenHostAlreadyHasActiveRoom() {
+        gameRoomService.create(hostId, GameType.SIGN_DUEL);
+
+        assertThatThrownBy(() -> gameRoomService.create(hostId, GameType.TETRIS_DUEL))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void create_rejectedWhenGuestOfAnotherActiveRoomTriesToCreate() {
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
+        gameRoomService.join(room.roomCode(), guestId);
+
+        assertThatThrownBy(() -> gameRoomService.create(guestId, GameType.SIGN_DUEL))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void create_allowedAgainAfterPreviousRoomClosed() {
+        GameRoomResponse first = gameRoomService.create(hostId, GameType.SIGN_DUEL);
+        gameRoomService.leave(first.id(), hostId);
+
+        GameRoomResponse second = gameRoomService.create(hostId, GameType.TETRIS_DUEL);
+
+        assertThat(second.gameType()).isEqualTo(GameType.TETRIS_DUEL);
+    }
+
+    @Test
     void join_includesRealtimeTicket_andReentryIssuesNewOne() {
         GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
 
@@ -109,6 +136,28 @@ class GameRoomServiceTest {
         GameRoomResponse rejoined = gameRoomService.join(room.roomCode(), guestId);
         assertThat(rejoined.realtimeTicket()).isNotBlank();
         assertThat(rejoined.realtimeTicket()).isNotEqualTo(joined.realtimeTicket());
+    }
+
+    @Test
+    void join_rejectedWhenAlreadyParticipantOfAnotherActiveRoom() {
+        GameRoomResponse roomA = gameRoomService.create(hostId, GameType.SIGN_DUEL);
+        GameRoomResponse roomB = gameRoomService.create(guestId, GameType.SIGN_DUEL);
+
+        assertThatThrownBy(() -> gameRoomService.join(roomB.roomCode(), hostId))
+                .isInstanceOf(BusinessException.class);
+        assertThat(gameRoomRepository.findById(roomA.id()).orElseThrow().getStatus())
+                .isEqualTo(GameRoomStatus.WAITING);
+    }
+
+    @Test
+    void join_allowedAgainAfterPreviousRoomClosed() {
+        GameRoomResponse roomA = gameRoomService.create(hostId, GameType.SIGN_DUEL);
+        gameRoomService.leave(roomA.id(), hostId);
+        GameRoomResponse roomB = gameRoomService.create(guestId, GameType.SIGN_DUEL);
+
+        GameRoomResponse joined = gameRoomService.join(roomB.roomCode(), hostId);
+
+        assertThat(joined.guestUserId()).isEqualTo(hostId);
     }
 
     @Test

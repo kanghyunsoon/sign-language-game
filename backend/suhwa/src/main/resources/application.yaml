@@ -74,6 +74,11 @@ game:
     realtime-ticket-ttl: ${REALTIME_TICKET_TTL_SECONDS:30}
     leave-grace-seconds: ${GAME_ROOM_LEAVE_GRACE_SECONDS:7}
     join-confirmation-seconds: ${GAME_ROOM_JOIN_CONFIRMATION_SECONDS:15}
+    # close 프레임 없이 조용히 끊긴 WS 연결을 감지하기 위한 서버발 PING 주기와, PONG(또는
+    # 다른 트래픽)이 그 안에 없으면 컨테이너가 세션을 닫는 idle timeout(버그픽스). idle
+    # timeout은 PING을 2~3번 놓쳐도 봐줄 수 있게 주기보다 넉넉히 크게 잡는다.
+    ws-ping-interval-ms: ${GAME_ROOM_WS_PING_INTERVAL_MS:20000}
+    ws-idle-timeout-ms: ${GAME_ROOM_WS_IDLE_TIMEOUT_MS:60000}
 
 growth:
   attendance-exp: ${GROWTH_ATTENDANCE_EXP:3}
