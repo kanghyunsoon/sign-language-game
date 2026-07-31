@@ -8,8 +8,8 @@ export interface WordPredictionDecoderConfig {
 
 export const WORD_PREDICTION_DECODER_CONFIG: WordPredictionDecoderConfig = {
   minimumConfidence: 0.55,
-  candidateWindowSize: 4,
-  minimumCandidateVotes: 2,
+  candidateWindowSize: 8,
+  minimumCandidateVotes: 6,
   noHandReleaseDurationMs: 250,
   differentSymbolReleaseVotes: 2,
 };

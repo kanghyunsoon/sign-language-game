@@ -623,6 +623,15 @@
   letter-spacing: -0.04em;
 }
 
+.test-question-symbol-word {
+  max-width: 100%;
+  font-size: 96px;
+  line-height: 1.15;
+  letter-spacing: -0.06em;
+  text-align: center;
+  white-space: nowrap;
+}
+
 /* 머리말 바와 하단 컨트롤 사이를 카메라가 가득 채운다. */
 .test-camera-placeholder {
   position: relative;
