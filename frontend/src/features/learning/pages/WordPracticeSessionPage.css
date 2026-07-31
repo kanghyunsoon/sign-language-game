@@ -4,15 +4,6 @@
   justify-content: center;
 }
 
-.word-practice-session-page .practice-camera-button {
-  width: min(8.854167vw, 14.166667vh);
-  padding: 0 min(0.625vw, 1vh);
-  font-size: min(0.9375vw, 1.5vh);
-  line-height: 1;
-  white-space: nowrap;
-  overflow: hidden;
-}
-
 .word-guide-placeholder {
   width: min(19.270833vw, 30.833333vh);
   height: min(15.625vw, 25vh);
