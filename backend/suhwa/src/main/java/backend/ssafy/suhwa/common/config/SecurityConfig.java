@@ -28,7 +28,13 @@ public class SecurityConfig {
             "/actuator/health",
             // 브라우저 표준 EventSource/WebSocket은 커스텀 Authorization 헤더를 보낼 수 없어 JWT
             // 인증이 불가능하다. 대신 ticket 쿼리 파라미터로 접근을 제어한다(FR-022/024, research.md #8).
-            "/game-rooms/subscribe", "/ws/game-rooms/**"
+            "/game-rooms/subscribe", "/ws/game-rooms/**",
+            // SSE 등 비동기 응답이 끊긴 뒤 컨테이너가 에러 처리를 위해 /error로 다시 디스패치할 때도
+            // 보안 필터 체인이 ASYNC/ERROR 디스패치 타입에 대해 다시 실행된다(버그픽스). 이 시점엔
+            // 원래 요청의 인증 컨텍스트가 없어 /error가 허용 목록에 없으면 매번
+            // AuthorizationDeniedException이 나고, 이미 스트리밍이 시작된 응답이라 그 예외조차
+            // 정상 처리할 수 없어 로그만 오염시킨다.
+            "/error"
     };
 
     private final JwtTokenProvider jwtTokenProvider;
