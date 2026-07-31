@@ -139,6 +139,13 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
       const summary = rooms.find((candidate) => candidate.roomId === current.roomId || candidate.roomCode === current.roomCode);
       if (!summary) return;
       if (summary.status === "PLAYING") {
+        const playingRoom: BattleRoomDetail = {
+          ...current,
+          status: "PLAYING",
+          canJoin: false,
+          canStart: false,
+        };
+        rememberRoomRef.current(playingRoom);
         // A fresh GAME_STARTED event enters immediately. A player who returns
         // to an already-playing room must choose whether to resume instead.
         if (current.status === "PLAYING" && mode === "BLOCK") setRejoinPromptOpen(true);
@@ -173,6 +180,30 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
       });
     }, (cause) => setError(errorMessage(cause, "?湲곗떎 ?ㅼ떆媛??곹깭瑜?媛깆떊?섏? 紐삵뻽?듬땲??")));
   }, [gateway, mode, roomId, rememberRoom]);
+
+  useEffect(() => {
+    if (!roomId || room?.status !== "WAITING" || !room.roomCode) return undefined;
+    const roomCode = room.roomCode;
+    let checking = false;
+    const checkStartedState = async () => {
+      if (checking || enteringGameRef.current) return;
+      checking = true;
+      try {
+        const authoritative = await gateway.joinRoom(roomCode);
+        if (authoritative.status !== "PLAYING") return;
+        rememberRoomRef.current(authoritative);
+        await startRtcAndEnterRef.current();
+      } catch {
+        // Realtime remains the primary path. This fallback only recovers a
+        // committed start whose GAME_STARTED broadcast was lost.
+      } finally {
+        checking = false;
+      }
+    };
+    const timer = window.setInterval(() => void checkStartedState(), 1_500);
+    return () => window.clearInterval(timer);
+  }, [gateway, room?.roomCode, room?.status, roomId]);
+
   useEffect(() => {
     if (!roomId || !services.roomRealtimeSocketFactory) return;
     const socket = services.roomRealtimeSocketFactory.create(roomId);

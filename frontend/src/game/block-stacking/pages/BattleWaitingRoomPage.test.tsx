@@ -39,7 +39,33 @@ describe("BattleWaitingRoomPage backend flow", () => {
 
     expect((await screen.findAllByText("2/2")).length).toBeGreaterThan(0);
     expect(subscribeRooms).toHaveBeenCalledTimes(1);
-  });  it("updates only its own ready state through REST", async () => {
+  });
+
+  it("moves a guest into play when the lobby reports PLAYING without GAME_STARTED", async () => {
+    const subscribeRooms = vi.fn((listener: (rooms: readonly BattleRoomSummary[]) => void) => {
+      queueMicrotask(() => listener([{
+        roomId: "1", roomCode: "ABC123", title: "room", status: "PLAYING", playerCount: 2,
+        maxPlayers: 2, hostUserId: "1", hostName: "host", difficulty: "basic",
+        symbolRange: [], createdAt: null, canJoin: false,
+      }]));
+      return () => undefined;
+    });
+    const { camera } = cameraFixture();
+    const media = new MockBattleMediaSession();
+    const connect = vi.spyOn(media, "connect");
+    renderPage({
+      currentUserId: "2",
+      detail: room({ full: true, hostReady: true, guestReady: true, currentUserReady: true }),
+      gateway: gateway({ subscribeRooms }),
+      camera,
+      media,
+    });
+
+    expect(await screen.findByText("PLAY_ROUTE")).toBeTruthy();
+    expect(connect).toHaveBeenCalledTimes(1);
+  });
+
+  it("updates only its own ready state through REST", async () => {
     const setReady = vi.fn(async () => session({ hostReady: true, currentUserReady: true }));
     renderPage({ gateway: gateway({ setReady }) });
     fireEvent.click(await screen.findByRole("button", { name: "준비 완료" }));
