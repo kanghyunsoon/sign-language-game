@@ -113,6 +113,12 @@ public class GameRoomService {
         if (room.isParticipant(userId)) {
             return GameRoomResponse.from(room, realtimeTicketService.issue(userId));
         }
+        // create()와 같은 이유(버그픽스)로, 다른 활성 방에 이미 참여 중인 유저는 이 방에도
+        // 새로 들어올 수 없다 — 위 재입장 체크를 통과 못 했다는 건 "이 방"의 참가자가
+        // 아니라는 뜻이므로, 그런데도 다른 방에 활성 상태로 남아있다면 그게 바로 그 경우다.
+        if (gameRoomRepository.existsActiveRoomForUser(userId)) {
+            throw new BusinessException(ErrorCode.ALREADY_IN_ACTIVE_ROOM);
+        }
         if (room.getStatus() != GameRoomStatus.WAITING) {
             throw new BusinessException(ErrorCode.ROOM_NOT_WAITING);
         }
