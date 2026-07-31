@@ -39,9 +39,7 @@ class AttendanceServiceTest {
     void setUp() {
         Clock clock = Clock.fixed(Instant.parse("2026-07-29T15:00:00Z"), SEOUL);
         GrowthPolicyProperties policy = new GrowthPolicyProperties();
-        // self는 checkIn()의 재시도 경로(AttendanceCheckInConcurrencyTest가 검증)에서만 쓰인다.
-        // 여기서는 attemptCheckIn()을 직접 호출하므로 필요 없다.
-        attendanceService = new AttendanceService(attendanceRepository, growthRewardService, policy, clock, null);
+        attendanceService = new AttendanceService(attendanceRepository, growthRewardService, policy, clock);
         pet = UserPet.builder().userId(1L).build();
         given(growthRewardService.lockPet(1L)).willReturn(pet);
     }
@@ -52,7 +50,7 @@ class AttendanceServiceTest {
                 .willReturn(Optional.empty());
         given(attendanceRepository.findTopByUserIdOrderByAttendanceDateDesc(1L)).willReturn(Optional.empty());
 
-        AttendanceCompletionResponse response = attendanceService.attemptCheckIn(1L);
+        AttendanceCompletionResponse response = attendanceService.checkIn(1L);
 
         assertThat(response.newlyAttended()).isTrue();
         assertThat(response.streakCount()).isEqualTo(1);
@@ -67,7 +65,7 @@ class AttendanceServiceTest {
         given(attendanceRepository.findTopByUserIdOrderByAttendanceDateDesc(1L))
                 .willReturn(Optional.of(new Attendance(1L, LocalDate.of(2026, 7, 29), 4)));
 
-        AttendanceCompletionResponse response = attendanceService.attemptCheckIn(1L);
+        AttendanceCompletionResponse response = attendanceService.checkIn(1L);
 
         assertThat(response.streakCount()).isEqualTo(5);
     }
@@ -79,7 +77,7 @@ class AttendanceServiceTest {
         given(attendanceRepository.findTopByUserIdOrderByAttendanceDateDesc(1L))
                 .willReturn(Optional.of(new Attendance(1L, LocalDate.of(2026, 7, 28), 9)));
 
-        assertThat(attendanceService.attemptCheckIn(1L).streakCount()).isEqualTo(1);
+        assertThat(attendanceService.checkIn(1L).streakCount()).isEqualTo(1);
     }
 
     @Test
@@ -88,7 +86,7 @@ class AttendanceServiceTest {
         given(attendanceRepository.findByUserIdAndAttendanceDate(1L, LocalDate.of(2026, 7, 30)))
                 .willReturn(Optional.of(existing));
 
-        AttendanceCompletionResponse response = attendanceService.attemptCheckIn(1L);
+        AttendanceCompletionResponse response = attendanceService.checkIn(1L);
 
         assertThat(response.newlyAttended()).isFalse();
         assertThat(response.awardedExp()).isZero();
