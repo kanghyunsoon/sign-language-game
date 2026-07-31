@@ -27,18 +27,19 @@ describe("BattleLocalBoardRuntime", () => {
     expect(cancelFrame).toHaveBeenCalledWith(7);
   });
 
-  it("restores an existing tower as fixed blocks without replaying its fall", () => {
+  it("restores a falling snapshot with momentum and bounded latency correction", () => {
     const world = physics();
     const restored = vi.fn((spec) => letterState(spec.id, spec.symbol, spec.x, spec.y));
     (world as PhysicsWorld & { restoreLetter: typeof restored }).restoreLetter = restored;
     const runtime = new BattleLocalBoardRuntime(world, renderer(), DEFAULT_BATTLE_RUNTIME_CONFIG);
 
-    runtime.restore([{ id: "saved", symbol: "ㄱ", x: .4, y: .75, angle: .3, velocityX: 18, velocityY: -12, angularVelocity: .2, state: "FALLING" }]);
+    runtime.restore([{ id: "saved", symbol: "ㄱ", x: .4, y: .75, angle: .3, velocityX: 18, velocityY: -12, angularVelocity: .2, state: "FALLING" }], 1_000, 1_400);
 
     expect(restored).toHaveBeenCalledWith(expect.objectContaining({
       id: "saved", x: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth * .4, y: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight * .75,
-      velocityX: 0, velocityY: 0, angularVelocity: 0, settled: true,
+      velocityX: 18, velocityY: -12, angularVelocity: .2, settled: false,
     }));
+    expect(world.update).toHaveBeenCalledWith(250);
   });
 
   it("allows removal of only the currently designated oldest block", () => {

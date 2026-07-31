@@ -27,6 +27,7 @@ export class P2pBattleTransport implements BattleGameTransport {
   private targetIndex = 0;
   private sharedTarget: { readonly id: string; readonly symbol: string } | null = null;
   private targetTimer: ReturnType<typeof setTimeout> | null = null;
+  private resumeTimer: ReturnType<typeof setTimeout> | null = null;
   private unsubscribeCommands: (() => void) | null = null;
   private connectGeneration = 0;
   private restoredAuthority = false;
@@ -52,7 +53,7 @@ export class P2pBattleTransport implements BattleGameTransport {
       this.delegate.send({ type: "REQUEST_MATCH_STATE", commandId: crypto.randomUUID(), matchId: this.matchId, occurredAt: Date.now() });
     }
   }
-  disconnect(): void { this.persistAuthority(); this.connectGeneration += 1; this.unsubscribeCommands?.(); this.unsubscribeCommands = null; if (this.targetTimer) clearTimeout(this.targetTimer); this.targetTimer = null; this.delegate.disconnect(); }
+  disconnect(): void { this.persistAuthority(); this.connectGeneration += 1; this.unsubscribeCommands?.(); this.unsubscribeCommands = null; if (this.targetTimer) clearTimeout(this.targetTimer); this.targetTimer = null; if (this.resumeTimer) clearTimeout(this.resumeTimer); this.resumeTimer = null; this.delegate.disconnect(); }
   send(message: ClientBattleMessage): void { if (this.isHost()) this.handle(message, this.localPlayerId); else this.delegate.send(message); }
   subscribe(listener: (message: ServerBattleMessage) => void): () => void { return this.delegate.subscribe(listener); }
   subscribeConnectionState(listener: (state: BattleConnectionState) => void): () => void { return this.delegate.subscribeConnectionState(listener); }
@@ -60,8 +61,14 @@ export class P2pBattleTransport implements BattleGameTransport {
 
   private isHost(): boolean { return this.localPlayerId === this.hostPlayerId; }
   private startAuthority(): void {
-    if (this.restoredAuthority) this.publishMatchState();
-    else this.publishStart();
+    if (this.restoredAuthority) {
+      // Give the browser that stayed in the match a brief chance to return its
+      // observed board view. It is fresher than this refreshed host's storage.
+      this.resumeTimer = setTimeout(() => {
+        this.resumeTimer = null;
+        this.publishMatchState();
+      }, 150);
+    } else this.publishStart();
     if (this.sharedTarget || this.targetTimer) return;
     this.scheduleNextTarget(800);
   }
@@ -74,7 +81,7 @@ export class P2pBattleTransport implements BattleGameTransport {
   private publishMatchState(): void {
     const now = Date.now();
     if (this.startAt > now && !this.sharedTarget) { this.publishStart(); return; }
-    this.delegate.publishEvent({ type: "MATCH_STARTED", sequence: ++this.sequence, matchId: this.matchId, roomId: this.roomId, playerIds: this.playerIds, startAt: now, serverTime: now, resume: true, playerStates: [...this.players.entries()].map(([playerId, state]) => ({ playerId, ...state })) });
+    this.delegate.publishEvent({ type: "MATCH_STARTED", sequence: ++this.sequence, matchId: this.matchId, roomId: this.roomId, playerIds: this.playerIds, startAt: now, serverTime: now, resume: true, playerStates: [...this.players.entries()].map(([playerId, state]) => ({ playerId, ...state })), ...(this.sharedTarget ? { sharedTarget: { targetId: this.sharedTarget.id, symbol: this.sharedTarget.symbol, presentedAt: now } } : {}) });
     for (const [playerId, bodies] of this.boards) this.delegate.publishSnapshot({ type: "BOARD_SNAPSHOT", sequence: ++this.sequence, matchId: this.matchId, playerId, sentAt: now, bodies });
   }
   private scheduleNextTarget(delay = 320): void {
@@ -122,6 +129,13 @@ export class P2pBattleTransport implements BattleGameTransport {
     }
     if (message.type === "BODY_TRANSFORM_BATCH") { if (message.playerId !== playerId) return; this.delegate.publishEvent({ ...message, sequence: ++this.sequence }); return; }
     if (message.type === "BOARD_SNAPSHOT") { if (message.playerId !== playerId) return; this.boards.set(playerId, message.bodies); this.persistAuthority(); this.delegate.publishSnapshot({ ...message, sequence: ++this.sequence }); return; }
+    if (message.type === "PEER_BOARD_VIEW") {
+      if (message.observerPlayerId !== playerId || message.subjectPlayerId === playerId || !this.playerIds.includes(message.subjectPlayerId)) return;
+      this.boards.set(message.subjectPlayerId, message.bodies);
+      this.persistAuthority();
+      this.delegate.publishSnapshot({ type: "BOARD_SNAPSHOT", sequence: ++this.sequence, matchId: this.matchId, playerId: message.subjectPlayerId, sentAt: message.sentAt, bodies: message.bodies });
+      return;
+    }
     if (message.type === "CLAIM_SHARED_TARGET") { this.claimTarget(message, playerId); return; }
     if (message.type === "RESULT_RECORDED_COMMAND") {
       if (playerId !== this.hostPlayerId) return;

@@ -26,4 +26,11 @@ describe("RemotePhysicsBoard", () => {
     board.apply({ type: "BOARD_SNAPSHOT", sequence: 2, matchId: "m", playerId: "opponent", sentAt: 0, bodies: [{ id: "opponent-1", symbol: "A", x: .25, y: .8, angle: .4, velocityX: 0, velocityY: 0, angularVelocity: 0, state: "SETTLED" }] }, 0);
     expect(board.getStates()[0]).toMatchObject({ x: 100, y: 480, angle: .4, settled: true });
   });
+
+  it("starts a refreshed falling letter from its snapshot instead of the spawn point", () => {
+    const board = new RemotePhysicsBoard();
+    board.resize(400, 600);
+    board.apply({ type: "BOARD_SNAPSHOT", sequence: 2, matchId: "m", playerId: "opponent", sentAt: 1_000, bodies: [{ id: "falling", symbol: "A", x: .25, y: .4, angle: .2, velocityX: 1, velocityY: 3, angularVelocity: .1, state: "FALLING" }] }, 1_000);
+    expect(board.getStates()[0]).toMatchObject({ id: "falling", x: 100, y: 240, angle: .2, settled: false });
+  });
 });

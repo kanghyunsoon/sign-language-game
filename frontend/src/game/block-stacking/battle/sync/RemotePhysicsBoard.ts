@@ -37,7 +37,7 @@ export class RemotePhysicsBoard implements RemoteBoard {
     return true;
   }
 
-  apply(message: RemoteSyncMessage, _receivedAt: number): boolean {
+  apply(message: RemoteSyncMessage, receivedAt: number): boolean {
     if (message.type === "LETTER_REMOVED_SYNC" || (message.type === "LETTER_STATE_SYNC" && message.state === "REMOVED")) {
       this.remove(message.letterId);
       return true;
@@ -47,9 +47,11 @@ export class RemotePhysicsBoard implements RemoteBoard {
       for (const id of [...this.symbols.keys()]) if (!activeIds.has(id)) this.remove(id);
       for (const body of message.bodies) {
         if (body.state === "REMOVED") continue;
-        if (!this.physics.getLetterState(body.id)) this.createCenteredLetter(body.id, body.symbol, body.angle);
-        if (body.state === "SETTLED") this.synchronizeSettledLetter(body);
+        if (!this.physics.getLetterState(body.id)) this.restoreSnapshotLetter(body);
+        else if (body.state === "SETTLED") this.synchronizeSettledLetter(body);
       }
+      const correctionMs = Math.max(0, Math.min(250, receivedAt - message.sentAt));
+      if (correctionMs > 0 && message.bodies.some((body) => body.state === "FALLING")) this.physics.update(correctionMs);
       return true;
     }
     if (message.type === "LETTER_SPAWNED_SYNC") {
@@ -105,5 +107,21 @@ export class RemotePhysicsBoard implements RemoteBoard {
       y: body.y * this.height,
       angle: body.angle,
     });
+  }
+
+  private restoreSnapshotLetter(body: BattleBodyTransform): void {
+    const settled = body.state === "SETTLED";
+    this.physics.restoreLetter({
+      id: body.id,
+      symbol: body.symbol,
+      x: body.x * this.width,
+      y: body.y * this.height,
+      angle: body.angle,
+      velocityX: settled ? 0 : body.velocityX,
+      velocityY: settled ? 0 : body.velocityY,
+      angularVelocity: settled ? 0 : body.angularVelocity,
+      settled,
+    });
+    this.symbols.set(body.id, body.symbol);
   }
 }

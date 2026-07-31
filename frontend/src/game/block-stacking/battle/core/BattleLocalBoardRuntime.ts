@@ -8,7 +8,7 @@ interface LetterRecord { readonly id: string; readonly symbol: string; readonly 
 
 export interface BattleLocalBoard {
   start(): void; stop(): void; spawn(event: SpawnLetterEvent): void; selectRemoval(symbol: string): string | null;
-  acceptRemoval(letterId: string): void; rejectRemoval(letterId?: string): void; restore?(bodies: readonly BattleBodyTransform[]): void; getTargetSymbol(): string | null; takeTargetForOtter(): string | null; takeLetterForOtter(letterId: string): string | null; resize(width: number, height: number): void; setPublisher(publisher: LocalBoardPublisher): void; setGameOverHandler(handler: () => void): void; dispose(): void;
+  acceptRemoval(letterId: string): void; rejectRemoval(letterId?: string): void; restore?(bodies: readonly BattleBodyTransform[], snapshotAt?: number, receivedAt?: number): void; getTargetSymbol(): string | null; takeTargetForOtter(): string | null; takeLetterForOtter(letterId: string): string | null; resize(width: number, height: number): void; setPublisher(publisher: LocalBoardPublisher): void; setGameOverHandler(handler: () => void): void; dispose(): void;
 }
 
 export class BattleLocalBoardRuntime implements BattleLocalBoard {
@@ -44,17 +44,19 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
   }
   acceptRemoval(letterId: string): void { const record = this.letters.get(letterId); if (!record) return; if (this.priorityTargetId === letterId) this.priorityTargetId = null; this.renderer.highlightRemoval(letterId, this.config.removalEffectMs); this.updateTarget(); }
   rejectRemoval(letterId?: string): void { if (letterId) { const record = this.letters.get(letterId); if (record) record.pending = false; } else for (const record of this.letters.values()) record.pending = false; this.updateTarget(); }
-  restore(bodies: readonly BattleBodyTransform[]): void {
+  restore(bodies: readonly BattleBodyTransform[], snapshotAt = Date.now(), receivedAt = Date.now()): void {
     for (const body of bodies) {
       if (body.state === "REMOVED" || this.physics.getLetterState(body.id)) continue;
-      // A refresh restores the already-built tower, not a second physics
-      // simulation. Snapshots carry position normalized to the board but
-      // velocities in Matter units, so preserve neither momentum nor gravity
-      // for restored blocks.
-      const saved = { id: body.id, symbol: body.symbol, x: body.x * this.width, y: body.y * this.height, angle: body.angle, velocityX: 0, velocityY: 0, angularVelocity: 0, settled: true };
+      const settled = body.state === "SETTLED";
+      const saved = { id: body.id, symbol: body.symbol, x: body.x * this.width, y: body.y * this.height, angle: body.angle, velocityX: settled ? 0 : body.velocityX, velocityY: settled ? 0 : body.velocityY, angularVelocity: settled ? 0 : body.angularVelocity, settled };
       const state = this.physics.restoreLetter?.(saved) ?? this.physics.createLetter(saved);
       this.letters.set(body.id, { id: body.id, symbol: state.symbol, spawnedAt: 0, pending: false, ...(state.settled ? { settledAt: this.now() } : {}) });
     }
+    // Continue falling bodies from the authoritative capture point. Limit the
+    // correction so clock skew or a suspended tab cannot fast-forward a whole
+    // tower through multiple collisions in one restore.
+    const correctionMs = Math.max(0, Math.min(250, receivedAt - snapshotAt));
+    if (correctionMs > 0 && bodies.some((body) => body.state === "FALLING")) this.physics.update(correctionMs);
     this.updateTarget(); this.renderer.render(this.physics.getLetterStates());
   }
   getTargetSymbol(): string | null { return this.currentTarget()?.symbol ?? null; }
