@@ -22,6 +22,16 @@ public interface GameRoomRepository extends JpaRepository<GameRoom, Long> {
     List<GameRoom> findByStatus(GameRoomStatus status);
 
     /**
+     * 한 유저가 동시에 활성 방(WAITING/IN_PROGRESS, 즉 CLOSED가 아닌)을 두 개 이상 갖지 못하게
+     * create() 앞에서 확인하는 용도(버그픽스). host든 guest든 이미 참여 중인 활성 방이 있으면
+     * 새 방을 만들 수 없다.
+     */
+    @Query("SELECT COUNT(g) > 0 FROM GameRoom g "
+            + "WHERE g.status <> backend.ssafy.suhwa.game.domain.GameRoomStatus.CLOSED "
+            + "AND (g.hostUserId = :userId OR g.guestUserId = :userId)")
+    boolean existsActiveRoomForUser(@Param("userId") Long userId);
+
+    /**
      * 서버 재시작 시 인메모리 실시간 상태가 모두 사라져 신뢰할 수 없는 WAITING/IN_PROGRESS 방을
      * 일괄 CLOSED로 전환한다(FR-028, research.md #4).
      */
