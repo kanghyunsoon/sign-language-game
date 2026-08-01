@@ -22,11 +22,12 @@
 }
 
 .attendance-reward-card {
+  position: relative;
   width: min(480px, calc(100vw - 40px));
   display: flex;
   align-items: center;
   flex-direction: column;
-  padding: 30px;
+  padding: 52px 30px 16px;
   border: 3px solid #d8c8a9;
   border-radius: 24px;
   text-align: center;
@@ -40,17 +41,40 @@
   object-fit: contain;
 }
 
-.attendance-reward-card h2 {
+.attendance-reward-card #attendance-reward-title {
   margin: 8px 0 10px;
   color: #5f402b;
-  font-size: 32px;
+  font-size: 28px;
 }
 
 .attendance-reward-card p {
-  margin: 0 0 22px;
+  margin: 0;
   color: #827368;
   font-size: 17px;
   font-weight: 400;
+}
+
+.attendance-reward-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: #74675e;
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1;
+  background: #f1ede8;
+  cursor: pointer;
+}
+
+.attendance-reward-close:hover {
+  background: #e8e1d9;
 }
 
 .attendance-reward-card a {

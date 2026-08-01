@@ -1,12 +1,17 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 import otterClapImage from "../../learning/assets/otter_clap.png";
 import {
   checkIn,
+  getPetGrowth,
   type AttendanceCompletion,
   type PetGrowth,
 } from "../../profile/api/profileApi";
+import { HabitatUnlockModal } from "../../profile/components/HabitatUnlockModal";
+import {
+  findNewlyUnlockedHabitatLevel,
+  type HabitatUnlockLevel,
+} from "../../profile/data/habitatUnlock";
 import seashell01 from "../assets/seashell_01.webp";
 import seashell02 from "../assets/seashell_02.webp";
 import seashell03 from "../assets/seashell_03.webp";
@@ -49,6 +54,19 @@ export function AttendanceCard({
   const [checkInError, setCheckInError] = useState<string | null>(null);
   const [completion, setCompletion] =
     useState<AttendanceCompletion | null>(null);
+  const [unlockedHabitatLevel, setUnlockedHabitatLevel] =
+    useState<HabitatUnlockLevel | null>(null);
+
+  useEffect(() => {
+    if (!completion) return;
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setCompletion(null);
+    };
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [completion]);
 
   const days = buildMonthCalendar(attendedDates, cursor, today);
   const streak = currentStreak(attendedDates, today);
@@ -63,10 +81,24 @@ export function AttendanceCard({
     setCheckInError(null);
 
     try {
+      const previousGrowth = await getPetGrowth(accessToken).catch(() => null);
       const result = await checkIn(accessToken);
       markAttendance(date);
       onPetUpdated?.(result.pet);
-      if (result.newlyAttended && result.awardedExp > 0) setCompletion(result);
+      if (result.newlyAttended && result.awardedExp > 0) {
+        const unlockedLevel = previousGrowth
+          ? findNewlyUnlockedHabitatLevel(
+              previousGrowth.level,
+              result.pet.level,
+            )
+          : null;
+
+        if (unlockedLevel) {
+          setUnlockedHabitatLevel(unlockedLevel);
+        } else {
+          setCompletion(result);
+        }
+      }
     } catch (caught) {
       setCheckInError(
         caught instanceof Error
@@ -181,14 +213,27 @@ export function AttendanceCard({
           aria-labelledby="attendance-reward-title"
         >
           <section className="attendance-reward-card">
+            <button
+              className="attendance-reward-close"
+              type="button"
+              aria-label="경험치 획득 창 닫기"
+              onClick={() => setCompletion(null)}
+            >
+              ×
+            </button>
             <img src={otterClapImage} alt="" aria-hidden="true" />
             <h2 id="attendance-reward-title">
               {completion.awardedExp}XP를 얻었어요!
             </h2>
             <p>출석체크를 해서 {completion.awardedExp}XP를 얻었어요.</p>
-            <Link to="/profile">총 경험치 보러 가기</Link>
           </section>
         </div>
+      )}
+      {unlockedHabitatLevel && (
+        <HabitatUnlockModal
+          unlockedLevel={unlockedHabitatLevel}
+          onClose={() => setUnlockedHabitatLevel(null)}
+        />
       )}
     </section>
   );
