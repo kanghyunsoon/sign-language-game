@@ -6,10 +6,11 @@
   margin: 4px 0;
   padding: 0;
   place-items: center;
-  border: 0;
-  outline: 0;
-  appearance: none;
-  -webkit-appearance: none;
+  border: 0 !important;
+  outline: 0 !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -webkit-tap-highlight-color: transparent;
   background: transparent !important;
   box-shadow: none !important;
   color: inherit;
@@ -22,8 +23,8 @@
 .root:focus,
 .root:focus-visible,
 .root:active {
-  border: 0;
-  outline: 0;
+  border: 0 !important;
+  outline: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
 }
