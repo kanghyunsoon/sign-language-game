@@ -1,5 +1,5 @@
-import type { FingerspellingEntry } from "./fingerspelling";
-import { findFingerspellingEntry } from "./fingerspelling";
+import type { LearningEntry } from "./learningEntries";
+import { findLearningEntry } from "./learningEntries";
 
 /**
  * 오답노트가 연습·테스트로 글자 묶음을 넘길 때 쓰는 query parameter 이름.
@@ -20,17 +20,17 @@ const SYMBOL_SEPARATOR = ",";
  */
 export function parseSymbolSelection(
   raw: string | null | undefined,
-): FingerspellingEntry[] {
+): LearningEntry[] {
   if (!raw) return [];
 
   const seen = new Set<string>();
-  const entries: FingerspellingEntry[] = [];
+  const entries: LearningEntry[] = [];
 
   for (const piece of raw.split(SYMBOL_SEPARATOR)) {
     const symbol = piece.trim();
     if (!symbol || seen.has(symbol)) continue;
 
-    const entry = findFingerspellingEntry(symbol);
+    const entry = findLearningEntry(symbol);
     if (!entry) continue;
 
     seen.add(symbol);

@@ -66,6 +66,9 @@ export function PracticeHomePage() {
     () => parseSymbolSelection(symbolsParam),
     [symbolsParam],
   );
+  const selectedWordItems = selectedItems.filter(
+    (item) => item.categoryId === "word",
+  );
 
   const selectedPracticeCategory = practiceCategories.find(
     (category) => category.id === selectedCategory,
@@ -98,9 +101,18 @@ export function PracticeHomePage() {
   };
 
   if (selectedItems.length > 0) {
+    if (selectedWordItems.length === selectedItems.length) {
+      return (
+        <WordPracticeSessionPage
+          words={selectedWordItems}
+          onExit={handleSelectionExit}
+        />
+      );
+    }
+
     return (
       <PracticeSessionPage
-        items={selectedItems}
+        items={selectedItems.filter((item) => item.categoryId !== "word")}
         onExit={handleSelectionExit}
       />
     );

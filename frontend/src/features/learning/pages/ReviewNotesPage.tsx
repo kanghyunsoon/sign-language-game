@@ -3,13 +3,14 @@ import { useEffect, useMemo, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { FingerspellingDetail } from "../components/FingerspellingDetail";
-import type { FingerspellingCategoryId } from "../data/fingerspelling";
+import { WordSignDetail } from "../components/WordSignDetail";
 import { fingerspellingCategories } from "../data/fingerspelling";
+import type { LearningCategoryId } from "../data/learningEntries";
 import { useReviewNotes, useRemoveReviewNotes } from "../data/reviewNotes";
 import { SYMBOLS_PARAM, formatSymbolSelection } from "../data/symbolSelection";
 
 /** 카테고리 필터 값. "all"은 전체 보기. */
-type NoteFilterId = "all" | FingerspellingCategoryId;
+type NoteFilterId = "all" | LearningCategoryId;
 
 const noteFilters: readonly { id: NoteFilterId; label: string }[] = [
   { id: "all", label: "전체" },
@@ -17,6 +18,7 @@ const noteFilters: readonly { id: NoteFilterId; label: string }[] = [
     id: category.id,
     label: category.label,
   })),
+  { id: "word", label: "단어" },
 ];
 
 /** 알림이 화면에 머무는 시간(ms). 테스트 결과 화면과 동일하게 맞춘다. */
@@ -71,6 +73,12 @@ export function ReviewNotesPage() {
   const checkedInView = checkedSymbols.filter((symbol) =>
     visibleNotes.some((entry) => entry.symbol === symbol),
   );
+  const checkedEntries = notes.filter((entry) =>
+    checkedInView.includes(entry.symbol),
+  );
+  const canPracticeSelection =
+    checkedEntries.every((entry) => entry.categoryId === "word") ||
+    checkedEntries.every((entry) => entry.categoryId !== "word");
 
   const handleFilterChange = (filterId: NoteFilterId) => {
     setActiveFilter(filterId);
@@ -161,7 +169,7 @@ export function ReviewNotesPage() {
           <div className="review-notes-heading">
             <span className="review-notes-badge">REVIEW NOTES</span>
             <h1>오답노트</h1>
-            <p>복습이 필요한 틀린 지문자를 확인하고 연습·테스트해 보세요.</p>
+            <p>복습이 필요한 지문자와 단어를 확인하고 연습·테스트해 보세요.</p>
           </div>
 
           <div className="review-notes-layout">
@@ -253,6 +261,12 @@ export function ReviewNotesPage() {
                   <button
                     className="review-notes-action review-notes-action-practice"
                     type="button"
+                    disabled={!canPracticeSelection}
+                    title={
+                      canPracticeSelection
+                        ? undefined
+                        : "단어와 지문자는 나누어 선택해 주세요."
+                    }
                     onClick={() => handleNavigateWithSelection("/practice")}
                   >
                     연습하기
@@ -277,7 +291,21 @@ export function ReviewNotesPage() {
               )}
             </section>
 
-            {selectedEntry ? (
+            {selectedEntry?.categoryId === "word" ? (
+              <WordSignDetail
+                className="review-notes-detail"
+                entry={selectedEntry}
+                footer={
+                  <button
+                    className="review-notes-detail-delete"
+                    type="button"
+                    onClick={handleDeleteSelected}
+                  >
+                    오답노트 삭제하기
+                  </button>
+                }
+              />
+            ) : selectedEntry ? (
               <FingerspellingDetail
                 className="review-notes-detail"
                 entry={selectedEntry}

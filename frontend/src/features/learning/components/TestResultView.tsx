@@ -34,7 +34,6 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
     () =>
       new Set(
         wrongResults(results)
-          .filter((result) => isFingerspellingQuestion(result.question))
           .map((result) => result.question.symbol),
       ),
   );
@@ -42,7 +41,6 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
   // 틀린 글자는 결과 화면에 들어오는 즉시 오답노트에 담긴다.
   useEffect(() => {
     wrongResults(results)
-      .filter((result) => isFingerspellingQuestion(result.question))
       .forEach((result) => addReviewNote(result.question.symbol));
   }, [results]);
 
@@ -218,6 +216,22 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
             </h2>
             <div className="fingerspelling-detail-image">
               <p>수어 동작 영상은 준비 중입니다.</p>
+            </div>
+            <div className="fingerspelling-detail-footer">
+              <button
+                className={`test-wrong-note-toggle ${
+                  isSelectedInWrongNote ? "test-wrong-note-toggle-remove" : ""
+                }`}
+                type="button"
+                aria-pressed={isSelectedInWrongNote}
+                onClick={() =>
+                  handleWrongNoteToggle(selectedResult.question.symbol)
+                }
+              >
+                {isSelectedInWrongNote
+                  ? "오답노트 삭제하기"
+                  : "오답노트 추가하기"}
+              </button>
             </div>
           </section>
         )}

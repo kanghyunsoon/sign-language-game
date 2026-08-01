@@ -4,16 +4,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { WordHandCamera } from "../components/WordHandCamera";
 import { getWordAiWebSocketUrl } from "../data/aiRecognition";
-import { wordSigns } from "../data/wordSigns";
+import { wordSigns, type WordSignItem } from "../data/wordSigns";
 import { WordWebSocketSignRecognizer } from "../recognition/WordWebSocketSignRecognizer";
 import otterClapImage from "../assets/otter_clap.png";
 
 interface WordPracticeSessionPageProps {
   readonly onExit?: () => void;
+  readonly words?: readonly WordSignItem[];
 }
 
 export function WordPracticeSessionPage({
   onExit,
+  words = wordSigns,
 }: WordPracticeSessionPageProps) {
   const streamRef = useRef<MediaStream | null>(null);
   const targetWordIdRef = useRef("");
@@ -38,10 +40,10 @@ export function WordPracticeSessionPage({
   const [isCorrect, setIsCorrect] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
 
-  const currentWord = wordSigns[currentIndex];
+  const currentWord = words[currentIndex];
   const isFirst = currentIndex === 0;
-  const isLast = currentIndex === wordSigns.length - 1;
-  const progress = Math.round((correctCount / wordSigns.length) * 100);
+  const isLast = currentIndex === words.length - 1;
+  const progress = Math.round((correctCount / words.length) * 100);
   currentIndexRef.current = currentIndex;
 
   useEffect(() => {
@@ -210,12 +212,12 @@ export function WordPracticeSessionPage({
               <div
                 className="practice-progress-bar"
                 style={{
-                  width: `${((currentIndex + 1) / wordSigns.length) * 100}%`,
+                  width: `${((currentIndex + 1) / words.length) * 100}%`,
                 }}
               />
             </div>
             <span className="practice-progress-count">
-              {currentIndex + 1} / {wordSigns.length}
+              {currentIndex + 1} / {words.length}
             </span>
           </div>
 
@@ -327,7 +329,7 @@ export function WordPracticeSessionPage({
                   alt="연습 완료를 축하하는 수달"
                 />
                 <h2 id="word-completion-title">
-                  단어 연습 {wordSigns.length}개를 모두 완료했어요!
+                  단어 연습 {words.length}개를 모두 완료했어요!
                 </h2>
                 <div className="practice-completion-stats">
                   <div>

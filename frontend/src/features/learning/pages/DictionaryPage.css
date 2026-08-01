@@ -177,6 +177,12 @@
   height: 8px;
 }
 
+.dictionary-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
 .dictionary-tree::-webkit-scrollbar-thumb,
 .dictionary-results::-webkit-scrollbar-thumb {
   border-radius: 999px;
@@ -280,7 +286,7 @@
 .dictionary-tree-branch {
   display: grid;
   gap: 10px;
-  margin-top: 12px;
+  margin-top: 0;
   padding-left: 14px;
   border-left: 2px solid #e7d9c7;
 }
@@ -325,6 +331,11 @@
   list-style: none;
 }
 
+.dictionary-root-chip-grid {
+  margin: 0;
+  padding-left: 14px;
+}
+
 .dictionary-chip-grid > li {
   width: 44px;
   min-width: 44px;
@@ -350,6 +361,23 @@
   transition:
     transform 0.15s ease,
     background-color 0.15s ease;
+}
+
+.dictionary-chip-grid:has(.dictionary-chip-word) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dictionary-chip-grid > li:has(.dictionary-chip-word),
+.dictionary-chip-word {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+
+.dictionary-chip-word {
+  padding: 0 8px;
+  font-size: 15px;
+  white-space: nowrap;
 }
 
 .dictionary-chip:hover {

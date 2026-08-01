@@ -1,11 +1,12 @@
 import { useCallback, useSyncExternalStore } from "react";
 
-import type { FingerspellingEntry } from "./fingerspelling";
 import {
-  findFingerspellingEntry,
   fingerspellingCategories,
   fingerspellingItems,
 } from "./fingerspelling";
+import type { LearningEntry } from "./learningEntries";
+import { findLearningEntry } from "./learningEntries";
+import { wordSignEntries } from "./wordSigns";
 
 /**
  * 오답노트 저장소.
@@ -37,7 +38,7 @@ function readStorage(): string[] {
     // 저장된 뒤 사전에서 사라진 글자는 걸러낸다.
     return parsed.filter(
       (symbol): symbol is string =>
-        typeof symbol === "string" && findFingerspellingEntry(symbol) !== undefined,
+        typeof symbol === "string" && findLearningEntry(symbol) !== undefined,
     );
   } catch {
     return [];
@@ -74,7 +75,7 @@ function getSymbolSnapshot(): readonly string[] {
 export function addReviewNote(symbol: string) {
   const symbols = getSymbolSnapshot();
   if (symbols.includes(symbol)) return;
-  if (!findFingerspellingEntry(symbol)) return;
+  if (!findLearningEntry(symbol)) return;
 
   writeStorage([...symbols, symbol]);
 }
@@ -93,20 +94,31 @@ export function removeReviewNotes(symbolsToRemove: readonly string[]) {
  * 사전 순서에서 각 글자가 몇 번째인지 미리 계산해 둔다.
  * 자음(ㄱ-ㄴ-ㄷ...) → 모음(ㅏ-ㅑ-ㅓ...) → 숫자(1-2-3...) 순서가 된다.
  */
-const dictionaryOrderBySymbol = new Map(
-  fingerspellingCategories.flatMap((category) =>
-    fingerspellingItems[category.id].map(
-      (item, index) => [item.symbol, { category: category.id, index }] as const,
+const dictionaryOrderBySymbol = new Map<
+  string,
+  { category: string; index: number }
+>(
+  [
+    ...fingerspellingCategories.flatMap((category) =>
+      fingerspellingItems[category.id].map(
+        (item, index) => [item.symbol, { category: category.id, index }] as const,
+      ),
     ),
-  ),
+    ...wordSignEntries.map(
+      (item, index) => [item.symbol, { category: "word", index }] as const,
+    ),
+  ],
 );
 
-const categoryOrder = fingerspellingCategories.map((category) => category.id);
+const categoryOrder = [
+  ...fingerspellingCategories.map((category) => category.id),
+  "word",
+];
 
 /** 사전과 같은 순서로 비교한다. 목록이 담은 순서에 흔들리지 않게 한다. */
 function compareByDictionaryOrder(
-  left: FingerspellingEntry,
-  right: FingerspellingEntry,
+  left: LearningEntry,
+  right: LearningEntry,
 ): number {
   const leftPlace = dictionaryOrderBySymbol.get(left.symbol);
   const rightPlace = dictionaryOrderBySymbol.get(right.symbol);
@@ -124,12 +136,12 @@ function compareByDictionaryOrder(
  * 오답노트에 담긴 지문자 항목 목록.
  * 담은 순서가 아니라 사전 순서(자음 → 모음 → 숫자)로 정렬해 찾기 쉽게 한다.
  */
-export function useReviewNotes(): readonly FingerspellingEntry[] {
+export function useReviewNotes(): readonly LearningEntry[] {
   const symbols = useSyncExternalStore(subscribe, getSymbolSnapshot, () => EMPTY_SYMBOLS);
 
   return symbols
-    .map((symbol) => findFingerspellingEntry(symbol))
-    .filter((entry): entry is FingerspellingEntry => entry !== undefined)
+    .map((symbol) => findLearningEntry(symbol))
+    .filter((entry): entry is LearningEntry => entry !== undefined)
     .sort(compareByDictionaryOrder);
 }
 
