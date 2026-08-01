@@ -13,6 +13,10 @@ export interface RendererConfig {
   readonly dangerLineRatio: number;
   readonly letterWidth: number;
   readonly letterHeight: number;
+  /** Optional per-mode palette. Omitted values preserve the default solo look. */
+  readonly letterBaseColor?: number;
+  readonly letterTargetColor?: number;
+  readonly letterShadowColor?: number;
   readonly removalHighlightDurationMs: number;
   readonly showScenery: boolean;
 }

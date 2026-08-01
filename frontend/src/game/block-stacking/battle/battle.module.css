@@ -1049,3 +1049,419 @@
 .battleFixedPage .resultModal {
   width: 420px;
 }
+
+/* Match the live 1:1 screen to the warm, flat 2D solo-game shell. */
+.battleFixedPage {
+  grid-template-rows: 100px minmax(0, 1fr) !important;
+  gap: 15px !important;
+  padding: 18px 22px 22px !important;
+  background: #dff2ff url("../assets/game-mode-background-2d.png") center 48% / cover no-repeat !important;
+  font-family: Pretendard, "Noto Sans KR", "Malgun Gothic", sans-serif;
+}
+
+.battleFixedPage .topbar {
+  display: flex;
+  width: 100%;
+  height: 100px;
+  min-height: 0;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 !important;
+  overflow: visible;
+}
+
+.battleFixedPage .battleTitleGroup {
+  display: flex;
+  min-width: 0;
+  height: 82px;
+  align-items: center;
+  gap: 14px;
+}
+
+.battleFixedPage .battleBackButton {
+  display: grid;
+  flex: 0 0 auto;
+  width: 58px;
+  height: 58px;
+  padding: 0;
+  place-items: center;
+  border: 2px solid #ead7bf;
+  border-radius: 50%;
+  background: #fffdf7;
+  box-shadow: 0 5px 0 #c7a887, 0 10px 18px rgba(91, 66, 47, .14);
+  color: #765a43;
+  cursor: pointer;
+  align-self: center;
+  margin: 0 0 0 4px;
+  position: relative;
+  top: 19px;
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+
+.battleFixedPage .battleBackButton:hover:not(:disabled) {
+  box-shadow: 0 6px 0 #c7a887, 0 12px 20px rgba(91, 66, 47, .16);
+  transform: translateY(-1px);
+}
+
+.battleFixedPage .battleBackButton:active:not(:disabled) {
+  box-shadow: 0 2px 0 #c7a887;
+  transform: translateY(3px);
+}
+
+.battleFixedPage .battleBackButton:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.battleFixedPage .battleHeaderLogo {
+  position: relative;
+  width: 260px;
+  height: 82px;
+  margin: 0;
+  overflow: visible;
+}
+
+.battleFixedPage .battleHeaderLogo img {
+  position: absolute;
+  top: -57px;
+  left: -45px;
+  width: 350px;
+  max-width: none;
+  height: auto;
+  filter: drop-shadow(0 4px 5px rgba(73, 54, 40, .18));
+}
+
+.battleFixedPage .battleHeaderMeta {
+  display: grid;
+  flex: 0 0 auto;
+  justify-items: end;
+  gap: 7px;
+}
+
+.battleFixedPage .battleModeBadge {
+  display: grid;
+  min-width: 225px;
+  min-height: 54px;
+  place-items: center;
+  padding: 0 24px;
+  border: 2px solid #d6df9a;
+  border-radius: 23px;
+  background: rgba(255, 252, 235, .94);
+  box-shadow: 0 5px 0 rgba(106, 132, 55, .14);
+  color: #5d7131;
+  font-family: "Arial Rounded MT Bold", Pretendard, sans-serif;
+  font-size: 13px;
+  font-weight: 1000;
+  letter-spacing: .1em;
+}
+
+.battleFixedPage .connections {
+  justify-content: flex-end;
+  gap: 5px;
+  margin: 0;
+}
+
+.battleFixedPage .connections span {
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: .56rem;
+  letter-spacing: .02em;
+}
+
+.battleFixedPage .duelLayout {
+  grid-template-columns: minmax(0, 3fr) minmax(350px, 1fr) !important;
+  gap: 28px;
+}
+
+.battleFixedPage .duelStage {
+  display: grid;
+  box-sizing: border-box;
+  grid-template-rows: 32px minmax(0, 1fr);
+  padding: 8px 10px;
+  border: 3px solid rgba(255, 249, 235, .98);
+  border-radius: 30px;
+  background: rgba(255, 250, 239, .96);
+  box-shadow: 0 9px 0 rgba(121, 145, 72, .22), 0 20px 34px rgba(73, 91, 55, .14);
+}
+
+.battleFixedPage .duelStageHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px 4px;
+  pointer-events: none;
+}
+
+.battleFixedPage .duelStageHeading span {
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #edf5cf;
+  color: #627b2b;
+  font-size: 9px;
+  font-weight: 1000;
+  letter-spacing: .11em;
+}
+
+.battleFixedPage .duelStageHeading span:last-child {
+  background: #fff1d6;
+  box-shadow: 0 3px 0 #ddc596;
+  color: #755a38;
+}
+
+.battleFixedPage .duelBoards {
+  height: auto;
+  overflow: visible;
+  gap: 14px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.battleFixedPage .duelBoards > .boardPanel {
+  height: auto;
+  overflow: hidden;
+  border: 4px solid #91af57;
+  border-radius: 20px;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .42), 0 5px 0 rgba(97, 123, 51, .14);
+}
+
+.battleFixedPage .duelBoards > .boardPanel > header {
+  min-height: 48px;
+  padding: 7px 18px;
+  border-bottom: 2px solid rgba(220, 232, 173, .88);
+  background: rgba(255, 252, 238, .94);
+}
+
+.battleFixedPage .duelBoards > .boardPanel h2 {
+  color: #5b432f;
+  font-size: .92rem;
+  letter-spacing: .02em;
+}
+
+.battleFixedPage .duelBoards > .boardPanel .boardStats {
+  color: #6f7f55;
+}
+
+.battleFixedPage .duelBoards > .remoteBoardPanel > header {
+  padding-right: 18px;
+}
+
+.battleFixedPage .sharedBattleSky {
+  border-radius: 0;
+}
+
+.battleFixedPage .sharedTargetOtter {
+  top: -78px;
+  width: 205px;
+  filter: drop-shadow(0 7px 6px rgba(62, 83, 74, .16));
+}
+
+.battleFixedPage .sharedTargetOtter strong {
+  font-size: 46px;
+}
+
+.battleFixedPage .sharedTargetOtter > .sharedTargetHint {
+  top: calc(100% + 5px);
+  border-color: #d6df9a;
+  background: rgba(255, 252, 235, .96);
+  box-shadow: 0 4px 0 rgba(106, 132, 55, .14);
+  color: #5d7131;
+}
+
+.battleFixedPage .duelCameraRail {
+  gap: 20px;
+}
+
+.battleFixedPage .duelCameraCard {
+  box-sizing: border-box;
+  grid-template-rows: 32px minmax(0, 1fr);
+  padding: 8px;
+  border: 3px solid rgba(255, 249, 235, .98);
+  border-radius: 30px;
+  background: rgba(255, 250, 239, .96);
+  box-shadow: 0 9px 0 rgba(146, 111, 78, .19), 0 20px 34px rgba(82, 69, 55, .13);
+}
+
+.battleFixedPage .duelCameraCard > header {
+  min-height: 0;
+  padding: 0 10px;
+  border-bottom: 0;
+}
+
+.battleFixedPage .duelCameraCard > header strong {
+  color: #5b432f;
+  font-size: .72rem;
+  letter-spacing: .1em;
+}
+
+.battleFixedPage .duelCameraCard > header em,
+.battleFixedPage .duelCameraCard > header .recordingIndicator {
+  padding: 5px 9px;
+  border-radius: 999px;
+}
+
+.battleFixedPage .duelCameraViewport {
+  border: 4px solid #a98261;
+  border-radius: 20px;
+  background: #4c5c59;
+  box-shadow: inset 0 0 0 2px rgba(255, 250, 231, .22), 0 5px 0 rgba(112, 78, 53, .14);
+}
+
+.battleFixedPage .duelCameraViewport video,
+.battleFixedPage .duelCameraViewport :global(.camera-media) {
+  object-fit: cover !important;
+  background: #4c5c59;
+}
+
+.battleFixedPage .recognitionBadge {
+  top: 13px;
+  right: 13px;
+  min-width: 78px;
+  padding: 7px 10px;
+  border: 2px solid #e2e9bd;
+  border-radius: 17px;
+  background: rgba(255, 252, 239, .94);
+  box-shadow: 0 4px 0 rgba(98, 119, 61, .14);
+  backdrop-filter: none;
+}
+
+.battlePreviewPage {
+  transform: translate(-50%, -50%);
+}
+
+.battlePreviewPage .previewBoardSurface::before {
+  content: none;
+}
+
+.battlePreviewPage .previewBoardSurface {
+  background: transparent;
+}
+
+.battlePreviewPage .previewBoardSurface::after {
+  content: none;
+}
+
+.battlePreviewPage .previewBoardSurface > i {
+  display: none;
+}
+
+/* Final 1:1 proportion pass: give play more room while keeping the camera rail
+   aligned, and let the shared sky continue cleanly through the centre at night. */
+.battleFixedPage {
+  grid-template-rows: 120px minmax(0, 1fr) !important;
+  gap: 12px !important;
+  padding: 14px 18px 18px !important;
+}
+
+.battleFixedPage .topbar {
+  position: relative;
+  z-index: 30;
+  height: 120px;
+}
+
+.battleFixedPage .battleTitleGroup {
+  height: 82px;
+  gap: 20px;
+}
+
+.battleFixedPage .battleHeaderLogo {
+  height: 82px;
+}
+
+.battleFixedPage .battleHeaderLogo img {
+  top: -57px;
+}
+
+.battleFixedPage .duelLayout {
+  grid-template-columns: minmax(0, 3.55fr) minmax(330px, 1fr) !important;
+  gap: 20px;
+}
+
+.battleFixedPage .duelStage {
+  grid-template-rows: 28px minmax(0, 1fr);
+  padding: 6px 8px 8px;
+}
+
+.battleFixedPage .duelStageHeading {
+  padding: 0 8px 3px;
+}
+
+.battleFixedPage .duelStageHeading span {
+  padding: 4px 11px;
+}
+
+.battleFixedPage .duelBoards {
+  gap: 5px;
+}
+
+.battleFixedPage .duelBoards > .boardPanel {
+  border-color: rgba(112, 139, 62, .82);
+}
+
+.battleFixedPage .duelBoards > .boardPanel:not(.remoteBoardPanel) {
+  border-right-color: transparent;
+}
+
+.battleFixedPage .duelBoards > .remoteBoardPanel {
+  border-left-color: transparent;
+}
+
+.battleFixedPage .duelBoards::after {
+  position: absolute;
+  z-index: 4;
+  top: 44px;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  border-radius: 999px;
+  background: rgba(92, 112, 73, .42);
+  content: "";
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: shared-board-divider-cycle 64s ease-in-out infinite;
+}
+
+.battleFixedPage .duelBoards > .boardPanel > header {
+  min-height: 44px;
+  padding-block: 5px;
+}
+
+.battleFixedPage .sharedBattleSky {
+  top: 44px;
+}
+
+.battleFixedPage .duelCameraRail {
+  gap: 14px;
+}
+
+.battleFixedPage .duelCameraCard {
+  grid-template-rows: 30px minmax(0, 1fr);
+  padding: 7px;
+  border-radius: 25px;
+}
+
+.battleFixedPage .duelCameraViewport {
+  border-radius: 17px;
+}
+
+.battlePreviewPage .previewGlyphOne,
+.battlePreviewPage .previewGlyphTwo {
+  color: #c85e7a;
+  font-size: clamp(2.25rem, 4.8vw, 4.25rem);
+  text-shadow:
+    -2px -2px 0 rgba(255, 253, 240, .9),
+    2px -2px 0 rgba(255, 253, 240, .9),
+    -2px 2px 0 rgba(255, 253, 240, .9),
+    2px 2px 0 rgba(255, 253, 240, .9),
+    0 4px 0 rgba(112, 64, 82, .18);
+}
+
+.battlePreviewPage .previewGlyphTwo {
+  color: #c85e7a;
+}
+
+@keyframes shared-board-divider-cycle {
+  0%, 34%, 100% { opacity: .82; }
+  52%, 80% { opacity: .16; }
+}

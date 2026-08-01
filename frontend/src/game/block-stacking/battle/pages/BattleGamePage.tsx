@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import type { GameRenderer } from "../../render/types";
 import { DEFAULT_PHYSICS_CONFIG } from "../../physics/types";
 import { MatterPhysicsWorld } from "../../physics/MatterPhysicsWorld";
@@ -25,6 +26,7 @@ import { settledTowerHeightRatio } from "../../runtime/towerHeight";
 import { BattleConnectionPanel } from "../components/BattleConnectionPanel";
 import { BattleResultModal } from "../components/BattleResultModal";
 import letterOtter from "../../assets/solo-letter-otter.png";
+import startTitle from "../../assets/solo-start-title.png";
 import styles from "../battle.module.css";
 import { createDevAuthHeaders } from "../../../app/devAuthHeaders";
 import { BattleResultClient, BattleResultRequestError } from "../../../results/BattleResultClient";
@@ -367,10 +369,24 @@ export function BattleGamePage() {
     data-fixed-battle-game-canvas="true"
     style={{ transform: `translate(-50%, -50%) scale(${pageScale})` }}
   >
-    <header className={styles.topbar}><div><h1>1:1 지문자 대전</h1><p>방 {roomId || "-"}</p></div><BattleConnectionPanel game={snapshot.gameConnectionState} rtc={rtcState} ai={snapshot.aiConnectionState} camera={cameraState} /></header>
-    <button type="button" className={styles.battleLeaveButton} onClick={() => void forfeitAndLeave()} disabled={resultBusy}>나가기</button>
+    <header className={styles.topbar}>
+      <div className={styles.battleTitleGroup}>
+        <button type="button" className={styles.battleBackButton} onClick={() => void forfeitAndLeave()} disabled={resultBusy} aria-label="게임방 나가기">
+          <ArrowLeft aria-hidden="true" size={20} />
+        </button>
+        <h1 className={styles.battleHeaderLogo}><img src={startTitle} alt="프링글수" /></h1>
+      </div>
+      <div className={styles.battleHeaderMeta}>
+        <div className={styles.battleModeBadge}>1 VS 1 · FINISH LINE</div>
+        <BattleConnectionPanel game={snapshot.gameConnectionState} rtc={rtcState} ai={snapshot.aiConnectionState} camera={cameraState} />
+      </div>
+    </header>
     <div className={styles.duelLayout}>
       <section className={styles.duelStage} aria-label="공유 목표 1대1 게임판">
+        <div className={styles.duelStageHeading}>
+          <span>1 VS 1 · SKY LETTER STAGE</span>
+          <span>ROOM {roomId || "-"}</span>
+        </div>
         <div className={styles.duelBoards}>
           <div className={styles.sharedBattleSky} aria-hidden="true">
             <i className={styles.sharedNightSky}/><i className={[styles.sharedCelestial, styles.sharedSun].join(" ")}/><i className={[styles.sharedCelestial, styles.sharedMoon].join(" ")}/><i className={styles.sharedShootingStar}/>
@@ -401,7 +417,7 @@ export function BattleGamePage() {
       </aside>
     </div>
     {snapshot.state === "COUNTDOWN" ? <div className={styles.countdown}>{Math.max(1, Math.ceil(snapshot.countdownMs / 1000))}</div> : null}
-    <BattleResultModal result={finalResult} playerId={user.userId} busy={resultBusy} readyForRematch={resultRecorded} error={resultError} onReturnToWaiting={() => void returnToWaiting()} onRoomList={() => void leaveBattle("/game/battle")} onModeSelect={() => void leaveBattle("/game")} />
+    <BattleResultModal result={finalResult} playerId={user.userId} busy={resultBusy} readyForRematch={resultRecorded} error={resultError} onReturnToWaiting={() => void returnToWaiting()} onRoomList={() => void leaveBattle("/game/battle")} />
   </main>;
 }
 

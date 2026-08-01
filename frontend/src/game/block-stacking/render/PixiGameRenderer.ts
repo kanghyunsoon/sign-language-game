@@ -46,7 +46,7 @@ export class PixiGameRenderer implements GameRenderer {
     readonly width: number;
     readonly height: number;
   }>();
-  private readonly viewFactory = new LetterViewFactory();
+  private readonly viewFactory: LetterViewFactory;
   private targetId: string | null = null;
   private width: number;
   private height: number;
@@ -57,6 +57,11 @@ export class PixiGameRenderer implements GameRenderer {
     private readonly config: RendererConfig,
     mount: HTMLElement,
   ) {
+    this.viewFactory = new LetterViewFactory({
+      baseColor: config.letterBaseColor,
+      targetColor: config.letterTargetColor,
+      shadowColor: config.letterShadowColor,
+    });
     this.width = config.width;
     this.height = config.height;
     this.overlayLayer.addChild(this.dangerLine);
@@ -307,7 +312,9 @@ export class PixiGameRenderer implements GameRenderer {
 
     const spawnProgress = spawnElapsedMs === undefined ? 1 : Math.min(1, spawnElapsedMs / SPAWN_EFFECT_DURATION_MS);
     const color = spawnElapsedMs === undefined
-      ? (letter.id === this.targetId ? "#d95b7d" : "#416d72")
+      ? toCssColor(letter.id === this.targetId
+        ? (this.config.letterTargetColor ?? 0xd95b7d)
+        : (this.config.letterBaseColor ?? 0x416d72))
       : `hsl(${16 + spawnProgress * 28} 88% ${57 - spawnProgress * 7}%)`;
     const motion = letter.settled ? 0 : Math.min(1, Math.abs(letter.velocityY) / 4.5);
     const signature = [
@@ -434,4 +441,8 @@ export class PixiGameRenderer implements GameRenderer {
       throw new RangeError("Renderer dimensions must be finite positive numbers.");
     }
   }
+}
+
+function toCssColor(color: number): string {
+  return `#${color.toString(16).padStart(6, "0")}`;
 }

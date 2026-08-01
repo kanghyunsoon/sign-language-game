@@ -192,7 +192,16 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   private currentRooms(): readonly BattleRoomSummary[] {
     const expected = this.options.gameType ?? "TETRIS_DUEL";
     return [...this.lobbyCache.values()]
-      .filter((room) => room.gameType === expected)
+      // The result endpoint resets a completed match to WAITING while both
+      // participants are still viewing the result modal. Such a 2/2 room is
+      // not joinable and must not reappear in room search before either player
+      // explicitly leaves. The same rule also keeps any other full room out of
+      // the public finder until a seat actually becomes available.
+      .filter((room) => (
+        room.gameType === expected
+        && room.status === "WAITING"
+        && room.participantCount < room.capacity
+      ))
       .map(toSummary);
   }
 
