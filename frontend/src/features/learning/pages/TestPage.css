@@ -910,6 +910,12 @@
   font-weight: 900;
 }
 
+.test-result-symbol-word {
+  width: auto;
+  flex: 1;
+  white-space: nowrap;
+}
+
 .test-result-name {
   font-size: 21px;
   font-weight: 700;
@@ -1003,6 +1009,10 @@
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: #d5c5b1 transparent;
+}
+
+.test-result-detail .fingerspelling-detail-symbol {
+  font-size: 64px;
 }
 
 .fingerspelling-detail.test-result-detail::-webkit-scrollbar {

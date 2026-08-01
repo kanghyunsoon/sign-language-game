@@ -282,7 +282,9 @@ export function TestProgressView({
                 {currentQuestion.categoryLabel}
               </span>
 
-              <span className="test-question-tag">{currentQuestion.name}</span>
+              {currentQuestion.categoryId !== "word" && (
+                <span className="test-question-tag">{currentQuestion.name}</span>
+              )}
             </div>
 
             <span

@@ -7,6 +7,10 @@ interface FingerspellingDetailProps {
   readonly entry: FingerspellingEntry;
   /** 페이지별 크기·여백 보정을 위한 추가 클래스. */
   readonly className?: string;
+  /** 기본 분류 배지 대신 표시할 문구. */
+  readonly badgeLabel?: string;
+  /** 테스트 결과처럼 발음 이름을 생략해야 할 때 사용한다. */
+  readonly hideName?: boolean;
   /** 수형 설명 아래에 덧붙일 영역. 사전은 쓰지 않고 테스트 결과만 사용한다. */
   readonly footer?: ReactNode;
 }
@@ -18,6 +22,8 @@ interface FingerspellingDetailProps {
 export function FingerspellingDetail({
   entry,
   className,
+  badgeLabel,
+  hideName = false,
   footer,
 }: FingerspellingDetailProps) {
   return (
@@ -30,12 +36,14 @@ export function FingerspellingDetail({
       aria-live="polite"
     >
       <span className="fingerspelling-detail-badge">
-        지문자 · {entry.categoryLabel}
+        {badgeLabel ?? `지문자 · ${entry.categoryLabel}`}
       </span>
 
       <h2 className="fingerspelling-detail-symbol">{entry.symbol}</h2>
 
-      <p className="fingerspelling-detail-name">{entry.name}</p>
+      {hideName ? null : (
+        <p className="fingerspelling-detail-name">{entry.name}</p>
+      )}
 
       <div className="fingerspelling-detail-image">
         <img src={entry.image} alt={`${entry.name} 지문자 동작`} />

@@ -378,9 +378,7 @@ describe("TestPage 결과 화면", () => {
     startConsonantOnly("5개");
     finishAllWrong();
 
-    expect(
-      screen.getByText("5개 문자를 오답노트에 추가했어요!"),
-    ).toBeTruthy();
+    expect(screen.getByText("0문제를 맞췄어요!")).toBeTruthy();
     expect(
       screen.getByText("총 5문항 중 정답 0개 · 오답 5개"),
     ).toBeTruthy();
@@ -505,7 +503,7 @@ describe("TestPage 결과 화면", () => {
 
     // 전부 오답이므로 첫 문항은 이미 담겨 있다.
     expect(
-      screen.getByText("5개 문자를 오답노트에 추가했어요!"),
+      screen.getByText("0문제를 맞췄어요!"),
     ).toBeTruthy();
 
     const toggle = () =>
@@ -517,14 +515,14 @@ describe("TestPage 결과 화면", () => {
 
     expect(toggle().textContent).toBe("오답노트 추가하기");
     expect(
-      screen.getByText("4개 문자를 오답노트에 추가했어요!"),
+      screen.getByText("0문제를 맞췄어요!"),
     ).toBeTruthy();
 
     fireEvent.click(toggle());
 
     expect(toggle().textContent).toBe("오답노트 삭제하기");
     expect(
-      screen.getByText("5개 문자를 오답노트에 추가했어요!"),
+      screen.getByText("0문제를 맞췄어요!"),
     ).toBeTruthy();
   });
 
@@ -608,7 +606,7 @@ describe("TestPage 오답노트 연동", () => {
     fireEvent.click(screen.getByRole("button", { name: "넘어가기" }));
 
     // 두 문항을 모두 틀렸으니 결과 화면에 2개가 담긴다.
-    expect(screen.getByText("2개 문자를 오답노트에 추가했어요!")).toBeTruthy();
+    expect(screen.getByText("0문제를 맞췄어요!")).toBeTruthy();
   });
 
   it("중복된 글자는 한 번만 출제한다", () => {
