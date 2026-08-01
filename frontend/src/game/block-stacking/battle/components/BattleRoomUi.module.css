@@ -273,3 +273,217 @@
   .lobbyPage .lobbySide { grid-template-rows: auto minmax(0, 1fr); }
   .lobbyPage .quickTip { min-height: 0; }
 }
+
+/* Battle room finder — warm flat-2D continuation of the block mode screen. */
+.lobbyPage.fixedCanvasPage {
+  grid-template-rows: 150px minmax(0, 1fr);
+  padding: 24px 42px 26px;
+  background:
+    linear-gradient(rgba(226,246,255,.08), rgba(244,250,221,.1)),
+    url("../../assets/game-mode-background-2d.png") center 48% / cover no-repeat;
+  color: #4b392c;
+  font-family: Pretendard, "Noto Sans KR", "Malgun Gothic", sans-serif;
+}
+
+.lobbyPage.fixedCanvasPage::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(231,248,255,.04), rgba(255,255,255,.02) 48%, rgba(179,207,105,.08));
+  content: "";
+  pointer-events: none;
+}
+
+.lobbyPage.fixedCanvasPage::after { display: none; }
+.lobbyPage.fixedCanvasPage > * { position: relative; z-index: 2; }
+
+.lobbyDecor {
+  position: absolute !important;
+  z-index: 1 !important;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.lobbyBlock { position: absolute; display: grid; grid-template-columns: repeat(2, 18px); grid-template-rows: repeat(2, 18px); gap: 3px; }
+.lobbyBlock i { width: 18px; height: 18px; border: 2px solid color-mix(in srgb, currentColor 72%, #59412d); border-radius: 5px; background: currentColor; box-shadow: inset 0 -3px 0 rgba(71,52,35,.1); }
+.lobbyBlock i:nth-child(3) { grid-area: 2 / 2; }
+.lobbyBlockBlue { top: 82px; left: 300px; color: #67bce6; transform: rotate(-12deg); }
+.lobbyBlockPurple { top: 57px; right: 276px; color: #ad7ccf; transform: rotate(9deg); }
+.lobbyBlockYellow { top: 111px; right: 205px; color: #ffc64a; transform: rotate(-10deg); }
+.lobbyBlockYellow i:nth-child(2) { grid-area: 2 / 2; }
+
+.lobbyPage.fixedCanvasPage .lobbyBack {
+  position: absolute;
+  top: 25px;
+  left: 32px;
+  width: 58px;
+  min-height: 58px;
+  border: 2px solid #eadcc8 !important;
+  border-radius: 22px !important;
+  background: #fffdf8 !important;
+  box-shadow: 0 3px 0 rgba(133,101,68,.12);
+  color: #543823;
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+
+.lobbyPage.fixedCanvasPage .lobbyBack:hover { background: #fff !important; box-shadow: 0 4px 0 rgba(133,101,68,.14); transform: translateY(-1px); }
+
+.lobbyPage.fixedCanvasPage .lobbyProfile {
+  position: absolute;
+  top: 25px;
+  right: 32px;
+  min-width: 138px;
+  min-height: 54px !important;
+  padding: 0 20px;
+  border: 2px solid #eadcc8 !important;
+  border-radius: 22px !important;
+  background: #fffdf8 !important;
+  box-shadow: 0 3px 0 rgba(133,101,68,.12);
+  color: #543823 !important;
+  font-size: 13px;
+}
+
+.lobbyPage.fixedCanvasPage .lobbyHero { align-content: start; padding: 7px 0 13px; }
+.lobbyPage.fixedCanvasPage .lobbyHero > span { color: #6c8b2d; font-size: 11px; font-weight: 1000; letter-spacing: .13em; }
+.lobbyPage.fixedCanvasPage .lobbyHero h1 {
+  position: relative;
+  margin: 7px 0 8px;
+  padding: 0 10px 9px;
+  color: #4e392b;
+  font-family: Pretendard, "Malgun Gothic", sans-serif;
+  font-size: 44px;
+  font-weight: 1000;
+  letter-spacing: -.065em;
+  line-height: 1;
+  text-shadow: 0 2px 0 rgba(255,255,255,.72);
+}
+.lobbyPage.fixedCanvasPage .lobbyHero h1::after { position: absolute; right: 46px; bottom: 0; left: 46px; height: 3px; border-radius: 999px; background: #d9ad55; content: ""; }
+.lobbyPage.fixedCanvasPage .lobbyHero p { color: #654d3c; font-size: 13px; font-weight: 800; }
+
+.lobbyPage.fixedCanvasPage > .errorBanner {
+  position: absolute;
+  z-index: 12;
+  top: 126px;
+  left: 50%;
+  width: min(540px, calc(100% - 420px));
+  margin: 0;
+  padding: 8px 14px;
+  border: 2px solid #e8aaa7;
+  border-left: 5px solid #dc5e68;
+  border-radius: 13px;
+  background: #fff5ef;
+  box-shadow: 0 4px 0 rgba(174,77,82,.12);
+  color: #9b3f48;
+  font-size: 11px;
+  transform: translateX(-50%);
+}
+
+.lobbyPage.fixedCanvasPage .lobbyGrid {
+  grid-template-columns: 224px minmax(0, 1fr) 246px;
+  gap: 15px;
+}
+
+.lobbyPage.fixedCanvasPage .rankingPanel,
+.lobbyPage.fixedCanvasPage .lobbyRooms,
+.lobbyPage.fixedCanvasPage .createPanel,
+.lobbyPage.fixedCanvasPage .quickTip,
+.lobbyPage.fixedCanvasPage .modeTip {
+  border: 2px solid rgba(216,200,172,.96);
+  border-radius: 18px;
+  background: rgba(255,250,240,.97);
+  box-shadow: 0 3px 0 rgba(106,128,67,.12), 0 10px 20px rgba(82,105,68,.08);
+}
+
+.lobbyPage.fixedCanvasPage .rankingPanel { grid-template-rows: auto auto minmax(0, 1fr) auto; align-content: stretch; padding: 15px; }
+.lobbyPage.fixedCanvasPage .rankingPanel > header,
+.lobbyPage.fixedCanvasPage .roomsTitle,
+.lobbyPage.fixedCanvasPage .createPanel > header { border-bottom: 1px dashed #d9cfbd; color: #503d2f; }
+.lobbyPage.fixedCanvasPage .rankingPanel > header { padding: 2px 3px 12px; font-size: 14px; }
+.lobbyPage.fixedCanvasPage .rankingPanel header span,
+.lobbyPage.fixedCanvasPage .roomsTitle span,
+.lobbyPage.fixedCanvasPage .createPanel header span { display: flex; align-items: center; gap: 8px; }
+.lobbyPage.fixedCanvasPage .rankingPanel header svg { color: #e2a72e; }
+.lobbyPage.fixedCanvasPage .rankingPanel header small,
+.lobbyPage.fixedCanvasPage .roomsTitle small { background: #edf5d3; color: #6f892f; }
+.lobbyPage.fixedCanvasPage .rankingTabs { padding: 12px 0 9px; }
+.lobbyPage.fixedCanvasPage .rankingScope { align-self: center; margin: 11px 0 9px; padding: 8px 10px; border: 1px solid #d5e2a8; border-radius: 10px; background: #edf5d3; color: #657f2c; font-size: 11px; font-weight: 900; text-align: center; }
+.lobbyPage.fixedCanvasPage .rankingTabs button,
+.lobbyPage.fixedCanvasPage .roomSearch button { border: 1px solid transparent !important; background: #f3efe5 !important; color: #8b7d70 !important; }
+.lobbyPage.fixedCanvasPage .rankingTabs .active,
+.lobbyPage.fixedCanvasPage .roomSearch .active { border-color: #d5e2a8 !important; background: #edf5d3 !important; color: #657f2c !important; }
+.lobbyPage.fixedCanvasPage .rankingPanel ol { align-content: start; gap: 6px; }
+.lobbyPage.fixedCanvasPage .rankingPanel li { min-height: 48px; border-color: #e8dfd1; border-radius: 13px; background: rgba(255,255,255,.56); }
+.lobbyPage.fixedCanvasPage .rankingPanel li:nth-child(-n+3) b { display: grid; width: 24px; height: 24px; place-items: center; border-radius: 50%; background: #f7e4a5; color: #735a21; }
+.lobbyPage.fixedCanvasPage .rankingPanel li:nth-child(2) b { background: #e4e8e8; color: #657174; }
+.lobbyPage.fixedCanvasPage .rankingPanel li:nth-child(3) b { background: #eed4b5; color: #805c36; }
+.lobbyPage.fixedCanvasPage .rankingPanel li strong { color: #4d4036; }
+.lobbyPage.fixedCanvasPage .rankingPanel li em { color: #7f9d32; }
+.lobbyPage.fixedCanvasPage .rankingPanel li.myRank { border-color: #a8c659; background: #f4f9dd; box-shadow: inset 4px 0 0 #a8c659; }
+.lobbyPage.fixedCanvasPage .rankingPanel li.rankingState { display: grid; min-height: 88px; grid-template-columns: 1fr; place-items: center; padding: 14px 10px; border-style: dashed; color: #8d806f; font-size: 11px; text-align: center; }
+.lobbyPage.fixedCanvasPage .rankTip { align-self: end; margin-top: 10px; padding: 10px 11px; border-color: #ead38d; border-radius: 13px; background: #fff7d9; }
+.lobbyPage.fixedCanvasPage .rankTip strong { color: #755c24; }
+.lobbyPage.fixedCanvasPage .rankTip p { color: #8d8063; }
+
+.lobbyPage.fixedCanvasPage .lobbyRooms { border-color: #a9c758; background: rgba(255,251,241,.98); }
+.lobbyPage.fixedCanvasPage .roomsTitle { padding: 15px 18px; font-size: 15px; }
+.lobbyPage.fixedCanvasPage .roomsTitle svg { color: #dd6571; }
+.lobbyPage.fixedCanvasPage .roomSearch { grid-template-columns: minmax(0,1fr) auto; gap: 9px; padding: 11px 15px; border-bottom: 1px solid #e8dfd1; }
+.lobbyPage.fixedCanvasPage .roomSearch label { min-height: 39px; border: 2px solid #e3d9c9; border-radius: 12px; background: #fffefa; color: #9b8b7d; }
+.lobbyPage.fixedCanvasPage .roomSearch input { color: #59483b; }
+.lobbyPage.fixedCanvasPage .roomSearch > div { gap: 5px; }
+.lobbyPage.fixedCanvasPage .roomSearch .refreshButton { grid-column: 2; justify-self: end; min-height: 30px !important; background: transparent !important; color: #718c35 !important; }
+.lobbyPage.fixedCanvasPage .roomGrid { padding: 14px 15px 16px; overflow: auto; background: rgba(255,255,255,.22); }
+.lobbyPage.fixedCanvasPage .roomCard { border: 2px solid #e2d7c6; border-radius: 15px; background: #fffdf7; box-shadow: 0 4px 0 rgba(116,97,72,.08); }
+.lobbyPage.fixedCanvasPage .joinButton { background: #e96a75 !important; box-shadow: 0 4px 0 #b94d59; color: #fff !important; }
+
+.lobbyPage.fixedCanvasPage .emptyState {
+  display: grid;
+  min-height: 100%;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  padding: 28px 20px;
+  border: 1px dashed #d9cfbd;
+  border-radius: 14px;
+  background: rgba(255,253,245,.72);
+  color: #7b6a5d;
+}
+.emptyStateIcon { color: #829845; }
+.lobbyPage.fixedCanvasPage .emptyState strong { margin-top: 4px; color: #4f3d30; font-size: 17px; }
+.lobbyPage.fixedCanvasPage .emptyState p { margin: 0; color: #8f8074; font-size: 11px; }
+.lobbyPage.fixedCanvasPage .emptyState button { min-height: 36px; margin-top: 4px; padding: 0 18px; border: 0; border-radius: 11px; background: #e96a75; box-shadow: 0 4px 0 #b94d59; color: #fff; font-size: 12px; }
+
+.lobbyPage.fixedCanvasPage .lobbySide { display: flex; flex-direction: column; gap: 13px; }
+.lobbyPage.fixedCanvasPage .createPanel { gap: 9px; padding: 15px; }
+.lobbyPage.fixedCanvasPage .createPanel > header { padding: 1px 2px 11px; font-size: 14px; }
+.lobbyPage.fixedCanvasPage .createPanel header svg { color: #e56672; }
+.lobbyPrimaryActions { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.lobbyPage.fixedCanvasPage .createButton { min-height: 52px !important; border-radius: 12px !important; background: #e96a75 !important; box-shadow: 0 3px 0 #b94d59; color: #fff !important; font-size: 15px; transition: background .16s ease; }
+.lobbyPage.fixedCanvasPage .createButton:hover { background: #df626d !important; }
+.lobbyPage.fixedCanvasPage .quickJoinButton { min-height: 52px; border: 0; border-radius: 12px; background: #a8c63f; box-shadow: 0 3px 0 #7f9e26; color: #fff; font-size: 14px; }
+.lobbyPage.fixedCanvasPage .quickJoinButton:hover { background: #9fbd37; }
+.lobbyPage.fixedCanvasPage .createPanel > p { color: #98887b; }
+.lobbyPage.fixedCanvasPage .codeJoin { border: 1px solid #e4d8c7; background: rgba(255,255,255,.5); }
+.lobbyPage.fixedCanvasPage .codeJoin > strong { color: #5b4737; }
+.lobbyPage.fixedCanvasPage .codeJoin input { border: 1px solid #e2d6c5; background: #fffdf8; color: #58473a; }
+.lobbyPage.fixedCanvasPage .codeJoin button { background: #f0b64c !important; color: #5a3f1b !important; }
+.lobbyPage.fixedCanvasPage .linkJoin { border: 1px solid #e8dfd2 !important; background: #f8f3e9 !important; color: #6d5a4b !important; }
+.lobbyPage.fixedCanvasPage .quickTip { display: grid; flex: 0 0 auto; align-content: start; gap: 10px; min-height: 0; margin-top: 0; padding: 15px; border-color: #b8ce7d; background: rgba(242,248,220,.96); }
+.lobbyPage.fixedCanvasPage .quickTip strong { color: #61792b; font-size: 14px; }
+.lobbyPage.fixedCanvasPage .quickTip p { color: #7c8768; font-size: 10px; }
+.lobbyPage.fixedCanvasPage .quickTip button { min-height: 38px !important; border: 1px solid #d6e1aa !important; background: #fffdf4 !important; color: #5d7131 !important; }
+.lobbyPage.fixedCanvasPage .quickTip .codeJoin { padding: 0; border: 0; background: transparent; }
+.lobbyPage.fixedCanvasPage .quickTip .codeJoin input { min-width: 0; flex: 1 1 auto; }
+.lobbyPage.fixedCanvasPage .quickTip .codeJoin button { width: auto; min-width: 68px; flex: 0 0 68px; border: 0 !important; background: #f0b64c !important; color: #5a3f1b !important; white-space: nowrap; word-break: keep-all; }
+
+.lobbyPage.fixedCanvasPage .modalBackdrop { z-index: 40; background: rgba(54,61,43,.48); backdrop-filter: blur(3px); }
+.lobbyPage.fixedCanvasPage .modal { overflow: hidden; border: 2px solid #dfceb4; border-radius: 24px; background: #fffaf0; box-shadow: 0 9px 0 rgba(83,98,57,.16), 0 24px 54px rgba(49,57,42,.24); }
+.lobbyPage.fixedCanvasPage .modal > header { border-bottom: 1px dashed #d9cfbd; }
+.lobbyPage.fixedCanvasPage .modal header span { color: #7b9636; }
+.lobbyPage.fixedCanvasPage .modal h2 { color: #4e392b; }
+.lobbyPage.fixedCanvasPage .modal input[type="text"],
+.lobbyPage.fixedCanvasPage .modal input:not([type]),
+.lobbyPage.fixedCanvasPage .modal select { border: 2px solid #dfd2bf; border-radius: 11px; background: #fffef9; }
+.lobbyPage.fixedCanvasPage .radioOption { border-color: #dfd2bf; border-radius: 12px; background: rgba(255,255,255,.48); }
+.lobbyPage.fixedCanvasPage .modalActions .primaryButton { border: 0 !important; border-radius: 11px; background: #e96a75 !important; box-shadow: 0 4px 0 #b94d59; }
