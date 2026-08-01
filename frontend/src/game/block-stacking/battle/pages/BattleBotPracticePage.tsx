@@ -161,7 +161,6 @@ export function BattleBotPracticePage() {
       playerId={user.userId}
       onReturnToWaiting={() => navigate("/game/battle")}
       onRoomList={() => navigate("/game/battle")}
-      onModeSelect={() => navigate("/game/block")}
     />
   </main>;
 }

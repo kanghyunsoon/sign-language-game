@@ -12,7 +12,6 @@ interface BattleResultModalProps {
   readonly error?: string | null;
   readonly onReturnToWaiting: () => void;
   readonly onRoomList: () => void;
-  readonly onModeSelect: () => void;
 }
 
 export function BattleResultModal({
@@ -23,7 +22,6 @@ export function BattleResultModal({
   error,
   onReturnToWaiting,
   onRoomList,
-  onModeSelect,
 }: BattleResultModalProps) {
   if (!result) return null;
 
@@ -37,10 +35,10 @@ export function BattleResultModal({
     <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-labelledby="battle-result-title">
       <section className={resultStyles.resultStage}>
         <header className={resultStyles.resultHeader}>
-          <span className={resultStyles.modeBadge}>지문자 테트리수 · 1 VS 1</span>
+          <span className={resultStyles.modeBadge}>프링글수 · 1 VS 1</span>
           <div>
             <h2 id="battle-result-title">{won ? "승리했어요!" : "다음 판엔 이겨봐요!"}</h2>
-            <p>{won ? "상대보다 먼저 위험선을 지켜 냈어요. 멋진 플레이였어요!" : "마지막까지 잘 버텼어요. 다음 판에는 더 높은 콤보를 노려봐요!"}</p>
+            <p>{won ? "상대보다 먼저 결승선에 도달했어요. 멋진 플레이였어요!" : "마지막까지 잘 버텼어요. 다음 판에는 더 높은 콤보를 노려봐요!"}</p>
           </div>
           <strong className={resultStyles.resultScore}>최종 점수 <b>{mine?.score ?? 0}점</b></strong>
         </header>
@@ -71,8 +69,8 @@ export function BattleResultModal({
 
         <footer className={resultStyles.actions}>
           <button type="button" disabled={busy || !readyForRematch} onClick={onReturnToWaiting}>다시 하기</button>
-          <button type="button" disabled={busy} onClick={onRoomList}>같은 방으로</button>
-          <button type="button" disabled={busy} onClick={onModeSelect}>게임방 목록</button>
+          <button type="button" disabled={busy} onClick={onReturnToWaiting}>같은 방으로</button>
+          <button type="button" disabled={busy} onClick={onRoomList}>게임방 목록</button>
         </footer>
       </section>
     </div>
@@ -116,5 +114,5 @@ function ResultCard({
 function formatReason(reason: string): string {
   if (reason === "FORFEIT") return "상대 기권";
   if (reason === "RECONNECT_TIMEOUT") return "재접속 시간 초과";
-  return reason === "GAME_OVER" ? "위험선 도달" : reason === "DISCONNECTED" ? "연결 종료" : "게임 종료";
+  return reason === "GAME_OVER" || reason === "DANGER_LINE" ? "결승선 도달" : reason === "DISCONNECTED" ? "연결 종료" : "게임 종료";
 }
