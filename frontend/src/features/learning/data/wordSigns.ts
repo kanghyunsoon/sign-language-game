@@ -24,6 +24,15 @@ export interface WordSignItem {
   readonly name: string;
 }
 
+export interface WordSignEntry extends WordSignItem {
+  readonly symbol: string;
+  readonly categoryId: "word";
+  readonly categoryLabel: "단어";
+  readonly recognitionSymbol: WordSignId;
+  readonly image: "";
+  readonly description: string[];
+}
+
 export const wordSigns: readonly WordSignItem[] = [
   { id: "airplane", name: "비행기" },
   { id: "bicycle", name: "자전거" },
@@ -45,3 +54,32 @@ export const wordSigns: readonly WordSignItem[] = [
   { id: "helicopter", name: "헬리콥터" },
   { id: "sun", name: "해" },
 ];
+
+export const wordSignEntries: readonly WordSignEntry[] = wordSigns.map(
+  (word) => ({
+    ...word,
+    symbol: word.name,
+    categoryId: "word",
+    categoryLabel: "단어",
+    recognitionSymbol: word.id,
+    image: "",
+    description: ["수어 동작 영상은 준비 중입니다."],
+  }),
+);
+
+export function findWordSignEntry(value: string): WordSignEntry | undefined {
+  return wordSignEntries.find(
+    (entry) => entry.symbol === value || entry.id === value,
+  );
+}
+
+export function searchWordSignEntries(query: string): WordSignEntry[] {
+  const keyword = query.trim();
+  if (!keyword) return [...wordSignEntries];
+
+  return wordSignEntries.filter(
+    (entry) =>
+      entry.name.includes(keyword) ||
+      entry.id.toLowerCase().includes(keyword.toLowerCase()),
+  );
+}

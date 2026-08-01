@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { ReviewNotesPage } from "./ReviewNotesPage";
 import { addReviewNote, removeReviewNotes } from "../data/reviewNotes";
-import { fingerspellingEntries } from "../data/fingerspelling";
+import { learningEntries } from "../data/learningEntries";
 
 /**
  * 테스트마다 오답노트를 깨끗한 상태에서 시작한다.
@@ -13,7 +13,7 @@ import { fingerspellingEntries } from "../data/fingerspelling";
  */
 const resetNotes = () => {
   window.localStorage.clear();
-  removeReviewNotes(fingerspellingEntries.map((entry) => entry.symbol));
+  removeReviewNotes(learningEntries.map((entry) => entry.symbol));
 };
 
 beforeEach(resetNotes);
@@ -52,6 +52,17 @@ describe("ReviewNotesPage 빈 상태", () => {
 });
 
 describe("ReviewNotesPage 목록", () => {
+  it("단어 오답을 저장하고 단어 필터에서 준비 중 상세를 보여준다", () => {
+    addReviewNote("비행기");
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "단어" }));
+
+    expect(screen.getByRole("button", { name: "비행기 비행기" })).toBeTruthy();
+    expect(readDetailSymbol()).toBe("비행기");
+    expect(screen.getByText("수어 동작 영상은 준비 중입니다.")).toBeTruthy();
+  });
+
   it("담긴 글자를 카드로 보여주고 첫 항목의 상세를 띄운다", () => {
     seedNotes();
     renderPage();

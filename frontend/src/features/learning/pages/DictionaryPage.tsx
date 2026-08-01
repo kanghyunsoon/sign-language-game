@@ -4,21 +4,26 @@ import type { ChangeEvent } from "react";
 import { ChevronDown, Search, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { FingerspellingDetail } from "../components/FingerspellingDetail";
-import type { FingerspellingCategoryId } from "../data/fingerspelling";
+import { WordSignDetail } from "../components/WordSignDetail";
 import {
   DEFAULT_FINGERSPELLING_SYMBOL,
   fingerspellingCategories,
-  fingerspellingEntries,
   fingerspellingItems,
-  findFingerspellingEntry,
-  searchFingerspellingEntries,
 } from "../data/fingerspelling";
+import type { LearningCategoryId } from "../data/learningEntries";
+import {
+  findLearningEntry,
+  learningEntries,
+  searchLearningEntries,
+} from "../data/learningEntries";
+import { wordSignEntries } from "../data/wordSigns";
 
 /** 분류별 펼침 상태. 사전 진입 시 자음만 펼쳐 둔다. */
-const initialOpenCategoryMap: Record<FingerspellingCategoryId, boolean> = {
+const initialOpenCategoryMap: Record<LearningCategoryId, boolean> = {
   consonant: true,
   vowel: false,
   number: false,
+  word: false,
 };
 
 export function DictionaryPage() {
@@ -28,6 +33,8 @@ export function DictionaryPage() {
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [isFingerspellingOpen, setIsFingerspellingOpen] = useState(true);
+  const [isNumberOpen, setIsNumberOpen] = useState(false);
+  const [isWordOpen, setIsWordOpen] = useState(false);
   const [openCategoryMap, setOpenCategoryMap] = useState(
     initialOpenCategoryMap,
   );
@@ -46,11 +53,11 @@ export function DictionaryPage() {
     return () => window.removeEventListener("resize", updateDictionaryScale);
   }, []);
   const searchResults = isSearching
-    ? searchFingerspellingEntries(searchQuery)
+    ? searchLearningEntries(searchQuery)
     : [];
   // 알 수 없는 글자가 남아도 항상 유효한 항목을 보여준다.
   const selectedEntry =
-    findFingerspellingEntry(selectedSymbol) ?? fingerspellingEntries[0];
+    findLearningEntry(selectedSymbol) ?? learningEntries[0];
 
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value);
@@ -64,7 +71,7 @@ export function DictionaryPage() {
     setIsFingerspellingOpen((previous) => !previous);
   };
 
-  const handleCategoryToggle = (categoryId: FingerspellingCategoryId) => {
+  const handleCategoryToggle = (categoryId: LearningCategoryId) => {
     setOpenCategoryMap((previous) => ({
       ...previous,
       [categoryId]: !previous[categoryId],
@@ -74,11 +81,18 @@ export function DictionaryPage() {
   /** 항목을 선택하고, 분류 트리에서 해당 항목이 보이도록 펼친다. */
   const handleEntrySelect = (
     symbol: string,
-    categoryId: FingerspellingCategoryId,
+    categoryId: LearningCategoryId,
   ) => {
     setSelectedSymbol(symbol);
-    setIsFingerspellingOpen(true);
-    setOpenCategoryMap((previous) => ({ ...previous, [categoryId]: true }));
+
+    if (categoryId === "number") {
+      setIsNumberOpen(true);
+    } else if (categoryId === "word") {
+      setIsWordOpen(true);
+    } else {
+      setIsFingerspellingOpen(true);
+      setOpenCategoryMap((previous) => ({ ...previous, [categoryId]: true }));
+    }
   };
 
   return (
@@ -108,7 +122,7 @@ export function DictionaryPage() {
         <div className="dictionary-heading">
           <span className="dictionary-badge">DICTIONARY</span>
           <h1>수어 사전</h1>
-          <p>자음·모음·숫자 지문자를 검색하고 수형을 확인해 보세요.</p>
+          <p>자음·모음·숫자와 단어 수어를 검색하고 동작을 확인해 보세요.</p>
         </div>
 
         <div className="dictionary-layout">
@@ -126,7 +140,7 @@ export function DictionaryPage() {
                 value={searchQuery}
                 onChange={handleSearchChange}
                 aria-label="지문자 검색"
-                placeholder="ㄱ, 기역, 1 처럼 입력해 보세요"
+                placeholder="ㄱ, 기역, 1, 비행기처럼 입력해 보세요"
               />
 
               {isSearching && (
@@ -197,6 +211,11 @@ export function DictionaryPage() {
                 >
                   <span>지문자</span>
 
+                  <span className="dictionary-tree-count">
+                    {fingerspellingItems.consonant.length +
+                      fingerspellingItems.vowel.length}
+                  </span>
+
                   <ChevronDown
                     className={`dictionary-tree-chevron ${
                       isFingerspellingOpen ? "is-open" : ""
@@ -211,7 +230,9 @@ export function DictionaryPage() {
                     className="dictionary-tree-branch"
                     id="dictionary-tree-branch"
                   >
-                    {fingerspellingCategories.map((category) => {
+                    {fingerspellingCategories
+                      .filter((category) => category.id !== "number")
+                      .map((category) => {
                       const items = fingerspellingItems[category.id];
                       const isOpen = openCategoryMap[category.id];
 
@@ -278,14 +299,116 @@ export function DictionaryPage() {
                     })}
                   </div>
                 )}
+
+                <button
+                  className="dictionary-tree-root"
+                  type="button"
+                  aria-expanded={isNumberOpen}
+                  aria-controls="dictionary-chips-number"
+                  onClick={() => setIsNumberOpen((previous) => !previous)}
+                >
+                  <span>지숫자</span>
+                  <span className="dictionary-tree-count">
+                    {fingerspellingItems.number.length}
+                  </span>
+                  <ChevronDown
+                    className={`dictionary-tree-chevron ${
+                      isNumberOpen ? "is-open" : ""
+                    }`}
+                    size={18}
+                    aria-hidden="true"
+                  />
+                </button>
+
+                {isNumberOpen && (
+                  <ul
+                    className="dictionary-chip-grid dictionary-root-chip-grid"
+                    id="dictionary-chips-number"
+                  >
+                    {fingerspellingItems.number.map((item) => {
+                      const isSelected = item.symbol === selectedEntry.symbol;
+
+                      return (
+                        <li key={item.symbol}>
+                          <button
+                            className={`dictionary-chip ${
+                              isSelected ? "dictionary-chip-selected" : ""
+                            }`}
+                            type="button"
+                            aria-pressed={isSelected}
+                            aria-label={`${item.symbol} ${item.name}`}
+                            onClick={() =>
+                              handleEntrySelect(item.symbol, "number")
+                            }
+                          >
+                            {item.symbol}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+
+                <button
+                  className="dictionary-tree-root"
+                  type="button"
+                  aria-expanded={isWordOpen}
+                  aria-controls="dictionary-chips-word"
+                  onClick={() => setIsWordOpen((previous) => !previous)}
+                >
+                  <span>단어</span>
+                  <span className="dictionary-tree-count">
+                    {wordSignEntries.length}
+                  </span>
+                  <ChevronDown
+                    className={`dictionary-tree-chevron ${
+                      isWordOpen ? "is-open" : ""
+                    }`}
+                    size={18}
+                    aria-hidden="true"
+                  />
+                </button>
+
+                {isWordOpen && (
+                  <ul
+                    className="dictionary-chip-grid dictionary-root-chip-grid"
+                    id="dictionary-chips-word"
+                  >
+                    {wordSignEntries.map((item) => {
+                      const isSelected = item.symbol === selectedEntry.symbol;
+
+                      return (
+                        <li key={item.id}>
+                          <button
+                            className={`dictionary-chip dictionary-chip-word ${
+                              isSelected ? "dictionary-chip-selected" : ""
+                            }`}
+                            type="button"
+                            aria-pressed={isSelected}
+                            onClick={() => handleEntrySelect(item.symbol, "word")}
+                          >
+                            {item.name}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
             )}
           </aside>
 
-          <FingerspellingDetail
-            className="dictionary-detail"
-            entry={selectedEntry}
-          />
+          {selectedEntry.categoryId === "word" ? (
+            <WordSignDetail
+              className="dictionary-detail"
+              entry={selectedEntry}
+            />
+          ) : (
+            <FingerspellingDetail
+              className="dictionary-detail"
+              entry={selectedEntry}
+            />
+          )}
         </div>
       </main>
 

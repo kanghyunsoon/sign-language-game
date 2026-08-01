@@ -638,6 +638,7 @@
 }
 
 .practice-correct-card {
+  position: relative;
   width: min(min(25vw, 40vh), calc(100% - min(2.083333vw, 3.333333vh)));
   display: flex;
   align-items: center;
@@ -649,6 +650,26 @@
   text-align: center;
   background: #fffdf7;
   box-shadow: 0 min(1.041667vw, 1.666667vh) min(2.1875vw, 3.5vh) rgba(59, 42, 35, 0.25);
+}
+
+.practice-correct-card .practice-correct-close {
+  position: absolute;
+  top: min(0.625vw, 1vh);
+  right: min(0.625vw, 1vh);
+  width: min(2.083333vw, 3.333333vh);
+  min-width: 0;
+  height: min(2.083333vw, 3.333333vh);
+  min-height: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #827368;
+  font-size: min(1.5625vw, 2.5vh);
+  font-weight: 400;
+  line-height: 1;
+  background: #f2eee7;
+  box-shadow: none;
 }
 
 .practice-correct-card img {
@@ -667,6 +688,11 @@
   margin: 0 0 min(1.041667vw, 1.666667vh);
   color: #827368;
   font-size: min(1.041667vw, 1.666667vh);
+}
+
+.practice-correct-card .practice-correct-countdown {
+  margin-top: calc(min(0.729167vw, 1.166667vh) * -1);
+  margin-bottom: 0;
 }
 
 .practice-correct-card button {

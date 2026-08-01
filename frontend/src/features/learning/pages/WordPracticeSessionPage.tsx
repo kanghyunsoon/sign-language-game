@@ -4,16 +4,20 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { WordHandCamera } from "../components/WordHandCamera";
 import { getWordAiWebSocketUrl } from "../data/aiRecognition";
-import { wordSigns } from "../data/wordSigns";
+import { wordSigns, type WordSignItem } from "../data/wordSigns";
 import { WordWebSocketSignRecognizer } from "../recognition/WordWebSocketSignRecognizer";
 import otterClapImage from "../assets/otter_clap.png";
 
+const CORRECT_AUTO_ADVANCE_SECONDS = 2;
+
 interface WordPracticeSessionPageProps {
   readonly onExit?: () => void;
+  readonly words?: readonly WordSignItem[];
 }
 
 export function WordPracticeSessionPage({
   onExit,
+  words = wordSigns,
 }: WordPracticeSessionPageProps) {
   const streamRef = useRef<MediaStream | null>(null);
   const targetWordIdRef = useRef("");
@@ -36,12 +40,15 @@ export function WordPracticeSessionPage({
   const [cameraMessage, setCameraMessage] =
     useState("카메라 시작 버튼을 눌러주세요.");
   const [isCorrect, setIsCorrect] = useState(false);
+  const [autoAdvanceSeconds, setAutoAdvanceSeconds] = useState(
+    CORRECT_AUTO_ADVANCE_SECONDS,
+  );
   const [isComplete, setIsComplete] = useState(false);
 
-  const currentWord = wordSigns[currentIndex];
+  const currentWord = words[currentIndex];
   const isFirst = currentIndex === 0;
-  const isLast = currentIndex === wordSigns.length - 1;
-  const progress = Math.round((correctCount / wordSigns.length) * 100);
+  const isLast = currentIndex === words.length - 1;
+  const progress = Math.round((correctCount / words.length) * 100);
   currentIndexRef.current = currentIndex;
 
   useEffect(() => {
@@ -168,6 +175,24 @@ export function WordPracticeSessionPage({
     moveTo(currentIndex + 1);
   };
 
+  useEffect(() => {
+    if (!isCorrect || isComplete) return;
+
+    setAutoAdvanceSeconds(CORRECT_AUTO_ADVANCE_SECONDS);
+    const countdownId = window.setInterval(() => {
+      setAutoAdvanceSeconds((seconds) => Math.max(1, seconds - 1));
+    }, 1000);
+    const nextId = window.setTimeout(
+      finishOrNext,
+      CORRECT_AUTO_ADVANCE_SECONDS * 1000,
+    );
+
+    return () => {
+      window.clearInterval(countdownId);
+      window.clearTimeout(nextId);
+    };
+  }, [isCorrect, isComplete]);
+
   const retry = () => {
     correctIndexesRef.current.clear();
     setCurrentIndex(0);
@@ -210,12 +235,12 @@ export function WordPracticeSessionPage({
               <div
                 className="practice-progress-bar"
                 style={{
-                  width: `${((currentIndex + 1) / wordSigns.length) * 100}%`,
+                  width: `${((currentIndex + 1) / words.length) * 100}%`,
                 }}
               />
             </div>
             <span className="practice-progress-count">
-              {currentIndex + 1} / {wordSigns.length}
+              {currentIndex + 1} / {words.length}
             </span>
           </div>
 
@@ -303,12 +328,20 @@ export function WordPracticeSessionPage({
               aria-labelledby="word-correct-title"
             >
               <section className="practice-correct-card">
+                <button
+                  className="practice-correct-close"
+                  type="button"
+                  aria-label="정답 안내 닫기"
+                  onClick={finishOrNext}
+                >
+                  ×
+                </button>
                 <img src={otterClapImage} alt="박수치는 수달" />
                 <h2 id="word-correct-title">맞췄습니다!</h2>
                 <p>AI가 {currentWord.name} 동작을 정확히 인식했어요.</p>
-                <button type="button" onClick={finishOrNext}>
-                  {isLast ? "연습 완료" : "다음 문제"}
-                </button>
+                <p className="practice-correct-countdown">
+                  {autoAdvanceSeconds}초 뒤에 자동으로 다음 문제로 넘어가요.
+                </p>
               </section>
             </div>
           )}
@@ -327,7 +360,7 @@ export function WordPracticeSessionPage({
                   alt="연습 완료를 축하하는 수달"
                 />
                 <h2 id="word-completion-title">
-                  단어 연습 {wordSigns.length}개를 모두 완료했어요!
+                  단어 연습 {words.length}개를 모두 완료했어요!
                 </h2>
                 <div className="practice-completion-stats">
                   <div>

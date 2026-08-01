@@ -34,7 +34,6 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
     () =>
       new Set(
         wrongResults(results)
-          .filter((result) => isFingerspellingQuestion(result.question))
           .map((result) => result.question.symbol),
       ),
   );
@@ -42,7 +41,6 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
   // 틀린 글자는 결과 화면에 들어오는 즉시 오답노트에 담긴다.
   useEffect(() => {
     wrongResults(results)
-      .filter((result) => isFingerspellingQuestion(result.question))
       .forEach((result) => addReviewNote(result.question.symbol));
   }, [results]);
 
@@ -109,9 +107,9 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
           {/* 상세에서 넣고 뺀 결과가 바로 반영되도록 현재 담긴 개수를 보여준다.
               담긴 글자가 없으면 개수 대신 다 맞췄다고 알려 준다. */}
           <h1 className="test-result-title">
-            {wrongNoteSymbols.size === 0
+            {correctCount === results.length
               ? "모든 문제를 맞췄어요!"
-              : `${wrongNoteSymbols.size}개 문자를 오답노트에 추가했어요!`}
+              : `${correctCount}문제를 맞췄어요!`}
           </h1>
 
           <p className="test-result-summary">
@@ -136,13 +134,21 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
                   >
                     <span className="test-result-order">{index + 1}</span>
 
-                    <span className="test-result-symbol">
+                    <span
+                      className={`test-result-symbol ${
+                        result.question.categoryId === "word"
+                          ? "test-result-symbol-word"
+                          : ""
+                      }`}
+                    >
                       {result.question.symbol}
                     </span>
 
-                    <span className="test-result-name">
-                      {result.question.name}
-                    </span>
+                    {result.question.categoryId !== "word" && (
+                      <span className="test-result-name">
+                        {result.question.name}
+                      </span>
+                    )}
 
                     <span
                       className={`test-result-mark ${
@@ -185,6 +191,8 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
           <FingerspellingDetail
             className="test-result-detail"
             entry={selectedResult.question}
+            badgeLabel={selectedResult.question.categoryLabel}
+            hideName
             footer={
               <button
                 className={`test-wrong-note-toggle ${
@@ -202,15 +210,28 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
           />
         ) : (
           <section className="fingerspelling-detail test-result-detail">
-            <span className="fingerspelling-detail-badge">수어 · 단어</span>
+            <span className="fingerspelling-detail-badge">단어</span>
             <h2 className="fingerspelling-detail-symbol">
               {selectedResult.question.symbol}
             </h2>
-            <p className="fingerspelling-detail-name">
-              {selectedResult.question.name}
-            </p>
             <div className="fingerspelling-detail-image">
               <p>수어 동작 영상은 준비 중입니다.</p>
+            </div>
+            <div className="fingerspelling-detail-footer">
+              <button
+                className={`test-wrong-note-toggle ${
+                  isSelectedInWrongNote ? "test-wrong-note-toggle-remove" : ""
+                }`}
+                type="button"
+                aria-pressed={isSelectedInWrongNote}
+                onClick={() =>
+                  handleWrongNoteToggle(selectedResult.question.symbol)
+                }
+              >
+                {isSelectedInWrongNote
+                  ? "오답노트 삭제하기"
+                  : "오답노트 추가하기"}
+              </button>
             </div>
           </section>
         )}

@@ -3,6 +3,17 @@ import { describe, expect, it } from "vitest";
 import { formatSymbolSelection, parseSymbolSelection } from "./symbolSelection";
 
 describe("parseSymbolSelection", () => {
+  it("단어를 단어 테스트 항목으로 바꾼다", () => {
+    const [entry] = parseSymbolSelection("비행기");
+
+    expect(entry?.categoryId).toBe("word");
+    expect(
+      entry && "recognitionSymbol" in entry
+        ? entry.recognitionSymbol
+        : undefined,
+    ).toBe("airplane");
+  });
+
   it("쉼표로 구분된 글자를 지문자 항목으로 바꾼다", () => {
     const entries = parseSymbolSelection("ㄱ,ㅏ,1");
 

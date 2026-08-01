@@ -1,9 +1,11 @@
+import "../pages/PracticeSessionPage.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   HandCamera,
   type RecognitionConnectionState,
 } from "../../../game/recognition";
 import { WordHandCamera } from "./WordHandCamera";
+import otterClapImage from "../assets/otter_clap.png";
 import {
   getAiWebSocketUrl,
   getWordAiWebSocketUrl,
@@ -20,6 +22,7 @@ import { TEST_TIME_LIMIT_SECONDS } from "../data/testSession";
 const TIME_LIMIT_MS = TEST_TIME_LIMIT_SECONDS * 1000;
 /** 남은 시간 표시 갱신 주기. */
 const TICK_INTERVAL_MS = 100;
+const CORRECT_AUTO_ADVANCE_SECONDS = 2;
 
 interface TestProgressViewProps {
   readonly questions: readonly TestQuestion[];
@@ -35,6 +38,8 @@ export function TestProgressView({
   const targetSymbolRef = useRef("");
   const answeredRef = useRef(false);
   const advanceRef = useRef<(state: TestAnswerState) => void>(() => {});
+  const isCorrectFeedbackOpenRef = useRef(false);
+  const finishCorrectFeedbackRef = useRef<() => void>(() => {});
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [results, setResults] = useState<TestQuestionResult[]>([]);
@@ -57,6 +62,10 @@ export function TestProgressView({
   } | null>(null);
   const [recognitionMessage, setRecognitionMessage] = useState(
     "AI 연결을 준비하고 있습니다.",
+  );
+  const [isCorrectFeedbackOpen, setIsCorrectFeedbackOpen] = useState(false);
+  const [autoAdvanceSeconds, setAutoAdvanceSeconds] = useState(
+    CORRECT_AUTO_ADVANCE_SECONDS,
   );
 
   const currentQuestion = questions[currentIndex];
@@ -100,6 +109,52 @@ export function TestProgressView({
     setResults(nextResults);
     setCurrentIndex((previous) => previous + 1);
   };
+
+  const showCorrectFeedback = () => {
+    if (answeredRef.current || !targetSymbolRef.current) return;
+
+    answeredRef.current = true;
+    isCorrectFeedbackOpenRef.current = true;
+    setRecognitionMessage("정답입니다!");
+    setAutoAdvanceSeconds(CORRECT_AUTO_ADVANCE_SECONDS);
+    setIsCorrectFeedbackOpen(true);
+  };
+
+  finishCorrectFeedbackRef.current = () => {
+    if (!isCorrectFeedbackOpenRef.current || !currentQuestion) return;
+
+    isCorrectFeedbackOpenRef.current = false;
+    setIsCorrectFeedbackOpen(false);
+    const nextResults = [
+      ...results,
+      { question: currentQuestion, state: "correct" as const },
+    ];
+
+    if (currentIndex === totalCount - 1) {
+      onFinish(nextResults);
+      return;
+    }
+
+    setResults(nextResults);
+    setCurrentIndex((previous) => previous + 1);
+  };
+
+  useEffect(() => {
+    if (!isCorrectFeedbackOpen) return;
+
+    const countdownId = window.setInterval(() => {
+      setAutoAdvanceSeconds((seconds) => Math.max(1, seconds - 1));
+    }, 1000);
+    const nextId = window.setTimeout(
+      () => finishCorrectFeedbackRef.current(),
+      CORRECT_AUTO_ADVANCE_SECONDS * 1000,
+    );
+
+    return () => {
+      window.clearInterval(countdownId);
+      window.clearTimeout(nextId);
+    };
+  }, [isCorrectFeedbackOpen]);
 
   // 카메라는 테스트 진행 중에만 켜 두고, 화면을 벗어나면 반드시 정리한다.
   useEffect(() => {
@@ -186,8 +241,7 @@ export function TestProgressView({
 
       if (event.type === "SIGN_CONFIRMED") {
         if (event.symbol === targetSymbolRef.current) {
-          setRecognitionMessage("정답입니다!");
-          advanceRef.current("correct");
+          showCorrectFeedback();
         } else {
           setRecognitionMessage(
             `${event.symbol}(으)로 인식했어요. 손을 내린 뒤 다시 시도해주세요.`,
@@ -282,7 +336,9 @@ export function TestProgressView({
                 {currentQuestion.categoryLabel}
               </span>
 
-              <span className="test-question-tag">{currentQuestion.name}</span>
+              {currentQuestion.categoryId !== "word" && (
+                <span className="test-question-tag">{currentQuestion.name}</span>
+              )}
             </div>
 
             <span
@@ -358,7 +414,7 @@ export function TestProgressView({
               <button
                 className="test-mark-correct-button"
                 type="button"
-                onClick={() => advanceRef.current("correct")}
+                onClick={showCorrectFeedback}
               >
                 정답 처리 (임시)
               </button>
@@ -374,6 +430,34 @@ export function TestProgressView({
           </div>
         </article>
       </section>
+
+      {isCorrectFeedbackOpen && (
+        <div
+          className="practice-correct-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="test-correct-title"
+        >
+          <section className="practice-correct-card">
+            <button
+              className="practice-correct-close"
+              type="button"
+              aria-label="정답 안내 닫기"
+              onClick={() => finishCorrectFeedbackRef.current()}
+            >
+              ×
+            </button>
+            <img src={otterClapImage} alt="정답을 축하하며 박수치는 수달" />
+            <h2 id="test-correct-title">정답입니다!</h2>
+            <p>
+              AI가 {currentQuestion.symbol} 동작을 정확히 인식했어요.
+            </p>
+            <p className="practice-correct-countdown">
+              {autoAdvanceSeconds}초 뒤에 자동으로 다음 문제로 넘어가요.
+            </p>
+          </section>
+        </div>
+      )}
     </main>
   );
 }

@@ -37,6 +37,17 @@
   font-weight: 700;
 }
 
+.word-sign-detail .fingerspelling-detail-symbol {
+  font-size: 64px;
+  white-space: nowrap;
+}
+
+.word-sign-detail-placeholder p {
+  margin: 0;
+  color: #5f5148;
+  font-size: 17px;
+}
+
 /* 연습 화면 정답 이미지와 동일한 310px 원형 컨테이너 */
 .fingerspelling-detail-image {
   width: 310px;
