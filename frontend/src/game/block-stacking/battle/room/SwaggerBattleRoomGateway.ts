@@ -34,6 +34,7 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   private readonly lobbyCache = new Map<number, LobbyRoomSummary>();
   private readonly listeners = new Set<RoomsListener>();
   private readonly errorListeners = new Set<(error: Error) => void>();
+  private membershipMutation: Promise<void> = Promise.resolve();
   private lobbyStarted = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -95,13 +96,15 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   }
 
   async createRoom(_request: CreateRoomRequest): Promise<BattleRoomSession> {
-    return this.remember(await this.client.create(this.options.gameType ?? "TETRIS_DUEL"));
+    return this.enqueueMembershipMutation(async () => (
+      this.remember(await this.client.create(this.options.gameType ?? "TETRIS_DUEL"))
+    ));
   }
 
   async joinRoom(roomCode: string): Promise<BattleRoomSession> {
     // The current backend contract makes join idempotent for an existing
     // participant and returns the authoritative room state plus a fresh ticket.
-    return this.remember(await this.client.join(roomCode));
+    return this.enqueueMembershipMutation(async () => this.remember(await this.client.join(roomCode)));
   }
 
   async getRoom(roomId: string): Promise<BattleRoomDetail> {
@@ -122,15 +125,17 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
 
   async leaveRoom(roomId: string): Promise<void> {
     const id = parseRoomId(roomId);
-    try {
-      await this.client.leave(id);
-    } finally {
-      // A failed/already-completed remote leave must not keep a ghost room in
-      // this browser's authoritative-looking local lobby cache.
-      this.roomCache.delete(id);
-      this.lobbyCache.delete(id);
-      this.emitRooms();
-    }
+    await this.enqueueMembershipMutation(async () => {
+      try {
+        await this.client.leave(id);
+      } finally {
+        // A failed/already-completed remote leave must not keep a ghost room in
+        // this browser's authoritative-looking local lobby cache.
+        this.roomCache.delete(id);
+        this.lobbyCache.delete(id);
+        this.emitRooms();
+      }
+    });
   }
 
   async returnToWaiting(roomId: string): Promise<void> {
@@ -152,6 +157,16 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   private remember(room: BackendGameRoom): BattleRoomSession {
     this.roomCache.set(room.id, room);
     return { ...toDetail(room, this.options), currentUser: this.options.currentUser };
+  }
+
+  private enqueueMembershipMutation<T>(operation: () => Promise<T>): Promise<T> {
+    // A route change can issue leave while the waiting room's idempotent join
+    // is still hydrating, and the lobby can issue create before that leave has
+    // completed. Preserve call order so a late join cannot resurrect a room
+    // membership and a new room is never created before the previous leave.
+    const result = this.membershipMutation.then(operation, operation);
+    this.membershipMutation = result.then(() => undefined, () => undefined);
+    return result;
   }
 
   private ensureLobby(): void {

@@ -58,6 +58,8 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   const rememberRoomRef = useRef<(next: BattleRoomDetail) => void>(() => undefined);
   const enteringGameRef = useRef(false);
   const startRtcAndEnterRef = useRef<() => Promise<void>>(async () => undefined);
+  const leavePromiseRef = useRef<Promise<void> | null>(null);
+  const leavingRef = useRef(false);
 
   const rememberRoom = useCallback((next: BattleRoomDetail) => {
     roomRef.current = next;
@@ -143,11 +145,11 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
     let cancelled = false;
     void gateway.joinRoom(roomCode)
       .then((authoritative) => {
-        if (cancelled || authoritative.roomId !== roomId) return;
+        if (cancelled || leavingRef.current || authoritative.roomId !== roomId) return;
         rememberRoomRef.current(authoritative);
       })
       .catch((cause) => {
-        if (cancelled) return;
+        if (cancelled || leavingRef.current) return;
         rememberSession(null);
         setError(errorMessage(cause, "방 상태를 확인하지 못했습니다. 방 목록에서 다시 입장해 주세요."));
         navigate(lobbyPath, { replace: true });
@@ -406,30 +408,45 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
     }
   };
 
-  const leaveRoom = async () => {
-    if (!roomId || leaving) return;
+  const leaveRoom = useCallback((): Promise<void> => {
+    if (!roomId) return Promise.resolve();
+    if (leavePromiseRef.current) return leavePromiseRef.current;
+
+    leavingRef.current = true;
     setLeaving(true);
-    roomSocketRef.current?.disconnect();
-    try {
-      await gateway.leaveRoom(roomId);
-    } catch (cause) {
-      // Leaving is terminal for this browser. Do not retain a stale room
-      // bookmark merely because the server already removed the participant or
-      // the final leave request lost its network connection.
-      console.warn("Remote room leave failed; continuing local cleanup.", cause);
-    }
-    await battleMediaSession.disconnect().catch(() => undefined);
-    sharedCameraSession.stop();
-    activePlayerSession?.clearRegistration();
+    // A browser popstate changes the route before the asynchronous leave can
+    // finish, so remove the local re-entry action as soon as leaving begins.
     rememberSession(null);
-    navigate(lobbyPath, { replace: true });
-  };
+    const roomBeforeLeave = roomRef.current;
+
+    const leavePromise = (async () => {
+      roomSocketRef.current?.disconnect();
+      try {
+        await gateway.leaveRoom(roomId);
+      } catch (cause) {
+        // 403 means the server has already removed this participant. For a
+        // genuine network/server failure, restore the bookmark so the user can
+        // retry leaving instead of becoming stuck in an unknown active room.
+        if (!isAlreadyLeft(cause) && roomBeforeLeave) {
+          rememberSession({ ...roomBeforeLeave, currentUser: user });
+        }
+        console.warn("Remote room leave failed; continuing local cleanup.", cause);
+      }
+      await battleMediaSession.disconnect().catch(() => undefined);
+      sharedCameraSession.stop();
+      activePlayerSession?.clearRegistration();
+      navigate(lobbyPath, { replace: true });
+    })();
+
+    leavePromiseRef.current = leavePromise;
+    return leavePromise;
+  }, [activePlayerSession, battleMediaSession, gateway, lobbyPath, navigate, rememberSession, roomId, sharedCameraSession, user]);
 
   useEffect(() => {
     const handleBrowserBack = () => { void leaveRoom(); };
     window.addEventListener("popstate", handleBrowserBack);
     return () => window.removeEventListener("popstate", handleBrowserBack);
-  });
+  }, [leaveRoom]);
 
   const isHost = room?.hostUserId === user.userId;
   const full = room ? room.playerCount >= room.maxPlayers : false;
@@ -535,6 +552,10 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
 
 function errorMessage(cause: unknown, fallback: string): string {
   return cause instanceof Error && cause.message ? cause.message : fallback;
+}
+
+function isAlreadyLeft(cause: unknown): boolean {
+  return cause instanceof Error && /\((?:403|404|410)\)/.test(cause.message);
 }
 
 function payloadString(payload: unknown, key: string): string | null {
