@@ -1,0 +1,82 @@
+.habitat-unlock-overlay {
+  position: fixed;
+  z-index: 1300;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(63, 43, 32, .28);
+  backdrop-filter: blur(5px);
+}
+
+.habitat-unlock-card {
+  position: relative;
+  width: min(480px, calc(100vw - 40px));
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: 30px;
+  border: 3px solid #d8c8a9;
+  border-radius: 24px;
+  color: #5f402b;
+  text-align: center;
+  background: #fffdf7;
+  box-shadow: 0 20px 42px rgba(59, 42, 35, .25);
+}
+
+.habitat-unlock-card > img {
+  width: 300px;
+  height: 190px;
+  object-fit: contain;
+  transform: translateY(18px) scale(1.2);
+}
+
+.habitat-unlock-card h2 {
+  margin: 10px 0 20px;
+  font-size: 30px;
+  line-height: 1.35;
+  letter-spacing: -.04em;
+}
+
+.habitat-unlock-card .habitat-unlock-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: #74675e;
+  background: #f1ede8;
+  cursor: pointer;
+}
+
+.habitat-unlock-card .habitat-unlock-close:hover {
+  background: #e8e1d9;
+}
+
+.habitat-unlock-card .habitat-unlock-close svg {
+  width: 24px;
+  height: 24px;
+}
+
+.habitat-unlock-card .habitat-unlock-confirm {
+  min-width: 180px;
+  min-height: 48px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 13px;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+  background: #8e7257;
+  box-shadow: 0 5px 0 #6f5540;
+  cursor: pointer;
+}
+
+.habitat-unlock-card .habitat-unlock-confirm:active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 #6f5540;
+}

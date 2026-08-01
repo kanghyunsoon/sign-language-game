@@ -2,6 +2,12 @@ import "./TestPage.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { getAccessToken } from "../../auth/token/tokenStore";
+import { getPetGrowth } from "../../profile/api/profileApi";
+import { HabitatUnlockModal } from "../../profile/components/HabitatUnlockModal";
+import {
+  findNewlyUnlockedHabitatLevel,
+  type HabitatUnlockLevel,
+} from "../../profile/data/habitatUnlock";
 import {
   completeTestSession,
   startTestSession,
@@ -33,12 +39,26 @@ export function TestPage() {
   const [results, setResults] = useState<TestQuestionResult[]>([]);
   const [awardedExp, setAwardedExp] = useState(0);
   const [rewardAccuracy, setRewardAccuracy] = useState(0);
+  const [unlockedHabitatLevel, setUnlockedHabitatLevel] =
+    useState<HabitatUnlockLevel | null>(null);
+
+  useEffect(() => {
+    if (awardedExp <= 0) return;
+
+    const closeRewardOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setAwardedExp(0);
+    };
+
+    window.addEventListener("keydown", closeRewardOnEscape);
+    return () => window.removeEventListener("keydown", closeRewardOnEscape);
+  }, [awardedExp]);
   const testSessionRef = useRef<Promise<number | null> | null>(null);
 
   const beginRewardSession = () => {
     const accessToken = getAccessToken();
     setAwardedExp(0);
     setRewardAccuracy(0);
+    setUnlockedHabitatLevel(null);
     testSessionRef.current = accessToken
       ? startTestSession(accessToken)
           .then((session) => session.testSessionId)
@@ -104,32 +124,49 @@ export function TestPage() {
       (result) => result.state === "correct",
     ).length;
 
-    void session
-      .then((testSessionId) =>
-        testSessionId === null
-          ? null
-          : completeTestSession(accessToken, testSessionId, {
-              correctCount,
-              totalCount: finalResults.length,
-            }),
-      )
-      .then((completion) => {
-        if (
-          completion?.passedRewardThreshold &&
-          completion.awardedExp > 0
-        ) {
-          const completedCorrectCount = completion.correctCount ?? correctCount;
-          const completedTotalCount =
-            completion.totalCount ?? finalResults.length;
-          setAwardedExp(completion.awardedExp);
-          setRewardAccuracy(
-            Math.round((completedCorrectCount / completedTotalCount) * 100),
-          );
+    void (async () => {
+      const testSessionId = await session;
+      if (testSessionId === null) return;
+
+      const previousGrowth = await getPetGrowth(accessToken).catch(() => null);
+      const completion = await completeTestSession(
+        accessToken,
+        testSessionId,
+        {
+          correctCount,
+          totalCount: finalResults.length,
+        },
+      );
+
+      if (
+        completion.passedRewardThreshold &&
+        completion.awardedExp > 0
+      ) {
+        const currentGrowth = await getPetGrowth(accessToken).catch(() => null);
+        const unlockedLevel =
+          previousGrowth && currentGrowth
+            ? findNewlyUnlockedHabitatLevel(
+                previousGrowth.level,
+                currentGrowth.level,
+              )
+            : null;
+
+        if (unlockedLevel) {
+          setUnlockedHabitatLevel(unlockedLevel);
+          return;
         }
-      })
-      .catch(() => {
-        // 결과 화면은 유지하고, 보상 저장 실패 시 XP 성공 화면만 표시하지 않는다.
-      });
+
+        const completedCorrectCount = completion.correctCount ?? correctCount;
+        const completedTotalCount =
+          completion.totalCount ?? finalResults.length;
+        setAwardedExp(completion.awardedExp);
+        setRewardAccuracy(
+          Math.round((completedCorrectCount / completedTotalCount) * 100),
+        );
+      }
+    })().catch(() => {
+      // 결과 화면은 유지하고, 보상 저장 실패 시 XP 성공 화면만 표시하지 않는다.
+    });
   };
 
   /**
@@ -218,15 +255,28 @@ export function TestPage() {
             aria-labelledby="test-reward-title"
           >
             <section className="test-reward-card">
+              <button
+                className="test-reward-close"
+                type="button"
+                aria-label="경험치 획득 창 닫기"
+                onClick={() => setAwardedExp(0)}
+              >
+                ×
+              </button>
               <img src={otterClapImage} alt="" aria-hidden="true" />
               <h2 id="test-reward-title">{awardedExp}XP를 얻었어요!</h2>
               <p>
                 정답률 {rewardAccuracy}% 달성! 보상으로 {awardedExp}XP를
                 받았어요.
               </p>
-              <Link to="/profile">총 경험치 보러 가기</Link>
             </section>
           </div>
+        )}
+        {unlockedHabitatLevel && (
+          <HabitatUnlockModal
+            unlockedLevel={unlockedHabitatLevel}
+            onClose={() => setUnlockedHabitatLevel(null)}
+          />
         )}
 
       </div>

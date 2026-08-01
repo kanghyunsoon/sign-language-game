@@ -1,6 +1,6 @@
 import { Pencil, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import {
   AuthApiError,
@@ -35,6 +35,7 @@ const SHOW_PROFILE_STATS = false;
 
 export function ProfilePage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { accessToken, user, logout, updateDisplayName } = useAuth();
   const [nickname, setNickname] = useState(user?.displayName ?? "");
   const [nicknameDraft, setNicknameDraft] = useState(user?.displayName ?? "");
@@ -57,6 +58,15 @@ export function ProfilePage() {
     setNickname(user?.displayName ?? "");
     setNicknameDraft(user?.displayName ?? "");
   }, [user?.displayName]);
+
+  useEffect(() => {
+    if (searchParams.get("openHabitat") !== "true") return;
+
+    setIsHabitatSelectionOpen(true);
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete("openHabitat");
+    setSearchParams(nextSearchParams, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     if (!accessToken || !user?.userId) return;
