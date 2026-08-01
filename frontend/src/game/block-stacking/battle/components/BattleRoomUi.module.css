@@ -395,7 +395,7 @@
   box-shadow: 0 3px 0 rgba(106,128,67,.12), 0 10px 20px rgba(82,105,68,.08);
 }
 
-.lobbyPage.fixedCanvasPage .rankingPanel { padding: 15px; }
+.lobbyPage.fixedCanvasPage .rankingPanel { grid-template-rows: auto auto minmax(0, 1fr) auto; align-content: stretch; padding: 15px; }
 .lobbyPage.fixedCanvasPage .rankingPanel > header,
 .lobbyPage.fixedCanvasPage .roomsTitle,
 .lobbyPage.fixedCanvasPage .createPanel > header { border-bottom: 1px dashed #d9cfbd; color: #503d2f; }
@@ -407,11 +407,12 @@
 .lobbyPage.fixedCanvasPage .rankingPanel header small,
 .lobbyPage.fixedCanvasPage .roomsTitle small { background: #edf5d3; color: #6f892f; }
 .lobbyPage.fixedCanvasPage .rankingTabs { padding: 12px 0 9px; }
+.lobbyPage.fixedCanvasPage .rankingScope { align-self: center; margin: 11px 0 9px; padding: 8px 10px; border: 1px solid #d5e2a8; border-radius: 10px; background: #edf5d3; color: #657f2c; font-size: 11px; font-weight: 900; text-align: center; }
 .lobbyPage.fixedCanvasPage .rankingTabs button,
 .lobbyPage.fixedCanvasPage .roomSearch button { border: 1px solid transparent !important; background: #f3efe5 !important; color: #8b7d70 !important; }
 .lobbyPage.fixedCanvasPage .rankingTabs .active,
 .lobbyPage.fixedCanvasPage .roomSearch .active { border-color: #d5e2a8 !important; background: #edf5d3 !important; color: #657f2c !important; }
-.lobbyPage.fixedCanvasPage .rankingPanel ol { gap: 6px; }
+.lobbyPage.fixedCanvasPage .rankingPanel ol { align-content: start; gap: 6px; }
 .lobbyPage.fixedCanvasPage .rankingPanel li { min-height: 48px; border-color: #e8dfd1; border-radius: 13px; background: rgba(255,255,255,.56); }
 .lobbyPage.fixedCanvasPage .rankingPanel li:nth-child(-n+3) b { display: grid; width: 24px; height: 24px; place-items: center; border-radius: 50%; background: #f7e4a5; color: #735a21; }
 .lobbyPage.fixedCanvasPage .rankingPanel li:nth-child(2) b { background: #e4e8e8; color: #657174; }
@@ -419,7 +420,8 @@
 .lobbyPage.fixedCanvasPage .rankingPanel li strong { color: #4d4036; }
 .lobbyPage.fixedCanvasPage .rankingPanel li em { color: #7f9d32; }
 .lobbyPage.fixedCanvasPage .rankingPanel li.myRank { border-color: #a8c659; background: #f4f9dd; box-shadow: inset 4px 0 0 #a8c659; }
-.lobbyPage.fixedCanvasPage .rankTip { margin-top: 10px; padding: 10px 11px; border-color: #ead38d; border-radius: 13px; background: #fff7d9; }
+.lobbyPage.fixedCanvasPage .rankingPanel li.rankingState { display: grid; min-height: 88px; grid-template-columns: 1fr; place-items: center; padding: 14px 10px; border-style: dashed; color: #8d806f; font-size: 11px; text-align: center; }
+.lobbyPage.fixedCanvasPage .rankTip { align-self: end; margin-top: 10px; padding: 10px 11px; border-color: #ead38d; border-radius: 13px; background: #fff7d9; }
 .lobbyPage.fixedCanvasPage .rankTip strong { color: #755c24; }
 .lobbyPage.fixedCanvasPage .rankTip p { color: #8d8063; }
 
@@ -472,7 +474,8 @@
 .lobbyPage.fixedCanvasPage .quickTip p { color: #7c8768; font-size: 10px; }
 .lobbyPage.fixedCanvasPage .quickTip button { min-height: 38px !important; border: 1px solid #d6e1aa !important; background: #fffdf4 !important; color: #5d7131 !important; }
 .lobbyPage.fixedCanvasPage .quickTip .codeJoin { padding: 0; border: 0; background: transparent; }
-.lobbyPage.fixedCanvasPage .quickTip .codeJoin button { width: auto; min-width: 58px; border: 0 !important; background: #f0b64c !important; color: #5a3f1b !important; }
+.lobbyPage.fixedCanvasPage .quickTip .codeJoin input { min-width: 0; flex: 1 1 auto; }
+.lobbyPage.fixedCanvasPage .quickTip .codeJoin button { width: auto; min-width: 68px; flex: 0 0 68px; border: 0 !important; background: #f0b64c !important; color: #5a3f1b !important; white-space: nowrap; word-break: keep-all; }
 
 .lobbyPage.fixedCanvasPage .modalBackdrop { z-index: 40; background: rgba(54,61,43,.48); backdrop-filter: blur(3px); }
 .lobbyPage.fixedCanvasPage .modal { overflow: hidden; border: 2px solid #dfceb4; border-radius: 24px; background: #fffaf0; box-shadow: 0 9px 0 rgba(83,98,57,.16), 0 24px 54px rgba(49,57,42,.24); }

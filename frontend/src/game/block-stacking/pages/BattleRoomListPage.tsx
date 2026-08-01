@@ -2,6 +2,8 @@ import { ArrowLeft, Gamepad2, RefreshCw, Search, Trophy } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGameModuleContext } from "../../app/GameModuleContext";
+import { createDevAuthHeaders } from "../../app/devAuthHeaders";
+import { RankingClient, type RankingResponse } from "../../ranking";
 import { BattleRoomCard } from "../battle/components/BattleRoomCard";
 import { CreateRoomModal } from "../battle/components/CreateRoomModal";
 import { OtterFollower } from "../battle/components/OtterFollower";
@@ -9,13 +11,13 @@ import styles from "../battle/components/BattleRoomUi.module.css";
 import type { BattleRoomSummary, CreateRoomRequest } from "../battle/room";
 const DEFAULT_POLLING_INTERVAL_MS = 2_500;
 const CREATE_ROOM_LOCK_MS = 1_500;
+const RANKING_REFRESH_INTERVAL_MS = 30_000;
 const BATTLE_LOBBY_CANVAS_WIDTH = 1280;
 const BATTLE_LOBBY_CANVAS_HEIGHT = 720;
-const RANKING = ["수달왕", "손톡이", "지문자고수", "새콩이", "수어초보"] as const;
 type RoomFilter = "ALL" | "WAITING" | "OPEN";
 export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK" | "TURN" }) {
   const navigate = useNavigate();
-  const { user, config, services, battleRoomSession, turnBattleRoomSession, setBattleRoomSession, setTurnBattleRoomSession } = useGameModuleContext();
+  const { user, accessToken, config, services, battleRoomSession, turnBattleRoomSession, setBattleRoomSession, setTurnBattleRoomSession } = useGameModuleContext();
   const gateway = mode === "TURN" ? services.turnBattleRoomGateway : services.battleRoomGateway;
   const rememberSession = mode === "TURN" ? setTurnBattleRoomSession : setBattleRoomSession;
   const activeRoomSession = mode === "TURN" ? turnBattleRoomSession : battleRoomSession;
@@ -32,6 +34,15 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
   const [filter, setFilter] = useState<RoomFilter>("ALL");
   const [roomCode, setRoomCode] = useState("");
   const [pageScale, setPageScale] = useState(1);
+  const [ranking, setRanking] = useState<RankingResponse | null>(null);
+  const [rankingLoading, setRankingLoading] = useState(true);
+  const [rankingUnavailable, setRankingUnavailable] = useState(false);
+  const rankingClient = useMemo(() => new RankingClient({
+    apiBaseUrl: config.roomApiBaseUrl,
+    userId: user.userId,
+    gameType: mode === "TURN" ? "SIGN_DUEL" : "TETRIS_DUEL",
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : createDevAuthHeaders(user),
+  }), [accessToken, config.roomApiBaseUrl, mode, user]);
   useEffect(() => {
     const updatePageScale = () => {
       setPageScale(Math.min(
@@ -58,6 +69,31 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
       },
     );
   }, [gateway]);
+  useEffect(() => {
+    let active = true;
+    const loadRanking = async () => {
+      try {
+        const result = await rankingClient.get({ cache: "no-store" });
+        if (!active) return;
+        setRanking(result);
+        setRankingUnavailable(false);
+      } catch {
+        if (!active) return;
+        setRankingUnavailable(true);
+      } finally {
+        if (active) setRankingLoading(false);
+      }
+    };
+    const refreshRanking = () => void loadRanking();
+    refreshRanking();
+    const timer = window.setInterval(refreshRanking, RANKING_REFRESH_INTERVAL_MS);
+    window.addEventListener("focus", refreshRanking);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshRanking);
+    };
+  }, [rankingClient]);
   const visibleRooms = useMemo(() => rooms.filter((room) => { const byName = room.title.toLowerCase().includes(query.trim().toLowerCase()); const byStatus = filter === "ALL" || (filter === "WAITING" ? room.status === "WAITING" : room.canJoin); return byName && byStatus; }), [filter, query, rooms]);
   const createRoom = async (request: CreateRoomRequest) => {
     if (activeRoomSession && activeRoomSession.status !== "FINISHED") {
@@ -109,13 +145,27 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
       <div className={styles.lobbyGrid}>
         <aside className={styles.rankingPanel} aria-label="실시간 랭킹">
           <header><span><Trophy aria-hidden="true" size={18} /> 실시간 랭킹</span><small>TOP 5</small></header>
-          <div className={styles.rankingTabs}><button type="button" className={styles.active}>전체</button><button type="button">주간</button><button type="button">친구</button></div>
-          <ol>{RANKING.map((name, index) => <li key={name} className={index === 3 ? styles.myRank : undefined}><b>{index + 1}</b><span><strong>{name}</strong><small>{18 - index * 2}승 {3 + index}패</small></span><em>{(1842 - index * 106).toLocaleString()}</em></li>)}</ol>
-          <section className={styles.rankTip}><strong>내 순위</strong><p>상위 플레이어의 기록을 확인하고 다음 승리를 준비해 보세요.</p></section>
+          <div className={styles.rankingScope}>1:1 전체 기록</div>
+          <ol>
+            {rankingLoading ? <li className={styles.rankingState}>랭킹을 불러오는 중...</li> : null}
+            {!rankingLoading && rankingUnavailable ? <li className={styles.rankingState}>랭킹을 불러올 수 없어요.</li> : null}
+            {!rankingLoading && !rankingUnavailable && ranking?.top.length === 0 ? <li className={styles.rankingState}>아직 등록된 대전 기록이 없어요.</li> : null}
+            {!rankingLoading && !rankingUnavailable ? ranking?.top.slice(0, 5).map((entry) => (
+              <li key={entry.userId} className={entry.userId === ranking.me?.userId ? styles.myRank : undefined}>
+                <b>{entry.rank}</b>
+                <span><strong>{entry.nickname}</strong><small>{mode === "TURN" ? "1:1 수어 대전" : "1:1 블록 대전"}</small></span>
+                <em>{entry.score.toLocaleString()}승</em>
+              </li>
+            )) : null}
+          </ol>
+          <section className={styles.rankTip}>
+            <strong>{ranking?.me ? `내 순위 ${ranking.me.rank}위` : "내 순위"}</strong>
+            <p>{ranking?.me ? `${ranking.me.nickname} · ${ranking.me.score.toLocaleString()}승` : rankingUnavailable ? "랭킹 연결을 확인해 주세요." : "아직 집계된 1:1 대전 기록이 없어요."}</p>
+          </section>
         </aside>
 
-        <section className={styles.lobbyRooms} aria-label="지문자 테트리스 방">
-          <header className={styles.roomsTitle}><span><Gamepad2 aria-hidden="true" size={20} /> {mode === "TURN" ? "수달 턴 대전 방" : "지문자 테트리스 방"}</span><small>{loading ? "..." : String(rooms.length) + "개"}</small></header>
+        <section className={styles.lobbyRooms} aria-label="프링글수 게임방">
+          <header className={styles.roomsTitle}><span><Gamepad2 aria-hidden="true" size={20} /> {mode === "TURN" ? "수달 턴 대전 방" : "프링글수 게임방"}</span><small>{loading ? "..." : String(rooms.length) + "개"}</small></header>
           <div className={styles.roomSearch}>
             <label><Search aria-hidden="true" size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="방 이름을 검색하세요." aria-label="방 이름 검색" /></label>
             <div>{([['ALL','전체'], ['WAITING','대기 중'], ['OPEN','입장 가능']] as const).map(([value,label]) => <button key={value} type="button" className={filter === value ? styles.active : undefined} onClick={() => setFilter(value)}>{label}</button>)}</div>
@@ -145,7 +195,7 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
             <strong>초대 코드로 입장</strong>
             <div className={styles.codeJoin}><div><input value={roomCode} onChange={(event) => setRoomCode(event.target.value)} placeholder="ABCD12" aria-label="초대 코드" /><button type="button" onClick={joinByCode} disabled={!roomCode.trim() || joiningRoomId !== null}>{"\uCF54\uB4DC \uC785\uC7A5"}</button></div></div>
           </section>
-          <section className={styles.modeTip}><strong>{mode === "TURN" ? "수달 턴 대전" : "지문자 테트리스"}</strong><p>화면에 나타나는 지문자를 표현해 블록을 제거하는 1대1 게임이에요.</p></section>
+          <section className={styles.modeTip}><strong>{mode === "TURN" ? "수달 턴 대전" : "프링글수"}</strong><p>화면에 나타나는 지문자를 표현해 블록을 제거하는 1대1 게임이에요.</p></section>
         </aside>
       </div>
 
