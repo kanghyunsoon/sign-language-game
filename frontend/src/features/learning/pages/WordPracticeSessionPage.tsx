@@ -8,6 +8,8 @@ import { wordSigns, type WordSignItem } from "../data/wordSigns";
 import { WordWebSocketSignRecognizer } from "../recognition/WordWebSocketSignRecognizer";
 import otterClapImage from "../assets/otter_clap.png";
 
+const CORRECT_AUTO_ADVANCE_SECONDS = 2;
+
 interface WordPracticeSessionPageProps {
   readonly onExit?: () => void;
   readonly words?: readonly WordSignItem[];
@@ -38,6 +40,9 @@ export function WordPracticeSessionPage({
   const [cameraMessage, setCameraMessage] =
     useState("카메라 시작 버튼을 눌러주세요.");
   const [isCorrect, setIsCorrect] = useState(false);
+  const [autoAdvanceSeconds, setAutoAdvanceSeconds] = useState(
+    CORRECT_AUTO_ADVANCE_SECONDS,
+  );
   const [isComplete, setIsComplete] = useState(false);
 
   const currentWord = words[currentIndex];
@@ -169,6 +174,24 @@ export function WordPracticeSessionPage({
     }
     moveTo(currentIndex + 1);
   };
+
+  useEffect(() => {
+    if (!isCorrect || isComplete) return;
+
+    setAutoAdvanceSeconds(CORRECT_AUTO_ADVANCE_SECONDS);
+    const countdownId = window.setInterval(() => {
+      setAutoAdvanceSeconds((seconds) => Math.max(1, seconds - 1));
+    }, 1000);
+    const nextId = window.setTimeout(
+      finishOrNext,
+      CORRECT_AUTO_ADVANCE_SECONDS * 1000,
+    );
+
+    return () => {
+      window.clearInterval(countdownId);
+      window.clearTimeout(nextId);
+    };
+  }, [isCorrect, isComplete]);
 
   const retry = () => {
     correctIndexesRef.current.clear();
@@ -305,12 +328,20 @@ export function WordPracticeSessionPage({
               aria-labelledby="word-correct-title"
             >
               <section className="practice-correct-card">
+                <button
+                  className="practice-correct-close"
+                  type="button"
+                  aria-label="정답 안내 닫기"
+                  onClick={finishOrNext}
+                >
+                  ×
+                </button>
                 <img src={otterClapImage} alt="박수치는 수달" />
                 <h2 id="word-correct-title">맞췄습니다!</h2>
                 <p>AI가 {currentWord.name} 동작을 정확히 인식했어요.</p>
-                <button type="button" onClick={finishOrNext}>
-                  {isLast ? "연습 완료" : "다음 문제"}
-                </button>
+                <p className="practice-correct-countdown">
+                  {autoAdvanceSeconds}초 뒤에 자동으로 다음 문제로 넘어가요.
+                </p>
               </section>
             </div>
           )}

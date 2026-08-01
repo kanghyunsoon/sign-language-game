@@ -2,6 +2,8 @@ import "./PracticeSessionPage.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import otterClapImage from "../assets/otter_clap.png";
+
+const CORRECT_AUTO_ADVANCE_SECONDS = 2;
 import {
   HandCamera,
   type RecognitionConnectionState,
@@ -75,6 +77,9 @@ export function PracticeSessionPage({
     isStable?: boolean;
   } | null>(null);
   const [isCorrect, setIsCorrect] = useState(false);
+  const [autoAdvanceSeconds, setAutoAdvanceSeconds] = useState(
+    CORRECT_AUTO_ADVANCE_SECONDS,
+  );
   const [recognitionMessage, setRecognitionMessage] =
     useState("AI 연결을 준비하고 있습니다.");
   const [cameraMessage, setCameraMessage] =
@@ -254,6 +259,24 @@ export function PracticeSessionPage({
 
     setCurrentIndex((previousIndex) => previousIndex + 1);
   };
+
+  useEffect(() => {
+    if (!isCorrect || isPracticeComplete) return;
+
+    setAutoAdvanceSeconds(CORRECT_AUTO_ADVANCE_SECONDS);
+    const countdownId = window.setInterval(() => {
+      setAutoAdvanceSeconds((seconds) => Math.max(1, seconds - 1));
+    }, 1000);
+    const nextId = window.setTimeout(
+      handleCorrectNext,
+      CORRECT_AUTO_ADVANCE_SECONDS * 1000,
+    );
+
+    return () => {
+      window.clearInterval(countdownId);
+      window.clearTimeout(nextId);
+    };
+  }, [isCorrect, isPracticeComplete]);
 
   const handleCameraClick = async () => {
     if (isCameraActive) {
@@ -498,6 +521,14 @@ export function PracticeSessionPage({
             aria-labelledby="practice-correct-title"
           >
             <section className="practice-correct-card">
+              <button
+                className="practice-correct-close"
+                type="button"
+                aria-label="정답 안내 닫기"
+                onClick={handleCorrectNext}
+              >
+                ×
+              </button>
               <img
                 src={otterClapImage}
                 alt="정답을 축하하며 박수치는 수달"
@@ -506,9 +537,9 @@ export function PracticeSessionPage({
               <p>
                 AI가 {currentPracticeItem.symbol} 동작을 정확히 인식했어요.
               </p>
-              <button type="button" onClick={handleCorrectNext}>
-                {isLastItem ? "연습 완료" : "다음 문제"}
-              </button>
+              <p className="practice-correct-countdown">
+                {autoAdvanceSeconds}초 뒤에 자동으로 다음 문제로 넘어가요.
+              </p>
             </section>
           </div>
         )}

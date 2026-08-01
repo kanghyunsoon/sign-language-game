@@ -480,6 +480,7 @@
 
 /* 연습 진행 화면과 동일한 투톤 배경 */
 .test-progress {
+  position: relative;
   background:
     linear-gradient(
       180deg,
@@ -908,6 +909,12 @@
   flex: 0 0 44px;
   font-size: 35px;
   font-weight: 900;
+}
+
+/* 테스트는 1920×1200 고정 캔버스가 한 번 더 축소되므로,
+   정답 카드는 연습 화면에서 보이는 실제 크기에 맞춰 보정한다. */
+.test-progress .practice-correct-card {
+  transform: scale(0.68);
 }
 
 .test-result-symbol-word {

@@ -350,6 +350,7 @@ describe("TestPage 결과 화면", () => {
   const finishAllCorrect = () => {
     for (let index = 0; index < 5; index += 1) {
       fireEvent.click(screen.getByRole("button", { name: "정답 처리 (임시)" }));
+      fireEvent.click(screen.getByRole("button", { name: "정답 안내 닫기" }));
     }
   };
 
