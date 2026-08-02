@@ -124,7 +124,7 @@ describe("SwaggerBattleRoomGateway", () => {
     const snapshots: Array<readonly { title: string; hostName: string }[]> = [];
     state.listeners.add((rooms) => snapshots.push(rooms));
     state.startDisplayMetadataSync();
-    const key = "sudal:battle-room-display:TETRIS_DUEL:1";
+    const key = "sudal:battle-room-display:TETRIS_DUEL";
     localStorage.setItem(key, JSON.stringify([[10, {
       title: "저장된 대전방",
       hostName: "수달왕",
@@ -176,6 +176,86 @@ describe("SwaggerBattleRoomGateway", () => {
         difficulty: "CONSONANTS",
         symbolRange: ["ㄱ", "ㄴ"],
       }),
+    ]);
+  });
+
+  it("shares creator metadata with another signed-in tab and replaces explicit lobby placeholders", async () => {
+    const values = new Map<string, string>();
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => values.set(key, value),
+        removeItem: (key: string) => values.delete(key),
+      },
+      dispatchEvent: vi.fn(),
+    });
+    const creatorGateway = createGateway(vi.fn(async () => response(room())));
+    await creatorGateway.createRoom({
+      title: "둘이 하는 자음방",
+      difficulty: "CONSONANTS",
+      symbolRange: ["ㄱ", "ㄴ"],
+    });
+
+    const guestGateway = createGateway(vi.fn(), { userId: "2", displayName: "친구" });
+    const guestState = guestGateway as unknown as {
+      lobbyCache: Map<number, unknown>;
+      currentRooms(): readonly unknown[];
+    };
+    guestState.lobbyCache.set(10, {
+      id: 10,
+      roomCode: "ABC123",
+      status: "WAITING",
+      participantCount: 1,
+      capacity: 2,
+      gameType: "TETRIS_DUEL",
+      title: "프링글수 대전방",
+      hostName: "프링글수 유저",
+    });
+
+    expect(guestState.currentRooms()).toEqual([
+      expect.objectContaining({
+        title: "둘이 하는 자음방",
+        hostName: "나",
+        difficulty: "CONSONANTS",
+        symbolRange: ["ㄱ", "ㄴ"],
+      }),
+    ]);
+  });
+
+  it("migrates room metadata saved by another user under the former scoped key", () => {
+    const values = new Map<string, string>([["sudal:battle-room-display:TETRIS_DUEL:1", JSON.stringify([[10, {
+      title: "기존 모음방",
+      hostName: "수달왕",
+      difficulty: "VOWELS",
+      symbolRange: ["ㅏ", "ㅓ"],
+    }]])]]);
+    const localStorage = {
+      get length() { return values.size; },
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+      key: (index: number) => [...values.keys()][index] ?? null,
+    };
+    vi.stubGlobal("window", { localStorage });
+
+    const guestGateway = createGateway(vi.fn(), { userId: "2", displayName: "친구" });
+    const guestState = guestGateway as unknown as {
+      lobbyCache: Map<number, unknown>;
+      currentRooms(): readonly unknown[];
+    };
+    guestState.lobbyCache.set(10, {
+      id: 10,
+      roomCode: "ABC123",
+      status: "WAITING",
+      participantCount: 1,
+      capacity: 2,
+      gameType: "TETRIS_DUEL",
+      title: "프링글수 대전방",
+      hostName: "프링글수 유저",
+    });
+
+    expect(guestState.currentRooms()).toEqual([
+      expect.objectContaining({ title: "기존 모음방", hostName: "수달왕" }),
     ]);
   });
 
@@ -284,6 +364,67 @@ describe("SwaggerBattleRoomGateway", () => {
     await leaving;
   });
 
+  it("keeps shared room display metadata when a participant leaves", async () => {
+    const fetcher = vi.fn(async (input: RequestInfo | URL) => String(input).includes("/leave")
+      ? response(undefined, 204)
+      : response(room()));
+    const gateway = createGateway(fetcher);
+    const created = await gateway.createRoom({
+      title: "남아 있는 대전방",
+      difficulty: "CONSONANTS",
+      symbolRange: ["ㄱ", "ㄴ"],
+    });
+
+    await gateway.leaveRoom("10");
+
+    const state = gateway as unknown as {
+      lobbyCache: Map<number, unknown>;
+      currentRooms(): readonly { title: string; hostName: string }[];
+    };
+    state.lobbyCache.set(10, {
+      id: 10,
+      roomCode: "ABC123",
+      status: "WAITING",
+      participantCount: 1,
+      capacity: 2,
+      gameType: "TETRIS_DUEL",
+    });
+    expect(state.currentRooms()).toEqual([
+      expect.objectContaining({ title: "남아 있는 대전방", hostName: created.hostName }),
+    ]);
+  });
+
+  it("updates the shared host nickname after ownership changes", async () => {
+    const gateway = createGateway(vi.fn(async () => response(room())));
+    await gateway.createRoom({
+      title: "이어지는 대전방",
+      difficulty: "CONSONANTS",
+      symbolRange: ["ㄱ", "ㄴ"],
+    });
+    gateway.updateRoomDisplayMetadata("10", {
+      title: "이어지는 대전방",
+      hostName: "새 방장",
+      difficulty: "CONSONANTS",
+      symbolRange: ["ㄱ", "ㄴ"],
+    });
+
+    const state = gateway as unknown as {
+      lobbyCache: Map<number, unknown>;
+      currentRooms(): readonly { title: string; hostName: string }[];
+    };
+    state.lobbyCache.set(10, {
+      id: 10,
+      roomCode: "ABC123",
+      status: "WAITING",
+      participantCount: 1,
+      capacity: 2,
+      gameType: "TETRIS_DUEL",
+    });
+    expect(state.currentRooms()).toEqual([
+      expect.objectContaining({ title: "이어지는 대전방", hostName: "새 방장" }),
+    ]);
+  });
+
   it("maps ready state and uses role-based room data", async () => {
     const fetcher = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => response(room({
       guestUserId: 2,
@@ -331,10 +472,10 @@ describe("SwaggerBattleRoomGateway", () => {
   });
 });
 
-function createGateway(fetcher: ReturnType<typeof vi.fn>) {
+function createGateway(fetcher: ReturnType<typeof vi.fn>, currentUser = { userId: "1", displayName: "나" }) {
   return new SwaggerBattleRoomGateway({
     baseUrl: "/api",
-    currentUser: { userId: "1", displayName: "나" },
+    currentUser,
     headers: { Authorization: "Bearer token" },
     fetch: fetcher as unknown as typeof globalThis.fetch,
   });

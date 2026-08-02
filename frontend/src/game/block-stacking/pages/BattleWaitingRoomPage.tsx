@@ -47,6 +47,12 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   const [cameraEnabled, setCameraEnabled] = useState(
     () => sharedCameraSession.getVideoTrack()?.enabled ?? false,
   );
+  const [remoteParticipants, setRemoteParticipants] = useState(
+    () => battleMediaSession.getRemoteParticipants(),
+  );
+  const [mediaConnectionState, setMediaConnectionState] = useState(
+    () => battleMediaSession.getConnectionState(),
+  );
   const [peerDisplayName, setPeerDisplayName] = useState<string | null>(null);
   const [, setRealtimeState] = useState<"CONNECTING" | "CONNECTED" | "ERROR">("CONNECTING");
   const [readyBusy, setReadyBusy] = useState(false);
@@ -111,6 +117,43 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
     return () => { cancelled = true; };
   }, [mode, sharedCameraSession]);
 
+  const refreshMedia = useCallback(() => {
+    setRemoteParticipants(battleMediaSession.getRemoteParticipants());
+    setMediaConnectionState(battleMediaSession.getConnectionState());
+  }, [battleMediaSession]);
+
+  const prepareMedia = useCallback(async (currentRoom: BattleRoomDetail, stream: MediaStream) => {
+    const connectionState = battleMediaSession.getConnectionState();
+    if (
+      battleMediaSession.getLocalStream() === stream
+      && connectionState !== "DISCONNECTED"
+      && connectionState !== "FAILED"
+    ) {
+      await battleMediaSession.syncParticipants(currentRoom);
+    } else {
+      await battleMediaSession.connect(currentRoom, stream);
+    }
+    refreshMedia();
+  }, [battleMediaSession, refreshMedia]);
+
+  useEffect(() => {
+    refreshMedia();
+    return battleMediaSession.subscribe(refreshMedia);
+  }, [battleMediaSession, refreshMedia]);
+
+  useEffect(() => {
+    if (mode !== "BLOCK" || !room || !localStream || room.status === "FINISHED") return;
+    let cancelled = false;
+    void prepareMedia(room, localStream)
+      .then(() => {
+        if (!cancelled) refreshMedia();
+      })
+      .catch((cause) => {
+        if (!cancelled) setError(errorMessage(cause, "상대 카메라 연결을 시작하지 못했습니다."));
+      });
+    return () => { cancelled = true; };
+  }, [localStream, mode, prepareMedia, refreshMedia, room]);
+
   useEffect(() => {
     if (mode !== "BLOCK") return;
     if (room?.status === "PLAYING" && !enteringGameRef.current) setRejoinPromptOpen(true);
@@ -133,14 +176,14 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
       const stream = await sharedCameraSession.start();
       setLocalStream(stream);
       setCameraEnabled(sharedCameraSession.getVideoTrack()?.enabled ?? true);
-      await battleMediaSession.connect(currentRoom, stream);
+      await prepareMedia(currentRoom, stream);
       navigate(`${lobbyPath}/${roomId}/play`, { replace: true });
     } catch (cause) {
       enteringGameRef.current = false;
       setStartingGame(false);
       setError(errorMessage(cause, "WebRTC 연결을 시작하지 못했습니다."));
     }
-  }, [battleMediaSession, lobbyPath, navigate, roomId, sharedCameraSession]);
+  }, [lobbyPath, navigate, prepareMedia, roomId, sharedCameraSession]);
 
   useEffect(() => {
     startRtcAndEnterRef.current = startRtcAndEnter;
@@ -287,10 +330,12 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
             .filter((participant) => !leftUserId || participant.userId !== leftUserId)
             .map((participant) => ({ ...participant, isHost: participant.userId === newHostUserId }));
           const hostUserId = newHostUserId ?? remaining.find((participant) => participant.isHost)?.userId ?? current.hostUserId;
-          rememberRoomRef.current({
+          const currentUserBecameHost = hostUserId === user.userId;
+          const nextRoom: BattleRoomDetail = {
             ...current,
             status: "WAITING",
             hostUserId,
+            hostName: currentUserBecameHost ? user.displayName : current.hostName,
             playerCount: remaining.length,
             canJoin: true,
             hostReady: remaining.find((participant) => participant.userId === hostUserId)?.ready ?? false,
@@ -298,7 +343,16 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
             currentUserReady: remaining.find((participant) => participant.userId === user.userId)?.ready ?? false,
             canStart: false,
             participants: remaining,
-          });
+          };
+          rememberRoomRef.current(nextRoom);
+          if (currentUserBecameHost) {
+            gateway.updateRoomDisplayMetadata?.(current.roomId, {
+              title: current.title,
+              hostName: user.displayName,
+              difficulty: current.difficulty,
+              symbolRange: current.symbolRange,
+            });
+          }
         }
         setNotice("상대방이 방을 나갔습니다. 새 참가자를 기다릴게요.");
       }
@@ -482,6 +536,11 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   const canRequestStart = Boolean(isHost && full && room?.hostReady && room?.guestReady);
   const opponent = room?.participants.find((participant) => participant.userId !== user.userId) ?? null;
   const opponentName = peerDisplayName ?? participantDisplayName(opponent?.displayName, opponent?.isHost ? room?.hostName : null);
+  const remoteParticipant = opponent
+    ? remoteParticipants.find((participant) => participant.participantId === opponent.userId) ?? remoteParticipants[0] ?? null
+    : null;
+  const remoteConnectionState = remoteParticipant?.connectionState
+    ?? (mediaConnectionState === "CONNECTED" ? "CONNECTING" : mediaConnectionState);
   const copyText = async (value: string): Promise<void> => {
     try {
       await navigator.clipboard.writeText(value);
@@ -536,11 +595,23 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
             </article>
             <span className={styles.waitingVs}>VS</span>
             <article className={styles.waitingPlayerCard}>
-              <div className={styles.waitingOpponentPlaceholder} role="status">
-                <span>?</span>
-                <strong>{opponentName ? `${opponentName} 님` : "상대를 기다리는 중"}</strong>
-                <p>{opponent ? "상대가 준비를 마치면 게임을 시작할 수 있어요." : "친구에게 참가 코드를 알려 주세요."}</p>
-              </div>
+              {opponent
+                ? (
+                  <GameVideoTile
+                    kind="REMOTE"
+                    label={opponentName ? `${opponentName} 님` : "상대 카메라"}
+                    stream={remoteParticipant?.stream ?? null}
+                    cameraEnabled={remoteParticipant?.cameraEnabled ?? true}
+                    connectionState={remoteConnectionState}
+                  />
+                )
+                : (
+                  <div className={styles.waitingOpponentPlaceholder} role="status">
+                    <span>?</span>
+                    <strong>상대를 기다리는 중</strong>
+                    <p>친구에게 참가 코드를 알려 주세요.</p>
+                  </div>
+                )}
               <footer><strong>{opponentName ?? "상대 대기 중"}</strong><span>{opponent ? opponent.ready ? "준비 완료" : "준비 중" : "상대가 입장하면 게임이 시작됩니다."}</span></footer>
             </article>
           </div>
