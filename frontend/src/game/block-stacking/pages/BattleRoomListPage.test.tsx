@@ -136,6 +136,33 @@ describe("BattleRoomListPage", () => {
     expect(await screen.findByText("WAITING_ROUTE")).toBeTruthy();
   });
 
+  it("carries the listed host nickname into the waiting-room session", async () => {
+    const listedRoom = { ...summary(), hostUserId: "host-2", hostName: "수달왕" };
+    const joined = {
+      ...session(),
+      hostUserId: "host-2",
+      hostName: "방장",
+      participants: [
+        { userId: "host-2", displayName: "방장", isHost: true },
+        { userId: "user-1", displayName: "나사용자", isHost: false },
+      ],
+    };
+    const rememberSession = vi.fn();
+    renderPage(
+      gateway({ getRooms: vi.fn(async () => [listedRoom]), joinRoom: vi.fn(async () => joined) }),
+      2_500,
+      null,
+      rememberSession,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "입장" }));
+
+    await waitFor(() => expect(rememberSession).toHaveBeenCalledWith(expect.objectContaining({
+      hostName: "수달왕",
+      participants: expect.arrayContaining([expect.objectContaining({ userId: "host-2", displayName: "수달왕" })]),
+    })));
+  });
+
   it("does not allow entry into an unavailable room", async () => {
     const fullRoom: BattleRoomSummary = { ...summary(), status: "FULL", canJoin: false, playerCount: 2 };
     renderPage(gateway({ getRooms: vi.fn(async () => [fullRoom]) }));
@@ -150,18 +177,18 @@ describe("BattleRoomListPage", () => {
   });
 });
 
-function renderPage(roomGateway: BattleRoomGateway, interval = 2_500, activeSession: BattleRoomSession | null = null) {
-  const value = contextValue(roomGateway, interval, activeSession);
+function renderPage(roomGateway: BattleRoomGateway, interval = 2_500, activeSession: BattleRoomSession | null = null, rememberSession = vi.fn()) {
+  const value = contextValue(roomGateway, interval, activeSession, rememberSession);
   return render(<GameModuleContext.Provider value={value}><MemoryRouter initialEntries={["/game/battle"]}><Routes><Route path="/game/battle" element={<BattleRoomListPage />} /><Route path="/game/battle/:roomId" element={<span>WAITING_ROUTE</span>} /></Routes></MemoryRouter></GameModuleContext.Provider>);
 }
 
-function contextValue(roomGateway: BattleRoomGateway, interval: number, activeSession: BattleRoomSession | null): GameModuleContextValue {
+function contextValue(roomGateway: BattleRoomGateway, interval: number, activeSession: BattleRoomSession | null, rememberSession: GameModuleContextValue["setBattleRoomSession"]): GameModuleContextValue {
   return {
     user: { userId: "user-1", displayName: "나사용자" }, accessToken: undefined,
     config: { soloApiBaseUrl: "/solo", roomApiBaseUrl: "/rooms", gameWebSocketUrl: "ws://game", rtcConfigApiBaseUrl: "/rtc", aiWebSocketUrl: "ws://ai", battleRoomPollingIntervalMs: interval },
     services: { battleRoomGateway: roomGateway } as unknown as GameModuleServices,
     battleMediaSession: new MockBattleMediaSession(), sharedCameraSession: { start: vi.fn(), getStream: () => null, getVideoTrack: () => null, stop: vi.fn() },
-    battleRoomSession: activeSession, setBattleRoomSession: vi.fn(),
+    battleRoomSession: activeSession, setBattleRoomSession: rememberSession,
   };
 }
 
