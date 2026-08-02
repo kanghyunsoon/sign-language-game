@@ -55,6 +55,42 @@ describe("SwaggerBattleRoomGateway", () => {
     ]);
   });
 
+  it("re-publishes an early lobby room with creator metadata as soon as create completes", async () => {
+    let resolveCreate!: (value: Response) => void;
+    const gateway = createGateway(vi.fn(() => new Promise<Response>((resolve) => {
+      resolveCreate = resolve;
+    })));
+    const state = gateway as unknown as {
+      lobbyCache: Map<number, unknown>;
+      listeners: Set<(rooms: readonly { title: string; hostName: string }[]) => void>;
+    };
+    state.lobbyCache.set(10, {
+      id: 10,
+      roomCode: "ABC123",
+      status: "WAITING",
+      participantCount: 1,
+      capacity: 2,
+      gameType: "TETRIS_DUEL",
+    });
+    const snapshots: Array<readonly { title: string; hostName: string }[]> = [];
+    state.listeners.add((rooms) => {
+      snapshots.push(rooms.map(({ title, hostName }) => ({ title, hostName })));
+    });
+
+    const creating = gateway.createRoom({
+      title: "내가 만든 대전방",
+      difficulty: "CONSONANTS",
+      symbolRange: ["ㄱ", "ㄴ"],
+    });
+    await vi.waitFor(() => expect(resolveCreate).toBeTypeOf("function"));
+    resolveCreate(response(room()));
+    await creating;
+
+    expect(snapshots.at(-1)).toEqual([
+      { title: "내가 만든 대전방", hostName: "나" },
+    ]);
+  });
+
   it("restores the creator's title and nickname after the gateway is recreated", async () => {
     const values = new Map<string, string>();
     vi.stubGlobal("window", {
@@ -151,6 +187,52 @@ describe("SwaggerBattleRoomGateway", () => {
     await gateway.joinRoom("ABC123");
 
     await expect(gateway.joinRoom("ABC123")).rejects.toThrow("Game room request failed (409).");
+  });
+
+  it("sends leave immediately while a room hydration join is still pending", async () => {
+    let resolveJoin!: (value: Response) => void;
+    const fetcher = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/join")) {
+        return new Promise<Response>((resolve) => { resolveJoin = resolve; });
+      }
+      if (url.includes("/leave")) return Promise.resolve(response(undefined, 204));
+      return Promise.resolve(response(room()));
+    });
+    const gateway = createGateway(fetcher);
+    const joining = gateway.joinRoom("ABC123");
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
+
+    const leaving = gateway.leaveRoom("10");
+
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(String(fetcher.mock.calls[1][0])).toContain("/game-rooms/10/leave");
+    resolveJoin(response(room()));
+    await joining;
+    await leaving;
+    expect(fetcher.mock.calls.filter(([input]) => String(input).includes("/leave"))).toHaveLength(2);
+  });
+
+  it("removes a leaving room from the local lobby before the server responds", async () => {
+    let resolveLeave!: (value: Response) => void;
+    const fetcher = vi.fn((input: RequestInfo | URL) => String(input).includes("/leave")
+      ? new Promise<Response>((resolve) => { resolveLeave = resolve; })
+      : Promise.resolve(response(room())));
+    const gateway = createGateway(fetcher);
+    const state = gateway as unknown as {
+      lobbyCache: Map<number, unknown>;
+      currentRooms(): readonly unknown[];
+    };
+    state.lobbyCache.set(10, {
+      id: 10, roomCode: "ABC123", status: "WAITING",
+      participantCount: 1, capacity: 2, gameType: "TETRIS_DUEL",
+    });
+
+    const leaving = gateway.leaveRoom("10");
+
+    expect(state.currentRooms()).toEqual([]);
+    resolveLeave(response(undefined, 204));
+    await leaving;
   });
 
   it("maps ready state and uses role-based room data", async () => {

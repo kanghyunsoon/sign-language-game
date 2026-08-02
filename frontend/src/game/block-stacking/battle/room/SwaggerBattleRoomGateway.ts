@@ -40,6 +40,7 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   private readonly listeners = new Set<RoomsListener>();
   private readonly errorListeners = new Set<(error: Error) => void>();
   private membershipMutation: Promise<void> = Promise.resolve();
+  private pendingMembershipMutations = 0;
   private lobbyStarted = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -111,7 +112,12 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
         symbolRange: [...request.symbolRange],
       });
       this.persistDisplayMetadata();
-      return this.remember(room);
+      const session = this.remember(room);
+      // The lobby SSE can announce the new room before the create response
+      // arrives. Re-publish now that its creator metadata is available so the
+      // fallback title/nickname never remains on screen until a refresh.
+      this.emitRooms();
+      return session;
     });
   }
 
@@ -139,17 +145,36 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
 
   async leaveRoom(roomId: string): Promise<void> {
     const id = parseRoomId(roomId);
+    const confirmAfterPendingMutation = this.pendingMembershipMutations > 0;
+
+    // A leave must reach the backend immediately. Waiting behind the
+    // idempotent room-hydration join kept an abandoned host room visible to
+    // every other lobby subscriber until that join eventually completed.
+    this.forgetRoom(id);
+    const immediateLeave = this.client.leave(id).then(
+      () => ({ ok: true as const }),
+      (cause: unknown) => ({ ok: false as const, cause }),
+    );
+
     await this.enqueueMembershipMutation(async () => {
       try {
-        await this.client.leave(id);
+        const firstAttempt = await immediateLeave;
+        if (confirmAfterPendingMutation) {
+          // The urgent request may race an older join. Once that join has
+          // settled, confirm leave again so a late join cannot resurrect the
+          // membership or make the room public again.
+          try {
+            await this.client.leave(id);
+          } catch (cause) {
+            if (!isAlreadyGoneRoom(cause)) throw cause;
+          }
+        } else if (!firstAttempt.ok && !isAlreadyGoneRoom(firstAttempt.cause)) {
+          throw firstAttempt.cause;
+        }
       } finally {
         // A failed/already-completed remote leave must not keep a ghost room in
         // this browser's authoritative-looking local lobby cache.
-        this.roomCache.delete(id);
-        this.lobbyCache.delete(id);
-        this.roomDisplayMetadata.delete(id);
-        this.persistDisplayMetadata();
-        this.emitRooms();
+        this.forgetRoom(id);
       }
     });
   }
@@ -180,9 +205,21 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
     // is still hydrating, and the lobby can issue create before that leave has
     // completed. Preserve call order so a late join cannot resurrect a room
     // membership and a new room is never created before the previous leave.
+    this.pendingMembershipMutations += 1;
     const result = this.membershipMutation.then(operation, operation);
-    this.membershipMutation = result.then(() => undefined, () => undefined);
-    return result;
+    const tracked = result.finally(() => {
+      this.pendingMembershipMutations = Math.max(0, this.pendingMembershipMutations - 1);
+    });
+    this.membershipMutation = tracked.then(() => undefined, () => undefined);
+    return tracked;
+  }
+
+  private forgetRoom(id: number): void {
+    this.roomCache.delete(id);
+    this.lobbyCache.delete(id);
+    this.roomDisplayMetadata.delete(id);
+    this.persistDisplayMetadata();
+    this.emitRooms();
   }
 
   private ensureLobby(): void {
@@ -275,6 +312,10 @@ function isRoomDisplayMetadata(value: unknown): value is RoomDisplayMetadata {
     && typeof record.difficulty === "string"
     && Array.isArray(record.symbolRange)
     && record.symbolRange.every((symbol) => typeof symbol === "string");
+}
+
+function isAlreadyGoneRoom(cause: unknown): boolean {
+  return cause instanceof Error && /\((?:403|404|410)\)/.test(cause.message);
 }
 
 function toSummary(room: LobbyRoomSummary, metadata?: RoomDisplayMetadata): BattleRoomSummary {
