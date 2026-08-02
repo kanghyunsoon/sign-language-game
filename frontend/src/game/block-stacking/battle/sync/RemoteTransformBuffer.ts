@@ -2,6 +2,7 @@ import type { BattleBodyTransform } from "../transport/battleTransportTypes";
 import type { BattleSyncConfig } from "./InterpolationConfig";
 
 interface TimedTransform { readonly sequence: number; readonly receivedAt: number; readonly value: BattleBodyTransform; }
+const MAX_REMOVED_HISTORY = 128;
 
 export class RemoteTransformBuffer {
   private readonly buffers = new Map<string, TimedTransform[]>(); private readonly removed = new Set<string>();
@@ -23,7 +24,17 @@ export class RemoteTransformBuffer {
     if (this.removed.has(transform.id)) return;
     this.buffers.set(transform.id, [{ sequence, receivedAt, value: transform }]);
   }
-  remove(letterId: string): void { this.removed.add(letterId); this.buffers.delete(letterId); }
+  remove(letterId: string): void {
+    this.removed.add(letterId);
+    this.buffers.delete(letterId);
+    // Delayed packets only need a short tombstone history. Keeping every
+    // removed id for the full match made this cache grow without a bound.
+    while (this.removed.size > MAX_REMOVED_HISTORY) {
+      const oldest = this.removed.values().next().value as string | undefined;
+      if (oldest === undefined) break;
+      this.removed.delete(oldest);
+    }
+  }
   restore(letterIds: readonly string[]): void { const active = new Set(letterIds); for (const id of this.buffers.keys()) if (!active.has(id)) this.buffers.delete(id); for (const id of active) this.removed.delete(id); }
   sample(letterId: string, now: number): BattleBodyTransform | null {
     const buffer = this.buffers.get(letterId); if (!buffer?.length) return null;

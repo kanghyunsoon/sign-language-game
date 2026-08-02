@@ -45,12 +45,12 @@ const BATTLE_HAND_DETECTION_CONFIG = Object.freeze({
   minimumHandPresenceConfidence: .5,
   minimumTrackingConfidence: .5,
 });
-// The landmark canvas is a cheap, presentation-only 2D pass. Draw it at
-// 30 FPS while keeping hand detection and AI submission latest-only, so the
+// The landmark canvas is a presentation-only 2D pass. Draw it at 20 FPS while
+// keeping hand detection and AI submission latest-only, so the
 // skeleton feels immediate without increasing inference or WebSocket traffic.
 const BATTLE_RECOGNITION_RATE_CONFIG = Object.freeze({
   ...RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG,
-  renderFps: 30,
+  renderFps: 20,
 });
 
 export function BattleGamePage() {
@@ -325,8 +325,17 @@ export function BattleGamePage() {
     // The opponent board is an interpolated view of owner-authoritative
     // transforms. It deliberately does not run another Matter.js simulation.
     const remote = new RemoteBoardRenderer(remoteRenderer, replica);
-    const renderRemote = () => {
-      remote.render(Date.now());
+    let lastRemoteRenderAt = Number.NEGATIVE_INFINITY;
+    let remoteMoving = true;
+    const renderRemote = (at: number) => {
+      // Interpolate a falling opponent block at 30 FPS. Once the board is
+      // settled, 10 FPS is enough for network changes and avoids traversing
+      // every accumulated glyph on every display refresh.
+      const interval = remoteMoving ? 1000 / 30 : 100;
+      if (at - lastRemoteRenderAt >= interval) {
+        lastRemoteRenderAt = at;
+        remoteMoving = remote.render(Date.now());
+      }
       remoteLoopRef.current = requestAnimationFrame(renderRemote);
     };
     remoteLoopRef.current = requestAnimationFrame(renderRemote);

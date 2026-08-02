@@ -6,6 +6,7 @@ import {
   GAME_GLYPH_STROKE_COLOR,
   GAME_GLYPH_STROKE_WIDTH,
   GLYPH_DISPLAY_FONT_RATIO,
+  getGlyphCollisionRects,
   getGlyphRasterMetrics,
   mergeOccupiedGlyphCells,
 } from "./glyphRaster";
@@ -29,6 +30,11 @@ describe("glyphRaster", () => {
   it("renders a strong contrasting outline without changing collider metrics", () => {
     expect(GAME_GLYPH_STROKE_COLOR).not.toBe(GAME_GLYPH_FILL_COLOR);
     expect(GAME_GLYPH_STROKE_WIDTH).toBeGreaterThanOrEqual(6);
+  });
+
+  it("widens the single vertical vowel collider to match its artwork", () => {
+    const [vertical] = getGlyphCollisionRects("\u3163");
+    expect(vertical?.width).toBeCloseTo(49.3, 1);
   });
 
   it("separates an L-shaped glyph mask into its visible strokes", () => {

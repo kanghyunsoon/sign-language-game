@@ -10,4 +10,10 @@ describe("RemoteTransformBuffer", () => {
   it("ignores stale sequences", () => { const b = new RemoteTransformBuffer(DEFAULT_BATTLE_SYNC_CONFIG); expect(b.push(2, 2, body(.2))).toBe(true); expect(b.push(1, 3, body(.1))).toBe(false); });
   it("ignores transforms after removal", () => { const b = new RemoteTransformBuffer(DEFAULT_BATTLE_SYNC_CONFIG); b.remove("a"); expect(b.push(1, 1, body(1))).toBe(false); });
   it("bounds each letter buffer", () => { const b = new RemoteTransformBuffer({ ...DEFAULT_BATTLE_SYNC_CONFIG, maxBufferedSnapshots: 2 }); b.push(1, 1, body(.1)); b.push(2, 2, body(.2)); b.push(3, 3, body(.3)); expect(b.size("a")).toBe(2); });
+  it("bounds removed-letter tombstones", () => {
+    const b = new RemoteTransformBuffer(DEFAULT_BATTLE_SYNC_CONFIG);
+    for (let index = 0; index < 140; index += 1) b.remove(`removed-${index}`);
+    expect(b.push(1, 1, { ...body(.1), id: "removed-0" })).toBe(true);
+    expect(b.push(1, 1, { ...body(.1), id: "removed-139" })).toBe(false);
+  });
 });

@@ -28,7 +28,7 @@ export class PixiGameRenderer implements GameRenderer {
   private readonly boardGrid = new Graphics();
   private readonly dangerLine = new Graphics();
   private readonly views = new Map<string, LetterView>();
-  private readonly removalEffects = new Map<string, { readonly effect: RemovalEffect; readonly burst: RemovalBurst }>();
+  private readonly removalEffects = new Map<string, { readonly effect: RemovalEffect; readonly burst?: RemovalBurst }>();
   private readonly spawnEffects = new Map<string, number>();
   private readonly hiddenLetterIds = new Set<string>();
   /**
@@ -138,24 +138,26 @@ export class PixiGameRenderer implements GameRenderer {
 
     for (const letter of letters) {
       activeIds.add(letter.id);
-      const view = this.getOrCreateView(letter);
       const display = this.toDisplayState(letter);
-      // Keep Pixi for scenery/effects only.  A separate DOM glyph is the one
-      // visible to the player, so it can sit above the otter without raising
-      // the entire board canvas above the start overlay.
-      view.setVisible(false);
-      if (
-        Math.abs(view.root.x - display.x) >= POSITION_RENDER_EPSILON
-        || Math.abs(view.root.y - display.y) >= POSITION_RENDER_EPSILON
-      ) {
-        view.root.position.set(display.x, display.y);
-      }
-      if (Math.abs(view.root.rotation - letter.angle) >= ROTATION_RENDER_EPSILON) {
-        view.root.rotation = letter.angle;
-      }
-      view.setMotionState(letter.velocityY, letter.settled);
       const spawnElapsedMs = this.spawnEffects.get(letter.id);
-      view.setSpawnProgress(spawnElapsedMs === undefined ? null : Math.min(1, spawnElapsedMs / SPAWN_EFFECT_DURATION_MS));
+      // DOM-scenery modes (solo and battle) never display the Pixi glyph.
+      // Creating seven invisible sprites for every accumulated block caused
+      // GPU memory and scene-graph work to grow throughout a match.
+      if (this.config.showScenery) {
+        const view = this.getOrCreateView(letter);
+        view.setVisible(false);
+        if (
+          Math.abs(view.root.x - display.x) >= POSITION_RENDER_EPSILON
+          || Math.abs(view.root.y - display.y) >= POSITION_RENDER_EPSILON
+        ) {
+          view.root.position.set(display.x, display.y);
+        }
+        if (Math.abs(view.root.rotation - letter.angle) >= ROTATION_RENDER_EPSILON) {
+          view.root.rotation = letter.angle;
+        }
+        view.setMotionState(letter.velocityY, letter.settled);
+        view.setSpawnProgress(spawnElapsedMs === undefined ? null : Math.min(1, spawnElapsedMs / SPAWN_EFFECT_DURATION_MS));
+      }
       this.renderFrontLetter(letter, display.x, display.y, spawnElapsedMs);
     }
 
@@ -163,14 +165,17 @@ export class PixiGameRenderer implements GameRenderer {
       if (!activeIds.has(id)) {
         view.destroy();
         this.views.delete(id);
-        this.removalEffects.get(id)?.burst.destroy();
-        this.removalEffects.delete(id);
-        this.spawnEffects.delete(id);
-        this.hiddenLetterIds.delete(id);
-        this.frontLetters.get(id)?.remove();
-        this.frontLetters.delete(id);
-        this.frontLetterSignatures.delete(id);
       }
+    }
+    for (const [id, glyph] of this.frontLetters) {
+      if (activeIds.has(id)) continue;
+      glyph.remove();
+      this.frontLetters.delete(id);
+      this.frontLetterSignatures.delete(id);
+      this.removalEffects.get(id)?.burst?.destroy();
+      this.removalEffects.delete(id);
+      this.spawnEffects.delete(id);
+      this.hiddenLetterIds.delete(id);
     }
     // Battle and solo DOM scenery modes render glyphs in the foreground DOM
     // layer. Their Pixi canvas is hidden, so submitting a WebGL frame here
@@ -184,13 +189,13 @@ export class PixiGameRenderer implements GameRenderer {
   ): void {
     this.assertActive();
     const view = this.views.get(id);
-    if (!view || this.removalEffects.has(id)) {
+    if ((!view && !this.frontLetters.has(id)) || this.removalEffects.has(id)) {
       return;
     }
 
-    view.setRemovalHighlighted(true);
-    const burst = new RemovalBurst(view.root.x, view.root.y);
-    this.overlayLayer.addChild(burst.root);
+    view?.setRemovalHighlighted(true);
+    const burst = view && this.config.showScenery ? new RemovalBurst(view.root.x, view.root.y) : undefined;
+    if (burst) this.overlayLayer.addChild(burst.root);
     this.removalEffects.set(id, { effect: new RemovalEffect(id, durationMs), burst });
   }
 
@@ -227,7 +232,7 @@ export class PixiGameRenderer implements GameRenderer {
     for (const [id, activeEffect] of this.removalEffects) {
       const view = this.views.get(id);
       const progress = activeEffect.effect.advance(deltaMs);
-      activeEffect.burst.update(progress);
+      activeEffect.burst?.update(progress);
       if (view) {
         const pop = Math.sin(Math.min(progress / 0.65, 1) * Math.PI) * 0.55;
         const collapse = progress > 0.55 ? ((progress - 0.55) / 0.45) * 0.92 : 0;
@@ -237,7 +242,7 @@ export class PixiGameRenderer implements GameRenderer {
 
       if (activeEffect.effect.isFinished) {
         finished.push({ type: "REMOVAL_EFFECT_FINISHED", id });
-        activeEffect.burst.destroy();
+        activeEffect.burst?.destroy();
         this.removalEffects.delete(id);
       }
     }
@@ -245,12 +250,16 @@ export class PixiGameRenderer implements GameRenderer {
     return finished;
   }
 
+  hasActiveEffects(): boolean {
+    return this.removalEffects.size > 0;
+  }
+
   clear(): void {
     this.assertActive();
     for (const view of this.views.values()) {
       view.destroy();
     }
-    for (const activeEffect of this.removalEffects.values()) activeEffect.burst.destroy();
+    for (const activeEffect of this.removalEffects.values()) activeEffect.burst?.destroy();
     this.views.clear();
     this.removalEffects.clear();
     this.spawnEffects.clear();
@@ -323,12 +332,16 @@ export class PixiGameRenderer implements GameRenderer {
       letter.angle.toFixed(4),
       color,
       motion.toFixed(3),
+      letter.settled ? "1" : "0",
       this.hiddenLetterIds.has(letter.id) ? "0" : "1",
     ].join(":");
     if (this.frontLetterSignatures.get(letter.id) === signature) return;
     this.frontLetterSignatures.set(letter.id, signature);
     glyph.style.display = this.hiddenLetterIds.has(letter.id) ? "none" : "block";
     glyph.style.backgroundColor = color;
+    // Retaining a compositor layer for every settled mask steadily exhausts
+    // GPU memory. Only the currently falling block benefits from promotion.
+    glyph.style.willChange = letter.settled ? "auto" : "transform";
     const scaleX = this.width / (this.config.coordinateWidth ?? this.width);
     const scaleY = this.height / (this.config.coordinateHeight ?? this.height);
     glyph.style.transform = `translate(-50%, -50%) translate(${displayX}px, ${displayY}px) rotate(${letter.angle}rad) scale(${scaleX * (1 - motion * .018)}, ${scaleY * (1 + motion * .032)})`;

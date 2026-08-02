@@ -39,6 +39,10 @@ Readonly<Partial<Record<string, readonly GlyphCollisionRect[]>>> = glyphCollisio
  * Vite hot reload applies the change immediately in `?collisionAudit=1`.
  */
 export const GLYPH_COLLISION_TUNING: Readonly<Partial<Record<string, GlyphCollisionTuning>>> = {
+  // A single vertical stroke is visually much slimmer than the other Jua
+  // glyphs. Keep its collider as wide as the strengthened artwork so it does
+  // not look as if neighbouring letters pass through it.
+  "\u3163": { scaleX: 1.45 },
   // "ㅢ": { offsetX: 0, offsetY: 0, scaleX: 1, scaleY: 1 },
   // "ㅟ": { offsetX: 0, offsetY: 0, scaleX: 1, scaleY: 1 },
 };
@@ -107,7 +111,8 @@ export function getGlyphRasterMetrics(symbol: string): GlyphRasterMetrics {
   if (!context) return fallbackMetrics(symbol);
   context.font = COLLISION_REFERENCE_FONT;
   const measured = context.measureText(symbol);
-  const inkWidth = Math.max(1, Math.ceil(measured.actualBoundingBoxLeft + measured.actualBoundingBoxRight));
+  const measuredInkWidth = Math.max(1, Math.ceil(measured.actualBoundingBoxLeft + measured.actualBoundingBoxRight));
+  const inkWidth = symbol === "\u3163" ? Math.ceil(measuredInkWidth * 1.45) : measuredInkWidth;
   const inkHeight = Math.max(1, Math.ceil(measured.actualBoundingBoxAscent + measured.actualBoundingBoxDescent));
   const maximum = Math.max(inkWidth, inkHeight);
   const metrics = { inkWidth, inkHeight, widthRatio: inkWidth / maximum, heightRatio: inkHeight / maximum };
@@ -185,7 +190,7 @@ export function getGlyphCollisionRects(symbol: string): readonly GlyphCollisionR
     : undefined;
   if (browserOverride) return browserOverride;
   const projectDefault = GLYPH_COLLISION_DEFAULTS[symbol];
-  if (projectDefault) return projectDefault;
+  if (projectDefault) return tuneCollisionRects(symbol, projectDefault);
   const cached = collisionRectsCache.get(symbol);
   if (cached) return cached;
   if (typeof document === "undefined") return [];
