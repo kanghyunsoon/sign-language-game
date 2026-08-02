@@ -21,6 +21,7 @@ export interface BattleBodyTransform {
 interface ClientEnvelope { readonly commandId: string; readonly matchId: string; }
 
 export type ClientBattleMessage =
+  | (ClientEnvelope & { readonly type: "PLAYER_PROFILE_COMMAND"; readonly playerId: string; readonly displayName: string; readonly occurredAt: number })
   | (ClientEnvelope & { readonly type: "CLAIM_SHARED_TARGET"; readonly targetId: string; readonly symbol: string; readonly occurredAt: number })
   | (ClientEnvelope & { readonly type: "RESET_COMBO_COMMAND"; readonly reason: "WRONG_ANSWER"; readonly occurredAt: number })
   | (ClientEnvelope & { readonly type: "REMOVE_LETTER_COMMAND"; readonly letterId: string; readonly symbol: string; readonly occurredAt: number })
@@ -43,6 +44,7 @@ export interface RemoveAcceptedEvent extends ServerEnvelope { readonly type: "RE
 export interface RemoveRejectedEvent extends ServerEnvelope { readonly type: "REMOVE_LETTER_REJECTED"; readonly commandId?: string; readonly letterId?: string; readonly code: string; readonly message: string; readonly rejectedAt: number; }
 export interface ScoreUpdatedEvent extends ServerEnvelope { readonly type: "SCORE_UPDATED"; readonly playerId: string; readonly score: number; }
 export interface ComboUpdatedEvent extends ServerEnvelope { readonly type: "COMBO_UPDATED"; readonly playerId: string; readonly combo: number; readonly maxCombo: number; readonly reason?: "CORRECT" | "OPPONENT_CORRECT" | "WRONG_ANSWER" | "HAMMER_TRIGGERED"; }
+export interface PlayerProfileUpdatedEvent extends ServerEnvelope { readonly type: "PLAYER_PROFILE_UPDATED"; readonly playerId: string; readonly displayName: string; }
 export interface AttackCreatedEvent extends ServerEnvelope { readonly type: "ATTACK_CREATED" | "ATTACK_APPLIED"; readonly attackId: string; readonly attackerPlayerId: string; readonly targetPlayerId: string; readonly attackType: string; readonly amount: number; readonly sourceCombo: number; readonly createdAt: number; }
 export interface HammerAttackEvent extends ServerEnvelope { readonly type: "HAMMER_ATTACK"; readonly matchId: string; readonly attackId: string; readonly attackerPlayerId: string; readonly defenderPlayerId: string; readonly sourceCombo: 3; readonly victimLetterId?: string; readonly transferredLetterId?: string; readonly symbol?: string; readonly sourceNormalizedX?: number; readonly sourceNormalizedY?: number; readonly createdAt: number; readonly impactAt: number; readonly spawnAt: number; }
 export interface OtterTransferEvent extends ServerEnvelope { readonly type: "OTTER_TRANSFER"; readonly matchId: string; readonly sourcePlayerId: string; readonly targetPlayerId: string; readonly sourceLetterId: string; readonly sourceNormalizedX: number; readonly symbol: string; readonly direction: "left-to-right" | "right-to-left"; readonly pickupAt: number; readonly throwAt: number; }
@@ -56,5 +58,5 @@ export interface LetterStateSyncEvent extends ServerEnvelope { readonly type: "L
 export interface LetterRemovedSyncEvent extends ServerEnvelope { readonly type: "LETTER_REMOVED_SYNC"; readonly matchId: string; readonly playerId: string; readonly letterId: string; }
 
 export type ServerBattleMessage = MatchStartedEvent | SpawnLetterEvent | SharedTargetEvent | SharedTargetClaimedEvent | RemoveAcceptedEvent | RemoveRejectedEvent
-  | ScoreUpdatedEvent | ComboUpdatedEvent | AttackCreatedEvent | HammerAttackEvent | OtterTransferEvent | MatchFinishedEvent | PlayerConnectionEvent
+  | ScoreUpdatedEvent | ComboUpdatedEvent | PlayerProfileUpdatedEvent | AttackCreatedEvent | HammerAttackEvent | OtterTransferEvent | MatchFinishedEvent | PlayerConnectionEvent
   | TransformBatchEvent | BoardSnapshotEvent | LetterSpawnedSyncEvent | LetterStateSyncEvent | LetterRemovedSyncEvent | ResultRecordedEvent;

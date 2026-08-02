@@ -6,16 +6,18 @@ import { useGameModuleContext } from "../../../app/GameModuleContext";
 import letterOtter from "../../assets/solo-letter-otter.png";
 import startTitle from "../../assets/solo-start-title.png";
 import { BATTLE_DANGER_LINE_RATIO } from "../core/BattleRuntimeConfig";
+import { BattleComboMeter } from "../components/BattleComboMeter";
 import styles from "../battle.module.css";
 
 const BATTLE_PREVIEW_CANVAS_WIDTH = 1680;
 const BATTLE_PREVIEW_CANVAS_HEIGHT = 945;
 
-function PreviewBoard({ title, remote = false }: { title: string; remote?: boolean }) {
+function PreviewBoard({ title, remote = false, combo }: { title: string; remote?: boolean; combo: number }) {
   return (
     <section className={[styles.boardPanel, remote ? styles.remoteBoardPanel : ""].filter(Boolean).join(" ")}>
       <header>
         <div><h2>{title}</h2></div>
+        <BattleComboMeter count={combo} />
       </header>
       <div className={styles.boardPlayArea}>
         <div className={styles.previewBoardSurface} aria-hidden="true">
@@ -81,8 +83,8 @@ export function BattleDesignPreviewPage() {
             <i className={[styles.sharedCloud, styles.sharedCloudOne].join(" ")}/><i className={[styles.sharedCloud, styles.sharedCloudTwo].join(" ")}/><i className={[styles.sharedCloud, styles.sharedCloudThree].join(" ")}/>
             <i className={styles.sharedHills}/><span className={styles.sharedFireflies}><i/><i/><i/><i/><i/></span>
           </div>
-          <PreviewBoard title={user.userId || user.displayName} />
-          <PreviewBoard title="aass" remote />
+          <PreviewBoard title={user.displayName} combo={2} />
+          <PreviewBoard title="aass" remote combo={1} />
         </div>
         <div className={styles.sharedTargetOtter} aria-label="공유 목표 지문자 ㄱ">
           <img src={letterOtter} alt="" draggable={false} />
@@ -90,7 +92,7 @@ export function BattleDesignPreviewPage() {
         </div>
       </section>
       <aside className={styles.duelCameraRail} aria-label="카메라 디자인 프리뷰">
-        <PreviewCamera name={user.userId || user.displayName} recognition="ㄱ" />
+        <PreviewCamera name={user.displayName} recognition="ㄱ" />
         <PreviewCamera name="aass" />
       </aside>
     </div>

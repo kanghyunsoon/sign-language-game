@@ -8,7 +8,7 @@ import { boardStateChecksum } from "../sync/BoardStateChecksum";
 
 type PeerCommand = ClientBattleMessage;
 interface PlayerState { score: number; combo: number; maxCombo: number; removedCount: number; attackCount: number; gameOver: boolean; }
-interface PersistedAuthority { readonly roomId: string; readonly hostPlayerId: string; readonly playerIds: readonly string[]; readonly sequence: number; readonly startAt?: number; readonly spawnIndex: number; readonly targetIndex: number; readonly symbolBag?: readonly string[]; readonly lastTargetSymbol?: string | null; readonly sharedTarget: { readonly id: string; readonly symbol: string } | null; readonly players: readonly [string, PlayerState][]; readonly letters: readonly [string, { readonly playerId: string; readonly symbol: string }][]; readonly boards: readonly [string, readonly BattleBodyTransform[]][]; readonly boardUpdatedAt?: readonly [string, number][]; }
+interface PersistedAuthority { readonly roomId: string; readonly hostPlayerId: string; readonly playerIds: readonly string[]; readonly sequence: number; readonly startAt?: number; readonly spawnIndex: number; readonly targetIndex: number; readonly symbolBag?: readonly string[]; readonly lastTargetSymbol?: string | null; readonly sharedTarget: { readonly id: string; readonly symbol: string } | null; readonly players: readonly [string, PlayerState][]; readonly playerProfiles?: readonly [string, string][]; readonly letters: readonly [string, { readonly playerId: string; readonly symbol: string }][]; readonly boards: readonly [string, readonly BattleBodyTransform[]][]; readonly boardUpdatedAt?: readonly [string, number][]; }
 const CLAIM_EFFECT_DURATION_MS = 1_150;
 const NEXT_TARGET_DELAY_MS = CLAIM_EFFECT_DURATION_MS;
 const HAMMER_COMBO_TARGET = 3;
@@ -21,6 +21,7 @@ const BATTLE_TARGET_SYMBOLS = GAME_SYMBOLS.filter(isCompetitiveRecognitionReady)
 export class P2pBattleTransport implements BattleGameTransport {
   private readonly delegate: WebRtcDataChannelTransport<PeerCommand, ServerBattleMessage>;
   private readonly players = new Map<string, PlayerState>();
+  private readonly playerProfiles = new Map<string, string>();
   private readonly letters = new Map<string, { playerId: string; symbol: string }>();
   private readonly boards = new Map<string, readonly BattleBodyTransform[]>();
   private readonly boardUpdatedAt = new Map<string, number>();
@@ -42,7 +43,7 @@ export class P2pBattleTransport implements BattleGameTransport {
   private connectGeneration = 0;
   private restoredAuthority = false;
 
-  constructor(getChannel: () => GameDataChannel | null, private readonly localPlayerId: string) {
+  constructor(getChannel: () => GameDataChannel | null, private readonly localPlayerId: string, private readonly localDisplayName = localPlayerId) {
     this.delegate = new WebRtcDataChannelTransport(getChannel, isBattleEvent);
   }
 
@@ -53,14 +54,19 @@ export class P2pBattleTransport implements BattleGameTransport {
     this.hostPlayerId = options.hostPlayerId ?? options.playerIds?.[0] ?? this.localPlayerId;
     this.playerIds = [...new Set(options.playerIds ?? [this.hostPlayerId, this.localPlayerId])].slice(0, 2);
     for (const playerId of this.playerIds) if (!this.players.has(playerId)) this.players.set(playerId, freshPlayer());
+    this.playerProfiles.set(this.localPlayerId, normalizeDisplayName(this.localDisplayName, this.localPlayerId));
     await this.delegate.connect(options);
     if (generation !== this.connectGeneration || this.delegate.getConnectionState() !== "CONNECTED") return;
     if (this.isHost()) {
       this.unsubscribeCommands ??= this.delegate.subscribeCommands((message, remoteUserId) => this.handle(message, remoteUserId));
       this.restoreAuthority();
+      // A refreshed host may restore an older profile snapshot. The current
+      // signed-in user's display name is authoritative for this browser.
+      this.playerProfiles.set(this.localPlayerId, normalizeDisplayName(this.localDisplayName, this.localPlayerId));
       this.startAuthority();
     } else {
       this.delegate.send({ type: "REQUEST_MATCH_STATE", commandId: crypto.randomUUID(), matchId: this.matchId, occurredAt: Date.now() });
+      this.delegate.send({ type: "PLAYER_PROFILE_COMMAND", commandId: crypto.randomUUID(), matchId: this.matchId, playerId: this.localPlayerId, displayName: normalizeDisplayName(this.localDisplayName, this.localPlayerId), occurredAt: Date.now() });
     }
   }
   disconnect(): void { this.persistAuthority(); this.connectGeneration += 1; this.unsubscribeCommands?.(); this.unsubscribeCommands = null; if (this.targetTimer) clearTimeout(this.targetTimer); this.targetTimer = null; if (this.resumeTimer) clearTimeout(this.resumeTimer); this.resumeTimer = null; this.delegate.disconnect(); }
@@ -86,12 +92,14 @@ export class P2pBattleTransport implements BattleGameTransport {
     const now = Date.now();
     if (!this.startAt) this.startAt = now + 800;
     this.delegate.publishEvent({ type: "MATCH_STARTED", sequence: ++this.sequence, matchId: this.matchId, roomId: this.roomId, playerIds: this.playerIds, startAt: this.startAt, serverTime: now });
+    this.publishKnownProfiles();
     for (const [playerId, bodies] of this.boards) this.delegate.publishSnapshot({ type: "BOARD_SNAPSHOT", sequence: ++this.sequence, matchId: this.matchId, playerId, sentAt: now, bodies, boardChecksum: boardStateChecksum(bodies) });
   }
   private publishMatchState(): void {
     const now = Date.now();
     if (this.startAt > now && !this.sharedTarget) { this.publishStart(); return; }
     this.delegate.publishEvent({ type: "MATCH_STARTED", sequence: ++this.sequence, matchId: this.matchId, roomId: this.roomId, playerIds: this.playerIds, startAt: now, serverTime: now, resume: true, playerStates: [...this.players.entries()].map(([playerId, state]) => ({ playerId, ...state })), ...(this.sharedTarget ? { sharedTarget: { targetId: this.sharedTarget.id, symbol: this.sharedTarget.symbol, presentedAt: now } } : {}) });
+    this.publishKnownProfiles();
     for (const [playerId, bodies] of this.boards) this.delegate.publishSnapshot({ type: "BOARD_SNAPSHOT", sequence: ++this.sequence, matchId: this.matchId, playerId, sentAt: now, bodies, boardChecksum: boardStateChecksum(bodies) });
   }
   private scheduleNextTarget(delay = 320): void {
@@ -131,6 +139,15 @@ export class P2pBattleTransport implements BattleGameTransport {
   private handle(message: ClientBattleMessage, playerId: string): void {
     if (!this.isHost() || !(this.playerIds as readonly string[]).includes(playerId) || ("matchId" in message && message.matchId !== this.matchId)) return;
     if ("commandId" in message) { if (this.processed.has(message.commandId)) return; this.processed.add(message.commandId); }
+    if (message.type === "PLAYER_PROFILE_COMMAND") {
+      if (message.playerId !== playerId) return;
+      const displayName = normalizeDisplayName(message.displayName, playerId);
+      this.playerProfiles.set(playerId, displayName);
+      this.delegate.publishEvent({ type: "PLAYER_PROFILE_UPDATED", sequence: ++this.sequence, playerId, displayName });
+      this.publishKnownProfiles();
+      this.persistAuthority();
+      return;
+    }
     if (message.type === "REQUEST_MATCH_STATE" || message.type === "PLAYER_RECONNECTED") {
       this.publishMatchState();
       if (this.sharedTarget) this.delegate.publishEvent({ type: "SHARED_TARGET", sequence: ++this.sequence, matchId: this.matchId, targetId: this.sharedTarget.id, symbol: this.sharedTarget.symbol, presentedAt: Date.now() });
@@ -210,7 +227,7 @@ export class P2pBattleTransport implements BattleGameTransport {
   private storageKey(): string { return `${AUTHORITY_STORAGE_PREFIX}${this.localPlayerId}:${this.roomId}`; }
   private persistAuthority(): void {
     if (!this.isHost() || !this.roomId || typeof window === "undefined") return;
-    const value: PersistedAuthority = { roomId: this.roomId, hostPlayerId: this.hostPlayerId, playerIds: this.playerIds, sequence: this.sequence, startAt: this.startAt, spawnIndex: this.spawnIndex, targetIndex: this.targetIndex, symbolBag: this.symbolBag, lastTargetSymbol: this.lastTargetSymbol, sharedTarget: this.sharedTarget, players: [...this.players.entries()], letters: [...this.letters.entries()], boards: [...this.boards.entries()], boardUpdatedAt: [...this.boardUpdatedAt.entries()] };
+    const value: PersistedAuthority = { roomId: this.roomId, hostPlayerId: this.hostPlayerId, playerIds: this.playerIds, sequence: this.sequence, startAt: this.startAt, spawnIndex: this.spawnIndex, targetIndex: this.targetIndex, symbolBag: this.symbolBag, lastTargetSymbol: this.lastTargetSymbol, sharedTarget: this.sharedTarget, players: [...this.players.entries()], playerProfiles: [...this.playerProfiles.entries()], letters: [...this.letters.entries()], boards: [...this.boards.entries()], boardUpdatedAt: [...this.boardUpdatedAt.entries()] };
     try { window.sessionStorage.setItem(this.storageKey(), JSON.stringify(value)); } catch { /* Storage is optional; a connected peer can still resync. */ }
   }
   private restoreAuthority(): void {
@@ -221,6 +238,7 @@ export class P2pBattleTransport implements BattleGameTransport {
       if (saved.roomId !== this.roomId || saved.hostPlayerId !== this.hostPlayerId || saved.playerIds.length !== this.playerIds.length || saved.playerIds.some((id) => !this.playerIds.includes(id))) return;
       this.sequence = saved.sequence; this.startAt = saved.startAt ?? Date.now(); this.spawnIndex = saved.spawnIndex; this.targetIndex = saved.targetIndex; this.symbolBag = [...(saved.symbolBag ?? [])]; this.lastTargetSymbol = saved.lastTargetSymbol ?? saved.sharedTarget?.symbol ?? null; this.sharedTarget = saved.sharedTarget;
       this.players.clear(); for (const [id, state] of saved.players) this.players.set(id, { ...state, attackCount: state.attackCount ?? 0 });
+      for (const [id, displayName] of saved.playerProfiles ?? []) this.playerProfiles.set(id, displayName);
       this.letters.clear(); for (const [id, letter] of saved.letters) this.letters.set(id, letter);
       this.boards.clear(); for (const [id, bodies] of saved.boards) this.boards.set(id, bodies);
       this.boardUpdatedAt.clear(); for (const [id, updatedAt] of saved.boardUpdatedAt ?? []) this.boardUpdatedAt.set(id, updatedAt);
@@ -286,6 +304,11 @@ export class P2pBattleTransport implements BattleGameTransport {
       spawnAt: createdAt + HAMMER_TRANSFER_DELAY_MS,
     });
   }
+  private publishKnownProfiles(): void {
+    for (const [playerId, displayName] of this.playerProfiles) {
+      this.delegate.publishEvent({ type: "PLAYER_PROFILE_UPDATED", sequence: ++this.sequence, playerId, displayName });
+    }
+  }
   private pickVictimBlock(defenderPlayerId: string): BattleBodyTransform | null {
     const candidates = (this.boards.get(defenderPlayerId) ?? []).filter((body) => body.state !== "REMOVED" && this.letters.get(body.id)?.playerId === defenderPlayerId);
     if (!candidates.length) return null;
@@ -304,4 +327,8 @@ export class P2pBattleTransport implements BattleGameTransport {
   private clearPersistedAuthority(): void { try { if (typeof window !== "undefined") window.sessionStorage.removeItem(this.storageKey()); } catch { /* no-op */ } }
 }
 function freshPlayer(): PlayerState { return { score: 0, combo: 0, maxCombo: 0, removedCount: 0, attackCount: 0, gameOver: false }; }
-function isBattleEvent(value: unknown): value is ServerBattleMessage { return !!value && typeof value === "object" && typeof (value as { type?: unknown }).type === "string" && ["START_MATCH", "MATCH_STARTED", "GAME_START", "SHARED_TARGET", "SHARED_TARGET_CLAIMED", "SPAWN_LETTER", "REMOVE_LETTER_ACCEPTED", "REMOVE_LETTER_REJECTED", "SCORE_UPDATED", "COMBO_UPDATED", "ATTACK_CREATED", "ATTACK_APPLIED", "HAMMER_ATTACK", "MATCH_FINISHED", "RESULT_RECORDED", "PLAYER_DISCONNECTED", "PLAYER_RECONNECTED", "BODY_TRANSFORM_BATCH", "BOARD_SNAPSHOT", "LETTER_SPAWNED_SYNC", "LETTER_STATE_SYNC", "LETTER_REMOVED_SYNC", "OTTER_TRANSFER"].includes((value as { type: string }).type); }
+function normalizeDisplayName(value: string, fallback: string): string {
+  const normalized = value.trim().slice(0, 24);
+  return normalized || fallback;
+}
+function isBattleEvent(value: unknown): value is ServerBattleMessage { return !!value && typeof value === "object" && typeof (value as { type?: unknown }).type === "string" && ["START_MATCH", "MATCH_STARTED", "GAME_START", "SHARED_TARGET", "SHARED_TARGET_CLAIMED", "SPAWN_LETTER", "REMOVE_LETTER_ACCEPTED", "REMOVE_LETTER_REJECTED", "SCORE_UPDATED", "COMBO_UPDATED", "PLAYER_PROFILE_UPDATED", "ATTACK_CREATED", "ATTACK_APPLIED", "HAMMER_ATTACK", "MATCH_FINISHED", "RESULT_RECORDED", "PLAYER_DISCONNECTED", "PLAYER_RECONNECTED", "BODY_TRANSFORM_BATCH", "BOARD_SNAPSHOT", "LETTER_SPAWNED_SYNC", "LETTER_STATE_SYNC", "LETTER_REMOVED_SYNC", "OTTER_TRANSFER"].includes((value as { type: string }).type); }

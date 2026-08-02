@@ -11,8 +11,8 @@ export function HammerAttackOverlay({ event, localPlayerId }: HammerAttackOverla
   const localIsAttacker = event.attackerPlayerId === localPlayerId;
   const direction = localIsAttacker ? "right-to-left" : "left-to-right";
   const defenderSide = localIsAttacker ? "right" : "left";
-  const x = Math.max(0, Math.min(1, event.sourceNormalizedX ?? .5));
-  const y = Math.max(.12, Math.min(.9, event.sourceNormalizedY ?? .72));
+  const x = Math.max(.14, Math.min(.86, event.sourceNormalizedX ?? .5));
+  const y = Math.max(.2, Math.min(.78, event.sourceNormalizedY ?? .68));
   const left = defenderSide === "right" ? 50 + x * 50 : x * 50;
   return <div className={styles.hammerAttackLayer} data-direction={direction} aria-label="3연속 정답 망치 공격">
     <strong className={styles.hammerAttackBanner}>HAMMER ATTACK!</strong>

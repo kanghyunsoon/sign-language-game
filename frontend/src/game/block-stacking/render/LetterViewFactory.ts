@@ -61,6 +61,10 @@ export class LetterViewFactory {
     shadow.tint = this.palette.shadowColor ?? SHADOW_COLOR;
     shadow.alpha = 0.18;
     shadow.position.set(0, 5);
+    const outerEdge = new Sprite(texture);
+    outerEdge.anchor.set(0.5);
+    outerEdge.tint = 0x5b3f45;
+    outerEdge.alpha = 1;
     const stickerEdge = new Sprite(texture);
     stickerEdge.anchor.set(0.5);
     stickerEdge.tint = 0xffffff;
@@ -71,7 +75,8 @@ export class LetterViewFactory {
     const displayFontSize = Math.min(options.width, options.height) * GLYPH_DISPLAY_FONT_RATIO;
     const scale = displayFontSize / GLYPH_SOURCE_FONT_SIZE;
     shadow.scale.set(scale * 1.08);
-    stickerEdge.scale.set(scale * 1.045);
+    outerEdge.scale.set(scale * 1.115);
+    stickerEdge.scale.set(scale * 1.065);
     sprite.scale.set(scale);
 
     const targetGlow = new Sprite(texture);
@@ -97,7 +102,7 @@ export class LetterViewFactory {
     targetEdge.alpha = 0.95;
     targetEdge.blendMode = "add";
     targetEdge.visible = false;
-    content.addChild(shadow, targetHalo, targetGlow, targetEdge, stickerEdge, sprite);
+    content.addChild(shadow, targetHalo, targetGlow, targetEdge, outerEdge, stickerEdge, sprite);
     root.addChild(content);
 
     const applyAppearance = () => {
