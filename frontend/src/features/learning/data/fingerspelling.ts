@@ -15,7 +15,9 @@ import tieutImage from "../assets/consonant/consonant-tieut.png";
 import aImage from "../assets/vowel/vowel-a.png";
 import aeImage from "../assets/vowel/vowel-ae.png";
 import eImage from "../assets/vowel/vowel-e.png";
+import eSideImage from "../assets/vowel/vowel-e-side.png";
 import eoImage from "../assets/vowel/vowel-eo.png";
+import eoSideImage from "../assets/vowel/vowel-eo-side.png";
 import euImage from "../assets/vowel/vowel-eu.png";
 import iImage from "../assets/vowel/vowel-i.png";
 import oImage from "../assets/vowel/vowel-o.png";
@@ -26,7 +28,9 @@ import wiImage from "../assets/vowel/vowel-wi.png";
 import yaImage from "../assets/vowel/vowel-ya.png";
 import yaeImage from "../assets/vowel/vowel-yae.png";
 import yeImage from "../assets/vowel/vowel-ye.png";
+import yeSideImage from "../assets/vowel/vowel-ye-side.png";
 import yeoImage from "../assets/vowel/vowel-yeo.png";
+import yeoSideImage from "../assets/vowel/vowel-yeo-side.png";
 import yoImage from "../assets/vowel/vowel-yo.png";
 import yuImage from "../assets/vowel/vowel-yu.png";
 import oneImage from "../assets/number/number-one.png";
@@ -51,6 +55,11 @@ export interface FingerspellingItem {
   name: string;
   /** 지문자 동작 사진(Vite 정적 import URL). */
   image: string;
+  /**
+   * 같은 동작을 옆에서 본 보조 사진. 손끝을 앞으로 내미는 ㅓ·ㅕ·ㅔ·ㅖ처럼
+   * 정면 그림만으로는 손의 방향을 알기 어려운 글자에만 있다.
+   */
+  sideImage?: string;
   /** 수형 설명 문장. */
   description: string[];
 }
@@ -250,6 +259,7 @@ export const fingerspellingItems: Record<
       symbol: "ㅓ",
       name: "어",
       image: eoImage,
+      sideImage: eoSideImage,
       description: [
         "주먹을 쥔 상태에서 엄지를 옆으로 곧게 펴주세요.",
         "손가락이 앞을 향하도록 합니다.",
@@ -259,6 +269,7 @@ export const fingerspellingItems: Record<
       symbol: "ㅕ",
       name: "여",
       image: yeoImage,
+      sideImage: yeoSideImage,
       description: [
         "주먹을 쥔 상태에서 엄지와 검지를 옆으로 펴주세요.",
         "손가락이 앞을 향하도록 합니다.",
@@ -343,6 +354,7 @@ export const fingerspellingItems: Record<
       symbol: "ㅔ",
       name: "에",
       image: eImage,
+      sideImage: eSideImage,
       description: [
         "검지와 새끼손가락을 펴고, 나머지 손가락은 접어주세요.",
         "손가락이 앞을 향하도록 합니다.",
@@ -352,6 +364,7 @@ export const fingerspellingItems: Record<
       symbol: "ㅖ",
       name: "예",
       image: yeImage,
+      sideImage: yeSideImage,
       description: [
         "엄지와 약지를 접고, 나머지 손가락은 펴주세요.",
         "손가락이 앞을 향하도록 합니다.",
