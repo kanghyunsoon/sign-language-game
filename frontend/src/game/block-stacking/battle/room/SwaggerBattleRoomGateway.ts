@@ -40,8 +40,11 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   private readonly listeners = new Set<RoomsListener>();
   private readonly errorListeners = new Set<(error: Error) => void>();
   private membershipMutation: Promise<void> = Promise.resolve();
+  private pendingMembershipMutations = 0;
   private lobbyStarted = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private metadataRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly metadataRefreshAttempted = new Set<number>();
 
   constructor(private readonly options: SwaggerRoomGatewayOptions) {
     this.restoreDisplayMetadata();
@@ -63,6 +66,7 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
       // list. Replacing the cache is required so a room omitted after its last
       // participant leaves disappears for every connected lobby client.
       this.applyLobbySnapshot(event.rooms);
+      if (event.type === "update") this.scheduleMissingMetadataRefresh(event.rooms);
     });
     this.lobby.subscribeError((error) => {
       for (const listener of this.errorListeners) listener(error);
@@ -97,6 +101,8 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
         this.lobbyStarted = false;
         if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
         this.reconnectTimer = null;
+        if (this.metadataRefreshTimer) clearTimeout(this.metadataRefreshTimer);
+        this.metadataRefreshTimer = null;
       }
     };
   }
@@ -111,7 +117,12 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
         symbolRange: [...request.symbolRange],
       });
       this.persistDisplayMetadata();
-      return this.remember(room);
+      const session = this.remember(room);
+      // The lobby SSE can announce the new room before the create response
+      // arrives. Re-publish now that its creator metadata is available so the
+      // fallback title/nickname never remains on screen until a refresh.
+      this.emitRooms();
+      return session;
     });
   }
 
@@ -139,17 +150,36 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
 
   async leaveRoom(roomId: string): Promise<void> {
     const id = parseRoomId(roomId);
+    const confirmAfterPendingMutation = this.pendingMembershipMutations > 0;
+
+    // A leave must reach the backend immediately. Waiting behind the
+    // idempotent room-hydration join kept an abandoned host room visible to
+    // every other lobby subscriber until that join eventually completed.
+    this.forgetRoom(id);
+    const immediateLeave = this.client.leave(id).then(
+      () => ({ ok: true as const }),
+      (cause: unknown) => ({ ok: false as const, cause }),
+    );
+
     await this.enqueueMembershipMutation(async () => {
       try {
-        await this.client.leave(id);
+        const firstAttempt = await immediateLeave;
+        if (confirmAfterPendingMutation) {
+          // The urgent request may race an older join. Once that join has
+          // settled, confirm leave again so a late join cannot resurrect the
+          // membership or make the room public again.
+          try {
+            await this.client.leave(id);
+          } catch (cause) {
+            if (!isAlreadyGoneRoom(cause)) throw cause;
+          }
+        } else if (!firstAttempt.ok && !isAlreadyGoneRoom(firstAttempt.cause)) {
+          throw firstAttempt.cause;
+        }
       } finally {
         // A failed/already-completed remote leave must not keep a ghost room in
         // this browser's authoritative-looking local lobby cache.
-        this.roomCache.delete(id);
-        this.lobbyCache.delete(id);
-        this.roomDisplayMetadata.delete(id);
-        this.persistDisplayMetadata();
-        this.emitRooms();
+        this.forgetRoom(id);
       }
     });
   }
@@ -180,9 +210,21 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
     // is still hydrating, and the lobby can issue create before that leave has
     // completed. Preserve call order so a late join cannot resurrect a room
     // membership and a new room is never created before the previous leave.
+    this.pendingMembershipMutations += 1;
     const result = this.membershipMutation.then(operation, operation);
-    this.membershipMutation = result.then(() => undefined, () => undefined);
-    return result;
+    const tracked = result.finally(() => {
+      this.pendingMembershipMutations = Math.max(0, this.pendingMembershipMutations - 1);
+    });
+    this.membershipMutation = tracked.then(() => undefined, () => undefined);
+    return tracked;
+  }
+
+  private forgetRoom(id: number): void {
+    this.roomCache.delete(id);
+    this.lobbyCache.delete(id);
+    this.roomDisplayMetadata.delete(id);
+    this.persistDisplayMetadata();
+    this.emitRooms();
   }
 
   private ensureLobby(): void {
@@ -222,11 +264,47 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   }
 
   private applyLobbySnapshot(rooms: readonly LobbyRoomSummary[]): void {
+    const visibleRoomIds = new Set(rooms.map((room) => room.id));
+    for (const roomId of this.metadataRefreshAttempted) {
+      if (!visibleRoomIds.has(roomId)) this.metadataRefreshAttempted.delete(roomId);
+    }
+
+    const previousRooms = new Map(this.lobbyCache);
     this.lobbyCache.clear();
     for (const room of rooms) {
-      if (room.status !== "CLOSED") this.lobbyCache.set(room.id, room);
+      if (room.status !== "CLOSED") {
+        this.lobbyCache.set(room.id, preserveLobbyDisplayFields(room, previousRooms.get(room.id)));
+      }
     }
     this.emitRooms();
+  }
+
+  private scheduleMissingMetadataRefresh(rooms: readonly LobbyRoomSummary[]): void {
+    let needsRefresh = false;
+    for (const room of rooms) {
+      if (
+        room.status === "WAITING"
+        && (!room.title || !room.hostName)
+        && !this.roomDisplayMetadata.has(room.id)
+        && !this.metadataRefreshAttempted.has(room.id)
+      ) {
+        this.metadataRefreshAttempted.add(room.id);
+        needsRefresh = true;
+      }
+    }
+    if (!needsRefresh || this.metadataRefreshTimer) return;
+
+    // A newly-created room is first announced by a compact update that may
+    // omit display fields. A fresh snapshot contains the persisted title and
+    // host nickname. Reconnect once automatically while retaining the current
+    // cards, instead of making the user press refresh.
+    this.metadataRefreshTimer = setTimeout(() => {
+      this.metadataRefreshTimer = null;
+      if (this.listeners.size === 0) return;
+      this.lobby.disconnect();
+      this.lobbyStarted = false;
+      this.ensureLobby();
+    }, 120);
   }
 
   private emitRooms(): void {
@@ -275,6 +353,21 @@ function isRoomDisplayMetadata(value: unknown): value is RoomDisplayMetadata {
     && typeof record.difficulty === "string"
     && Array.isArray(record.symbolRange)
     && record.symbolRange.every((symbol) => typeof symbol === "string");
+}
+
+function isAlreadyGoneRoom(cause: unknown): boolean {
+  return cause instanceof Error && /\((?:403|404|410)\)/.test(cause.message);
+}
+
+function preserveLobbyDisplayFields(room: LobbyRoomSummary, previous?: LobbyRoomSummary): LobbyRoomSummary {
+  if (!previous) return room;
+  return {
+    ...room,
+    ...(!room.title && previous.title ? { title: previous.title } : {}),
+    ...(!room.hostName && previous.hostName ? { hostName: previous.hostName } : {}),
+    ...(!room.difficulty && previous.difficulty ? { difficulty: previous.difficulty } : {}),
+    ...(!room.symbolRange && previous.symbolRange ? { symbolRange: previous.symbolRange } : {}),
+  };
 }
 
 function toSummary(room: LobbyRoomSummary, metadata?: RoomDisplayMetadata): BattleRoomSummary {
