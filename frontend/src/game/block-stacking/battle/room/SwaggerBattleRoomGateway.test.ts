@@ -2,7 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SwaggerBattleRoomGateway } from "./SwaggerBattleRoomGateway";
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
 
 describe("SwaggerBattleRoomGateway", () => {
   it("creates a TETRIS_DUEL room using the deployed Swagger request body", async () => {
@@ -89,6 +92,71 @@ describe("SwaggerBattleRoomGateway", () => {
     expect(snapshots.at(-1)).toEqual([
       { title: "내가 만든 대전방", hostName: "나" },
     ]);
+  });
+
+  it("preserves snapshot display fields when a compact update omits them", () => {
+    const gateway = createGateway(vi.fn());
+    const state = gateway as unknown as {
+      applyLobbySnapshot(rooms: readonly unknown[]): void;
+      currentRooms(): readonly unknown[];
+    };
+    const baseRoom = {
+      id: 10,
+      roomCode: "ABC123",
+      status: "WAITING",
+      participantCount: 1,
+      capacity: 2,
+      gameType: "TETRIS_DUEL",
+    } as const;
+
+    state.applyLobbySnapshot([{
+      ...baseRoom,
+      title: "서버 대전방",
+      hostName: "수달왕",
+      difficulty: "CONSONANTS",
+      symbolRange: ["ㄱ", "ㄴ"],
+    }]);
+    state.applyLobbySnapshot([baseRoom]);
+
+    expect(state.currentRooms()).toEqual([
+      expect.objectContaining({
+        title: "서버 대전방",
+        hostName: "수달왕",
+        difficulty: "CONSONANTS",
+        symbolRange: ["ㄱ", "ㄴ"],
+      }),
+    ]);
+  });
+
+  it("automatically reconnects once when a live room update omits display metadata", async () => {
+    vi.useFakeTimers();
+    const gateway = createGateway(vi.fn());
+    const disconnect = vi.fn();
+    const connect = vi.fn(async () => undefined);
+    const state = gateway as unknown as {
+      lobby: { disconnect(): void; connect(): Promise<void> };
+      lobbyStarted: boolean;
+      listeners: Set<(rooms: readonly unknown[]) => void>;
+      scheduleMissingMetadataRefresh(rooms: readonly unknown[]): void;
+    };
+    state.lobby = { disconnect, connect };
+    state.lobbyStarted = true;
+    state.listeners.add(() => undefined);
+    const compactRoom = {
+      id: 10,
+      roomCode: "ABC123",
+      status: "WAITING",
+      participantCount: 1,
+      capacity: 2,
+      gameType: "TETRIS_DUEL",
+    } as const;
+
+    state.scheduleMissingMetadataRefresh([compactRoom]);
+    state.scheduleMissingMetadataRefresh([compactRoom]);
+    await vi.advanceTimersByTimeAsync(120);
+
+    expect(disconnect).toHaveBeenCalledTimes(1);
+    expect(connect).toHaveBeenCalledTimes(1);
   });
 
   it("restores the creator's title and nickname after the gateway is recreated", async () => {
