@@ -26,6 +26,10 @@ export function SignUpPage() {
     const passwordConfirm = String(formData.get("passwordConfirm") ?? "");
 
     setError(null);
+    if (nickname.length < 2 || nickname.length > 10) {
+      setError("닉네임은 2자 이상 10자 이하로 입력해주세요.");
+      return;
+    }
     if (password.length < 8) {
       setError("비밀번호는 8자 이상이어야 합니다.");
       return;
@@ -89,8 +93,10 @@ export function SignUpPage() {
                 <input
                   type="text"
                   name="nickname"
-                  placeholder="닉네임을 입력해주세요"
+                  placeholder="2~10자 이내로 입력해주세요."
                   autoComplete="nickname"
+                  minLength={2}
+                  maxLength={10}
                   required
                 />
               </label>

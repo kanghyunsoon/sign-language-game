@@ -450,19 +450,24 @@
 .profile-name {
   position: absolute;
   top: 15%;
-  left: 75%;
+  right: min(1.0417vw, 1.6667vh);
+  left: min(1.0417vw, 1.6667vh);
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: min(.5208vw, .8333vh);
-  transform: translateX(-50%);
 }
 
 .profile-name strong {
-  font-size: min(2.083333vw, 3.333333vh);
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: min(1.6667vw, 2.6667vh);
+  text-align: right;
   white-space: nowrap;
 }
 
 .profile-name button {
+  flex: 0 0 auto;
   display: grid;
   place-items: center;
   padding: 0;
