@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { LobbySseClient, type EventSourceLike } from "./LobbySseClient";
+import { LobbySseClient, parseLobbyRooms, type EventSourceLike } from "./LobbySseClient";
 
 class FakeEventSource implements EventSourceLike {
   readonly listeners = new Map<string, (event: MessageEvent<string>) => void>();
@@ -47,5 +47,25 @@ describe("LobbySseClient", () => {
     await client.connect();
     source.onerror?.(new Event("error"));
     expect(source.close).toHaveBeenCalled();
+  });
+
+  it("keeps optional display metadata when the lobby server provides it", () => {
+    expect(parseLobbyRooms({ rooms: [{
+      id: 3,
+      roomCode: "ROOM03",
+      status: "WAITING",
+      participantCount: 1,
+      capacity: 2,
+      gameType: "TETRIS_DUEL",
+      roomTitle: "모음 연습방",
+      hostNickname: "수달왕",
+      difficulty: "VOWELS",
+      symbolRange: ["ㅏ", "ㅓ"],
+    }] })).toEqual([expect.objectContaining({
+      title: "모음 연습방",
+      hostName: "수달왕",
+      difficulty: "VOWELS",
+      symbolRange: ["ㅏ", "ㅓ"],
+    })]);
   });
 });

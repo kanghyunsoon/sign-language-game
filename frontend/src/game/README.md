@@ -95,3 +95,10 @@ npm run build
 ```
 
 개발용 단독 실행은 `npm run dev`를 사용한다. 실제 플랫폼에서는 루트 `App.tsx`가 아니라 호스트 router가 `GameModule`을 마운트한다.
+
+## 최신 1:1 문서
+
+- [프링글수 1:1 UI·방 상태 — 2026-08-02](./docs/battle-ui-room-status-2026-08-02.md)
+- [프링글수 로비·결과 UI 트러블슈팅 — 2026-08-02](./docs/battle-room-ui-troubleshooting-2026-08-02.md)
+- [1:1 Room Lifecycle 및 게임 배율 트러블슈팅 — 2026-07-30](./docs/room-lifecycle-and-zoom-troubleshooting-2026-07-30.md)
+- [1:1 대결 새로고침·이탈 트러블슈팅 — 2026-07-31](./docs/battle-reconnect-troubleshooting-2026-07-31.md)

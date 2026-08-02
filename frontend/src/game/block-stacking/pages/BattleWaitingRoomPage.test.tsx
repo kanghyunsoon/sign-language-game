@@ -249,6 +249,46 @@ describe("BattleWaitingRoomPage backend flow", () => {
     expect(camera.stop).toHaveBeenCalledTimes(1);
     expect(await screen.findByText("LIST_ROUTE")).toBeTruthy();
   });
+
+  it("keeps the re-entry bookmark cleared when remote leave fails", async () => {
+    const leaveRoom = vi.fn(async () => { throw new Error("Game room request failed (500)."); });
+    const setBattleRoomSession = vi.fn();
+    renderPage({ gateway: gateway({ leaveRoom }), setBattleRoomSession });
+
+    await screen.findByText("Room WebSocket");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+
+    await waitFor(() => expect(leaveRoom).toHaveBeenCalledWith("1"));
+    expect(await screen.findByText("LIST_ROUTE")).toBeTruthy();
+    expect(setBattleRoomSession).toHaveBeenLastCalledWith(null);
+    expect(setBattleRoomSession).not.toHaveBeenCalledWith(expect.objectContaining({ roomId: "1" }));
+  });
+
+  it("ignores late lobby room updates after browser back starts leaving", async () => {
+    let publishRooms: (rooms: readonly BattleRoomSummary[]) => void = () => undefined;
+    let finishLeave!: () => void;
+    const leaveRoom = vi.fn(() => new Promise<void>((resolve) => { finishLeave = resolve; }));
+    const subscribeRooms = vi.fn((listener: (rooms: readonly BattleRoomSummary[]) => void) => {
+      publishRooms = listener;
+      return () => undefined;
+    });
+    const setBattleRoomSession = vi.fn();
+    renderPage({ gateway: gateway({ leaveRoom, subscribeRooms }), setBattleRoomSession });
+
+    await waitFor(() => expect(subscribeRooms).toHaveBeenCalledTimes(1));
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    await waitFor(() => expect(leaveRoom).toHaveBeenCalledWith("1"));
+
+    publishRooms([{
+      roomId: "1", roomCode: "ABC123", title: "room", status: "FULL", playerCount: 2,
+      maxPlayers: 2, hostUserId: "1", hostName: "host", difficulty: "basic",
+      symbolRange: [], createdAt: null, canJoin: false,
+    }]);
+    expect(setBattleRoomSession).toHaveBeenLastCalledWith(null);
+
+    finishLeave();
+    expect(await screen.findByText("LIST_ROUTE")).toBeTruthy();
+  });
 });
 
 class FakeRoomSocket {
@@ -272,6 +312,7 @@ interface RenderOptions {
   readonly camera?: SharedGameCameraSession;
   readonly media?: MockBattleMediaSession;
   readonly socket?: FakeRoomSocket;
+  readonly setBattleRoomSession?: GameModuleContextValue["setBattleRoomSession"];
 }
 
 function renderPage(options: RenderOptions = {}) {
@@ -296,7 +337,7 @@ function renderPage(options: RenderOptions = {}) {
     battleMediaSession: options.media ?? new MockBattleMediaSession(),
     sharedCameraSession: options.camera ?? emptyCamera(),
     battleRoomSession: { ...detail, currentUser: { userId: currentUserId, displayName: currentUserId === "1" ? "나" : "상대방" } },
-    setBattleRoomSession: vi.fn(),
+    setBattleRoomSession: options.setBattleRoomSession ?? vi.fn(),
   };
   return render(
     <GameModuleContext.Provider value={value}>

@@ -17,3 +17,16 @@
 - `../docs/reference/solo-game-runtime.md`
 - `../docs/reference/game-results-api.md`
 - `../docs/solo-game-status-2026-07-29.md`
+
+## 2026-08-02 프링글수 1:1 기준
+
+- 로비에는 게임 종류가 일치하고 빈자리가 있는 `WAITING` 방만 표시한다. 종료 직후 두 참가자가 남은 `2/2` 방은 재대결 대기 상태여도 목록에서 숨긴다.
+- create/join/leave 요청은 순서를 보장해 뒤로가기 직후 재입장 상태가 되거나 이전 방 leave 전에 새 방을 생성하는 경쟁을 막는다.
+- 1:1은 두 독립 게임판과 하나의 공유 2D 배경을 사용한다. 결승선과 실제 승리 판정은 모두 게임판 높이의 `1 / 6`이다.
+- 결과 화면에서 `다시 하기`와 `같은 방으로`는 대기실, `게임방 목록`은 leave 후 `/game/battle`로 이동한다.
+- 방 제목·방장 닉네임·출제 범위의 서버 공유 범위는 배포 Swagger 필드에 제한된다. 현재 브라우저에서 생성한 방은 gateway 메모리로 보완하지만 다른 브라우저까지 영구 전파되는 값은 아니다.
+
+세부 기준:
+
+- `../docs/battle-ui-room-status-2026-08-02.md`
+- `../docs/battle-room-ui-troubleshooting-2026-08-02.md`

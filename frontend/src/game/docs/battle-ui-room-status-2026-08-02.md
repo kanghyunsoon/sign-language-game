@@ -1,0 +1,87 @@
+# 프링글수 1:1 UI·방 상태 — 2026-08-02
+
+이 문서는 2026-08-02 기준 `/game/battle` 로비, 대기실, 실시간 1:1 게임, 결과 화면의 현재 동작과 서버 계약 경계를 정리한다. 과거 명칭인 `지문자 테트리스`는 사용자 화면에서 `프링글수`로 교체했다.
+
+## 사용자 흐름
+
+| 화면 | 라우트 | 현재 동작 |
+| --- | --- | --- |
+| 게임방 찾기 | `/game/battle` | 입장 가능한 `WAITING` 방만 표시하고 방 생성·빠른 입장·초대 코드 입장을 제공한다. |
+| 대기실 | `/game/battle/:roomId` | 서버 상태를 다시 조회하고 준비·시작·명시적 퇴장을 처리한다. |
+| 1:1 게임 | `/game/battle/:roomId/play` | 두 게임판과 두 카메라를 표시하고, 공유 목표를 먼저 인식한 사람의 보드에 블록을 떨어뜨린다. |
+| 결과 | 게임 화면 모달 | 결과 저장 확인 뒤 같은 방으로 복귀하거나 방을 나가 게임방 목록으로 이동한다. |
+| 디자인 확인 | `/game/battle/preview` | 실제 방·카메라·WebRTC 부작용 없이 1:1 레이아웃을 확인하는 개발 전용 화면이다. |
+
+## 1:1 게임 표현과 규칙
+
+- 화면은 `1680 × 945` 고정 게임 캔버스를 현재 viewport 안에 비율 유지해 맞춘다.
+- 솔로 화면과 같은 2D 하늘·언덕·잔디 배경, 크림색 패널, 올리브·코랄 포인트를 사용한다.
+- 두 게임판은 분리하되 배경의 낮·밤 전환은 하나의 공유 장면으로 이어진다. 중앙 경계는 야간에도 이중 밝은 선처럼 보이지 않게 한 줄만 사용한다.
+- 1:1 블록 글자는 반 화면에 맞춘 `160` 크기와 공통 코랄 팔레트를 사용한다.
+- 결승선의 화면 위치와 실제 승리 판정은 모두 게임판 높이의 `1 / 6`이다. 정착한 블록이 결승선에 닿으면 해당 플레이어가 승리한다.
+- 공유 목표 수달, 목표 글자 전환, 낙하·제거·공격 효과, 낮·밤 애니메이션은 기존 런타임 로직을 유지한다.
+- 헤더의 뒤로가기 버튼은 단순 라우팅이 아니라 진행 상태에 맞는 몰수패·결과 저장·방 퇴장 정리를 거친다.
+
+## 결과 화면과 이동
+
+- 결과 제목은 화면 전체 중앙을 기준으로 정렬한다. 오른쪽 최종 점수 카드는 absolute 배치해 제목 중심을 밀지 않는다.
+- 좁은 화면에서는 점수 카드를 다시 문서 흐름에 배치해 겹침을 막는다.
+- `다시 하기`, `같은 방으로`: 서버 결과 처리가 끝난 뒤 현재 방을 `WAITING`, 양쪽 준비 상태를 `false`로 보고 대기실로 돌아간다.
+- `게임방 목록`: 현재 방을 leave한 뒤 `/game/battle`로 이동한다. 게임 선택 화면 `/game`으로 이동하지 않는다.
+- 결과 처리로 서버 방이 `WAITING`으로 돌아오더라도 참가자 수가 정원 `2/2`인 동안 로비 목록에는 노출하지 않는다. 현재 로비 표시 조건은 `gameType 일치 && status === WAITING && participantCount < capacity`다.
+
+## 퇴장과 재입장 생명주기
+
+- create, join, leave는 `SwaggerBattleRoomGateway`에서 한 줄로 직렬화한다. 늦게 끝난 join이 퇴장한 방을 되살리거나, 이전 leave가 끝나기 전에 새 방을 만드는 경쟁을 막는다.
+- 대기실의 버튼·브라우저 뒤로가기는 같은 단일 leave Promise를 공유해 중복 퇴장을 막는다.
+- 퇴장 시작 즉시 로컬 재입장 세션을 비우고, 원격 leave 응답 성공 여부와 관계없이 다시 비운다. 사용자가 명시적으로 나간 방을 `재입장`으로 되살리지 않는다.
+- 퇴장 플래그가 켜진 뒤 늦게 도착한 join·주기 확인·SSE 응답은 로컬 방 세션을 기록하지 않는다.
+- 1명뿐인 방에서 방장이 나가면 서버가 빈 방을 제거하고, 2명 방에서 방장이 나가면 서버가 남은 참가자에게 방장을 위임한다. 프런트는 다음 SSE/재입장 응답을 서버 권위 상태로 반영한다.
+- 게임 중 명시적 이탈은 결과·미디어·카메라 정리를 포함한다. 일시적인 P2P 단절은 별도의 재접속 유예 정책을 따른다.
+
+## 방 카드 표시 정보
+
+방 카드의 사용자 정보는 다음 순서로 정한다.
+
+1. SSE가 `title`, `hostName` 또는 `hostNickname`, `difficulty`, `symbolRange`를 제공하면 그 값을 사용한다.
+2. 현재 브라우저에서 방을 생성했다면 생성 폼의 제목·현재 사용자 닉네임·난이도·출제 범위를 gateway 메모리에 보존해 사용한다.
+3. 둘 다 없으면 `프링글수 대전방`, `프링글수 유저`, `기초 혼합`을 사용한다. 초대 코드나 `방장` 같은 역할명은 제목·닉네임 대체값으로 사용하지 않는다.
+
+카드에는 방 제목, 방장 닉네임, 참가 인원, 출제 범위만 우선 표시한다. 출제 범위는 실제 심볼 배열을 기준으로 `자음`, `모음`, `기초 혼합`으로 분류한다. 서버가 생성 시간을 주지 않아 `createdAt === null`이면 생성 정보 행 자체를 숨기며 `서버 정보 없음` 문구를 표시하지 않는다.
+
+## 배포 Swagger 계약과 제한
+
+2026-08-02에 확인한 배포 계약은 다음 정보만 보장한다.
+
+- `POST /game-rooms` 요청: `{ gameType }`
+- 방 응답: 방 ID·초대 코드·host/guest ID·ready·status·participant count·capacity·game type·realtime ticket
+- 로비 SSE: 방 ID·초대 코드·status·participant count·capacity·game type
+
+따라서 현재 프런트의 생성 폼 메타데이터 보존은 **같은 gateway 인스턴스가 살아 있는 현재 브라우저 세션 범위**다. 새로고침, 다른 브라우저, 다른 사용자의 로비에는 서버가 필드를 제공하지 않는 한 실제 방 제목·닉네임·출제 범위를 전파할 수 없다. 영구·공유 표시가 필요하면 백엔드 create DTO, 방 응답, 로비 SSE에 최소한 다음 필드를 추가해야 한다.
+
+```text
+title
+hostNickname
+difficulty
+symbolRange
+createdAt
+```
+
+프런트 SSE 파서는 위 선택 필드가 추가돼도 바로 사용할 수 있도록 호환 파싱을 포함한다.
+
+## 관련 코드
+
+- `block-stacking/battle/pages/BattleRoomListPage.tsx`
+- `block-stacking/pages/BattleWaitingRoomPage.tsx`
+- `block-stacking/battle/pages/BattleGamePage.tsx`
+- `block-stacking/battle/components/BattleRoomCard.tsx`
+- `block-stacking/battle/components/BattleResultModal.tsx`
+- `block-stacking/battle/room/SwaggerBattleRoomGateway.ts`
+- `realtime/LobbySseClient.ts`
+
+## 검증 기록
+
+- 결과 모달 단위 테스트: 4개 통과
+- 방 카드·Swagger gateway·SSE 파서 집중 테스트: 3개 파일, 16개 테스트 통과
+- `npx.cmd tsc -p tsconfig.app.json --noEmit --incremental false --pretty false`: 통과
+- `git diff --check`: 오류 없음

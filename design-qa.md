@@ -37,9 +37,13 @@
 - Back navigation remains a real link on the preview; the live page uses the existing forfeit-and-leave handler on the matching back control.
 - Existing game, WebRTC, camera, AI, recognition, result, and room lifecycle behavior remains intact. The only rule value adjusted is the finish-line threshold, and its visual and win-detection coordinates now share the same ratio.
 - TypeScript application check passed with `tsc -p tsconfig.app.json --noEmit --incremental false`.
+- The result title is centered against the full modal rather than the remaining width beside the score card. The score card stays right-aligned on desktop and returns to normal flow on narrow layouts.
+- The room card presents the room title, host nickname, participant count, and `자음`/`모음`/`기초 혼합` range. Missing server creation time removes the row instead of rendering `서버 정보 없음`.
+- A finished full room is not shown as joinable merely because the result endpoint returned it to `WAITING`.
 
 ## Follow-up Polish
 
 - P3: confirm the compact four-item connection-status row with real room data; long translated connection labels may need slightly tighter letter spacing at narrow desktop widths.
+- P2 backend contract: persist `title`, `hostNickname`, `difficulty`, `symbolRange`, and `createdAt` in create/room/SSE responses. Until then, creator metadata is only guaranteed in the current browser gateway session.
 
 final result: passed

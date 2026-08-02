@@ -19,6 +19,9 @@ type RoomsListener = (rooms: readonly BattleRoomSummary[]) => void;
 type SwaggerRoomGatewayOptions = BattleRoomGatewayOptions & {
   readonly gameType?: "TETRIS_DUEL" | "SIGN_DUEL";
 };
+type RoomDisplayMetadata = Pick<CreateRoomRequest, "title" | "difficulty" | "symbolRange"> & {
+  readonly hostName: string;
+};
 
 /**
  * Adapter for the deployed Swagger contract.
@@ -32,6 +35,7 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   private readonly lobby: LobbySseClient;
   private readonly roomCache = new Map<number, BackendGameRoom>();
   private readonly lobbyCache = new Map<number, LobbyRoomSummary>();
+  private readonly roomDisplayMetadata = new Map<number, RoomDisplayMetadata>();
   private readonly listeners = new Set<RoomsListener>();
   private readonly errorListeners = new Set<(error: Error) => void>();
   private membershipMutation: Promise<void> = Promise.resolve();
@@ -95,10 +99,17 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
     };
   }
 
-  async createRoom(_request: CreateRoomRequest): Promise<BattleRoomSession> {
-    return this.enqueueMembershipMutation(async () => (
-      this.remember(await this.client.create(this.options.gameType ?? "TETRIS_DUEL"))
-    ));
+  async createRoom(request: CreateRoomRequest): Promise<BattleRoomSession> {
+    return this.enqueueMembershipMutation(async () => {
+      const room = await this.client.create(this.options.gameType ?? "TETRIS_DUEL");
+      this.roomDisplayMetadata.set(room.id, {
+        title: request.title.trim(),
+        hostName: this.options.currentUser.displayName,
+        difficulty: request.difficulty,
+        symbolRange: [...request.symbolRange],
+      });
+      return this.remember(room);
+    });
   }
 
   async joinRoom(roomCode: string): Promise<BattleRoomSession> {
@@ -133,6 +144,7 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
         // this browser's authoritative-looking local lobby cache.
         this.roomCache.delete(id);
         this.lobbyCache.delete(id);
+        this.roomDisplayMetadata.delete(id);
         this.emitRooms();
       }
     });
@@ -156,7 +168,7 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
 
   private remember(room: BackendGameRoom): BattleRoomSession {
     this.roomCache.set(room.id, room);
-    return { ...toDetail(room, this.options), currentUser: this.options.currentUser };
+    return { ...toDetail(room, this.options, this.roomDisplayMetadata.get(room.id)), currentUser: this.options.currentUser };
   }
 
   private enqueueMembershipMutation<T>(operation: () => Promise<T>): Promise<T> {
@@ -202,7 +214,7 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
         && room.status === "WAITING"
         && room.participantCount < room.capacity
       ))
-      .map(toSummary);
+      .map((room) => toSummary(room, this.roomDisplayMetadata.get(room.id)));
   }
 
   private applyLobbySnapshot(rooms: readonly LobbyRoomSummary[]): void {
@@ -219,25 +231,25 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   }
 }
 
-function toSummary(room: LobbyRoomSummary): BattleRoomSummary {
+function toSummary(room: LobbyRoomSummary, metadata?: RoomDisplayMetadata): BattleRoomSummary {
   return {
     // The list has no join-by-id API. The card carries the room code as its join key.
     roomId: room.roomCode,
-    title: `대전방 ${room.roomCode}`,
+    title: room.title ?? metadata?.title ?? "프링글수 대전방",
     status: room.status === "IN_PROGRESS" ? "PLAYING" : room.participantCount >= room.capacity ? "FULL" : "WAITING",
     playerCount: room.participantCount,
     maxPlayers: room.capacity,
     hostUserId: "",
-    hostName: "방장",
-    difficulty: "기본",
-    symbolRange: [],
+    hostName: room.hostName ?? metadata?.hostName ?? "프링글수 유저",
+    difficulty: room.difficulty ?? metadata?.difficulty ?? "BASIC",
+    symbolRange: room.symbolRange ?? metadata?.symbolRange ?? [],
     createdAt: null,
     canJoin: room.status === "WAITING" && room.participantCount < room.capacity,
     roomCode: room.roomCode,
   };
 }
 
-function toDetail(room: BackendGameRoom, options: BattleRoomGatewayOptions): BattleRoomDetail {
+function toDetail(room: BackendGameRoom, options: BattleRoomGatewayOptions, metadata?: RoomDisplayMetadata): BattleRoomDetail {
   const currentUserId = options.currentUser.userId;
   const participants: BattleRoomParticipant[] = [
     participant(String(room.hostUserId), true, room.hostReady, currentUserId, options),
@@ -250,14 +262,14 @@ function toDetail(room: BackendGameRoom, options: BattleRoomGatewayOptions): Bat
   const canStart = isHost && full && room.hostReady && room.guestReady && room.status === "WAITING";
   return {
     roomId: String(room.id),
-    title: `대전방 ${room.roomCode}`,
+    title: metadata?.title ?? "프링글수 대전방",
     status: room.status === "IN_PROGRESS" ? "PLAYING" : room.status === "CLOSED" ? "FINISHED" : full ? "FULL" : "WAITING",
     playerCount: room.participantCount,
     maxPlayers: room.capacity,
     hostUserId: String(room.hostUserId),
-    hostName: participants[0]?.displayName ?? "방장",
-    difficulty: "기본",
-    symbolRange: [],
+    hostName: metadata?.hostName ?? participants[0]?.displayName ?? "프링글수 유저",
+    difficulty: metadata?.difficulty ?? "BASIC",
+    symbolRange: metadata?.symbolRange ?? [],
     createdAt: null,
     canJoin: room.status === "WAITING" && !full,
     roomCode: room.roomCode,
