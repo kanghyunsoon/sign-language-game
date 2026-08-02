@@ -101,7 +101,7 @@ export function testQuestionPool(
 
   return testCategories
     .filter((category) => selected.has(category.id))
-    .flatMap((category) => {
+    .flatMap((category): TestQuestion[] => {
       if (category.id === "word") {
         return wordSigns.map((word) => ({
           symbol: word.name,

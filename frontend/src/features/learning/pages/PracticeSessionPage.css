@@ -433,6 +433,36 @@
   object-fit: contain;
 }
 
+/* 옆모습을 함께 보여주는 글자(ㅓ·ㅕ·ㅔ·ㅖ)는 정면 그림을 조금 줄인다.
+   원은 그대로 두고 그림만 작아져, 오른쪽 위 옆모습과 함께 봐도 빽빽하지 않다. */
+.practice-answer-placeholder-with-side img {
+  width: 74%;
+  height: 74%;
+}
+
+/* 손끝이 앞을 향하는 글자는 정면 그림만으로 방향을 알기 어려워 옆모습을 덧붙인다.
+   왼쪽 위 글자 라벨과 마주 보는 자리에, 정면 그림보다 작은 흰 카드로 놓는다. */
+.practice-answer-side {
+  position: absolute;
+  top: min(1.458333vw, 2.333333vh);
+  right: min(1.458333vw, 2.333333vh);
+  z-index: 2;
+  width: min(5.729167vw, 9.166667vh);
+  height: min(5.729167vw, 9.166667vh);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 min(0.416667vw, 0.666667vh) min(1.041667vw, 1.666667vh) rgba(63, 43, 32, 0.1);
+}
+
+.practice-answer-side img {
+  width: 82%;
+  height: 82%;
+  object-fit: contain;
+}
+
 /* 현재 문제 이름 */
 
 .practice-item-navigation {

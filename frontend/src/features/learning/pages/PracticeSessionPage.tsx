@@ -416,7 +416,15 @@ export function PracticeSessionPage({
                   {currentPracticeItem.symbol}
                 </span>
 
-                <div className="practice-answer-placeholder">
+                {/* 옆모습이 있는 글자는 정면 그림을 조금 줄여, 오른쪽 위에 붙는
+                    옆모습과 나란히 봐도 답답하지 않게 한다. */}
+                <div
+                  className={`practice-answer-placeholder ${
+                    currentPracticeItem.sideImage
+                      ? "practice-answer-placeholder-with-side"
+                      : ""
+                  }`}
+                >
                   {currentPracticeItem.image && (
                     <img
                       src={currentPracticeItem.image}
@@ -424,6 +432,15 @@ export function PracticeSessionPage({
                     />
                   )}
                 </div>
+
+                {currentPracticeItem.sideImage && (
+                  <div className="practice-answer-side">
+                    <img
+                      src={currentPracticeItem.sideImage}
+                      alt={`${currentPracticeItem.name} 지문자 동작 옆모습`}
+                    />
+                  </div>
+                )}
 
                 <div className="practice-item-navigation">
                   <strong>{currentPracticeItem.name}</strong>
