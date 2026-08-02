@@ -364,6 +364,67 @@ describe("SwaggerBattleRoomGateway", () => {
     await leaving;
   });
 
+  it("keeps shared room display metadata when a participant leaves", async () => {
+    const fetcher = vi.fn(async (input: RequestInfo | URL) => String(input).includes("/leave")
+      ? response(undefined, 204)
+      : response(room()));
+    const gateway = createGateway(fetcher);
+    const created = await gateway.createRoom({
+      title: "남아 있는 대전방",
+      difficulty: "CONSONANTS",
+      symbolRange: ["ㄱ", "ㄴ"],
+    });
+
+    await gateway.leaveRoom("10");
+
+    const state = gateway as unknown as {
+      lobbyCache: Map<number, unknown>;
+      currentRooms(): readonly { title: string; hostName: string }[];
+    };
+    state.lobbyCache.set(10, {
+      id: 10,
+      roomCode: "ABC123",
+      status: "WAITING",
+      participantCount: 1,
+      capacity: 2,
+      gameType: "TETRIS_DUEL",
+    });
+    expect(state.currentRooms()).toEqual([
+      expect.objectContaining({ title: "남아 있는 대전방", hostName: created.hostName }),
+    ]);
+  });
+
+  it("updates the shared host nickname after ownership changes", async () => {
+    const gateway = createGateway(vi.fn(async () => response(room())));
+    await gateway.createRoom({
+      title: "이어지는 대전방",
+      difficulty: "CONSONANTS",
+      symbolRange: ["ㄱ", "ㄴ"],
+    });
+    gateway.updateRoomDisplayMetadata("10", {
+      title: "이어지는 대전방",
+      hostName: "새 방장",
+      difficulty: "CONSONANTS",
+      symbolRange: ["ㄱ", "ㄴ"],
+    });
+
+    const state = gateway as unknown as {
+      lobbyCache: Map<number, unknown>;
+      currentRooms(): readonly { title: string; hostName: string }[];
+    };
+    state.lobbyCache.set(10, {
+      id: 10,
+      roomCode: "ABC123",
+      status: "WAITING",
+      participantCount: 1,
+      capacity: 2,
+      gameType: "TETRIS_DUEL",
+    });
+    expect(state.currentRooms()).toEqual([
+      expect.objectContaining({ title: "이어지는 대전방", hostName: "새 방장" }),
+    ]);
+  });
+
   it("maps ready state and uses role-based room data", async () => {
     const fetcher = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => response(room({
       guestUserId: 2,

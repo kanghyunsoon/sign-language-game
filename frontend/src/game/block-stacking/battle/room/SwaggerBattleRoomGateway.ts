@@ -141,6 +141,21 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
     return toDetail(cached, this.options);
   }
 
+  updateRoomDisplayMetadata(
+    roomId: string,
+    metadata: Pick<BattleRoomSummary, "title" | "hostName" | "difficulty" | "symbolRange">,
+  ): void {
+    const id = parseRoomId(roomId);
+    this.roomDisplayMetadata.set(id, {
+      title: metadata.title.trim(),
+      hostName: metadata.hostName.trim(),
+      difficulty: metadata.difficulty,
+      symbolRange: [...metadata.symbolRange],
+    });
+    this.persistDisplayMetadata();
+    this.emitRooms();
+  }
+
   async setReady(roomId: string, isReady: boolean): Promise<BattleRoomSession> {
     return this.remember(await this.client.ready(parseRoomId(roomId), isReady));
   }
@@ -223,8 +238,10 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   private forgetRoom(id: number): void {
     this.roomCache.delete(id);
     this.lobbyCache.delete(id);
-    this.roomDisplayMetadata.delete(id);
-    this.persistDisplayMetadata();
+    // Leaving only removes this browser's membership. The room can continue
+    // with the remaining participant as its new host, so deleting the shared
+    // display metadata here would turn its title and host back into fallbacks.
+    // A newly created room with the same id always overwrites this entry.
     this.emitRooms();
   }
 

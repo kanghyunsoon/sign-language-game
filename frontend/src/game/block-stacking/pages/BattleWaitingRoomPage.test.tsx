@@ -57,6 +57,28 @@ describe("BattleWaitingRoomPage backend flow", () => {
     }));
   });
 
+  it("renders the opponent camera stream while both players are waiting", async () => {
+    const { camera } = cameraFixture();
+    const media = new MockBattleMediaSession();
+    const remoteStream = {
+      getTracks: () => [],
+      getVideoTracks: () => [],
+    } as unknown as MediaStream;
+    renderPage({ detail: room({ full: true }), camera, media });
+    await waitFor(() => expect(media.getConnectionState()).toBe("CONNECTED"));
+
+    media.setRemoteParticipants([{
+      participantId: "2",
+      displayName: "상대방",
+      stream: remoteStream,
+      cameraEnabled: true,
+      connectionState: "CONNECTED",
+    }]);
+
+    const remoteTile = await screen.findByLabelText("상대 카메라 영상");
+    await waitFor(() => expect(remoteTile.querySelector("video")?.srcObject).toBe(remoteStream));
+  });
+
   it("reflects a lobby participant update without reload", async () => {
     const subscribeRooms = vi.fn((listener: (rooms: readonly BattleRoomSummary[]) => void) => {
       queueMicrotask(() => listener([{
@@ -215,14 +237,17 @@ describe("BattleWaitingRoomPage backend flow", () => {
 
     await waitFor(() => expect(joinRoom).toHaveBeenCalledWith("ABC123"));
     expect(screen.queryByText("PLAY_ROUTE")).toBeNull();
-    expect(connect).not.toHaveBeenCalled();
+    expect(connect).toHaveBeenCalledTimes(1);
   });
 
   it("delegates host state when the backend reports the host left", async () => {
     const socket = new FakeRoomSocket();
+    const detail = room({ full: true, hostReady: false, guestReady: false, currentUserReady: false });
+    const updateRoomDisplayMetadata = vi.fn();
     renderPage({
       currentUserId: "2",
-      detail: room({ full: true, hostReady: false, guestReady: false, currentUserReady: false }),
+      detail,
+      gateway: gateway({ updateRoomDisplayMetadata }),
       socket,
     });
     socket.emit({ type: "PEER_LEFT", payload: { userId: 1, newHostUserId: 2 } });
@@ -230,6 +255,10 @@ describe("BattleWaitingRoomPage backend flow", () => {
     expect(await screen.findByText("1/2명")).toBeTruthy();
     const leaveNotice = await screen.findByText("상대방이 방을 나갔습니다. 새 참가자를 기다릴게요.");
     expect(leaveNotice.getAttribute("role")).toBe("status");
+    expect(updateRoomDisplayMetadata).toHaveBeenCalledWith("1", expect.objectContaining({
+      title: detail.title,
+      hostName: detail.participants[1].displayName,
+    }));
   });
 
   it("asks a returning player before resuming an active game", async () => {
