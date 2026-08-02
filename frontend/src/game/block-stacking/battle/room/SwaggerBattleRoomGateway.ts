@@ -114,12 +114,28 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   async createRoom(request: CreateRoomRequest): Promise<BattleRoomSession> {
     return this.enqueueMembershipMutation(async () => {
       const room = await this.client.create(this.options.gameType ?? "TETRIS_DUEL");
-      this.roomDisplayMetadata.set(room.id, {
+      const metadata: RoomDisplayMetadata = {
         title: request.title.trim(),
         hostName: this.options.currentUser.displayName,
         difficulty: request.difficulty,
         symbolRange: [...request.symbolRange],
         roomCode: room.roomCode,
+      };
+      this.roomDisplayMetadata.set(room.id, metadata);
+      // Do not wait for the asynchronous lobby SSE echo. The create response
+      // is authoritative for the room id/code, while the form and signed-in
+      // user already provide the exact display title and host nickname.
+      this.lobbyCache.set(room.id, {
+        id: room.id,
+        roomCode: room.roomCode,
+        status: room.status,
+        participantCount: room.participantCount,
+        capacity: room.capacity,
+        gameType: room.gameType,
+        title: metadata.title,
+        hostName: metadata.hostName,
+        difficulty: metadata.difficulty,
+        symbolRange: metadata.symbolRange,
       });
       this.persistDisplayMetadata();
       this.publishDisplayMetadata(room.id);
@@ -285,21 +301,7 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
         && room.status === "WAITING"
         && room.participantCount < room.capacity
       ))
-      .flatMap((room) => {
-        const metadata = this.findDisplayMetadata(room.id, room.roomCode);
-        const resolvedTitle = room.title && !isPlaceholderRoomTitle(room.title)
-          ? room.title.trim()
-          : metadata?.title.trim();
-        const resolvedHostName = room.hostName && !isPlaceholderHostName(room.hostName)
-          ? room.hostName.trim()
-          : metadata?.hostName.trim();
-        // Never flash fabricated labels into the public list. The create
-        // response persists and broadcasts these values immediately; until
-        // both arrive, the SSE room stays pending rather than rendering a
-        // misleading "프링글수 대전방 / 프링글수 유저" card.
-        if (!resolvedTitle || !resolvedHostName) return [];
-        return [toSummary(room, metadata)];
-      });
+      .map((room) => toSummary(room, this.findDisplayMetadata(room.id, room.roomCode)));
   }
 
   private applyLobbySnapshot(rooms: readonly LobbyRoomSummary[]): void {
