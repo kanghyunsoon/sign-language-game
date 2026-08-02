@@ -1465,11 +1465,18 @@
 .battleFixedPage .comboMeter {
   display: flex;
   min-width: 154px;
+  min-height: 32px;
   align-items: center;
   justify-content: flex-end;
   gap: 9px;
+  padding: 3px 6px;
+  border: 1px solid rgba(126, 151, 74, .24);
+  border-radius: 10px;
+  background: rgba(255, 253, 243, .72);
   color: #52634a;
   font-family: "Jua", sans-serif;
+  opacity: 1;
+  visibility: visible;
 }
 .battleFixedPage .comboLabel {
   min-width: 78px;

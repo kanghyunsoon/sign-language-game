@@ -254,8 +254,8 @@ export function BattleGamePage() {
       drainEffectTimerRef.current = window.setTimeout(() => { drainEffectTimerRef.current = null; setDrainingSymbol(null); }, 1_150);
     }, onComboUpdated: (event) => {
       const side = event.playerId === user.userId ? "local" : "remote";
-      const kind = event.reason === "HAMMER_TRIGGERED" ? "attack" : event.combo > 0 ? "gain" : "break";
-      setComboEffects((current) => ({ ...current, [side]: { id: event.sequence, kind } }));
+      const kind = event.reason === "HAMMER_TRIGGERED" ? "attack" : event.reason === "CORRECT" ? "gain" : event.reason === "OPPONENT_CORRECT" ? "break" : null;
+      setComboEffects((current) => ({ ...current, [side]: kind ? { id: event.sequence, kind } : null }));
     }, onHammerAttack: (event) => {
       setHammerAttack(event);
       if (hammerEffectTimerRef.current !== null) window.clearTimeout(hammerEffectTimerRef.current);

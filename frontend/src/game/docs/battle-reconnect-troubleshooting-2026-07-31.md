@@ -1,4 +1,4 @@
-# 1:1 대결 새로고침·이탈 트러블슈팅 — 2026-07-31
+# 1:1 대결 새로고침·이탈 트러블슈팅 — 2026-08-02 업데이트
 
 ## 증상
 
@@ -13,6 +13,9 @@
 2. React provider가 인증 userId보다 먼저 mount하면 저장된 방 세션을 초기화 시점에 읽지 못해 play route가 재입장 정보를 잃는다.
 3. 서버가 새로고침/소켓 종료 후 참가자를 이미 제거한 경우, 브라우저가 다시 leave API를 호출하면 403이 정상적으로 발생할 수 있다.
 4. Pixi renderer의 캔버스가 board 내부 scenery를 렌더링하지 않는 상태에서도 불투명 배경을 유지할 수 있다.
+5. 재접속 시 매치 시작/보드 스냅샷을 양쪽에 무조건 적용하면, 새로고침하지 않은 플레이어가
+   진행 중인 Matter.js 보드를 복구 스냅샷으로 되감게 된다. 반대로 재접속한 쪽이 자기
+   스냅샷을 받기 전에 physics를 재시작하면 빈 보드나 새 카운트다운으로 보인다.
 
 ## 적용한 프론트 조치
 
@@ -23,6 +26,16 @@
 | 반대쪽 보드 초기화 | 최초 RTC 성공 뒤 `mediaReady`를 latch하여 controller를 유지 | `c8c9090` |
 | 새로고침 세션 유실 | userId별 sessionStorage + localStorage 저장, auth hydrate 후 재읽기 | `c8c9090` |
 | stale leave 403 | 세션이 없는 play route는 remote leave 생략, 이미 종료된 leave 응답은 local cleanup 지속 | `c8c9090` |
+
+### 2026-08-02 재접속 스냅샷 보강
+
+| 문제 | 조치 |
+| --- | --- |
+| 살아 있는 플레이어의 보드가 복구 스냅샷으로 덮어써짐 | `restoreForPlayerId`를 사용해 요청한 플레이어만 자신의 snapshot을 적용 |
+| 복귀 중 빈 보드가 전송되지 않음 | 빈 보드도 `BOARD_SNAPSHOT`으로 전송하고 양쪽 board payload를 함께 보냄 |
+| 낙하 중 블록 위치가 복귀 시 달라짐 | snapshot 뒤 240ms settle window에서 남은 peer의 `PEER_BOARD_VIEW` 최신 위치를 적용 |
+| 단순 RTC 재연결 때 새 매치가 시작됨 | transport의 `hasConnected` 상태로 최초 연결과 재연결을 구분 |
+| 복귀 후 로컬 낙하가 상대에게 전달되지 않음 | `BattleController`가 `LocalBoardPublisher`를 새 runtime에 재부착 |
 
 ## 재현 및 판정
 
@@ -52,6 +65,6 @@
 
 ## 검증 기록
 
-- `npm test -- --run src/game/block-stacking/battle/core/BattleController.test.ts src/game/block-stacking/battle/transport/P2pBattleTransport.test.ts`: 25 passed
+- `npm test -- --run src/game/block-stacking/battle src/game/block-stacking/pages/BattleGamePage.test.tsx src/game/block-stacking/pages/BattleWaitingRoomPage.test.tsx src/game/block-stacking/pages/BattleRoomListPage.test.tsx`: 24 files / 170 passed
 - `npm run build`: passed
 - 실제 배포 두 PC smoke test: 최신 커밋 배포 후 수행 필요
