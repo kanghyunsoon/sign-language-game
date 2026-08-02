@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { GAME_SYMBOLS } from "../../recognition/core/symbols";
-import { GLYPH_DISPLAY_FONT_RATIO, getGlyphRasterMetrics, mergeOccupiedGlyphCells } from "./glyphRaster";
+import {
+  GAME_GLYPH_FILL_COLOR,
+  GAME_GLYPH_STROKE_COLOR,
+  GAME_GLYPH_STROKE_WIDTH,
+  GLYPH_DISPLAY_FONT_RATIO,
+  getGlyphRasterMetrics,
+  mergeOccupiedGlyphCells,
+} from "./glyphRaster";
 
 describe("glyphRaster", () => {
   it("provides finite normalized metrics for every game symbol", () => {
@@ -17,6 +24,11 @@ describe("glyphRaster", () => {
 
   it("uses one font-size ratio for consonants, vowels, and digits", () => {
     expect(GLYPH_DISPLAY_FONT_RATIO).toBe(1);
+  });
+
+  it("renders a strong contrasting outline without changing collider metrics", () => {
+    expect(GAME_GLYPH_STROKE_COLOR).not.toBe(GAME_GLYPH_FILL_COLOR);
+    expect(GAME_GLYPH_STROKE_WIDTH).toBeGreaterThanOrEqual(6);
   });
 
   it("separates an L-shaped glyph mask into its visible strokes", () => {
