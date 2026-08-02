@@ -150,8 +150,8 @@ export function ProfilePage() {
     const nextNickname = nicknameDraft.trim();
     if (!accessToken || !user?.userId || savingNickname) return;
 
-    if (!nextNickname) {
-      setProfileError("닉네임을 입력해 주세요.");
+    if (nextNickname.length < 2 || nextNickname.length > 10) {
+      setProfileError("닉네임은 2자 이상 10자 이하로 입력해 주세요.");
       return;
     }
 
@@ -318,7 +318,8 @@ export function ProfilePage() {
                 <input
                   type="text"
                   value={nicknameDraft}
-                  maxLength={20}
+                  minLength={2}
+                  maxLength={10}
                   autoFocus
                   disabled={savingNickname}
                   aria-label="닉네임"
