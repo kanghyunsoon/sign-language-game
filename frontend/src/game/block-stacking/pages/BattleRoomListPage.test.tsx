@@ -16,9 +16,9 @@ describe("BattleRoomListPage", () => {
   it("shows room status, host, difficulty, range and player count", async () => {
     renderPage(gateway({ getRooms: vi.fn(async () => [summary()]) }));
     expect(await screen.findByRole("heading", { name: "입문 연습방" })).toBeTruthy();
-    expect(screen.getByText("나사용자")).toBeTruthy();
+    expect(screen.getAllByText("나사용자")).toHaveLength(2);
     expect(screen.getByText("1/2")).toBeTruthy();
-    expect(screen.getByText("ㄱ · ㄴ")).toBeTruthy();
+    expect(screen.getByText("자음")).toBeTruthy();
   });
 
   it("polls rooms using the configured interval", async () => {
@@ -82,13 +82,30 @@ describe("BattleRoomListPage", () => {
 
   it("does not create another room while the user has an active room session", async () => {
     const createRoom = vi.fn(async () => session());
-    renderPage(gateway({ createRoom }), 2_500, session());
+    const joinRoom = vi.fn(async () => session());
+    renderPage(gateway({ createRoom, joinRoom }), 2_500, session());
     fireEvent.click(screen.getByRole("button", { name: "방 만들기" }));
     fireEvent.change(screen.getByLabelText("방 제목"), { target: { value: "중복 방지" } });
     fireEvent.click(screen.getAllByRole("button", { name: "방 만들기" })[1]);
 
     expect((await screen.findByRole("alert")).textContent).toContain("이미 참가 중인 방이 있습니다.");
+    expect(joinRoom).toHaveBeenCalledWith("room-1");
     expect(createRoom).not.toHaveBeenCalled();
+  });
+
+  it("clears a stale room session and creates a new room in the same submission", async () => {
+    const createRoom = vi.fn(async () => session());
+    const joinRoom = vi.fn(async () => {
+      throw new Error("Game room request failed (404).");
+    });
+    renderPage(gateway({ createRoom, joinRoom }), 2_500, session());
+    fireEvent.click(screen.getByRole("button", { name: "방 만들기" }));
+    fireEvent.change(screen.getByLabelText("방 제목"), { target: { value: "새 방" } });
+    fireEvent.click(screen.getAllByRole("button", { name: "방 만들기" })[1]);
+
+    await waitFor(() => expect(joinRoom).toHaveBeenCalledWith("room-1"));
+    await waitFor(() => expect(createRoom).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText("WAITING_ROUTE")).toBeTruthy();
   });
 
   it("joins an available room", async () => {
@@ -109,7 +126,7 @@ describe("BattleRoomListPage", () => {
     const clearInterval = vi.spyOn(window, "clearInterval");
     const view = renderPage(gateway());
     view.unmount();
-    expect(clearInterval).toHaveBeenCalledTimes(1);
+    expect(clearInterval).toHaveBeenCalledTimes(2);
   });
 });
 

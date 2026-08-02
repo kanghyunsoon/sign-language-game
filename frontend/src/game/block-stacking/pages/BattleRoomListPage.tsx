@@ -8,6 +8,7 @@ import { BattleRoomCard } from "../battle/components/BattleRoomCard";
 import { CreateRoomModal } from "../battle/components/CreateRoomModal";
 import { OtterFollower } from "../battle/components/OtterFollower";
 import styles from "../battle/components/BattleRoomUi.module.css";
+import { isMissingOrForbiddenRoom } from "../battle/core/BattleRoomRecovery";
 import type { BattleRoomSummary, CreateRoomRequest } from "../battle/room";
 const DEFAULT_POLLING_INTERVAL_MS = 2_500;
 const CREATE_ROOM_LOCK_MS = 1_500;
@@ -96,12 +97,6 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
   }, [rankingClient]);
   const visibleRooms = useMemo(() => rooms.filter((room) => { const byName = room.title.toLowerCase().includes(query.trim().toLowerCase()); const byStatus = filter === "ALL" || (filter === "WAITING" ? room.status === "WAITING" : room.canJoin); return byName && byStatus; }), [filter, query, rooms]);
   const createRoom = async (request: CreateRoomRequest) => {
-    if (activeRoomSession && activeRoomSession.status !== "FINISHED") {
-      setModalOpen(false);
-      setError("이미 참가 중인 방이 있습니다. 기존 방에 재입장하거나 먼저 나가 주세요.");
-      return;
-    }
-    if (activeRoomSession?.status === "FINISHED") rememberSession(null);
     // React state is applied after the current event turn, so rapid submit
     // events can otherwise pass `creating === false` more than once.
     if (creatingRef.current) return;
@@ -110,6 +105,25 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
     setError(null);
     const lockedAt = Date.now();
     try {
+      if (activeRoomSession && activeRoomSession.status !== "FINISHED") {
+        try {
+          const authoritativeSession = await gateway.joinRoom(activeRoomSession.roomCode || activeRoomSession.roomId);
+          if (authoritativeSession.status !== "FINISHED") {
+            rememberSession(authoritativeSession);
+            setModalOpen(false);
+            setError("이미 참가 중인 방이 있습니다. 기존 방에 재입장하거나 먼저 나가 주세요.");
+            creatingRef.current = false;
+            setCreating(false);
+            return;
+          }
+        } catch (cause) {
+          if (!isMissingOrForbiddenRoom(cause)) throw cause;
+        }
+        rememberSession(null);
+      } else if (activeRoomSession?.status === "FINISHED") {
+        rememberSession(null);
+      }
+
       const session = await gateway.createRoom(request);
       rememberSession(session);
       setModalOpen(false);
@@ -123,7 +137,7 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
       }, remainingLockMs);
     }
   };
-  const joinRoom = async (roomId: string) => { setJoiningRoomId(roomId); setError(null); try { const session = await gateway.joinRoom(roomId); rememberSession(session); navigate(session.roomId); } catch (cause) { if (activeRoomSession?.roomCode === roomId && isMissingRoom(cause)) rememberSession(null); setError(errorMessage(cause, "방에 입장하지 못했습니다.")); } finally { setJoiningRoomId(null); } };
+  const joinRoom = async (roomId: string) => { setJoiningRoomId(roomId); setError(null); try { const session = await gateway.joinRoom(roomId); rememberSession(session); navigate(session.roomId); } catch (cause) { if (activeRoomSession?.roomCode === roomId && isMissingOrForbiddenRoom(cause)) rememberSession(null); setError(errorMessage(cause, "방에 입장하지 못했습니다.")); } finally { setJoiningRoomId(null); } };
   const joinByCode = () => { const normalized = roomCode.trim(); if (!normalized || joiningRoomId) return; void joinRoom(normalized); };
   return (
     <main
@@ -204,4 +218,3 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
   );
 }
 function errorMessage(cause: unknown, fallback: string): string { return cause instanceof Error && cause.message ? cause.message : fallback; }
-function isMissingRoom(cause: unknown): boolean { return cause instanceof Error && /\((?:404|410)\)/.test(cause.message); }
