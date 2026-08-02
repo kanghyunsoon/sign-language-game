@@ -83,8 +83,8 @@ export function BattleDesignPreviewPage() {
             <i className={[styles.sharedCloud, styles.sharedCloudOne].join(" ")}/><i className={[styles.sharedCloud, styles.sharedCloudTwo].join(" ")}/><i className={[styles.sharedCloud, styles.sharedCloudThree].join(" ")}/>
             <i className={styles.sharedHills}/><span className={styles.sharedFireflies}><i/><i/><i/><i/><i/></span>
           </div>
-          <PreviewBoard title={user.displayName} combo={2} />
-          <PreviewBoard title="aass" remote combo={1} />
+          <PreviewBoard title={user.displayName} combo={0} />
+          <PreviewBoard title="aass" remote combo={0} />
         </div>
         <div className={styles.sharedTargetOtter} aria-label="공유 목표 지문자 ㄱ">
           <img src={letterOtter} alt="" draggable={false} />

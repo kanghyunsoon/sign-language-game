@@ -21,6 +21,7 @@ type SwaggerRoomGatewayOptions = BattleRoomGatewayOptions & {
 };
 type RoomDisplayMetadata = Pick<CreateRoomRequest, "title" | "difficulty" | "symbolRange"> & {
   readonly hostName: string;
+  readonly roomCode?: string;
 };
 const ROOM_DISPLAY_METADATA_KEY_PREFIX = "sudal:battle-room-display:";
 const ROOM_DISPLAY_METADATA_UPDATED_EVENT = "sudal:battle-room-display-updated";
@@ -116,6 +117,7 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
         hostName: this.options.currentUser.displayName,
         difficulty: request.difficulty,
         symbolRange: [...request.symbolRange],
+        roomCode: room.roomCode,
       });
       this.persistDisplayMetadata();
       const session = this.remember(room);
@@ -151,6 +153,7 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
       hostName: metadata.hostName.trim(),
       difficulty: metadata.difficulty,
       symbolRange: [...metadata.symbolRange],
+      roomCode: this.roomCache.get(id)?.roomCode ?? this.roomDisplayMetadata.get(id)?.roomCode,
     });
     this.persistDisplayMetadata();
     this.emitRooms();
@@ -218,7 +221,7 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
 
   private remember(room: BackendGameRoom): BattleRoomSession {
     this.roomCache.set(room.id, room);
-    return { ...toDetail(room, this.options, this.roomDisplayMetadata.get(room.id)), currentUser: this.options.currentUser };
+    return { ...toDetail(room, this.options, this.findDisplayMetadata(room.id, room.roomCode)), currentUser: this.options.currentUser };
   }
 
   private enqueueMembershipMutation<T>(operation: () => Promise<T>): Promise<T> {
@@ -278,7 +281,7 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
         && room.status === "WAITING"
         && room.participantCount < room.capacity
       ))
-      .map((room) => toSummary(room, this.roomDisplayMetadata.get(room.id)));
+      .map((room) => toSummary(room, this.findDisplayMetadata(room.id, room.roomCode)));
   }
 
   private applyLobbySnapshot(rooms: readonly LobbyRoomSummary[]): void {
@@ -304,13 +307,13 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   }
 
   private readonly handleDisplayMetadataStorage = (event: StorageEvent): void => {
-    if (event.key !== this.displayMetadataStorageKey()) return;
+    if (!this.isDisplayMetadataStorageKey(event.key)) return;
     this.reloadDisplayMetadataAndEmit();
   };
 
   private readonly handleLocalDisplayMetadataUpdate = (event: Event): void => {
     const detail = (event as CustomEvent<{ readonly key?: string }>).detail;
-    if (detail?.key !== this.displayMetadataStorageKey()) return;
+    if (!this.isDisplayMetadataStorageKey(detail?.key ?? null)) return;
     this.reloadDisplayMetadataAndEmit();
   };
 
@@ -335,12 +338,7 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
       for (const key of this.displayMetadataStorageKeys()) {
         const raw = window.localStorage.getItem(key);
         if (!raw) continue;
-        const entries = JSON.parse(raw) as unknown;
-        if (!Array.isArray(entries)) continue;
-        for (const entry of entries) {
-          if (!Array.isArray(entry) || entry.length !== 2 || !Number.isSafeInteger(entry[0]) || !isRoomDisplayMetadata(entry[1])) continue;
-          this.roomDisplayMetadata.set(entry[0], entry[1]);
-        }
+        this.restoreDisplayMetadataValue(key, JSON.parse(raw) as unknown);
       }
     } catch {
       // Storage may be unavailable in private browsing; the live room still works.
@@ -350,12 +348,28 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   private persistDisplayMetadata(): void {
     try {
       if (typeof window === "undefined") return;
+      // A gateway instance may have been created before another signed-in tab
+      // saved a room. Merge the latest shared value before writing so a stale
+      // instance can never erase another room's title or host nickname.
+      const sharedKey = this.displayMetadataStorageKey();
+      const persisted = window.localStorage.getItem(sharedKey);
+      if (persisted) {
+        const ownEntries = new Map(this.roomDisplayMetadata);
+        this.restoreDisplayMetadataValue(sharedKey, JSON.parse(persisted) as unknown);
+        for (const [id, metadata] of ownEntries) this.roomDisplayMetadata.set(id, metadata);
+      }
       window.localStorage.setItem(
-        this.displayMetadataStorageKey(),
+        sharedKey,
         JSON.stringify([...this.roomDisplayMetadata.entries()]),
       );
+      // Room-scoped keys avoid whole-map overwrite races between tabs and let
+      // a lobby room recover metadata by invitation code when numeric ids do
+      // not line up with an early SSE snapshot.
+      for (const [id, metadata] of this.roomDisplayMetadata) {
+        window.localStorage.setItem(this.displayMetadataRoomStorageKey(id), JSON.stringify(metadata));
+      }
       window.dispatchEvent(new CustomEvent(ROOM_DISPLAY_METADATA_UPDATED_EVENT, {
-        detail: { key: this.displayMetadataStorageKey() },
+        detail: { key: sharedKey },
       }));
     } catch {
       // Display metadata persistence is an enhancement, not a gameplay dependency.
@@ -366,22 +380,54 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
     return `${ROOM_DISPLAY_METADATA_KEY_PREFIX}${this.options.gameType ?? "TETRIS_DUEL"}`;
   }
 
+  private displayMetadataRoomStorageKey(roomId: number): string {
+    return `${this.displayMetadataStorageKey()}:room:${roomId}`;
+  }
+
+  private isDisplayMetadataStorageKey(key: string | null): boolean {
+    const sharedKey = this.displayMetadataStorageKey();
+    return key === sharedKey || Boolean(key?.startsWith(`${sharedKey}:`));
+  }
+
   private legacyDisplayMetadataStorageKey(): string {
     return `${this.displayMetadataStorageKey()}:${this.options.currentUser.userId}`;
   }
 
   private displayMetadataStorageKeys(): readonly string[] {
     const sharedKey = this.displayMetadataStorageKey();
-    const keys = new Set<string>([this.legacyDisplayMetadataStorageKey()]);
+    const legacyKey = this.legacyDisplayMetadataStorageKey();
+    const legacyKeys = new Set<string>([legacyKey]);
+    const roomKeys: string[] = [];
     // Migrate metadata created by another signed-in tab before the shared key
     // was introduced. This keeps rooms already visible in the lobby from
     // requiring recreation after the frontend update.
     for (let index = 0; index < window.localStorage.length; index += 1) {
       const key = window.localStorage.key(index);
-      if (key?.startsWith(`${sharedKey}:`)) keys.add(key);
+      if (!key?.startsWith(`${sharedKey}:`) || key === sharedKey) continue;
+      if (key.startsWith(`${sharedKey}:room:`)) roomKeys.push(key);
+      else legacyKeys.add(key);
     }
-    keys.add(sharedKey);
-    return [...keys];
+    // Room-scoped values are newest and therefore intentionally applied last.
+    return [...legacyKeys, sharedKey, ...roomKeys];
+  }
+
+  private restoreDisplayMetadataValue(key: string, value: unknown): void {
+    if (isRoomDisplayMetadata(value)) {
+      const match = /:room:(\d+)$/.exec(key);
+      const id = match ? Number(match[1]) : Number.NaN;
+      if (Number.isSafeInteger(id) && id > 0) this.roomDisplayMetadata.set(id, value);
+      return;
+    }
+    if (!Array.isArray(value)) return;
+    for (const entry of value) {
+      if (!Array.isArray(entry) || entry.length !== 2 || !Number.isSafeInteger(entry[0]) || !isRoomDisplayMetadata(entry[1])) continue;
+      this.roomDisplayMetadata.set(entry[0], entry[1]);
+    }
+  }
+
+  private findDisplayMetadata(roomId: number, roomCode: string): RoomDisplayMetadata | undefined {
+    return this.roomDisplayMetadata.get(roomId)
+      ?? [...this.roomDisplayMetadata.values()].find((metadata) => metadata.roomCode === roomCode);
   }
 }
 
@@ -391,6 +437,7 @@ function isRoomDisplayMetadata(value: unknown): value is RoomDisplayMetadata {
   return typeof record.title === "string"
     && typeof record.hostName === "string"
     && typeof record.difficulty === "string"
+    && (record.roomCode === undefined || typeof record.roomCode === "string")
     && Array.isArray(record.symbolRange)
     && record.symbolRange.every((symbol) => typeof symbol === "string");
 }

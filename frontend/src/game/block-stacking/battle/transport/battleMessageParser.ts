@@ -16,6 +16,8 @@ export function parseBattleMessage(data: string | unknown): ServerBattleMessage 
   number(message.sequence, "sequence");
   if (type === "BODY_TRANSFORM_BATCH" || type === "BOARD_SNAPSHOT") array(message.bodies, "bodies").forEach(parseBody);
   if (type === "BOARD_SNAPSHOT" && message.boardChecksum !== undefined) string(message.boardChecksum, "boardChecksum");
+  if (type === "BOARD_SNAPSHOT" && message.restoreForPlayerId !== undefined) string(message.restoreForPlayerId, "restoreForPlayerId");
+  if ((type === "MATCH_STARTED" || type === "GAME_START") && message.resumePlayerId !== undefined) string(message.resumePlayerId, "resumePlayerId");
   if (type === "SPAWN_LETTER" && message.normalizedY !== undefined) number(message.normalizedY, "normalizedY");
   if (type === "HAMMER_ATTACK" && message.victimLetterId !== undefined) {
     string(message.victimLetterId, "victimLetterId");

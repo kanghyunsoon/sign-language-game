@@ -1,4 +1,4 @@
-# 1:1 지문자 대전 재연결 인수인계 — 2026-07-31
+# 1:1 지문자 대전 재연결 인수인계 — 2026-08-02 업데이트
 
 ## 목적과 범위
 
@@ -67,12 +67,28 @@ BattleController ── 게임 상태/physics/AI 인식 연결
 - play route에 유효 방 세션이 없으면 leave API를 호출하지 않고 로컬 리소스만 정리한다.
 - 이미 제거된 참가자의 leave 403/404/409는 cleanup/navigation을 막지 않는다.
 
+### 2026-08-02 — 진행 중 보드 스냅샷 기반 재접속
+
+- `P2pBattleTransport`는 재접속 요청을 받은 플레이어에게만 `resumePlayerId`와
+  `restoreForPlayerId`를 붙인 매치/보드 스냅샷을 보낸다. 복귀하지 않은 플레이어의
+  Matter.js 보드는 원격 복구 스냅샷으로 덮어쓰지 않는다.
+- 두 보드는 매치 복구 시 항상 함께 전송하되, 빈 보드도 유효한 스냅샷으로 전송한다.
+  따라서 상대 보드가 비어 있을 때 이전 블록을 임의로 삭제하지 않는다.
+- 복귀한 플레이어는 자신의 권위 스냅샷을 받을 때까지 Matter.js 실행을 시작하지 않는다.
+  기존 플레이어는 계속 진행하고, 복귀 플레이어는 그 시점의 보드·점수·목표를 기준으로
+  재연결한다.
+- 스냅샷 직후 최대 240ms 동안 상대의 `PEER_BOARD_VIEW`를 수집해 낙하 중인 블록의
+  최신 위치를 반영한다. 단순 DataChannel 재연결은 새 매치/초기화를 재요청하지 않는다.
+- 복구 후에도 `LocalBoardPublisher`를 현재 match runtime에 다시 연결해 이후 낙하/제거
+  이벤트가 계속 상대에게 전달되도록 한다.
+
 ## 확인된 문제와 판단 기준
 
 | 상황 | 기대 결과 | 현재 상태 |
 | --- | --- | --- |
-| 참가자만 새로고침 | 방장은 블록/목표/낙하 유지, 참가자는 join 후 snapshot 복구 | 코드 보강 완료, 실제 두 PC smoke test 필요 |
+| 참가자만 새로고침 | 방장은 블록/목표/낙하 유지, 참가자는 자신의 snapshot 복구 | 코드 보강 완료, 실제 두 PC smoke test 필요 |
 | 방장만 새로고침 | 참가자는 보드 유지, 방장은 동일 match resume | 코드 보강 완료, 실제 두 PC smoke test 필요 |
+| 낙하 중 새로고침 | 남은 쪽의 live board view를 기준으로 복귀 쪽 낙하 위치 보정 | 코드 보강 완료, 실제 두 PC smoke test 필요 |
 | 새로고침 뒤 나가기 | stale session이면 leave 403 없이 로컬 정리·로비 이동 | 코드/단위 테스트 완료, 배포 smoke test 필요 |
 | 방장 영구 이탈 | 10초 재접속 유예 후 방 종료, 남은 참가자 승리 | `RECONNECT_TIMEOUT` 승리 처리 |
 | 보드 배경 | 두 보드에는 투명 영역, 부모 레이어의 sky/hills만 보임 | `a815e23` 이후 재확인 필요 |
@@ -120,7 +136,7 @@ npm run build
 
 최근 실행 결과:
 
-- `BattleExitCoordinator`, `BattleController`: 2 files / 25 tests passed
+- 관련 battle suite: 24 files / 170 tests passed
 - `npm run build`: TypeScript + Vite production build passed
 
 ## Git 작업 규칙

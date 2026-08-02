@@ -222,6 +222,69 @@ describe("SwaggerBattleRoomGateway", () => {
     ]);
   });
 
+  it("finds creator metadata by room code when an early lobby snapshot uses a different id", async () => {
+    const values = new Map<string, string>();
+    const localStorage = {
+      get length() { return values.size; },
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      key: (index: number) => [...values.keys()][index] ?? null,
+    };
+    vi.stubGlobal("window", { localStorage, dispatchEvent: vi.fn() });
+    const creator = createGateway(vi.fn(async () => response(room())));
+    await creator.createRoom({ title: "초대코드 기준 방", difficulty: "CONSONANTS", symbolRange: ["ㄱ", "ㄴ"] });
+
+    const guest = createGateway(vi.fn(), { userId: "2", displayName: "친구" });
+    const guestState = guest as unknown as {
+      lobbyCache: Map<number, unknown>;
+      currentRooms(): readonly unknown[];
+    };
+    guestState.lobbyCache.set(999, {
+      id: 999,
+      roomCode: "ABC123",
+      status: "WAITING",
+      participantCount: 1,
+      capacity: 2,
+      gameType: "TETRIS_DUEL",
+    });
+
+    expect(guestState.currentRooms()).toEqual([
+      expect.objectContaining({ title: "초대코드 기준 방", hostName: "나" }),
+    ]);
+  });
+
+  it("merges stale gateway metadata instead of erasing another room", async () => {
+    const values = new Map<string, string>();
+    const localStorage = {
+      get length() { return values.size; },
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      key: (index: number) => [...values.keys()][index] ?? null,
+    };
+    vi.stubGlobal("window", { localStorage, dispatchEvent: vi.fn() });
+    const first = createGateway(vi.fn(async () => response(room())));
+    const staleSecond = createGateway(
+      vi.fn(async () => response(room({ id: 11, roomCode: "DEF456", hostUserId: 2 }))),
+      { userId: "2", displayName: "두번째 방장" },
+    );
+
+    await first.createRoom({ title: "첫 번째 방", difficulty: "CONSONANTS", symbolRange: ["ㄱ"] });
+    await staleSecond.createRoom({ title: "두 번째 방", difficulty: "VOWELS", symbolRange: ["ㅏ"] });
+
+    const restored = createGateway(vi.fn(), { userId: "3", displayName: "참가자" });
+    const restoredState = restored as unknown as {
+      lobbyCache: Map<number, unknown>;
+      currentRooms(): readonly { title: string; hostName: string }[];
+    };
+    restoredState.lobbyCache.set(10, { id: 10, roomCode: "ABC123", status: "WAITING", participantCount: 1, capacity: 2, gameType: "TETRIS_DUEL" });
+    restoredState.lobbyCache.set(11, { id: 11, roomCode: "DEF456", status: "WAITING", participantCount: 1, capacity: 2, gameType: "TETRIS_DUEL" });
+
+    expect(restoredState.currentRooms()).toEqual(expect.arrayContaining([
+      expect.objectContaining({ title: "첫 번째 방", hostName: "나" }),
+      expect.objectContaining({ title: "두 번째 방", hostName: "두번째 방장" }),
+    ]));
+  });
+
   it("migrates room metadata saved by another user under the former scoped key", () => {
     const values = new Map<string, string>([["sudal:battle-room-display:TETRIS_DUEL:1", JSON.stringify([[10, {
       title: "기존 모음방",
@@ -482,6 +545,9 @@ function createGateway(fetcher: ReturnType<typeof vi.fn>, currentUser = { userId
 }
 
 function room(overrides: Partial<{
+  id: number;
+  roomCode: string;
+  hostUserId: number;
   guestUserId: number | null;
   participantCount: number;
   hostReady: boolean;
