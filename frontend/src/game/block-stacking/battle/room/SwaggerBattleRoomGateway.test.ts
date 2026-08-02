@@ -94,69 +94,50 @@ describe("SwaggerBattleRoomGateway", () => {
     ]);
   });
 
-  it("preserves snapshot display fields when a compact update omits them", () => {
+  it("applies persisted room metadata immediately when another tab updates storage", () => {
+    const values = new Map<string, string>();
+    const eventListeners = new Map<string, EventListener>();
+    const localStorage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+    };
+    vi.stubGlobal("window", {
+      localStorage,
+      addEventListener: (type: string, listener: EventListener) => eventListeners.set(type, listener),
+      removeEventListener: (type: string) => eventListeners.delete(type),
+    });
     const gateway = createGateway(vi.fn());
     const state = gateway as unknown as {
-      applyLobbySnapshot(rooms: readonly unknown[]): void;
-      currentRooms(): readonly unknown[];
+      lobbyCache: Map<number, unknown>;
+      listeners: Set<(rooms: readonly { title: string; hostName: string }[]) => void>;
+      startDisplayMetadataSync(): void;
+      stopDisplayMetadataSync(): void;
     };
-    const baseRoom = {
+    state.lobbyCache.set(10, {
       id: 10,
       roomCode: "ABC123",
       status: "WAITING",
       participantCount: 1,
       capacity: 2,
       gameType: "TETRIS_DUEL",
-    } as const;
-
-    state.applyLobbySnapshot([{
-      ...baseRoom,
-      title: "서버 대전방",
+    });
+    const snapshots: Array<readonly { title: string; hostName: string }[]> = [];
+    state.listeners.add((rooms) => snapshots.push(rooms));
+    state.startDisplayMetadataSync();
+    const key = "sudal:battle-room-display:TETRIS_DUEL:1";
+    localStorage.setItem(key, JSON.stringify([[10, {
+      title: "저장된 대전방",
       hostName: "수달왕",
       difficulty: "CONSONANTS",
       symbolRange: ["ㄱ", "ㄴ"],
-    }]);
-    state.applyLobbySnapshot([baseRoom]);
+    }]]));
 
-    expect(state.currentRooms()).toEqual([
-      expect.objectContaining({
-        title: "서버 대전방",
-        hostName: "수달왕",
-        difficulty: "CONSONANTS",
-        symbolRange: ["ㄱ", "ㄴ"],
-      }),
+    eventListeners.get("storage")?.({ key } as StorageEvent);
+
+    expect(snapshots.at(-1)).toEqual([
+      expect.objectContaining({ title: "저장된 대전방", hostName: "수달왕" }),
     ]);
-  });
-
-  it("automatically reconnects once when a live room update omits display metadata", async () => {
-    vi.useFakeTimers();
-    const gateway = createGateway(vi.fn());
-    const disconnect = vi.fn();
-    const connect = vi.fn(async () => undefined);
-    const state = gateway as unknown as {
-      lobby: { disconnect(): void; connect(): Promise<void> };
-      lobbyStarted: boolean;
-      listeners: Set<(rooms: readonly unknown[]) => void>;
-      scheduleMissingMetadataRefresh(rooms: readonly unknown[]): void;
-    };
-    state.lobby = { disconnect, connect };
-    state.lobbyStarted = true;
-    state.listeners.add(() => undefined);
-    const compactRoom = {
-      id: 10,
-      roomCode: "ABC123",
-      status: "WAITING",
-      participantCount: 1,
-      capacity: 2,
-      gameType: "TETRIS_DUEL",
-    } as const;
-
-    state.scheduleMissingMetadataRefresh([compactRoom]);
-    state.scheduleMissingMetadataRefresh([compactRoom]);
-    await vi.advanceTimersByTimeAsync(120);
-
-    expect(disconnect).toHaveBeenCalledTimes(1);
-    expect(connect).toHaveBeenCalledTimes(1);
+    state.stopDisplayMetadataSync();
   });
 
   it("restores the creator's title and nickname after the gateway is recreated", async () => {

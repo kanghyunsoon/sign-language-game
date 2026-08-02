@@ -23,6 +23,7 @@ type RoomDisplayMetadata = Pick<CreateRoomRequest, "title" | "difficulty" | "sym
   readonly hostName: string;
 };
 const ROOM_DISPLAY_METADATA_KEY_PREFIX = "sudal:battle-room-display:";
+const ROOM_DISPLAY_METADATA_UPDATED_EVENT = "sudal:battle-room-display-updated";
 
 /**
  * Adapter for the deployed Swagger contract.
@@ -43,8 +44,7 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   private pendingMembershipMutations = 0;
   private lobbyStarted = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private metadataRefreshTimer: ReturnType<typeof setTimeout> | null = null;
-  private readonly metadataRefreshAttempted = new Set<number>();
+  private displayMetadataSyncStarted = false;
 
   constructor(private readonly options: SwaggerRoomGatewayOptions) {
     this.restoreDisplayMetadata();
@@ -66,7 +66,6 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
       // list. Replacing the cache is required so a room omitted after its last
       // participant leaves disappears for every connected lobby client.
       this.applyLobbySnapshot(event.rooms);
-      if (event.type === "update") this.scheduleMissingMetadataRefresh(event.rooms);
     });
     this.lobby.subscribeError((error) => {
       for (const listener of this.errorListeners) listener(error);
@@ -89,6 +88,7 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   }
 
   subscribeRooms(listener: RoomsListener, onError?: (error: Error) => void): () => void {
+    this.startDisplayMetadataSync();
     this.listeners.add(listener);
     if (onError) this.errorListeners.add(onError);
     listener(this.currentRooms());
@@ -101,8 +101,7 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
         this.lobbyStarted = false;
         if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
         this.reconnectTimer = null;
-        if (this.metadataRefreshTimer) clearTimeout(this.metadataRefreshTimer);
-        this.metadataRefreshTimer = null;
+        this.stopDisplayMetadataSync();
       }
     };
   }
@@ -264,47 +263,42 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   }
 
   private applyLobbySnapshot(rooms: readonly LobbyRoomSummary[]): void {
-    const visibleRoomIds = new Set(rooms.map((room) => room.id));
-    for (const roomId of this.metadataRefreshAttempted) {
-      if (!visibleRoomIds.has(roomId)) this.metadataRefreshAttempted.delete(roomId);
-    }
-
-    const previousRooms = new Map(this.lobbyCache);
     this.lobbyCache.clear();
     for (const room of rooms) {
-      if (room.status !== "CLOSED") {
-        this.lobbyCache.set(room.id, preserveLobbyDisplayFields(room, previousRooms.get(room.id)));
-      }
+      if (room.status !== "CLOSED") this.lobbyCache.set(room.id, room);
     }
     this.emitRooms();
   }
 
-  private scheduleMissingMetadataRefresh(rooms: readonly LobbyRoomSummary[]): void {
-    let needsRefresh = false;
-    for (const room of rooms) {
-      if (
-        room.status === "WAITING"
-        && (!room.title || !room.hostName)
-        && !this.roomDisplayMetadata.has(room.id)
-        && !this.metadataRefreshAttempted.has(room.id)
-      ) {
-        this.metadataRefreshAttempted.add(room.id);
-        needsRefresh = true;
-      }
-    }
-    if (!needsRefresh || this.metadataRefreshTimer) return;
+  private startDisplayMetadataSync(): void {
+    if (this.displayMetadataSyncStarted || typeof window === "undefined") return;
+    this.displayMetadataSyncStarted = true;
+    window.addEventListener("storage", this.handleDisplayMetadataStorage);
+    window.addEventListener(ROOM_DISPLAY_METADATA_UPDATED_EVENT, this.handleLocalDisplayMetadataUpdate);
+  }
 
-    // A newly-created room is first announced by a compact update that may
-    // omit display fields. A fresh snapshot contains the persisted title and
-    // host nickname. Reconnect once automatically while retaining the current
-    // cards, instead of making the user press refresh.
-    this.metadataRefreshTimer = setTimeout(() => {
-      this.metadataRefreshTimer = null;
-      if (this.listeners.size === 0) return;
-      this.lobby.disconnect();
-      this.lobbyStarted = false;
-      this.ensureLobby();
-    }, 120);
+  private stopDisplayMetadataSync(): void {
+    if (!this.displayMetadataSyncStarted || typeof window === "undefined") return;
+    this.displayMetadataSyncStarted = false;
+    window.removeEventListener("storage", this.handleDisplayMetadataStorage);
+    window.removeEventListener(ROOM_DISPLAY_METADATA_UPDATED_EVENT, this.handleLocalDisplayMetadataUpdate);
+  }
+
+  private readonly handleDisplayMetadataStorage = (event: StorageEvent): void => {
+    if (event.key !== this.displayMetadataStorageKey()) return;
+    this.reloadDisplayMetadataAndEmit();
+  };
+
+  private readonly handleLocalDisplayMetadataUpdate = (event: Event): void => {
+    const detail = (event as CustomEvent<{ readonly key?: string }>).detail;
+    if (detail?.key !== this.displayMetadataStorageKey()) return;
+    this.reloadDisplayMetadataAndEmit();
+  };
+
+  private reloadDisplayMetadataAndEmit(): void {
+    this.roomDisplayMetadata.clear();
+    this.restoreDisplayMetadata();
+    this.emitRooms();
   }
 
   private emitRooms(): void {
@@ -335,6 +329,9 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
         this.displayMetadataStorageKey(),
         JSON.stringify([...this.roomDisplayMetadata.entries()]),
       );
+      window.dispatchEvent(new CustomEvent(ROOM_DISPLAY_METADATA_UPDATED_EVENT, {
+        detail: { key: this.displayMetadataStorageKey() },
+      }));
     } catch {
       // Display metadata persistence is an enhancement, not a gameplay dependency.
     }
@@ -357,17 +354,6 @@ function isRoomDisplayMetadata(value: unknown): value is RoomDisplayMetadata {
 
 function isAlreadyGoneRoom(cause: unknown): boolean {
   return cause instanceof Error && /\((?:403|404|410)\)/.test(cause.message);
-}
-
-function preserveLobbyDisplayFields(room: LobbyRoomSummary, previous?: LobbyRoomSummary): LobbyRoomSummary {
-  if (!previous) return room;
-  return {
-    ...room,
-    ...(!room.title && previous.title ? { title: previous.title } : {}),
-    ...(!room.hostName && previous.hostName ? { hostName: previous.hostName } : {}),
-    ...(!room.difficulty && previous.difficulty ? { difficulty: previous.difficulty } : {}),
-    ...(!room.symbolRange && previous.symbolRange ? { symbolRange: previous.symbolRange } : {}),
-  };
 }
 
 function toSummary(room: LobbyRoomSummary, metadata?: RoomDisplayMetadata): BattleRoomSummary {
