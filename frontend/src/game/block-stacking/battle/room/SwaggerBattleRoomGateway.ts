@@ -22,6 +22,7 @@ type SwaggerRoomGatewayOptions = BattleRoomGatewayOptions & {
 type RoomDisplayMetadata = Pick<CreateRoomRequest, "title" | "difficulty" | "symbolRange"> & {
   readonly hostName: string;
 };
+const ROOM_DISPLAY_METADATA_KEY_PREFIX = "sudal:battle-room-display:";
 
 /**
  * Adapter for the deployed Swagger contract.
@@ -43,6 +44,7 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private readonly options: SwaggerRoomGatewayOptions) {
+    this.restoreDisplayMetadata();
     const ticketClient = new RealtimeTicketClient({
       apiBaseUrl: options.baseUrl,
       userId: options.currentUser.userId,
@@ -108,6 +110,7 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
         difficulty: request.difficulty,
         symbolRange: [...request.symbolRange],
       });
+      this.persistDisplayMetadata();
       return this.remember(room);
     });
   }
@@ -145,6 +148,7 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
         this.roomCache.delete(id);
         this.lobbyCache.delete(id);
         this.roomDisplayMetadata.delete(id);
+        this.persistDisplayMetadata();
         this.emitRooms();
       }
     });
@@ -229,6 +233,48 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
     const rooms = this.currentRooms();
     for (const listener of this.listeners) listener(rooms);
   }
+
+  private restoreDisplayMetadata(): void {
+    try {
+      if (typeof window === "undefined") return;
+      const raw = window.localStorage.getItem(this.displayMetadataStorageKey());
+      if (!raw) return;
+      const entries = JSON.parse(raw) as unknown;
+      if (!Array.isArray(entries)) return;
+      for (const entry of entries) {
+        if (!Array.isArray(entry) || entry.length !== 2 || !Number.isSafeInteger(entry[0]) || !isRoomDisplayMetadata(entry[1])) continue;
+        this.roomDisplayMetadata.set(entry[0], entry[1]);
+      }
+    } catch {
+      // Storage may be unavailable in private browsing; the live room still works.
+    }
+  }
+
+  private persistDisplayMetadata(): void {
+    try {
+      if (typeof window === "undefined") return;
+      window.localStorage.setItem(
+        this.displayMetadataStorageKey(),
+        JSON.stringify([...this.roomDisplayMetadata.entries()]),
+      );
+    } catch {
+      // Display metadata persistence is an enhancement, not a gameplay dependency.
+    }
+  }
+
+  private displayMetadataStorageKey(): string {
+    return `${ROOM_DISPLAY_METADATA_KEY_PREFIX}${this.options.gameType ?? "TETRIS_DUEL"}:${this.options.currentUser.userId}`;
+  }
+}
+
+function isRoomDisplayMetadata(value: unknown): value is RoomDisplayMetadata {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  return typeof record.title === "string"
+    && typeof record.hostName === "string"
+    && typeof record.difficulty === "string"
+    && Array.isArray(record.symbolRange)
+    && record.symbolRange.every((symbol) => typeof symbol === "string");
 }
 
 function toSummary(room: LobbyRoomSummary, metadata?: RoomDisplayMetadata): BattleRoomSummary {

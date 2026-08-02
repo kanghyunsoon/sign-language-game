@@ -108,6 +108,26 @@ describe("BattleRoomListPage", () => {
     expect(await screen.findByText("WAITING_ROUTE")).toBeTruthy();
   });
 
+  it("shows the stored title and current host nickname on the re-entry card", async () => {
+    const activeSession = {
+      ...session(),
+      roomCode: "ABC123",
+      title: "내가 입력한 방 제목",
+      hostName: "실제 방장 닉네임",
+    };
+    const fallbackRoom: BattleRoomSummary = {
+      ...summary(),
+      roomId: "ABC123",
+      roomCode: "ABC123",
+      title: "프링글수 대전방",
+      hostName: "프링글수 유저",
+    };
+    renderPage(gateway({ getRooms: vi.fn(async () => [fallbackRoom]) }), 2_500, activeSession);
+
+    expect(await screen.findByRole("heading", { name: "내가 입력한 방 제목" })).toBeTruthy();
+    expect(screen.getAllByText("나사용자")).toHaveLength(2);
+  });
+
   it("joins an available room", async () => {
     const joinRoom = vi.fn(async () => session());
     renderPage(gateway({ getRooms: vi.fn(async () => [summary()]), joinRoom }));

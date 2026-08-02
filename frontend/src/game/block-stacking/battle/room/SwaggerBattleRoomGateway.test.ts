@@ -1,6 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SwaggerBattleRoomGateway } from "./SwaggerBattleRoomGateway";
+
+afterEach(() => vi.unstubAllGlobals());
 
 describe("SwaggerBattleRoomGateway", () => {
   it("creates a TETRIS_DUEL room using the deployed Swagger request body", async () => {
@@ -47,6 +49,45 @@ describe("SwaggerBattleRoomGateway", () => {
       expect.objectContaining({
         title: "초급 자음방",
         hostName: created.hostName,
+        difficulty: "CONSONANTS",
+        symbolRange: ["ㄱ", "ㄴ"],
+      }),
+    ]);
+  });
+
+  it("restores the creator's title and nickname after the gateway is recreated", async () => {
+    const values = new Map<string, string>();
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => values.set(key, value),
+      },
+    });
+    const creatorGateway = createGateway(vi.fn(async () => response(room())));
+    await creatorGateway.createRoom({
+      title: "수달왕의 자음방",
+      difficulty: "CONSONANTS",
+      symbolRange: ["ㄱ", "ㄴ"],
+    });
+
+    const restoredGateway = createGateway(vi.fn());
+    const state = restoredGateway as unknown as {
+      lobbyCache: Map<number, unknown>;
+      currentRooms(): readonly unknown[];
+    };
+    state.lobbyCache.set(10, {
+      id: 10,
+      roomCode: "ABC123",
+      status: "WAITING",
+      participantCount: 1,
+      capacity: 2,
+      gameType: "TETRIS_DUEL",
+    });
+
+    expect(state.currentRooms()).toEqual([
+      expect.objectContaining({
+        title: "수달왕의 자음방",
+        hostName: "나",
         difficulty: "CONSONANTS",
         symbolRange: ["ㄱ", "ㄴ"],
       }),

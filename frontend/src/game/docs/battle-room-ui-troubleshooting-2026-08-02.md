@@ -10,11 +10,13 @@
 
 ### 원인
 
-배포 Swagger의 create 요청은 `gameType`만 받고 로비 SSE도 제목·닉네임·난이도·출제 범위를 보내지 않는다. 프런트는 생성 폼에서 받은 값을 API에 전달할 수 없었고, 초대 코드와 역할명을 임의 fallback으로 사용하고 있었다.
+배포 Swagger의 create 요청은 `gameType`만 받고 로비 SSE도 제목·닉네임·난이도·출제 범위를 보내지 않는다. 프런트는 생성 폼에서 받은 값을 API에 전달할 수 없었고, 초대 코드와 역할명을 임의 fallback으로 사용하고 있었다. 또한 생성 메타데이터를 gateway 메모리에만 두면 gateway 재생성이나 대기실의 멱등 join 응답 뒤 실제 제목·닉네임이 `프링글수 대전방`, `프링글수 유저`로 다시 덮어써졌다.
 
 ### 해결
 
-- 생성 직후 폼의 제목·현재 사용자 닉네임·난이도·출제 범위를 `SwaggerBattleRoomGateway`의 방 ID별 메모리에 저장한다.
+- 생성 직후 폼의 제목·현재 사용자 닉네임·난이도·출제 범위를 `SwaggerBattleRoomGateway`의 방 ID별 메모리와 사용자·게임 종류별 localStorage에 저장한다.
+- gateway가 재생성되면 저장된 방 ID별 표시 메타데이터를 복원하며, 명시적으로 방을 나갈 때 해당 항목을 제거한다.
+- 로비 카드가 현재 재입장 세션과 같은 방이면 SSE fallback보다 세션의 실제 제목·출제 범위를 우선한다. 현재 사용자가 서버상 방장이면 프로필의 실제 닉네임을 방장 이름으로 표시한다.
 - SSE의 선택 메타데이터 필드가 존재하면 메모리보다 우선 사용한다.
 - 카드의 `기본` 표시는 제거하고 실제 심볼 배열을 `자음`, `모음`, `기초 혼합`으로 분류한다.
 - 생성 시간이 없으면 생성 행을 렌더링하지 않는다.
@@ -22,7 +24,7 @@
 
 ### 남은 경계
 
-gateway 메모리는 서버 저장소가 아니다. 새로고침·다른 브라우저·다른 사용자에게 같은 값을 보여주려면 백엔드 create/response/SSE 계약 확장이 필요하다. 프런트 localStorage로 공유 데이터처럼 꾸미면 사용자별 값이 달라지므로 사용하지 않는다.
+localStorage 보존은 **방을 생성한 동일 사용자·동일 브라우저**에서 새로고침이나 gateway 재생성 뒤 표시값을 잃지 않기 위한 장치다. 다른 브라우저·다른 사용자에게 방 제목과 방장 닉네임을 공유하는 서버 저장소는 아니다. 다른 사용자의 로비까지 같은 값을 보장하려면 백엔드 create/response/SSE 계약 확장이 필요하며, 프런트 저장값을 다른 사용자에게 공유된 권위 데이터처럼 취급하지 않는다.
 
 ## 2. 결과 화면 제목이 왼쪽으로 밀려 보이는 문제
 
@@ -132,7 +134,7 @@ npm run dev -- --host 127.0.0.1 --port 5174
 ```powershell
 cd frontend
 npx.cmd vitest run src/game/block-stacking/battle/components/BattleResultModal.test.tsx
-npx.cmd vitest run src/game/block-stacking/battle/components/BattleRoomCard.test.ts src/game/block-stacking/battle/room/SwaggerBattleRoomGateway.test.ts src/game/realtime/LobbySseClient.test.ts
+npx.cmd vitest run src/game/block-stacking/battle/room/SwaggerBattleRoomGateway.test.ts src/game/block-stacking/pages/BattleRoomListPage.test.tsx
 npx.cmd tsc -p tsconfig.app.json --noEmit --incremental false --pretty false
 ```
 
