@@ -71,6 +71,7 @@ export function BattleGamePage() {
   const [drainingSymbol, setDrainingSymbol] = useState<{ readonly id: number; readonly symbol: string } | null>(null);
   const [comboEffects, setComboEffects] = useState<{ readonly local: ComboMeterEffect; readonly remote: ComboMeterEffect }>({ local: null, remote: null });
   const [hammerAttack, setHammerAttack] = useState<import("../transport/battleTransportTypes").HammerAttackEvent | null>(null);
+  const [playerNames, setPlayerNames] = useState<Record<string, string>>(() => ({ [user.userId]: user.displayName }));
   const claimEffectTimerRef = useRef<number | null>(null);
   const drainEffectTimerRef = useRef<number | null>(null);
   const hammerEffectTimerRef = useRef<number | null>(null);
@@ -259,6 +260,8 @@ export function BattleGamePage() {
       setHammerAttack(event);
       if (hammerEffectTimerRef.current !== null) window.clearTimeout(hammerEffectTimerRef.current);
       hammerEffectTimerRef.current = window.setTimeout(() => { hammerEffectTimerRef.current = null; setHammerAttack(null); }, Math.max(300, event.spawnAt - event.createdAt + 350));
+    }, onPlayerProfileUpdated: (event) => {
+      setPlayerNames((current) => current[event.playerId] === event.displayName ? current : { ...current, [event.playerId]: event.displayName });
     } });
     localRuntimeRef.current = runtime; controllerRef.current = controller; const unsubscribe = controller.subscribe((next) => {
       setSnapshot(next);
@@ -316,6 +319,14 @@ export function BattleGamePage() {
   }), [transport]);
 
   const localStream = sharedCameraSession.getStream(); const opponent = participants[0] ?? null;
+  const roomOpponent = battleRoomSession?.participants.find((participant) => participant.userId !== user.userId) ?? null;
+  // P2P game profiles use the room user id. Prefer it over the media
+  // participant id, which may be a signaling-session identifier.
+  const opponentPlayerId = roomOpponent?.userId ?? opponent?.participantId ?? null;
+  const remoteDisplayName = (opponentPlayerId ? playerNames[opponentPlayerId] : null)
+    ?? usablePlayerName(opponent?.displayName)
+    ?? usablePlayerName(roomOpponent?.displayName)
+    ?? "상대 플레이어";
   const returnToWaiting = async () => { if (!roomId || resultBusy) return; setResultBusy(true); setResultError(null); try {
     await services.battleRoomGateway.returnToWaiting(roomId);
     if (battleRoomSession) setBattleRoomSession({
@@ -367,8 +378,6 @@ export function BattleGamePage() {
     window.addEventListener("popstate", handleBrowserBack);
     return () => window.removeEventListener("popstate", handleBrowserBack);
   }, [roomId]);
-  const localPlayerLabel = localIsHost ? "PLAYER 1" : "PLAYER 2";
-  const remotePlayerLabel = localIsHost ? "PLAYER 2" : "PLAYER 1";
   const showSharedTarget = snapshot.state === "COUNTDOWN" || snapshot.state === "PLAYING" || snapshot.state === "RECONNECTING";
   return <main
     className={`${styles.page} ${styles.battleFixedPage}`}
@@ -399,8 +408,8 @@ export function BattleGamePage() {
             <i className={[styles.sharedCloud, styles.sharedCloudOne].join(" ")}/><i className={[styles.sharedCloud, styles.sharedCloudTwo].join(" ")}/><i className={[styles.sharedCloud, styles.sharedCloudThree].join(" ")}/>
             <i className={styles.sharedHills}/><span className={styles.sharedFireflies}><i/><i/><i/><i/><i/></span>
           </div>
-          <BattleBoardPanel title={user.userId || localPlayerLabel} dropBurst={claimedSymbol?.winnerPlayerId === user.userId ? claimedSymbol : null} towerHeightRatio={towerHeights.local} toolbar={<BattleComboMeter count={snapshot.combo} effect={comboEffects.local} hammerActive={hammerAttack?.attackerPlayerId === user.userId} />} rendererConfig={{ coordinateWidth: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, coordinateHeight: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight, dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO, showScenery: false }} onRendererReady={(renderer, viewport) => { localViewportRef.current = viewport; setLocalRenderer(renderer); }} onViewportResize={(viewport) => { localViewportRef.current = viewport; }} />
-          <BattleBoardPanel className={styles.remoteBoardPanel} title={opponent?.displayName ?? remotePlayerLabel} dropBurst={claimedSymbol && claimedSymbol.winnerPlayerId !== user.userId ? claimedSymbol : null} towerHeightRatio={towerHeights.remote} toolbar={<BattleComboMeter count={snapshot.opponentCombo} effect={comboEffects.remote} hammerActive={!!hammerAttack && hammerAttack.attackerPlayerId !== user.userId} />} rendererConfig={{ coordinateWidth: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, coordinateHeight: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight, dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO, showScenery: false }} onRendererReady={(renderer, viewport) => { remoteViewportRef.current = viewport; setRemoteRenderer(renderer); }} onViewportResize={(viewport) => { remoteViewportRef.current = viewport; }} />
+          <BattleBoardPanel title={user.displayName} dropBurst={claimedSymbol?.winnerPlayerId === user.userId ? claimedSymbol : null} towerHeightRatio={towerHeights.local} toolbar={<BattleComboMeter count={snapshot.combo} effect={comboEffects.local} hammerActive={hammerAttack?.attackerPlayerId === user.userId} />} rendererConfig={{ coordinateWidth: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, coordinateHeight: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight, dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO, showScenery: false }} onRendererReady={(renderer, viewport) => { localViewportRef.current = viewport; setLocalRenderer(renderer); }} onViewportResize={(viewport) => { localViewportRef.current = viewport; }} />
+          <BattleBoardPanel className={styles.remoteBoardPanel} title={remoteDisplayName} dropBurst={claimedSymbol && claimedSymbol.winnerPlayerId !== user.userId ? claimedSymbol : null} towerHeightRatio={towerHeights.remote} toolbar={<BattleComboMeter count={snapshot.opponentCombo} effect={comboEffects.remote} hammerActive={!!hammerAttack && hammerAttack.attackerPlayerId !== user.userId} />} rendererConfig={{ coordinateWidth: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, coordinateHeight: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight, dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO, showScenery: false }} onRendererReady={(renderer, viewport) => { remoteViewportRef.current = viewport; setRemoteRenderer(renderer); }} onViewportResize={(viewport) => { remoteViewportRef.current = viewport; }} />
           {hammerAttack ? <HammerAttackOverlay key={hammerAttack.attackId} event={hammerAttack} localPlayerId={user.userId} /> : null}
         </div>
         {showSharedTarget ? <div className={[styles.sharedTargetOtter, drainingSymbol ? styles.isDraining : ""].filter(Boolean).join(" ")} aria-label={`공유 목표 ${drainingSymbol?.symbol ?? snapshot.targetSymbol ?? "대기 중"}`}>
@@ -412,14 +421,14 @@ export function BattleGamePage() {
       </section>
       <aside className={styles.duelCameraRail} aria-label="플레이어 카메라">
         <section className={styles.duelCameraCard} aria-label={`${user.displayName} 카메라`}>
-          <header><div><strong>{user.userId} CAM</strong></div><em className={cameraState === "CONNECTED" ? styles.recordingIndicator : undefined}>{cameraState === "CONNECTED" ? "REC" : "WAIT"}</em></header>
+          <header><div><strong>{user.displayName} CAM</strong></div><em className={cameraState === "CONNECTED" ? styles.recordingIndicator : undefined}>{cameraState === "CONNECTED" ? "REC" : "WAIT"}</em></header>
           <div className={styles.duelCameraViewport}>{localStream ? <HandCamera compact sharedStream={localStream} autoStart renderHandOverlay rateConfig={BATTLE_RECOGNITION_RATE_CONFIG} handDetectionConfig={BATTLE_HAND_DETECTION_CONFIG} performanceMonitor={recognizer.getPerformanceMonitor()} temporalDecoder={recognizer.getTemporalDecoder()} activePlayerSession={activePlayerSession} onLandmarkFrame={(frame) => recognizer.sendLandmarkFrame(frame)} onHandNotDetected={(capturedAt) => recognizer.notifyHandNotDetected(capturedAt)} prediction={snapshot.prediction} connectionState={recognizer.getConnectionState()} /> : <GameVideoTile kind="LOCAL" label="내 영상" stream={null} cameraEnabled={false} connectionState="DISCONNECTED" />}
             <div className={styles.recognitionBadge}><span>현재 인식</span><strong>{snapshot.prediction?.symbol ?? "-"}</strong><small>{snapshot.prediction ? `${Math.round(snapshot.prediction.confidence * 100)}%` : "대기"}</small></div>
           </div>
         </section>
-        <section className={styles.duelCameraCard} aria-label={`${opponent?.displayName ?? "상대"} 카메라`}>
-          <header><div><strong>{opponent?.displayName ?? "상대"} CAM</strong></div><em className={opponent?.cameraEnabled ? styles.recordingIndicator : undefined}>{opponent?.cameraEnabled ? "REC" : "WAIT"}</em></header>
-          <div className={styles.duelCameraViewport}><GameVideoTile kind="REMOTE" label={opponent?.displayName ?? "상대 영상"} stream={opponent?.stream ?? null} cameraEnabled={opponent?.cameraEnabled ?? false} connectionState={opponent?.connectionState ?? rtcState} /></div>
+        <section className={styles.duelCameraCard} aria-label={`${remoteDisplayName} 카메라`}>
+          <header><div><strong>{remoteDisplayName} CAM</strong></div><em className={opponent?.cameraEnabled ? styles.recordingIndicator : undefined}>{opponent?.cameraEnabled ? "REC" : "WAIT"}</em></header>
+          <div className={styles.duelCameraViewport}><GameVideoTile kind="REMOTE" label={`${remoteDisplayName} 영상`} stream={opponent?.stream ?? null} cameraEnabled={opponent?.cameraEnabled ?? false} connectionState={opponent?.connectionState ?? rtcState} /></div>
         </section>
       </aside>
     </div>
@@ -438,4 +447,10 @@ function waitForMatchResult(controller: BattleController, timeoutMs = 1_500): Pr
       resolve();
     }, 25);
   });
+}
+
+function usablePlayerName(value: string | null | undefined): string | null {
+  const normalized = value?.trim();
+  if (!normalized || /^(방장|참가자|상대방?|player\s*[12]|\d+)$/i.test(normalized)) return null;
+  return normalized;
 }

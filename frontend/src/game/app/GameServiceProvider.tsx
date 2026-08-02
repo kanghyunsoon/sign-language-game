@@ -190,7 +190,7 @@ function createDefaultServices(
       create: getRoomRealtimeSocket,
     },
     battleGameTransportFactory: {
-      create: () => new P2pBattleTransport(getGameDataChannel, user.userId),
+      create: () => new P2pBattleTransport(getGameDataChannel, user.userId, user.displayName),
     },
   };
 }

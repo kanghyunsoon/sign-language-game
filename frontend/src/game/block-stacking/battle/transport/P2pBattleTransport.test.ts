@@ -7,6 +7,21 @@ describe("P2pBattleTransport 1:1", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
+  it("exchanges real display names over the game data channel", async () => {
+    const [hostChannel, guestChannel] = pairedChannels("host", "guest");
+    const host = new P2pBattleTransport(() => hostChannel, "host", "수달왕");
+    const guest = new P2pBattleTransport(() => guestChannel, "guest", "프링글수");
+    const events: ServerBattleMessage[] = [];
+    guest.subscribe((event) => events.push(event));
+    const common = { url: "webrtc", roomId: "room-profile", hostPlayerId: "host", playerIds: ["host", "guest"] } as const;
+    await host.connect({ ...common, playerId: "host" });
+    await guest.connect({ ...common, playerId: "guest" });
+    expect(events).toContainEqual(expect.objectContaining({ type: "PLAYER_PROFILE_UPDATED", playerId: "host", displayName: "수달왕" }));
+    expect(events).toContainEqual(expect.objectContaining({ type: "PLAYER_PROFILE_UPDATED", playerId: "guest", displayName: "프링글수" }));
+    host.disconnect();
+    guest.disconnect();
+  });
+
   it("shares one target and drops it only for the first player who claims it", async () => {
     const [hostChannel, guestChannel] = pairedChannels("host", "guest");
     const host = new P2pBattleTransport(() => hostChannel, "host");
