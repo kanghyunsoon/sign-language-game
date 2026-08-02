@@ -1,9 +1,9 @@
-import { ArrowLeft, Camera, CameraOff, Check, Play } from "lucide-react";
+import { ArrowLeft, Camera, CameraOff, Check, Copy, Link2, Play } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { useGameModuleContext } from "../../app/GameModuleContext";
-import { ParticipantList } from "../battle/components/ParticipantList";
+import { symbolRangeLabel } from "../battle/components/BattleRoomCard";
 import styles from "../battle/components/BattleRoomUi.module.css";
 import type { BattleRoomDetail } from "../battle/room";
 import { GameVideoTile } from "../../media/components/GameVideoTile";
@@ -453,98 +453,98 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   const isHost = room?.hostUserId === user.userId;
   const full = room ? room.playerCount >= room.maxPlayers : false;
   const canRequestStart = Boolean(isHost && full && room?.hostReady && room?.guestReady);
+  const opponent = room?.participants.find((participant) => participant.userId !== user.userId) ?? null;
+  const copyText = async (value: string): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      setError("복사하지 못했습니다. 브라우저의 클립보드 권한을 확인해 주세요.");
+    }
+  };
 
   return (
     <main className={[styles.page, styles.waitingLobby].join(" ")}>
+      <button type="button" className={styles.waitingBack} onClick={() => void leaveRoom()} disabled={leaving} aria-label="목록으로 돌아가기">
+        <ArrowLeft aria-hidden="true" size={18} />
+      </button>
+      <span className={styles.waitingProfile}>{user.displayName}</span>
       <header className={[styles.pageHeader, styles.waitingRoomHero].join(" ")}>
         <div>
-          <span className={styles.eyebrow}>1:1 지문자 대전 대기실</span>
-          <h1>{room?.title ?? "대기실 불러오는 중"}</h1>
-          <p>참가 코드 {room?.roomCode ?? "-"} · {isHost ? "방장" : "참가자"}</p>
+          <div className={styles.waitingTitleLine}>
+            <h1>{room?.title ?? "대기실 불러오는 중"}</h1>
+            <span>{mode === "TURN" ? "수달 턴 대전 · 1 VS 1" : "프링글수 · 1 VS 1"}</span>
+            <i>{isHost ? "방장" : "참가자"}</i>
+          </div>
+          <p>상대가 입장하고 모두 준비하면 게임을 시작할 수 있어요.</p>
         </div>
-        <div className={styles.headerActions}>
-          <button type="button" onClick={() => void leaveRoom()} disabled={leaving}>
-            <ArrowLeft aria-hidden="true" size={16} />{leaving ? "나가는 중" : "방 나가기"}
-          </button>
+        <div className={styles.roomShare}>
+          <span>참가 코드 <strong>{room?.roomCode ?? "-"}</strong></span>
+          <button type="button" onClick={() => void copyText(room?.roomCode ?? "")} disabled={!room?.roomCode}><Copy aria-hidden="true" size={14} />코드 복사</button>
+          <button type="button" onClick={() => void copyText(window.location.href)}><Link2 aria-hidden="true" size={14} />초대 링크 복사</button>
         </div>
       </header>
       {error ? <p className={styles.errorBanner} role="alert">{error}</p> : null}
-      <div className={styles.connectionStrip} aria-live="polite">
-        <span>Room WebSocket<strong>{realtimeState}</strong></span>
-        <span>게임 데이터<strong>시작 후 WebRTC로 전환</strong></span>
-        <span>연결 유예<strong>10초</strong></span>
-      </div>
       <div className={styles.waitingLayout}>
-        <aside className={[styles.waitingSidebar, styles.waitingSettings].join(" ")}>
-          {room
-            ? <ParticipantList participants={room.participants} currentUserId={user.userId} maxPlayers={room.maxPlayers} />
-            : <div className={styles.emptyState}>방 정보를 확인하는 중입니다.</div>}
-          <section className={styles.infoPanel}>
-            <h2>준비 상태</h2>
-            <dl className={styles.roomFacts}>
-              <div><dt>방장</dt><dd>{room?.hostReady ? "준비 완료" : "준비 중"}</dd></div>
-              <div><dt>참가자</dt><dd>{room?.guestReady ? "준비 완료" : "준비 중"}</dd></div>
-              <div><dt>인원</dt><dd>{room ? `${room.playerCount}/${room.maxPlayers}` : "-"}</dd></div>
-            </dl>
-          </section>
-        </aside>
         <section className={[styles.videoArea, styles.waitingStage].join(" ")} aria-label="내 카메라 미리보기">
-          <div className={styles.videoPair}>
-            {localStream
-              ? (
-                <HandCamera
-                  sharedStream={localStream}
-                  autoStart
-                  activePlayerSession={activePlayerSession}
-                  recognitionSession={recognitionSession}
-                  performanceMonitor={recognizer.getPerformanceMonitor()}
-                  temporalDecoder={recognizer.getTemporalDecoder()}
-                  connectionState={recognizer.getConnectionState()}
-                />
-              )
-              : (
-                <GameVideoTile
-                  kind="LOCAL"
-                  label="내 영상"
-                  stream={null}
-                  cameraEnabled={false}
-                  connectionState="DISCONNECTED"
-                />
-              )}
+          <div className={styles.connectionStrip} aria-live="polite">
+            <span><i>{realtimeState === "CONNECTED" ? "✓" : "·"}</i><small>Room WebSocket</small><strong>{realtimeState}</strong></span>
+            <span><i>{recognizer.getConnectionState() === "CONNECTED" ? "✓" : "·"}</i><small>AI 인식 모델</small><strong>{recognizer.getConnectionState()}</strong></span>
+            <span><i>{opponent ? "✓" : "·"}</i><small>상대 플레이어</small><strong>{opponent ? "입장 완료" : "입장 대기"}</strong></span>
+            <span><i>{cameraEnabled ? "✓" : "·"}</i><small>게임 준비</small><strong>{room?.currentUserReady ? "준비 완료" : "준비 중"}</strong></span>
           </div>
-          <div className={styles.waitingActions}>
-            <button type="button" onClick={() => void startCameraPreview()} disabled={Boolean(localStream)}>
-              <Camera aria-hidden="true" size={17} />카메라 미리보기
-            </button>
-            <button type="button" onClick={toggleCamera} disabled={!localStream}>
-              {cameraEnabled ? <CameraOff aria-hidden="true" size={17} /> : <Camera aria-hidden="true" size={17} />}
-              {cameraEnabled ? "카메라 끄기" : "카메라 켜기"}
-            </button>
-            <button
-              type="button"
-              className={room?.currentUserReady ? styles.primaryButton : undefined}
-              onClick={() => void toggleReady()}
-              disabled={!room || readyBusy || !gateway.setReady}
-            >
-              <Check aria-hidden="true" size={17} />{readyBusy ? "처리 중" : room?.currentUserReady ? "준비 취소" : "준비 완료"}
-            </button>
-            {isHost ? (
+          <div className={styles.videoPair}>
+            <article className={styles.waitingPlayerCard}>
+              {localStream
+                ? (
+                  <HandCamera
+                    sharedStream={localStream}
+                    autoStart
+                    activePlayerSession={activePlayerSession}
+                    recognitionSession={recognitionSession}
+                    performanceMonitor={recognizer.getPerformanceMonitor()}
+                    temporalDecoder={recognizer.getTemporalDecoder()}
+                    connectionState={recognizer.getConnectionState()}
+                  />
+                )
+                : <GameVideoTile kind="LOCAL" label="내 카메라" stream={null} cameraEnabled={false} connectionState="DISCONNECTED" />}
+              <footer><strong>{user.displayName}</strong><span>{room?.currentUserReady ? "준비 완료" : "준비 중"}</span></footer>
+            </article>
+            <span className={styles.waitingVs}>VS</span>
+            <article className={styles.waitingPlayerCard}>
+              <div className={styles.waitingOpponentPlaceholder} role="status">
+                <span>?</span>
+                <strong>{opponent ? `${opponent.displayName} 님이 입장했어요` : "상대방을 기다리고 있어요"}</strong>
+                <p>{opponent ? "상대가 준비를 마치면 게임을 시작할 수 있어요." : "친구에게 참가 코드나 초대 링크를 보내 보세요."}</p>
+              </div>
+              <footer><strong>{opponent?.displayName ?? "플레이어 대기 중"}</strong><span>{opponent ? opponent.ready ? "준비 완료" : "준비 중" : "상대가 입장하면 게임이 시작됩니다."}</span></footer>
+            </article>
+          </div>
+          <div className={styles.waitingFooter}>
+            <p>카메라에 손이 잘 보이도록 맞추고, 상대가 입장하면 함께 준비를 완료해 주세요.</p>
+            <div className={styles.waitingActions}>
+              <button type="button" onClick={() => localStream ? toggleCamera() : void startCameraPreview()}>{cameraEnabled ? <CameraOff aria-hidden="true" size={17} /> : <Camera aria-hidden="true" size={17} />}{cameraEnabled ? "카메라 끄기" : "카메라 켜기"}</button>
               <button
                 type="button"
-                className={styles.primaryButton}
-                disabled={!canRequestStart || startingGame}
-                onClick={() => void startGame()}
-              >
-                <Play aria-hidden="true" size={17} />{startingGame ? "연결 준비 중" : "게임 시작"}
-              </button>
-            ) : null}
+                className={room?.currentUserReady ? styles.primaryButton : undefined}
+                onClick={() => void toggleReady()}
+                disabled={!room || readyBusy || !gateway.setReady}
+              ><Check aria-hidden="true" size={17} />{readyBusy ? "처리 중" : room?.currentUserReady ? "준비 취소" : "준비 완료"}</button>
+              {isHost ? <button type="button" className={styles.primaryButton} disabled={!canRequestStart || startingGame} onClick={() => void startGame()}><Play aria-hidden="true" size={17} />{startingGame ? "연결 준비 중" : "게임 시작"}</button> : null}
+            </div>
           </div>
-          <p className={styles.startReason}>
-            {isHost
-              ? canRequestStart ? "시작 요청 시 서버가 두 참가자의 준비 상태를 최종 확인합니다." : "상대방 입장 후 내 준비를 완료해 주세요."
-              : "준비 완료 후 방장의 시작을 기다려 주세요."}
-          </p>
         </section>
+        <aside className={[styles.waitingSidebar, styles.waitingSettings].join(" ")}>
+          <header><h2>방 설정</h2><span>{room ? waitingStatusLabel(room.status) : "확인 중"}</span></header>
+          <dl className={styles.roomFacts}>
+            <div><dt>게임</dt><dd>{mode === "TURN" ? "수달 턴 대전" : "프링글수"}</dd></div>
+            <div><dt>출제 범위</dt><dd>{room ? symbolRangeLabel(room) : "-"}</dd></div>
+            <div><dt>최대 인원</dt><dd>{room ? `${room.maxPlayers}명` : "-"}</dd></div>
+            <div><dt>현재 인원</dt><dd>{room ? `${room.playerCount}/${room.maxPlayers}` : "-"}</dd></div>
+          </dl>
+          <section className={styles.inviteTip}><strong>친구를 초대해 보세요.</strong><p>참가 코드나 초대 링크를 전달하면 바로 같은 대기실로 들어올 수 있어요.</p><button type="button" onClick={() => void copyText(window.location.href)}><Link2 aria-hidden="true" size={14} />초대 링크 복사</button></section>
+          <p className={styles.startReason}>{isHost ? canRequestStart ? "두 플레이어가 준비됐어요. 게임을 시작해 주세요." : "상대방 입장 후 준비를 완료해 주세요." : "준비 완료 후 방장의 시작을 기다려 주세요."}</p>
+          <button type="button" className={styles.leaveRoomButton} onClick={() => void leaveRoom()} disabled={leaving}>{leaving ? "나가는 중" : "방 나가기"}</button>
+        </aside>
       </div>
       {rejoinPromptOpen ? <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-labelledby="battle-rejoin-title"><section className={styles.modal}><header><div><span>진행 중인 게임</span><h2 id="battle-rejoin-title">아직 진행 중인 게임이 있습니다.</h2></div></header><form onSubmit={(event) => { event.preventDefault(); setRejoinPromptOpen(false); void startRtcAndEnter(); }}><p>재입장 하시겠습니까?</p><div className={styles.modalActions}><button type="button" onClick={() => setRejoinPromptOpen(false)}>나중에</button><button type="submit" className={styles.primaryButton} disabled={startingGame}>재입장</button></div></form></section></div> : null}
       {disconnectDefeatOpen ? <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-labelledby="battle-disconnect-title"><section className={styles.modal}><header><div><span>게임 종료</span><h2 id="battle-disconnect-title">연결이 되지 않아 패배 처리되었습니다 ㅠㅠ</h2></div></header><form onSubmit={(event) => { event.preventDefault(); setDisconnectDefeatOpen(false); rememberSession(null); navigate(lobbyPath, { replace: true }); }}><p>상대가 10초 안에 재접속하지 않아 게임이 종료되었습니다.</p><div className={styles.modalActions}><button type="submit" className={styles.primaryButton}>확인</button></div></form></section></div> : null}
@@ -554,6 +554,12 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
 
 function errorMessage(cause: unknown, fallback: string): string {
   return cause instanceof Error && cause.message ? cause.message : fallback;
+}
+
+function waitingStatusLabel(status: BattleRoomDetail["status"]): string {
+  if (status === "WAITING" || status === "FULL") return "플레이어 대기 중";
+  if (status === "PLAYING" || status === "COUNTDOWN") return "게임 진행 중";
+  return "게임 종료";
 }
 
 function payloadString(payload: unknown, key: string): string | null {
