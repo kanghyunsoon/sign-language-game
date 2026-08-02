@@ -335,7 +335,29 @@ describe("SwaggerBattleRoomGateway", () => {
       participantCount: 1, capacity: 2, gameType: "TETRIS_DUEL",
     });
 
-    expect(state.currentRooms()[0]).not.toMatchObject({ title: "예전 방", hostName: "예전 방장" });
+    expect(state.currentRooms()).toEqual([]);
+  });
+
+  it("keeps a lobby room hidden until both its real title and host nickname are available", () => {
+    const gateway = createGateway(vi.fn());
+    const state = gateway as unknown as {
+      lobbyCache: Map<number, unknown>;
+      currentRooms(): readonly { title: string; hostName: string }[];
+    };
+    state.lobbyCache.set(10, {
+      id: 10, roomCode: "ABC123", status: "WAITING",
+      participantCount: 1, capacity: 2, gameType: "TETRIS_DUEL",
+      title: "프링글수 대전방", hostName: "프링글수 유저",
+    });
+    expect(state.currentRooms()).toEqual([]);
+
+    gateway.updateRoomDisplayMetadata("10", {
+      title: "실제 방 제목", hostName: "실제 방장 닉네임",
+      difficulty: "CONSONANTS", symbolRange: ["ㄱ"],
+    });
+    expect(state.currentRooms()).toEqual([
+      expect.objectContaining({ title: "실제 방 제목", hostName: "실제 방장 닉네임" }),
+    ]);
   });
 
   it("merges stale gateway metadata instead of erasing another room", async () => {
@@ -426,10 +448,12 @@ describe("SwaggerBattleRoomGateway", () => {
     currentRooms.lobbyCache.set(1, {
       id: 1, roomCode: "BLOCK1", status: "WAITING",
       participantCount: 1, capacity: 2, gameType: "TETRIS_DUEL",
+      title: "Custom block room", hostName: "owner-one",
     });
     currentRooms.lobbyCache.set(2, {
       id: 2, roomCode: "SIGN01", status: "WAITING",
       participantCount: 1, capacity: 2, gameType: "SIGN_DUEL",
+      title: "Custom sign room", hostName: "owner-two",
     });
 
     expect(currentRooms.currentRooms()).toEqual([
