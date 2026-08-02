@@ -134,17 +134,28 @@
 @media (max-width:700px) { .waitingLobby { padding-top:24px; }.waitingRoomHero { align-items:flex-start; flex-direction:column; margin-top:82px; }.roomShare { flex-wrap:wrap; }.waitingLobby .connectionStrip { grid-template-columns:repeat(2,minmax(0,1fr)); }.waitingLobby .videoPair { grid-template-columns:1fr; gap:18px; }.waitingPlayerCard { min-height:280px; }.waitingVs { top:50%; left:50%; }.waitingLobby .waitingFooter { align-items:stretch; flex-direction:column; }.waitingLobby .waitingActions { justify-content:stretch; }.waitingFooter button { flex:1; min-width:0; }.waitingSettings,.waitingSettings .roomFacts { grid-template-columns:1fr; }.waitingLobby .waitingBack { top:20px; }.waitingProfile { top:18px; } }
 
 /* Live waiting room: keep the current socket/WebRTC workflow, fit the visual shell in one desktop viewport. */
-.waitingLobby { width:100%; height:100dvh; min-height:0; max-width:none; box-sizing:border-box; display:grid; grid-template-rows:auto auto minmax(0,1fr); gap:12px; padding:clamp(18px,3vw,44px) clamp(18px,5vw,76px); overflow:hidden; }
-.waitingLobby .waitingRoomHero { margin:82px 0 0; min-height:0; padding:14px 20px; }
-.waitingLobby .connectionStrip { min-height:0; }
-.waitingLobby .waitingLayout { min-height:0; height:100%; margin:0; grid-template-columns:minmax(0,1fr) minmax(210px,.28fr); overflow:hidden; }
-.waitingLobby .waitingStage { min-height:0; display:grid; grid-template-rows:minmax(0,1fr) auto auto; gap:10px; padding:13px; overflow:hidden; }
-.waitingLobby .waitingStage .videoPair { min-height:0; grid-template-columns:minmax(0,1fr); overflow:hidden; }
-.waitingLobby .waitingStage .videoPair > * { min-height:0; height:100%; overflow:hidden; border-radius:14px; }
-.waitingLobby .waitingSettings { min-height:0; align-content:start; overflow:auto; }
+.waitingLobby { width:100%; height:100dvh; min-height:0; max-width:none; box-sizing:border-box; display:grid; grid-template-rows:auto minmax(0,1fr); gap:16px; padding:clamp(18px,3vw,38px) clamp(28px,6vw,92px) clamp(24px,4vw,48px); overflow:hidden; }
+.waitingLobby .waitingBack { top:clamp(20px,3vw,40px); left:clamp(20px,4vw,64px); width:44px; min-height:44px; color:#6d583f; }
+.waitingLobby .waitingProfile { top:clamp(20px,3vw,40px); right:clamp(20px,4vw,64px); min-width:104px; text-align:center; }
+.waitingLobby .waitingRoomHero { min-height:0; margin:72px 0 0; padding:16px 20px; }
+.waitingLobby .waitingLayout { min-height:0; height:100%; margin:0; grid-template-columns:minmax(0,1fr) minmax(230px,.28fr); gap:16px; overflow:hidden; }
+.waitingLobby .waitingStage { min-height:0; display:grid; grid-template-rows:auto minmax(0,1fr) auto; gap:10px; padding:13px; overflow:hidden; }
+.waitingLobby .waitingStage .connectionStrip { min-height:0; }
+.waitingLobby .waitingStage .videoPair { min-height:0; grid-template-columns:repeat(2,minmax(0,1fr)); gap:58px; overflow:hidden; }
+.waitingLobby .waitingPlayerCard { min-height:0; height:100%; }
+.waitingLobby .waitingPlayerCard > :first-child { min-height:0; height:100%; overflow:hidden; border-radius:14px 14px 0 0; }
+.waitingLobby .waitingOpponentPlaceholder { display:grid; align-content:center; justify-items:center; gap:8px; box-sizing:border-box; padding:24px; background:radial-gradient(circle at 50% 38%,#405158 0,#303f45 44%,#26343a 100%); color:#fff; text-align:center; }
+.waitingLobby .waitingOpponentPlaceholder > span { display:grid; width:64px; height:64px; place-items:center; border:1px solid rgba(255,255,255,.14); border-radius:20px; background:rgba(255,255,255,.12); font-size:1.65rem; font-weight:900; }
+.waitingLobby .waitingOpponentPlaceholder strong { margin-top:3px; font-size:.86rem; }
+.waitingLobby .waitingOpponentPlaceholder p { max-width:260px; margin:0; color:rgba(255,255,255,.58); font-size:.64rem; line-height:1.5; }
+.waitingLobby .waitingVs { width:52px; height:52px; }
+.waitingLobby .waitingFooter { min-height:44px; }
 .waitingLobby .waitingActions { margin:0; }
-.waitingLobby .startReason { min-height:0; margin:0; padding:8px 10px; font-size:.67rem; text-align:left; }
-@media (max-width:900px) { .waitingLobby { height:auto; min-height:100dvh; overflow:auto; } .waitingLobby .waitingLayout { height:auto; overflow:visible; grid-template-columns:1fr; } .waitingLobby .waitingStage { min-height:520px; } }
+.waitingLobby .waitingSettings { min-height:0; align-content:start; overflow:auto; }
+.waitingLobby .startReason { min-height:0; margin:0; padding:9px 10px; border-radius:10px; background:#f8faf7; color:#88958c; font-size:.64rem; line-height:1.45; text-align:left; }
+@media (max-width:1100px) { .waitingLobby { padding-right:34px; padding-left:34px; }.waitingLobby .waitingStage .videoPair { gap:44px; }.waitingLobby .waitingLayout { grid-template-columns:minmax(0,1fr) 230px; }.waitingLobby .roomShare span { display:none; } }
+@media (max-width:900px) { .waitingLobby { height:auto; min-height:100dvh; overflow:auto; }.waitingLobby .waitingLayout { height:auto; overflow:visible; grid-template-columns:1fr; }.waitingLobby .waitingStage { min-height:610px; }.waitingLobby .waitingSettings { overflow:visible; }.waitingLobby .waitingRoomHero { align-items:flex-start; flex-direction:column; }.waitingLobby .roomShare span { display:inline-block; } }
+@media (max-width:700px) { .waitingLobby { padding:20px 14px 32px; }.waitingLobby .waitingRoomHero { margin-top:76px; }.waitingLobby .waitingStage { min-height:900px; }.waitingLobby .waitingStage .videoPair { grid-template-columns:1fr; gap:16px; }.waitingLobby .waitingVs { display:none; }.waitingLobby .waitingPlayerCard { min-height:330px; }.waitingLobby .waitingFooter { align-items:stretch; }.waitingLobby .waitingSettings { grid-template-columns:1fr; } }
 
 /* Desktop lobby: one fixed game screen; only the room list may scroll when it has content. */
 @media (min-width: 761px) {
