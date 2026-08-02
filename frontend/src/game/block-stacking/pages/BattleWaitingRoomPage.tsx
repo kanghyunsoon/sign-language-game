@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { useGameModuleContext } from "../../app/GameModuleContext";
+import waitingOtter from "../assets/battle-otter-shell-play.png";
 import { symbolRangeLabel } from "../battle/components/BattleRoomCard";
 import styles from "../battle/components/BattleRoomUi.module.css";
 import type { BattleRoomDetail } from "../battle/room";
@@ -52,6 +53,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   const [startingGame, setStartingGame] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [rejoinPromptOpen, setRejoinPromptOpen] = useState(() => mode === "BLOCK" && room?.status === "PLAYING");
   const [disconnectDefeatOpen, setDisconnectDefeatOpen] = useState(() => mode === "BLOCK" && room?.status === "FINISHED");
   const roomSocketRef = useRef<RoomRealtimeSocket | null>(null);
@@ -78,6 +80,12 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   useEffect(() => {
     roomRef.current = room;
   }, [room]);
+
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timeoutId = window.setTimeout(() => setNotice(null), 3200);
+    return () => window.clearTimeout(timeoutId);
+  }, [notice]);
 
   useEffect(() => {
     if (mode !== "BLOCK") return;
@@ -292,7 +300,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
             participants: remaining,
           });
         }
-        setError("상대방이 방을 나갔습니다.");
+        setNotice("상대방이 방을 나갔습니다. 새 참가자를 기다릴게요.");
       }
       if (message.type === "PEER_READY_CHANGED") {
         const current = roomRef.current;
@@ -503,6 +511,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
         </div>
       </header>
       {error ? <p className={styles.errorBanner} role="alert">{error}</p> : null}
+      {notice ? <p className={styles.waitingNotice} role="status">{notice}</p> : null}
       <div className={styles.waitingLayout}>
         <section className={[styles.videoArea, styles.waitingStage].join(" ")} aria-label="내 카메라 미리보기">
           <div className={styles.videoPair}>
@@ -555,6 +564,18 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
             <div><dt>출제 범위</dt><dd>{room ? symbolRangeLabel(room) : "-"}</dd></div>
             <div><dt>참가 인원</dt><dd>{room ? `${room.playerCount}/${room.maxPlayers}명` : "-"}</dd></div>
           </dl>
+          <section className={styles.waitingCompanion} aria-label="게임 준비 안내">
+            <div className={styles.waitingCompanionCopy}>
+              <span>READY TO PLAY</span>
+              <strong>{opponent ? (room?.currentUserReady ? "상대의 준비를 기다려요" : "이제 준비를 눌러 주세요") : "친구를 기다리고 있어요"}</strong>
+              <p>{opponent ? "둘 다 준비되면 방장이 게임을 시작할 수 있어요." : "참가 코드를 알려 주고 카메라 위치를 맞춰 보세요."}</p>
+            </div>
+            <div className={styles.waitingCompanionChecks}>
+              <span className={cameraEnabled ? styles.isReady : undefined}><i>{cameraEnabled ? "✓" : "1"}</i>카메라</span>
+              <span className={opponent ? styles.isReady : undefined}><i>{opponent ? "✓" : "2"}</i>상대 입장</span>
+            </div>
+            <img src={waitingOtter} alt="" aria-hidden="true" />
+          </section>
         </aside>
       </div>
       {rejoinPromptOpen ? <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-labelledby="battle-rejoin-title"><section className={styles.modal}><header><div><span>진행 중인 게임</span><h2 id="battle-rejoin-title">아직 진행 중인 게임이 있습니다.</h2></div></header><form onSubmit={(event) => { event.preventDefault(); setRejoinPromptOpen(false); void startRtcAndEnter(); }}><p>재입장 하시겠습니까?</p><div className={styles.modalActions}><button type="button" onClick={() => setRejoinPromptOpen(false)}>나중에</button><button type="submit" className={styles.primaryButton} disabled={startingGame}>재입장</button></div></form></section></div> : null}
