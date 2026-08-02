@@ -285,7 +285,21 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
         && room.status === "WAITING"
         && room.participantCount < room.capacity
       ))
-      .map((room) => toSummary(room, this.findDisplayMetadata(room.id, room.roomCode)));
+      .flatMap((room) => {
+        const metadata = this.findDisplayMetadata(room.id, room.roomCode);
+        const resolvedTitle = room.title && !isPlaceholderRoomTitle(room.title)
+          ? room.title.trim()
+          : metadata?.title.trim();
+        const resolvedHostName = room.hostName && !isPlaceholderHostName(room.hostName)
+          ? room.hostName.trim()
+          : metadata?.hostName.trim();
+        // Never flash fabricated labels into the public list. The create
+        // response persists and broadcasts these values immediately; until
+        // both arrive, the SSE room stays pending rather than rendering a
+        // misleading "프링글수 대전방 / 프링글수 유저" card.
+        if (!resolvedTitle || !resolvedHostName) return [];
+        return [toSummary(room, metadata)];
+      });
   }
 
   private applyLobbySnapshot(rooms: readonly LobbyRoomSummary[]): void {

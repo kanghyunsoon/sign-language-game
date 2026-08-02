@@ -88,6 +88,7 @@ export function BattleGamePage() {
   const finalResultRef = useRef<MatchFinishedEvent | null>(null);
   const resultReportPromiseRef = useRef<Promise<void> | null>(null);
   const exitInFlightRef = useRef(false);
+  const unloadForfeitSentRef = useRef(false);
   const forfeitAndLeaveRef = useRef<() => Promise<void>>(async () => undefined);
   const recoveryInFlightRef = useRef(false);
   const recoveredMediaRoomRef = useRef<string | null>(null);
@@ -158,7 +159,12 @@ export function BattleGamePage() {
   useEffect(() => {
     if (!roomId || finalResultRef.current) return;
     const handlePageUnload = () => {
-      if (finalResultRef.current) return;
+      if (finalResultRef.current || unloadForfeitSentRef.current) return;
+      unloadForfeitSentRef.current = true;
+      // DataChannel.send queues synchronously. Publish the authoritative
+      // forfeit before fetch/room cleanup closes the peer connection, so the
+      // remaining player receives MATCH_FINISHED and sees the victory modal.
+      controllerRef.current?.forfeit();
       markBattlePageUnload(roomId);
       // Best effort only: the next page load also performs an authenticated
       // leave. keepalive makes the room disappear sooner for other players.
