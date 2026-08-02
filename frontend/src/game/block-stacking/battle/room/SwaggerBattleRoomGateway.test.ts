@@ -335,28 +335,27 @@ describe("SwaggerBattleRoomGateway", () => {
       participantCount: 1, capacity: 2, gameType: "TETRIS_DUEL",
     });
 
-    expect(state.currentRooms()).toEqual([]);
+    expect(state.currentRooms()[0]).not.toMatchObject({ title: "예전 방", hostName: "예전 방장" });
   });
 
-  it("keeps a lobby room hidden until both its real title and host nickname are available", () => {
-    const gateway = createGateway(vi.fn());
+  it("publishes a newly created room immediately with the submitted title and signed-in nickname", async () => {
+    const gateway = createGateway(vi.fn(async () => response(room())));
     const state = gateway as unknown as {
       lobbyCache: Map<number, unknown>;
       currentRooms(): readonly { title: string; hostName: string }[];
     };
-    state.lobbyCache.set(10, {
-      id: 10, roomCode: "ABC123", status: "WAITING",
-      participantCount: 1, capacity: 2, gameType: "TETRIS_DUEL",
-      title: "프링글수 대전방", hostName: "프링글수 유저",
+    await gateway.createRoom({
+      title: "Creator room title",
+      difficulty: "CONSONANTS",
+      symbolRange: ["ㄱ"],
     });
-    expect(state.currentRooms()).toEqual([]);
 
-    gateway.updateRoomDisplayMetadata("10", {
-      title: "실제 방 제목", hostName: "실제 방장 닉네임",
-      difficulty: "CONSONANTS", symbolRange: ["ㄱ"],
-    });
     expect(state.currentRooms()).toEqual([
-      expect.objectContaining({ title: "실제 방 제목", hostName: "실제 방장 닉네임" }),
+      expect.objectContaining({
+        title: "Creator room title",
+        hostName: "나",
+        roomCode: "ABC123",
+      }),
     ]);
   });
 
