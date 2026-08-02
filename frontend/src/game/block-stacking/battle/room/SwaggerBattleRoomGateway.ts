@@ -24,6 +24,8 @@ type RoomDisplayMetadata = Pick<CreateRoomRequest, "title" | "difficulty" | "sym
 };
 const ROOM_DISPLAY_METADATA_KEY_PREFIX = "sudal:battle-room-display:";
 const ROOM_DISPLAY_METADATA_UPDATED_EVENT = "sudal:battle-room-display-updated";
+const DEFAULT_ROOM_TITLE = "프링글수 대전방";
+const DEFAULT_HOST_NAME = "프링글수 유저";
 
 /**
  * Adapter for the deployed Swagger contract.
@@ -309,13 +311,19 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   private restoreDisplayMetadata(): void {
     try {
       if (typeof window === "undefined") return;
-      const raw = window.localStorage.getItem(this.displayMetadataStorageKey());
-      if (!raw) return;
-      const entries = JSON.parse(raw) as unknown;
-      if (!Array.isArray(entries)) return;
-      for (const entry of entries) {
-        if (!Array.isArray(entry) || entry.length !== 2 || !Number.isSafeInteger(entry[0]) || !isRoomDisplayMetadata(entry[1])) continue;
-        this.roomDisplayMetadata.set(entry[0], entry[1]);
+      // Read the former user-scoped key first so deployed clients keep their
+      // existing metadata, then let the shared key overwrite it. The shared
+      // key is required because the room finder is commonly tested with two
+      // signed-in tabs on the same origin.
+      for (const key of this.displayMetadataStorageKeys()) {
+        const raw = window.localStorage.getItem(key);
+        if (!raw) continue;
+        const entries = JSON.parse(raw) as unknown;
+        if (!Array.isArray(entries)) continue;
+        for (const entry of entries) {
+          if (!Array.isArray(entry) || entry.length !== 2 || !Number.isSafeInteger(entry[0]) || !isRoomDisplayMetadata(entry[1])) continue;
+          this.roomDisplayMetadata.set(entry[0], entry[1]);
+        }
       }
     } catch {
       // Storage may be unavailable in private browsing; the live room still works.
@@ -338,7 +346,25 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   }
 
   private displayMetadataStorageKey(): string {
-    return `${ROOM_DISPLAY_METADATA_KEY_PREFIX}${this.options.gameType ?? "TETRIS_DUEL"}:${this.options.currentUser.userId}`;
+    return `${ROOM_DISPLAY_METADATA_KEY_PREFIX}${this.options.gameType ?? "TETRIS_DUEL"}`;
+  }
+
+  private legacyDisplayMetadataStorageKey(): string {
+    return `${this.displayMetadataStorageKey()}:${this.options.currentUser.userId}`;
+  }
+
+  private displayMetadataStorageKeys(): readonly string[] {
+    const sharedKey = this.displayMetadataStorageKey();
+    const keys = new Set<string>([this.legacyDisplayMetadataStorageKey()]);
+    // Migrate metadata created by another signed-in tab before the shared key
+    // was introduced. This keeps rooms already visible in the lobby from
+    // requiring recreation after the frontend update.
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (key?.startsWith(`${sharedKey}:`)) keys.add(key);
+    }
+    keys.add(sharedKey);
+    return [...keys];
   }
 }
 
@@ -360,18 +386,26 @@ function toSummary(room: LobbyRoomSummary, metadata?: RoomDisplayMetadata): Batt
   return {
     // The list has no join-by-id API. The card carries the room code as its join key.
     roomId: room.roomCode,
-    title: room.title ?? metadata?.title ?? "프링글수 대전방",
+    title: room.title && !isPlaceholderRoomTitle(room.title) ? room.title : metadata?.title ?? DEFAULT_ROOM_TITLE,
     status: room.status === "IN_PROGRESS" ? "PLAYING" : room.participantCount >= room.capacity ? "FULL" : "WAITING",
     playerCount: room.participantCount,
     maxPlayers: room.capacity,
     hostUserId: "",
-    hostName: room.hostName ?? metadata?.hostName ?? "프링글수 유저",
+    hostName: room.hostName && !isPlaceholderHostName(room.hostName) ? room.hostName : metadata?.hostName ?? DEFAULT_HOST_NAME,
     difficulty: room.difficulty ?? metadata?.difficulty ?? "BASIC",
     symbolRange: room.symbolRange ?? metadata?.symbolRange ?? [],
     createdAt: null,
     canJoin: room.status === "WAITING" && room.participantCount < room.capacity,
     roomCode: room.roomCode,
   };
+}
+
+function isPlaceholderRoomTitle(value?: string): boolean {
+  return !value || value === DEFAULT_ROOM_TITLE;
+}
+
+function isPlaceholderHostName(value?: string): boolean {
+  return !value || value === DEFAULT_HOST_NAME || value === "방장";
 }
 
 function toDetail(room: BackendGameRoom, options: BattleRoomGatewayOptions, metadata?: RoomDisplayMetadata): BattleRoomDetail {
