@@ -37,7 +37,7 @@
   width: 700px;
   margin: 50px auto 0;
   padding: 26px 48px 28px;
-  border: 1px solid #f0ded5;
+  border: 1px solid #d68b71;
   border-radius: 13px;
   background: #fff9f6;
   box-sizing: border-box;
@@ -105,7 +105,7 @@
   border-radius: 10px;
   color: #5a493d;
   font: inherit;
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 900;
   white-space: nowrap;
   background: #eee9e1;
@@ -116,6 +116,10 @@
     background-color 0.2s ease,
     box-shadow 0.2s ease,
     transform 0.2s ease;
+}
+
+.profile-page .delete-account-actions button {
+  font-size: 26px;
 }
 
 .delete-account-actions button:hover {
@@ -147,13 +151,13 @@
 }
 
 .delete-account-character {
-  width: 230px;
-  height: 210px;
+  width: 270px;
+  height: 250px;
   object-fit: contain;
 }
 
 .delete-account-modal .delete-account-final-message {
-  width: 510px;
+  width: 620px;
   margin: 18px 0 0;
   padding: 17px 28px;
   border-radius: 10px;
@@ -161,6 +165,7 @@
   font-size: 31px;
   line-height: 1.35;
   letter-spacing: -0.03em;
+  white-space: nowrap;
   background: #f5efe7;
   box-sizing: border-box;
 }
