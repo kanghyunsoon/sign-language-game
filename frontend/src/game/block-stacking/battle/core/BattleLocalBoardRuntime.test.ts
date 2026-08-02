@@ -143,6 +143,28 @@ describe("BattleLocalBoardRuntime", () => {
     now = 7_201; runtime.advance(17);
     expect(handler).toHaveBeenCalledOnce();
   });
+
+  it("does not traverse a fully settled board on every display frame", () => {
+    let now = 0;
+    const world = physics();
+    vi.mocked(world.getLetterStates).mockReturnValue([
+      { ...letterState("settled", "\u3131", 360, 800), settled: true },
+    ]);
+    const view = renderer();
+    const runtime = new BattleLocalBoardRuntime(world, view, DEFAULT_BATTLE_RUNTIME_CONFIG, undefined, () => now, () => 1, () => undefined);
+    runtime.start();
+
+    runtime.advance(17);
+    for (let frame = 1; frame <= 60; frame += 1) {
+      now = frame * (1000 / 60);
+      runtime.advance(1000 / 60);
+    }
+
+    // Initial render plus roughly ten idle checks, rather than 60 full passes.
+    expect(vi.mocked(view.render).mock.calls.length).toBeGreaterThanOrEqual(9);
+    expect(vi.mocked(view.render).mock.calls.length).toBeLessThanOrEqual(12);
+    expect(world.getLetterStates).toHaveBeenCalledTimes(vi.mocked(view.render).mock.calls.length);
+  });
 });
 
 function spawn(id: string, symbol: string, spawnAt: number) {

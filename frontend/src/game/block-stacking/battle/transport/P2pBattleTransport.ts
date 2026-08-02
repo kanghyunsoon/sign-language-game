@@ -17,6 +17,7 @@ const HAMMER_IMPACT_DELAY_MS = 760;
 const HAMMER_TRANSFER_DELAY_MS = 1_650;
 const RECONNECT_SNAPSHOT_SETTLE_MS = 240;
 const AUTHORITY_STORAGE_PREFIX = "sudal:block-battle:authority:";
+const MAX_PROCESSED_COMMANDS = 256;
 const BATTLE_TARGET_SYMBOLS = GAME_SYMBOLS.filter(isCompetitiveRecognitionReady);
 
 /** Browser-hosted authority carried only by the room WebRTC DataChannel. */
@@ -28,6 +29,7 @@ export class P2pBattleTransport implements BattleGameTransport {
   private readonly boards = new Map<string, readonly BattleBodyTransform[]>();
   private readonly boardUpdatedAt = new Map<string, number>();
   private processed = new Set<string>();
+  private readonly processedOrder: string[] = [];
   private playerIds: readonly string[] = [];
   private hostPlayerId = "";
   private matchId = "";
@@ -167,7 +169,7 @@ export class P2pBattleTransport implements BattleGameTransport {
   }
   private handle(message: ClientBattleMessage, playerId: string): void {
     if (!this.isHost() || !(this.playerIds as readonly string[]).includes(playerId) || ("matchId" in message && message.matchId !== this.matchId)) return;
-    if ("commandId" in message) { if (this.processed.has(message.commandId)) return; this.processed.add(message.commandId); }
+    if ("commandId" in message) { if (this.processed.has(message.commandId)) return; this.rememberProcessedCommand(message.commandId); }
     if (message.type === "PLAYER_PROFILE_COMMAND") {
       if (message.playerId !== playerId) return;
       const displayName = normalizeDisplayName(message.displayName, playerId);
@@ -291,6 +293,14 @@ export class P2pBattleTransport implements BattleGameTransport {
     const symbol = this.symbolBag.shift() ?? BATTLE_TARGET_SYMBOLS[0]!;
     this.lastTargetSymbol = symbol;
     return symbol;
+  }
+  private rememberProcessedCommand(commandId: string): void {
+    this.processed.add(commandId);
+    this.processedOrder.push(commandId);
+    while (this.processedOrder.length > MAX_PROCESSED_COMMANDS) {
+      const oldest = this.processedOrder.shift();
+      if (oldest) this.processed.delete(oldest);
+    }
   }
   private updateCombo(playerId: string): { readonly current: number; readonly streak: number; readonly attackReady: boolean; readonly victim: BattleBodyTransform | null } {
     const state = this.players.get(playerId);

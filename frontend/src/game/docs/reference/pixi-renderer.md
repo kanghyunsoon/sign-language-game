@@ -25,3 +25,9 @@ This unit adds only the PixiJS rendering adapter. It does not calculate removal 
 
 - No `GameRuntime` exists in this unit, so physical simulation and visual updates are not automatically driven.
 - Actual Pixi canvas rendering requires a browser with WebGL support; Node Vitest only covers the deterministic removal-effect timing.
+
+## DOM glyph performance mode — 2026-08-02
+
+Solo and 1:1 boards use a DOM mask as the visible glyph layer. When `showScenery` is disabled, `PixiGameRenderer` must not allocate a hidden `LetterView` for the same body. This avoids retaining a multi-sprite Pixi subtree for every accumulated letter.
+
+Only moving DOM glyphs request a compositor layer with `will-change: transform`; settled glyphs switch back to `auto`. Removal effects must still complete and emit `REMOVAL_EFFECT_FINISHED` when no Pixi glyph exists. `hasActiveEffects()` allows a runtime to lower its idle frame rate without pausing an active removal animation.

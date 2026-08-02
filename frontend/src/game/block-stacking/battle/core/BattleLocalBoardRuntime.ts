@@ -8,6 +8,7 @@ interface LetterRecord { readonly id: string; readonly symbol: string; readonly 
 const FIXED_PHYSICS_STEP_MS = 1000 / 60;
 const MAX_CATCH_UP_STEPS = 4;
 const DANGER_CONFIRMATION_MS = 1_200;
+const SETTLED_BOARD_FRAME_INTERVAL_MS = 100;
 // Hangul glyph masks do not occupy the full square physics box. Requiring the
 // visible glyph body to cross farther than the box edge avoids a game-over
 // while the rendered letter still appears just below the finish line.
@@ -24,6 +25,8 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
   private width: number; private height: number; private running = false; private disposed = false; private publisher?: LocalBoardPublisher;
   private gameOverHandler: (() => void) | null = null; private gameOverReported = false; private dangerArmedAt: number | null = null;
   private physicsAccumulatorMs = 0;
+  private hasMovingLetters = false;
+  private lastSettledBoardFrameAt = Number.NEGATIVE_INFINITY;
   constructor(
     private readonly physics: PhysicsWorld,
     private readonly renderer: GameRenderer,
@@ -52,6 +55,7 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
       velocityY: 2.4,
     });
     this.letters.set(event.letterId, { id: event.letterId, symbol: event.symbol, spawnedAt: event.spawnAt, pending: false });
+    this.hasMovingLetters = true;
     if (event.targetPriority) this.priorityTargetId = event.letterId;
     this.updateTarget();
   }
@@ -67,6 +71,8 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
     if (!record || !this.physics.removeLetter(letterId)) return false;
     if (this.priorityTargetId === letterId) this.priorityTargetId = null;
     this.letters.delete(letterId);
+    // Removing a support can wake every block above it.
+    this.hasMovingLetters = true;
     this.updateTarget();
     this.renderer.render(this.physics.getLetterStates());
     return true;
@@ -84,6 +90,7 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
     // tower through multiple collisions in one restore.
     const correctionMs = Math.max(0, Math.min(FIXED_PHYSICS_STEP_MS * MAX_CATCH_UP_STEPS, receivedAt - snapshotAt));
     if (correctionMs > 0 && bodies.some((body) => body.state === "FALLING")) this.advancePhysics(correctionMs);
+    this.hasMovingLetters = bodies.some((body) => body.state === "FALLING");
     this.updateTarget(); this.renderer.render(this.physics.getLetterStates());
   }
   getTargetSymbol(): string | null { return this.currentTarget()?.symbol ?? null; }
@@ -107,10 +114,17 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
   dispose(): void { if (this.disposed) return; this.stop(); this.physics.destroy(); this.letters.clear(); this.disposed = true; }
   advance(deltaMs: number): void {
     if (!this.running) return;
+    const frameAt = this.now();
+    if (!this.hasMovingLetters && !this.renderer.hasActiveEffects?.()) {
+      if (frameAt - this.lastSettledBoardFrameAt < SETTLED_BOARD_FRAME_INTERVAL_MS) return;
+      this.lastSettledBoardFrameAt = frameAt;
+    }
     const bounded = Math.max(0, Math.min(FIXED_PHYSICS_STEP_MS * MAX_CATCH_UP_STEPS, deltaMs));
     this.advancePhysics(bounded);
     for (const event of this.renderer.updateEffects(bounded)) { if (this.physics.removeLetter(event.id)) { this.letters.delete(event.id); this.updateTarget(); } }
-    const states = this.physics.getLetterStates(); this.renderer.render(states); this.publisher?.update(Date.now(), states, this.width, this.height); this.checkDangerLine(states);
+    const states = this.physics.getLetterStates();
+    this.hasMovingLetters = states.some((state) => !state.settled);
+    this.renderer.render(states); this.publisher?.update(Date.now(), states, this.width, this.height); this.checkDangerLine(states);
   }
   getStates(): readonly PhysicsLetterState[] { return this.physics.getLetterStates(); }
   private currentTarget(): LetterRecord | undefined { const priority = this.priorityTargetId ? this.letters.get(this.priorityTargetId) : undefined; if (priority && !priority.pending && this.physics.getLetterState(priority.id)) return priority; return [...this.letters.values()].filter((letter) => !letter.pending && this.physics.getLetterState(letter.id)).sort((left, right) => left.spawnedAt - right.spawnedAt)[0]; }

@@ -51,6 +51,8 @@ export interface GameRenderer {
   setLetterVisible?(id: string, visible: boolean): void;
   setTarget(id: string | null): void;
   updateEffects(deltaMs: number): readonly RemovalEffectFinishedEvent[];
+  /** Allows game loops to lower their idle frame rate without slowing effects. */
+  hasActiveEffects?(): boolean;
   clear(): void;
   destroy(): void;
 }

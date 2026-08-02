@@ -22,3 +22,9 @@ npx vitest run src/game/physics/SettlementDetector.test.ts src/game/physics/Matt
 ```
 
 For a future rendering runtime, drive `update(1000 / 60)` externally, read `getLetterStates()`, render positions and rotation, call `removeLetter(id)`, and pass returned `LETTER_SETTLED` events to the game domain.
+
+## Idle-board scheduling — 2026-08-02
+
+The runtime, not `MatterPhysicsWorld`, owns adaptive scheduling. While a body is falling or a renderer effect is active, it advances at the normal gameplay cadence. Once every body is settled and no effect is active, the battle runtime limits full physics/state/render traversal to a 100ms interval. Spawning, removing, restoring a falling snapshot, or starting an effect immediately returns the board to the active cadence.
+
+Do not add a second internal timer to `MatterPhysicsWorld`; doing so would duplicate loops and make pause, reconnect, and disposal cleanup unreliable.

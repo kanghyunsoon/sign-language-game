@@ -10,10 +10,17 @@ export class LocalBoardPublisher {
   constructor(private readonly transport: BattleGameTransport, private readonly config: BattleSyncConfig, private readonly matchId: string, private readonly playerId: string) {}
   update(now: number, states: readonly PhysicsLetterState[], width: number, height: number): void {
     if (this.transport.getBufferedAmount && this.transport.getBufferedAmount() > this.config.maxWebSocketBufferedAmount) return;
-    const nextSettledIds = new Set(states.filter((state) => state.settled).map((state) => state.id));
-    const hasNewlySettledLetter = [...nextSettledIds].some((id) => !this.settledIds.has(id));
-    this.settledIds.clear();
-    for (const id of nextSettledIds) this.settledIds.add(id);
+    let settledCount = 0;
+    let hasNewlySettledLetter = false;
+    for (const state of states) {
+      if (!state.settled) continue;
+      settledCount += 1;
+      if (!this.settledIds.has(state.id)) hasNewlySettledLetter = true;
+    }
+    if (hasNewlySettledLetter || settledCount !== this.settledIds.size) {
+      this.settledIds.clear();
+      for (const state of states) if (state.settled) this.settledIds.add(state.id);
+    }
     if (hasNewlySettledLetter || now - this.lastSnapshotAt >= this.config.snapshotPublishIntervalMs) {
       this.lastSnapshotAt = now;
       this.lastTransformAt = now;
