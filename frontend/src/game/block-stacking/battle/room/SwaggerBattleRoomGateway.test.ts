@@ -18,6 +18,41 @@ describe("SwaggerBattleRoomGateway", () => {
     expect(created.roomCode).toBe("ABC123");
   });
 
+  it("preserves the creator's room title, nickname, and symbol range for lobby cards", async () => {
+    const gateway = createGateway(vi.fn(async () => response(room())));
+    const created = await gateway.createRoom({
+      title: "초급 자음방",
+      difficulty: "CONSONANTS",
+      symbolRange: ["ㄱ", "ㄴ"],
+    });
+    const state = gateway as unknown as {
+      lobbyCache: Map<number, unknown>;
+      currentRooms(): readonly unknown[];
+    };
+    state.lobbyCache.set(10, {
+      id: 10,
+      roomCode: "ABC123",
+      status: "WAITING",
+      participantCount: 1,
+      capacity: 2,
+      gameType: "TETRIS_DUEL",
+    });
+
+    expect(created).toMatchObject({
+      title: "초급 자음방",
+      difficulty: "CONSONANTS",
+      symbolRange: ["ㄱ", "ㄴ"],
+    });
+    expect(state.currentRooms()).toEqual([
+      expect.objectContaining({
+        title: "초급 자음방",
+        hostName: created.hostName,
+        difficulty: "CONSONANTS",
+        symbolRange: ["ㄱ", "ㄴ"],
+      }),
+    ]);
+  });
+
   it("joins with the Swagger roomCode body", async () => {
     const fetcher = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => response(room({ guestUserId: 2, participantCount: 2 })));
     const gateway = createGateway(fetcher);

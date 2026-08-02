@@ -16,18 +16,20 @@
   color: #354248;
 }
 .resultHeader {
+  position: relative;
   display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
+  grid-template-columns: 1fr;
+  align-content: center;
+  justify-items: center;
   min-height: 126px;
-  padding: 20px clamp(18px, 3vw, 44px);
+  padding: 20px clamp(150px, 16vw, 190px);
   border-radius: 20px;
   background: rgba(255,255,255,.88);
   box-shadow: 0 7px 18px rgba(97, 130, 143, .1);
   text-align: center;
 }
+.resultHeader > div { width: 100%; text-align: center; }
 .modeBadge {
-  grid-column: 1 / -1;
   justify-self: center;
   padding: 5px 12px;
   border-radius: 999px;
@@ -39,6 +41,9 @@
 .resultHeader h2 { margin: 7px 0 4px; color: #617e37; font-size: clamp(1.75rem, 3.1vw, 2.7rem); letter-spacing: -.06em; }
 .resultHeader p { margin: 0; color: #7c8d95; font-size: .82rem; font-weight: 700; }
 .resultScore {
+  position: absolute;
+  top: 50%;
+  right: clamp(18px, 3vw, 44px);
   display: grid;
   gap: 5px;
   min-width: 126px;
@@ -48,6 +53,7 @@
   background: #fff9dc;
   color: #807453;
   font-size: .65rem;
+  transform: translateY(-50%);
 }
 .resultScore b { color: #809b3a; font-size: 1.35rem; }
 .playerCards { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(30px, 7vw, 84px); align-items: center; min-height: 0; }
@@ -72,8 +78,8 @@
 .error { margin: -7px 0 0; color: #b7475e; font-size: .76rem; font-weight: 800; text-align: center; }
 @media (max-width: 760px) {
   .resultStage { width: calc(100vw - 24px); min-height: calc(100dvh - 24px); padding: 14px; border-radius: 18px; }
-  .resultHeader { grid-template-columns: 1fr; padding: 16px; }
-  .resultScore { justify-self: center; margin-top: 10px; }
+  .resultHeader { padding: 16px; }
+  .resultScore { position: static; justify-self: center; margin-top: 10px; transform: none; }
   .playerCards { grid-template-columns: 1fr; gap: 20px; overflow: auto; }
   .playerCard { min-height: 230px; }
   .vs { top: 50%; }
