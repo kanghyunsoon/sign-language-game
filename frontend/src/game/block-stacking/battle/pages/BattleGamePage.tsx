@@ -12,7 +12,7 @@ import { PythonWebSocketSignRecognizer } from "../../../recognition/websocket/Py
 import { RESPONSIVE_GAMEPLAY_RECOGNITION_RATE_CONFIG } from "../../../recognition/runtime";
 import { RESPONSIVE_GAMEPLAY_SIGN_DECODER_CONFIG } from "../../../recognition/temporal";
 import type { BattleControllerSnapshot } from "../core/BattleController";
-import type { IdleRemovalTarget, MatchFinishedEvent } from "../transport/battleTransportTypes";
+import type { MatchFinishedEvent } from "../transport/battleTransportTypes";
 import { BattleController } from "../core/BattleController";
 import { BattleExitCoordinator } from "../core/BattleExitCoordinator";
 import { BattleLocalBoardRuntime } from "../core/BattleLocalBoardRuntime";
@@ -22,6 +22,8 @@ import { RemoteBoardReplica } from "../sync/RemoteBoardReplica";
 import { RemoteBoardRenderer } from "../render/RemoteBoardRenderer";
 import { LocalBoardPublisher } from "../sync/LocalBoardPublisher";
 import { BattleBoardPanel } from "../components/BattleBoardPanel";
+import { BattleComboMeter, type ComboMeterEffect } from "../components/BattleComboMeter";
+import { HammerAttackOverlay } from "../components/HammerAttackOverlay";
 import { settledTowerHeightRatio } from "../../runtime/towerHeight";
 import { BattleConnectionPanel } from "../components/BattleConnectionPanel";
 import { BattleResultModal } from "../components/BattleResultModal";
@@ -33,7 +35,7 @@ import { BattleResultClient, BattleResultRequestError } from "../../../results/B
 import { submitBattleResult } from "../../../results/BattleResultSubmission";
 import { BattleRoomRecoveryCancelledError, isMissingOrForbiddenRoom, recoverBattleRoom } from "../core/BattleRoomRecovery";
 
-const INITIAL: BattleControllerSnapshot = { state: "IDLE", gameConnectionState: "DISCONNECTED", aiConnectionState: "DISCONNECTED", countdownMs: 0, reconnectDeadlineAt: null, score: 0, combo: 0, maxCombo: 0, removedCount: 0, targetSymbol: null, prediction: null, message: "Waiting for board initialization.", result: null };
+const INITIAL: BattleControllerSnapshot = { state: "IDLE", gameConnectionState: "DISCONNECTED", aiConnectionState: "DISCONNECTED", countdownMs: 0, reconnectDeadlineAt: null, score: 0, combo: 0, opponentCombo: 0, maxCombo: 0, removedCount: 0, targetSymbol: null, prediction: null, message: "Waiting for board initialization.", result: null };
 const BATTLE_CANVAS_WIDTH = 1680;
 const BATTLE_CANVAS_HEIGHT = 945;
 const BATTLE_HAND_DETECTION_CONFIG = Object.freeze({
@@ -67,9 +69,11 @@ export function BattleGamePage() {
   const [finalResult, setFinalResult] = useState<MatchFinishedEvent | null>(null);
   const [claimedSymbol, setClaimedSymbol] = useState<{ readonly id: number; readonly symbol: string; readonly winnerPlayerId: string } | null>(null);
   const [drainingSymbol, setDrainingSymbol] = useState<{ readonly id: number; readonly symbol: string } | null>(null);
-  const [idleRemoval, setIdleRemoval] = useState<{ readonly id: string; readonly targets: readonly IdleRemovalTarget[] } | null>(null);
+  const [comboEffects, setComboEffects] = useState<{ readonly local: ComboMeterEffect; readonly remote: ComboMeterEffect }>({ local: null, remote: null });
+  const [hammerAttack, setHammerAttack] = useState<import("../transport/battleTransportTypes").HammerAttackEvent | null>(null);
   const claimEffectTimerRef = useRef<number | null>(null);
   const drainEffectTimerRef = useRef<number | null>(null);
+  const hammerEffectTimerRef = useRef<number | null>(null);
   // Keep this latched after the first successful RTC connection. A peer's
   // refresh closes the channel briefly, but must not unmount the running
   // controller (and therefore must not reset the remaining player's board).
@@ -247,10 +251,14 @@ export function BattleGamePage() {
       claimEffectTimerRef.current = window.setTimeout(() => { claimEffectTimerRef.current = null; setClaimedSymbol(null); }, 2_300);
       if (drainEffectTimerRef.current !== null) window.clearTimeout(drainEffectTimerRef.current);
       drainEffectTimerRef.current = window.setTimeout(() => { drainEffectTimerRef.current = null; setDrainingSymbol(null); }, 1_150);
-    }, onIdleRemovalSelected: (event) => {
-      setIdleRemoval({ id: event.removalId, targets: event.targets });
-    }, onIdleRemovalExecuted: (event) => {
-      setIdleRemoval((current) => current?.id === event.removalId ? null : current);
+    }, onComboUpdated: (event) => {
+      const side = event.playerId === user.userId ? "local" : "remote";
+      const kind = event.reason === "HAMMER_TRIGGERED" ? "attack" : event.combo > 0 ? "gain" : "break";
+      setComboEffects((current) => ({ ...current, [side]: { id: event.sequence, kind } }));
+    }, onHammerAttack: (event) => {
+      setHammerAttack(event);
+      if (hammerEffectTimerRef.current !== null) window.clearTimeout(hammerEffectTimerRef.current);
+      hammerEffectTimerRef.current = window.setTimeout(() => { hammerEffectTimerRef.current = null; setHammerAttack(null); }, Math.max(300, event.spawnAt - event.createdAt + 350));
     } });
     localRuntimeRef.current = runtime; controllerRef.current = controller; const unsubscribe = controller.subscribe((next) => {
       setSnapshot(next);
@@ -268,7 +276,7 @@ export function BattleGamePage() {
       remoteLoopRef.current = requestAnimationFrame(renderRemote);
     };
     remoteLoopRef.current = requestAnimationFrame(renderRemote);
-    return () => { if (remoteLoopRef.current !== null) cancelAnimationFrame(remoteLoopRef.current); if (claimEffectTimerRef.current !== null) window.clearTimeout(claimEffectTimerRef.current); if (drainEffectTimerRef.current !== null) window.clearTimeout(drainEffectTimerRef.current); remoteLoopRef.current = null; unsubscribe(); controller.dispose(); controllerRef.current = null; localRuntimeRef.current = null; remote.clear(); };
+    return () => { if (remoteLoopRef.current !== null) cancelAnimationFrame(remoteLoopRef.current); if (claimEffectTimerRef.current !== null) window.clearTimeout(claimEffectTimerRef.current); if (drainEffectTimerRef.current !== null) window.clearTimeout(drainEffectTimerRef.current); if (hammerEffectTimerRef.current !== null) window.clearTimeout(hammerEffectTimerRef.current); remoteLoopRef.current = null; unsubscribe(); controller.dispose(); controllerRef.current = null; localRuntimeRef.current = null; remote.clear(); };
   }, [accessToken, battleRoomSession?.activeMatchId, config.gameWebSocketUrl, localRenderer, mediaReady, recognizer, remoteRenderer, replica, roomId, transport, user]);
 
   useEffect(() => {
@@ -361,8 +369,6 @@ export function BattleGamePage() {
   }, [roomId]);
   const localPlayerLabel = localIsHost ? "PLAYER 1" : "PLAYER 2";
   const remotePlayerLabel = localIsHost ? "PLAYER 2" : "PLAYER 1";
-  const localIdleRemovalTarget = idleRemoval?.targets.find((target) => target.playerId === user.userId) ?? null;
-  const remoteIdleRemovalTarget = idleRemoval?.targets.find((target) => target.playerId !== user.userId) ?? null;
   const showSharedTarget = snapshot.state === "COUNTDOWN" || snapshot.state === "PLAYING" || snapshot.state === "RECONNECTING";
   return <main
     className={`${styles.page} ${styles.battleFixedPage}`}
@@ -393,8 +399,9 @@ export function BattleGamePage() {
             <i className={[styles.sharedCloud, styles.sharedCloudOne].join(" ")}/><i className={[styles.sharedCloud, styles.sharedCloudTwo].join(" ")}/><i className={[styles.sharedCloud, styles.sharedCloudThree].join(" ")}/>
             <i className={styles.sharedHills}/><span className={styles.sharedFireflies}><i/><i/><i/><i/><i/></span>
           </div>
-          <BattleBoardPanel title={user.userId || localPlayerLabel} dropBurst={claimedSymbol?.winnerPlayerId === user.userId ? claimedSymbol : null} idleRemovalTarget={localIdleRemovalTarget} towerHeightRatio={towerHeights.local} toolbar={<div className={styles.boardStats}><span>콤보 <strong>{snapshot.combo}</strong></span></div>} rendererConfig={{ coordinateWidth: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, coordinateHeight: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight, dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO, showScenery: false }} onRendererReady={(renderer, viewport) => { localViewportRef.current = viewport; setLocalRenderer(renderer); }} onViewportResize={(viewport) => { localViewportRef.current = viewport; }} />
-          <BattleBoardPanel className={styles.remoteBoardPanel} title={opponent?.displayName ?? remotePlayerLabel} dropBurst={claimedSymbol && claimedSymbol.winnerPlayerId !== user.userId ? claimedSymbol : null} idleRemovalTarget={remoteIdleRemovalTarget} towerHeightRatio={towerHeights.remote} rendererConfig={{ coordinateWidth: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, coordinateHeight: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight, dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO, showScenery: false }} onRendererReady={(renderer, viewport) => { remoteViewportRef.current = viewport; setRemoteRenderer(renderer); }} onViewportResize={(viewport) => { remoteViewportRef.current = viewport; }} />
+          <BattleBoardPanel title={user.userId || localPlayerLabel} dropBurst={claimedSymbol?.winnerPlayerId === user.userId ? claimedSymbol : null} towerHeightRatio={towerHeights.local} toolbar={<BattleComboMeter count={snapshot.combo} effect={comboEffects.local} hammerActive={hammerAttack?.attackerPlayerId === user.userId} />} rendererConfig={{ coordinateWidth: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, coordinateHeight: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight, dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO, showScenery: false }} onRendererReady={(renderer, viewport) => { localViewportRef.current = viewport; setLocalRenderer(renderer); }} onViewportResize={(viewport) => { localViewportRef.current = viewport; }} />
+          <BattleBoardPanel className={styles.remoteBoardPanel} title={opponent?.displayName ?? remotePlayerLabel} dropBurst={claimedSymbol && claimedSymbol.winnerPlayerId !== user.userId ? claimedSymbol : null} towerHeightRatio={towerHeights.remote} toolbar={<BattleComboMeter count={snapshot.opponentCombo} effect={comboEffects.remote} hammerActive={!!hammerAttack && hammerAttack.attackerPlayerId !== user.userId} />} rendererConfig={{ coordinateWidth: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, coordinateHeight: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight, dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO, showScenery: false }} onRendererReady={(renderer, viewport) => { remoteViewportRef.current = viewport; setRemoteRenderer(renderer); }} onViewportResize={(viewport) => { remoteViewportRef.current = viewport; }} />
+          {hammerAttack ? <HammerAttackOverlay key={hammerAttack.attackId} event={hammerAttack} localPlayerId={user.userId} /> : null}
         </div>
         {showSharedTarget ? <div className={[styles.sharedTargetOtter, drainingSymbol ? styles.isDraining : ""].filter(Boolean).join(" ")} aria-label={`공유 목표 ${drainingSymbol?.symbol ?? snapshot.targetSymbol ?? "대기 중"}`}>
           <img src={letterOtter} alt="" draggable={false} />

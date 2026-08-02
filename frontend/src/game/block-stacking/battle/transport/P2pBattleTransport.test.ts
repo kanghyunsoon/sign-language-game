@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { GameDataChannel } from "../../../media/core/GameDataChannel";
-import { BATTLE_IDLE_REMOVAL_EFFECT_MS, BATTLE_IDLE_REMOVAL_TIMEOUT_MS, P2pBattleTransport } from "./P2pBattleTransport";
+import { P2pBattleTransport } from "./P2pBattleTransport";
 import type { ServerBattleMessage } from "./battleTransportTypes";
 
 describe("P2pBattleTransport 1:1", () => {
@@ -101,13 +101,11 @@ describe("P2pBattleTransport 1:1", () => {
     guest.disconnect();
   });
 
-  it("preselects one block per board and removes both after shared inactivity", async () => {
+  it("keeps both boards unchanged during shared inactivity", async () => {
     const [hostChannel, guestChannel] = pairedChannels("host", "guest");
     const host = new P2pBattleTransport(() => hostChannel, "host");
     const guest = new P2pBattleTransport(() => guestChannel, "guest");
-    const hostEvents: ServerBattleMessage[] = [];
     const guestEvents: ServerBattleMessage[] = [];
-    host.subscribe((event) => hostEvents.push(event));
     guest.subscribe((event) => guestEvents.push(event));
     const common = { url: "webrtc", roomId: "room-idle", hostPlayerId: "host", playerIds: ["host", "guest"] } as const;
     await host.connect({ ...common, playerId: "host" });
@@ -130,24 +128,74 @@ describe("P2pBattleTransport 1:1", () => {
     host.send({ type: "BOARD_SNAPSHOT", matchId: "room-idle", playerId: "host", sequence: 1, sentAt: Date.now(), bodies: [settledBody(hostSpawn.letterId, hostSpawn.symbol, .42, .78)] });
     guest.send({ type: "BOARD_SNAPSHOT", matchId: "room-idle", playerId: "guest", sequence: 1, sentAt: Date.now(), bodies: [settledBody(guestSpawn.letterId, guestSpawn.symbol, .58, .8)] });
 
-    await vi.advanceTimersByTimeAsync(BATTLE_IDLE_REMOVAL_TIMEOUT_MS - 1);
-    expect(guestEvents.some((event) => event.type === "IDLE_REMOVAL_SELECTED")).toBe(false);
-    await vi.advanceTimersByTimeAsync(1);
-    const selected = guestEvents.find((event) => event.type === "IDLE_REMOVAL_SELECTED");
-    expect(selected).toMatchObject({ targets: [
-      { playerId: "host", letterId: hostSpawn.letterId, normalizedX: .42, normalizedY: .78 },
-      { playerId: "guest", letterId: guestSpawn.letterId, normalizedX: .58, normalizedY: .8 },
-    ] });
-    expect(hostEvents.find((event) => event.type === "IDLE_REMOVAL_SELECTED")).toMatchObject(selected ?? {});
+    await vi.advanceTimersByTimeAsync(30_000);
+    guestEvents.length = 0;
+    guest.send({ type: "REQUEST_MATCH_STATE", commandId: "after-idle", matchId: "room-idle", occurredAt: Date.now() });
+    const snapshots = guestEvents.filter((event) => event.type === "BOARD_SNAPSHOT");
+    expect(snapshots.find((event) => event.playerId === "host")?.bodies).toContainEqual(expect.objectContaining({ id: hostSpawn.letterId }));
+    expect(snapshots.find((event) => event.playerId === "guest")?.bodies).toContainEqual(expect.objectContaining({ id: guestSpawn.letterId }));
+    host.disconnect();
+    guest.disconnect();
+  });
 
-    await vi.advanceTimersByTimeAsync(BATTLE_IDLE_REMOVAL_EFFECT_MS - 1);
-    expect(guestEvents.some((event) => event.type === "IDLE_REMOVAL_EXECUTED")).toBe(false);
-    await vi.advanceTimersByTimeAsync(1);
-    expect(guestEvents.find((event) => event.type === "IDLE_REMOVAL_EXECUTED")).toMatchObject({ targets: [
-      { playerId: "host", letterId: hostSpawn.letterId },
-      { playerId: "guest", letterId: guestSpawn.letterId },
-    ] });
-    expect(hostEvents.find((event) => event.type === "IDLE_REMOVAL_EXECUTED")).toBeTruthy();
+  it("resets a player's combo after a wrong answer", async () => {
+    const [hostChannel, guestChannel] = pairedChannels("host", "guest");
+    const host = new P2pBattleTransport(() => hostChannel, "host");
+    const guest = new P2pBattleTransport(() => guestChannel, "guest");
+    const events: ServerBattleMessage[] = [];
+    host.subscribe((event) => events.push(event));
+    const common = { url: "webrtc", roomId: "room-wrong", hostPlayerId: "host", playerIds: ["host", "guest"] } as const;
+    await host.connect({ ...common, playerId: "host" });
+    await guest.connect({ ...common, playerId: "guest" });
+    await vi.advanceTimersByTimeAsync(800);
+    const target = events.find((event) => event.type === "SHARED_TARGET");
+    if (!target || target.type !== "SHARED_TARGET") throw new Error("target missing");
+    host.send({ type: "CLAIM_SHARED_TARGET", commandId: "correct-1", matchId: "room-wrong", targetId: target.targetId, symbol: target.symbol, occurredAt: Date.now() });
+    expect(events.filter((event) => event.type === "COMBO_UPDATED" && event.playerId === "host").at(-1)).toMatchObject({ combo: 1, reason: "CORRECT" });
+    host.send({ type: "RESET_COMBO_COMMAND", commandId: "wrong-1", matchId: "room-wrong", reason: "WRONG_ANSWER", occurredAt: Date.now() });
+    expect(events.filter((event) => event.type === "COMBO_UPDATED" && event.playerId === "host").at(-1)).toMatchObject({ combo: 0, reason: "WRONG_ANSWER" });
+    host.disconnect();
+    guest.disconnect();
+  });
+
+  it("transfers a bottom opponent block after three consecutive answers", async () => {
+    const [hostChannel, guestChannel] = pairedChannels("host", "guest");
+    const host = new P2pBattleTransport(() => hostChannel, "host");
+    const guest = new P2pBattleTransport(() => guestChannel, "guest");
+    const events: ServerBattleMessage[] = [];
+    guest.subscribe((event) => events.push(event));
+    const common = { url: "webrtc", roomId: "room-hammer", hostPlayerId: "host", playerIds: ["host", "guest"] } as const;
+    await host.connect({ ...common, playerId: "host" });
+    await guest.connect({ ...common, playerId: "guest" });
+    await vi.advanceTimersByTimeAsync(800);
+
+    const first = events.find((event) => event.type === "SHARED_TARGET");
+    if (!first || first.type !== "SHARED_TARGET") throw new Error("first target missing");
+    guest.send({ type: "CLAIM_SHARED_TARGET", commandId: "guest-seed", matchId: "room-hammer", targetId: first.targetId, symbol: first.symbol, occurredAt: Date.now() });
+    const guestSpawn = events.find((event) => event.type === "SPAWN_LETTER" && event.playerId === "guest");
+    if (!guestSpawn || guestSpawn.type !== "SPAWN_LETTER") throw new Error("guest letter missing");
+    guest.send({ type: "BOARD_SNAPSHOT", matchId: "room-hammer", playerId: "guest", sequence: 1, sentAt: Date.now(), bodies: [settledBody(guestSpawn.letterId, guestSpawn.symbol, .44, .84)] });
+
+    for (let index = 0; index < 3; index += 1) {
+      await vi.advanceTimersByTimeAsync(1_150);
+      const target = events.filter((event) => event.type === "SHARED_TARGET").at(-1);
+      if (!target || target.type !== "SHARED_TARGET") throw new Error(`host target ${index + 1} missing`);
+      host.send({ type: "CLAIM_SHARED_TARGET", commandId: `host-streak-${index + 1}`, matchId: "room-hammer", targetId: target.targetId, symbol: target.symbol, occurredAt: Date.now() });
+    }
+
+    const hammer = events.find((event) => event.type === "HAMMER_ATTACK");
+    expect(hammer).toMatchObject({
+      attackerPlayerId: "host",
+      defenderPlayerId: "guest",
+      sourceCombo: 3,
+      victimLetterId: guestSpawn.letterId,
+      symbol: guestSpawn.symbol,
+      sourceNormalizedX: .44,
+      sourceNormalizedY: .84,
+      transferredLetterId: expect.any(String),
+    });
+    expect(events.filter((event) => event.type === "COMBO_UPDATED" && event.playerId === "host").at(-1)).toMatchObject({ combo: 0, maxCombo: 3, reason: "HAMMER_TRIGGERED" });
+    expect(events.filter((event) => event.type === "SPAWN_LETTER" && event.playerId === "host")).toHaveLength(3);
     host.disconnect();
     guest.disconnect();
   });

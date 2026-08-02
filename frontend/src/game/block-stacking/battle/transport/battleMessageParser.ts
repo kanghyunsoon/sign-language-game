@@ -1,6 +1,6 @@
 import type { BattleBodyTransform, BattleLetterState, ServerBattleMessage } from "./battleTransportTypes";
 
-const TYPES = new Set(["START_MATCH", "MATCH_STARTED", "GAME_START", "SHARED_TARGET", "SHARED_TARGET_CLAIMED", "IDLE_REMOVAL_SELECTED", "IDLE_REMOVAL_EXECUTED", "SPAWN_LETTER", "REMOVE_LETTER_ACCEPTED", "REMOVE_LETTER_REJECTED", "SCORE_UPDATED", "COMBO_UPDATED", "ATTACK_CREATED", "ATTACK_APPLIED", "MATCH_FINISHED", "RESULT_RECORDED", "PLAYER_DISCONNECTED", "PLAYER_RECONNECTED", "BODY_TRANSFORM_BATCH", "BOARD_SNAPSHOT", "LETTER_SPAWNED_SYNC", "LETTER_STATE_SYNC", "LETTER_REMOVED_SYNC", "OTTER_TRANSFER"]);
+const TYPES = new Set(["START_MATCH", "MATCH_STARTED", "GAME_START", "SHARED_TARGET", "SHARED_TARGET_CLAIMED", "SPAWN_LETTER", "REMOVE_LETTER_ACCEPTED", "REMOVE_LETTER_REJECTED", "SCORE_UPDATED", "COMBO_UPDATED", "ATTACK_CREATED", "ATTACK_APPLIED", "HAMMER_ATTACK", "MATCH_FINISHED", "RESULT_RECORDED", "PLAYER_DISCONNECTED", "PLAYER_RECONNECTED", "BODY_TRANSFORM_BATCH", "BOARD_SNAPSHOT", "LETTER_SPAWNED_SYNC", "LETTER_STATE_SYNC", "LETTER_REMOVED_SYNC", "OTTER_TRANSFER"]);
 const STATES = new Set<BattleLetterState>(["FALLING", "SETTLED", "REMOVING", "REMOVED"]);
 
 export class BattleMessageParseError extends Error {}
@@ -17,20 +17,17 @@ export function parseBattleMessage(data: string | unknown): ServerBattleMessage 
   if (type === "BODY_TRANSFORM_BATCH" || type === "BOARD_SNAPSHOT") array(message.bodies, "bodies").forEach(parseBody);
   if (type === "BOARD_SNAPSHOT" && message.boardChecksum !== undefined) string(message.boardChecksum, "boardChecksum");
   if (type === "SPAWN_LETTER" && message.normalizedY !== undefined) number(message.normalizedY, "normalizedY");
-  if (type === "IDLE_REMOVAL_SELECTED" || type === "IDLE_REMOVAL_EXECUTED") array(message.targets, "targets").forEach(parseIdleRemovalTarget);
+  if (type === "HAMMER_ATTACK" && message.victimLetterId !== undefined) {
+    string(message.victimLetterId, "victimLetterId");
+    string(message.transferredLetterId, "transferredLetterId");
+    string(message.symbol, "symbol");
+    number(message.sourceNormalizedX, "sourceNormalizedX");
+    number(message.sourceNormalizedY, "sourceNormalizedY");
+  }
   if (type === "LETTER_SPAWNED_SYNC") parseBody(object(message.body, "body"));
   if (type === "LETTER_STATE_SYNC" && !STATES.has(string(message.state, "state") as BattleLetterState)) throw new BattleMessageParseError("Invalid letter state.");
   validateRequired(message, type);
   return message as unknown as ServerBattleMessage;
-}
-
-function parseIdleRemovalTarget(value: unknown): void {
-  const target = object(value, "target");
-  string(target.playerId, "target.playerId");
-  string(target.letterId, "target.letterId");
-  string(target.symbol, "target.symbol");
-  number(target.normalizedX, "target.normalizedX");
-  number(target.normalizedY, "target.normalizedY");
 }
 
 function parseBody(value: unknown): BattleBodyTransform {
@@ -46,12 +43,11 @@ function validateRequired(message: Record<string, unknown>, type: string): void 
     MATCH_STARTED: ["matchId", "roomId", "playerIds", "startAt"], GAME_START: ["matchId", "roomId", "playerIds", "startAt"],
     SHARED_TARGET: ["matchId", "targetId", "symbol", "presentedAt"],
     SHARED_TARGET_CLAIMED: ["matchId", "targetId", "winnerPlayerId", "symbol", "score", "combo", "maxCombo", "removedCount", "acceptedAt"],
-    IDLE_REMOVAL_SELECTED: ["matchId", "removalId", "targets", "selectedAt", "executeAt"],
-    IDLE_REMOVAL_EXECUTED: ["matchId", "removalId", "targets", "executedAt"],
     SPAWN_LETTER: ["matchId", "playerId", "letterId", "spawnIndex", "symbol", "spawnAt", "normalizedX", "initialAngle"],
     REMOVE_LETTER_ACCEPTED: ["playerId", "letterId", "symbol", "score", "combo", "maxCombo", "removedCount", "acceptedAt"],
     REMOVE_LETTER_REJECTED: ["code", "message", "rejectedAt"], SCORE_UPDATED: ["playerId", "score"], COMBO_UPDATED: ["playerId", "combo", "maxCombo"],
     ATTACK_CREATED: ["attackId", "attackerPlayerId", "targetPlayerId", "attackType", "amount", "sourceCombo", "createdAt"], ATTACK_APPLIED: ["attackId", "attackerPlayerId", "targetPlayerId", "attackType", "amount", "sourceCombo", "createdAt"],
+    HAMMER_ATTACK: ["matchId", "attackId", "attackerPlayerId", "defenderPlayerId", "sourceCombo", "createdAt", "impactAt", "spawnAt"],
     MATCH_FINISHED: ["matchId", "reason", "finishedAt"], RESULT_RECORDED: ["matchId", "recordedAt"], PLAYER_DISCONNECTED: ["playerId"], PLAYER_RECONNECTED: ["playerId"],
     BODY_TRANSFORM_BATCH: ["matchId", "playerId", "sentAt", "bodies"], BOARD_SNAPSHOT: ["matchId", "playerId", "sentAt", "bodies"],
     LETTER_SPAWNED_SYNC: ["matchId", "playerId", "body"], LETTER_STATE_SYNC: ["matchId", "playerId", "letterId", "state"], LETTER_REMOVED_SYNC: ["matchId", "playerId", "letterId"],
