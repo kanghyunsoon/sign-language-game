@@ -228,6 +228,8 @@ describe("BattleWaitingRoomPage backend flow", () => {
     socket.emit({ type: "PEER_LEFT", payload: { userId: 1, newHostUserId: 2 } });
     expect(await screen.findByRole("button", { name: /게임 시작/ })).toBeTruthy();
     expect(await screen.findByText("1/2명")).toBeTruthy();
+    const leaveNotice = await screen.findByText("상대방이 방을 나갔습니다. 새 참가자를 기다릴게요.");
+    expect(leaveNotice.getAttribute("role")).toBe("status");
   });
 
   it("asks a returning player before resuming an active game", async () => {
