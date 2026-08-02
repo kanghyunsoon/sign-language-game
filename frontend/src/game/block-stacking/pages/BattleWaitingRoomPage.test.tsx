@@ -30,7 +30,31 @@ describe("BattleWaitingRoomPage backend flow", () => {
     const socket = new FakeRoomSocket();
     renderPage({ socket });
     await waitFor(() => expect(socket.connect).toHaveBeenCalledTimes(1));
-    expect(screen.getByText("Room WebSocket")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "지문자 대전방" })).toBeTruthy();
+    expect(socket.sendSignal).toHaveBeenCalledWith(expect.objectContaining({
+      signalType: "WAITING_PROFILE",
+      displayName: "나",
+      requestPeerProfile: true,
+    }));
+  });
+
+  it("shows the peer nickname received through the waiting-room signal", async () => {
+    const socket = new FakeRoomSocket();
+    renderPage({ detail: room({ full: true }), socket });
+    await waitFor(() => expect(socket.connect).toHaveBeenCalledTimes(1));
+
+    socket.emit({
+      type: "SIGNAL",
+      payload: { signalType: "WAITING_PROFILE", senderUserId: "2", displayName: "수달왕", requestPeerProfile: true },
+    });
+
+    expect(await screen.findByText("수달왕 님")).toBeTruthy();
+    expect(screen.getByText("수달왕")).toBeTruthy();
+    expect(socket.sendSignal).toHaveBeenCalledWith(expect.objectContaining({
+      signalType: "WAITING_PROFILE",
+      displayName: "나",
+      requestPeerProfile: false,
+    }));
   });
 
   it("reflects a lobby participant update without reload", async () => {
@@ -44,7 +68,7 @@ describe("BattleWaitingRoomPage backend flow", () => {
     });
     renderPage({ gateway: gateway({ subscribeRooms }) });
 
-    expect((await screen.findAllByText("2/2")).length).toBeGreaterThan(0);
+    expect(await screen.findByText("2/2명")).toBeTruthy();
     expect(subscribeRooms).toHaveBeenCalledTimes(1);
   });
 
@@ -203,7 +227,7 @@ describe("BattleWaitingRoomPage backend flow", () => {
     });
     socket.emit({ type: "PEER_LEFT", payload: { userId: 1, newHostUserId: 2 } });
     expect(await screen.findByRole("button", { name: /게임 시작/ })).toBeTruthy();
-    expect((await screen.findAllByText("1/2")).length).toBeGreaterThan(0);
+    expect(await screen.findByText("1/2명")).toBeTruthy();
   });
 
   it("asks a returning player before resuming an active game", async () => {
@@ -241,7 +265,7 @@ describe("BattleWaitingRoomPage backend flow", () => {
     const disconnect = vi.spyOn(media, "disconnect");
     renderPage({ gateway: gateway({ leaveRoom }), camera, media });
 
-    await screen.findByText("Room WebSocket");
+    await screen.findByRole("heading", { name: "지문자 대전방" });
     window.dispatchEvent(new PopStateEvent("popstate"));
 
     await waitFor(() => expect(leaveRoom).toHaveBeenCalledWith("1"));
@@ -255,7 +279,7 @@ describe("BattleWaitingRoomPage backend flow", () => {
     const setBattleRoomSession = vi.fn();
     renderPage({ gateway: gateway({ leaveRoom }), setBattleRoomSession });
 
-    await screen.findByText("Room WebSocket");
+    await screen.findByRole("heading", { name: "지문자 대전방" });
     window.dispatchEvent(new PopStateEvent("popstate"));
 
     await waitFor(() => expect(leaveRoom).toHaveBeenCalledWith("1"));
@@ -294,6 +318,7 @@ describe("BattleWaitingRoomPage backend flow", () => {
 class FakeRoomSocket {
   readonly connect = vi.fn(async () => undefined);
   readonly disconnect = vi.fn();
+  readonly sendSignal = vi.fn();
   private readonly listeners = new Set<(message: RoomServerMessage) => void>();
   subscribe(listener: (message: RoomServerMessage) => void): () => void {
     this.listeners.add(listener);

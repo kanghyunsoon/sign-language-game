@@ -139,8 +139,7 @@
 .waitingLobby .waitingProfile { top:clamp(20px,3vw,40px); right:clamp(20px,4vw,64px); min-width:104px; text-align:center; }
 .waitingLobby .waitingRoomHero { min-height:0; margin:72px 0 0; padding:16px 20px; }
 .waitingLobby .waitingLayout { min-height:0; height:100%; margin:0; grid-template-columns:minmax(0,1fr) minmax(230px,.28fr); gap:16px; overflow:hidden; }
-.waitingLobby .waitingStage { min-height:0; display:grid; grid-template-rows:auto minmax(0,1fr) auto; gap:10px; padding:13px; overflow:hidden; }
-.waitingLobby .waitingStage .connectionStrip { min-height:0; }
+.waitingLobby .waitingStage { min-height:0; display:grid; grid-template-rows:minmax(0,1fr) auto; gap:12px; padding:14px; overflow:hidden; }
 .waitingLobby .waitingStage .videoPair { min-height:0; grid-template-columns:repeat(2,minmax(0,1fr)); gap:58px; overflow:hidden; }
 .waitingLobby .waitingPlayerCard { min-height:0; height:100%; }
 .waitingLobby .waitingPlayerCard > :first-child { min-height:0; height:100%; overflow:hidden; border-radius:14px 14px 0 0; }
@@ -151,7 +150,10 @@
 .waitingLobby .waitingVs { width:52px; height:52px; }
 .waitingLobby .waitingFooter { min-height:44px; }
 .waitingLobby .waitingActions { margin:0; }
-.waitingLobby .waitingSettings { min-height:0; align-content:start; overflow:auto; }
+.waitingLobby .waitingSettings { min-height:0; align-self:start; align-content:start; overflow:hidden; }
+.waitingLobby .waitingSettings .roomFacts { gap:7px; }
+.waitingLobby .waitingSettings .roomFacts div { grid-template-columns:1fr auto; align-items:center; padding:12px; }
+.waitingLobby .waitingSettings .roomFacts dt,.waitingLobby .waitingSettings .roomFacts dd { margin:0; }
 .waitingLobby .startReason { min-height:0; margin:0; padding:9px 10px; border-radius:10px; background:#f8faf7; color:#88958c; font-size:.64rem; line-height:1.45; text-align:left; }
 @media (max-width:1100px) { .waitingLobby { padding-right:34px; padding-left:34px; }.waitingLobby .waitingStage .videoPair { gap:44px; }.waitingLobby .waitingLayout { grid-template-columns:minmax(0,1fr) 230px; }.waitingLobby .roomShare span { display:none; } }
 @media (max-width:900px) { .waitingLobby { height:auto; min-height:100dvh; overflow:auto; }.waitingLobby .waitingLayout { height:auto; overflow:visible; grid-template-columns:1fr; }.waitingLobby .waitingStage { min-height:610px; }.waitingLobby .waitingSettings { overflow:visible; }.waitingLobby .waitingRoomHero { align-items:flex-start; flex-direction:column; }.waitingLobby .roomShare span { display:inline-block; } }

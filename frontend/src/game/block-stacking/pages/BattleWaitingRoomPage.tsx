@@ -1,4 +1,4 @@
-import { ArrowLeft, Camera, CameraOff, Check, Copy, Link2, Play } from "lucide-react";
+import { ArrowLeft, Camera, CameraOff, Check, Copy, Play } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -46,7 +46,8 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   const [cameraEnabled, setCameraEnabled] = useState(
     () => sharedCameraSession.getVideoTrack()?.enabled ?? false,
   );
-  const [realtimeState, setRealtimeState] = useState<"CONNECTING" | "CONNECTED" | "ERROR">("CONNECTING");
+  const [peerDisplayName, setPeerDisplayName] = useState<string | null>(null);
+  const [, setRealtimeState] = useState<"CONNECTING" | "CONNECTED" | "ERROR">("CONNECTING");
   const [readyBusy, setReadyBusy] = useState(false);
   const [startingGame, setStartingGame] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -256,7 +257,20 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
           }
         })();
       }
+      if (message.type === "SIGNAL" && payloadString(message.payload, "signalType") === "WAITING_PROFILE") {
+        const senderUserId = payloadUserId(message.payload, "senderUserId");
+        const displayName = payloadString(message.payload, "displayName");
+        if (senderUserId && senderUserId !== user.userId && displayName) setPeerDisplayName(displayName);
+        if (payloadBoolean(message.payload, "requestPeerProfile")) {
+          try {
+            socket.sendSignal?.({ signalType: "WAITING_PROFILE", displayName: user.displayName, requestPeerProfile: false });
+          } catch {
+            // A profile label is cosmetic; room readiness remains authoritative.
+          }
+        }
+      }
       if (message.type === "PEER_LEFT") {
+        setPeerDisplayName(null);
         const current = roomRef.current;
         if (current) {
           const leftUserId = payloadUserId(message.payload);
@@ -317,6 +331,11 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
       .then(() => {
         setRealtimeState("CONNECTED");
         setError(null);
+        try {
+          socket.sendSignal?.({ signalType: "WAITING_PROFILE", displayName: user.displayName, requestPeerProfile: true });
+        } catch {
+          // The room remains usable even when the optional nickname signal is unavailable.
+        }
       })
       .catch((cause) => {
         setRealtimeState("ERROR");
@@ -331,7 +350,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
       // observe a participant disconnect during the transition to /play.
       if (!enteringGameRef.current) socket.disconnect();
     };
-  }, [gateway, roomId, services.roomRealtimeSocketFactory]);
+  }, [gateway, roomId, services.roomRealtimeSocketFactory, user.displayName, user.userId]);
 
   const startCameraPreview = async () => {
     try {
@@ -454,6 +473,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   const full = room ? room.playerCount >= room.maxPlayers : false;
   const canRequestStart = Boolean(isHost && full && room?.hostReady && room?.guestReady);
   const opponent = room?.participants.find((participant) => participant.userId !== user.userId) ?? null;
+  const opponentName = peerDisplayName ?? participantDisplayName(opponent?.displayName, opponent?.isHost ? room?.hostName : null);
   const copyText = async (value: string): Promise<void> => {
     try {
       await navigator.clipboard.writeText(value);
@@ -464,7 +484,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
 
   return (
     <main className={[styles.page, styles.waitingLobby].join(" ")}>
-      <button type="button" className={styles.waitingBack} onClick={() => void leaveRoom()} disabled={leaving} aria-label="목록으로 돌아가기">
+      <button type="button" className={styles.waitingBack} onClick={() => void leaveRoom()} disabled={leaving} aria-label="방 나가기">
         <ArrowLeft aria-hidden="true" size={18} />
       </button>
       <span className={styles.waitingProfile}>{user.displayName}</span>
@@ -479,24 +499,20 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
         </div>
         <div className={styles.roomShare}>
           <span>참가 코드 <strong>{room?.roomCode ?? "-"}</strong></span>
-          <button type="button" onClick={() => void copyText(room?.roomCode ?? "")} disabled={!room?.roomCode}><Copy aria-hidden="true" size={14} />코드 복사</button>
-          <button type="button" onClick={() => void copyText(window.location.href)}><Link2 aria-hidden="true" size={14} />초대 링크 복사</button>
+          <button type="button" onClick={() => void copyText(room?.roomCode ?? "")} disabled={!room?.roomCode}><Copy aria-hidden="true" size={14} />복사</button>
         </div>
       </header>
       {error ? <p className={styles.errorBanner} role="alert">{error}</p> : null}
       <div className={styles.waitingLayout}>
         <section className={[styles.videoArea, styles.waitingStage].join(" ")} aria-label="내 카메라 미리보기">
-          <div className={styles.connectionStrip} aria-live="polite">
-            <span><i>{realtimeState === "CONNECTED" ? "✓" : "·"}</i><small>Room WebSocket</small><strong>{realtimeState}</strong></span>
-            <span><i>{recognizer.getConnectionState() === "CONNECTED" ? "✓" : "·"}</i><small>AI 인식 모델</small><strong>{recognizer.getConnectionState()}</strong></span>
-            <span><i>{opponent ? "✓" : "·"}</i><small>상대 플레이어</small><strong>{opponent ? "입장 완료" : "입장 대기"}</strong></span>
-            <span><i>{cameraEnabled ? "✓" : "·"}</i><small>게임 준비</small><strong>{room?.currentUserReady ? "준비 완료" : "준비 중"}</strong></span>
-          </div>
           <div className={styles.videoPair}>
             <article className={styles.waitingPlayerCard}>
               {localStream
                 ? (
                   <HandCamera
+                    compact
+                    hideCompactStatus
+                    renderHandOverlay={false}
                     sharedStream={localStream}
                     autoStart
                     activePlayerSession={activePlayerSession}
@@ -513,10 +529,10 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
             <article className={styles.waitingPlayerCard}>
               <div className={styles.waitingOpponentPlaceholder} role="status">
                 <span>?</span>
-                <strong>{opponent ? `${opponent.displayName} 님이 입장했어요` : "상대방을 기다리고 있어요"}</strong>
-                <p>{opponent ? "상대가 준비를 마치면 게임을 시작할 수 있어요." : "친구에게 참가 코드나 초대 링크를 보내 보세요."}</p>
+                <strong>{opponentName ? `${opponentName} 님` : "상대를 기다리는 중"}</strong>
+                <p>{opponent ? "상대가 준비를 마치면 게임을 시작할 수 있어요." : "친구에게 참가 코드를 알려 주세요."}</p>
               </div>
-              <footer><strong>{opponent?.displayName ?? "플레이어 대기 중"}</strong><span>{opponent ? opponent.ready ? "준비 완료" : "준비 중" : "상대가 입장하면 게임이 시작됩니다."}</span></footer>
+              <footer><strong>{opponentName ?? "상대 대기 중"}</strong><span>{opponent ? opponent.ready ? "준비 완료" : "준비 중" : "상대가 입장하면 게임이 시작됩니다."}</span></footer>
             </article>
           </div>
           <div className={styles.waitingFooter}>
@@ -534,16 +550,11 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
           </div>
         </section>
         <aside className={[styles.waitingSidebar, styles.waitingSettings].join(" ")}>
-          <header><h2>방 설정</h2><span>{room ? waitingStatusLabel(room.status) : "확인 중"}</span></header>
+          <header><h2>게임 설정</h2><span>{room ? waitingStatusLabel(room.status) : "확인 중"}</span></header>
           <dl className={styles.roomFacts}>
-            <div><dt>게임</dt><dd>{mode === "TURN" ? "수달 턴 대전" : "프링글수"}</dd></div>
             <div><dt>출제 범위</dt><dd>{room ? symbolRangeLabel(room) : "-"}</dd></div>
-            <div><dt>최대 인원</dt><dd>{room ? `${room.maxPlayers}명` : "-"}</dd></div>
-            <div><dt>현재 인원</dt><dd>{room ? `${room.playerCount}/${room.maxPlayers}` : "-"}</dd></div>
+            <div><dt>참가 인원</dt><dd>{room ? `${room.playerCount}/${room.maxPlayers}명` : "-"}</dd></div>
           </dl>
-          <section className={styles.inviteTip}><strong>친구를 초대해 보세요.</strong><p>참가 코드나 초대 링크를 전달하면 바로 같은 대기실로 들어올 수 있어요.</p><button type="button" onClick={() => void copyText(window.location.href)}><Link2 aria-hidden="true" size={14} />초대 링크 복사</button></section>
-          <p className={styles.startReason}>{isHost ? canRequestStart ? "두 플레이어가 준비됐어요. 게임을 시작해 주세요." : "상대방 입장 후 준비를 완료해 주세요." : "준비 완료 후 방장의 시작을 기다려 주세요."}</p>
-          <button type="button" className={styles.leaveRoomButton} onClick={() => void leaveRoom()} disabled={leaving}>{leaving ? "나가는 중" : "방 나가기"}</button>
         </aside>
       </div>
       {rejoinPromptOpen ? <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-labelledby="battle-rejoin-title"><section className={styles.modal}><header><div><span>진행 중인 게임</span><h2 id="battle-rejoin-title">아직 진행 중인 게임이 있습니다.</h2></div></header><form onSubmit={(event) => { event.preventDefault(); setRejoinPromptOpen(false); void startRtcAndEnter(); }}><p>재입장 하시겠습니까?</p><div className={styles.modalActions}><button type="button" onClick={() => setRejoinPromptOpen(false)}>나중에</button><button type="submit" className={styles.primaryButton} disabled={startingGame}>재입장</button></div></form></section></div> : null}
@@ -560,6 +571,14 @@ function waitingStatusLabel(status: BattleRoomDetail["status"]): string {
   if (status === "WAITING" || status === "FULL") return "플레이어 대기 중";
   if (status === "PLAYING" || status === "COUNTDOWN") return "게임 진행 중";
   return "게임 종료";
+}
+
+function participantDisplayName(primary?: string, fallback?: string | null): string | null {
+  for (const value of [primary, fallback]) {
+    const name = value?.trim();
+    if (name && !["방장", "상대방", "프링글수 유저"].includes(name)) return name;
+  }
+  return null;
 }
 
 function payloadString(payload: unknown, key: string): string | null {
