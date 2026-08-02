@@ -25,6 +25,7 @@ type RoomDisplayMetadata = Pick<CreateRoomRequest, "title" | "difficulty" | "sym
 };
 const ROOM_DISPLAY_METADATA_KEY_PREFIX = "sudal:battle-room-display:";
 const ROOM_DISPLAY_METADATA_UPDATED_EVENT = "sudal:battle-room-display-updated";
+const ROOM_DISPLAY_METADATA_CHANNEL_PREFIX = "sudal:battle-room-display-channel:";
 const DEFAULT_ROOM_TITLE = "프링글수 대전방";
 const DEFAULT_HOST_NAME = "프링글수 유저";
 
@@ -48,6 +49,7 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   private lobbyStarted = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private displayMetadataSyncStarted = false;
+  private displayMetadataChannel: BroadcastChannel | null = null;
 
   constructor(private readonly options: SwaggerRoomGatewayOptions) {
     this.restoreDisplayMetadata();
@@ -120,6 +122,7 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
         roomCode: room.roomCode,
       });
       this.persistDisplayMetadata();
+      this.publishDisplayMetadata(room.id);
       const session = this.remember(room);
       // The lobby SSE can announce the new room before the create response
       // arrives. Re-publish now that its creator metadata is available so the
@@ -156,6 +159,7 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
       roomCode: this.roomCache.get(id)?.roomCode ?? this.roomDisplayMetadata.get(id)?.roomCode,
     });
     this.persistDisplayMetadata();
+    this.publishDisplayMetadata(id);
     this.emitRooms();
   }
 
@@ -297,6 +301,10 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
     this.displayMetadataSyncStarted = true;
     window.addEventListener("storage", this.handleDisplayMetadataStorage);
     window.addEventListener(ROOM_DISPLAY_METADATA_UPDATED_EVENT, this.handleLocalDisplayMetadataUpdate);
+    if (typeof BroadcastChannel !== "undefined") {
+      this.displayMetadataChannel = new BroadcastChannel(this.displayMetadataChannelName());
+      this.displayMetadataChannel.addEventListener("message", this.handleDisplayMetadataMessage);
+    }
   }
 
   private stopDisplayMetadataSync(): void {
@@ -304,6 +312,9 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
     this.displayMetadataSyncStarted = false;
     window.removeEventListener("storage", this.handleDisplayMetadataStorage);
     window.removeEventListener(ROOM_DISPLAY_METADATA_UPDATED_EVENT, this.handleLocalDisplayMetadataUpdate);
+    this.displayMetadataChannel?.removeEventListener("message", this.handleDisplayMetadataMessage);
+    this.displayMetadataChannel?.close();
+    this.displayMetadataChannel = null;
   }
 
   private readonly handleDisplayMetadataStorage = (event: StorageEvent): void => {
@@ -315,6 +326,16 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
     const detail = (event as CustomEvent<{ readonly key?: string }>).detail;
     if (!this.isDisplayMetadataStorageKey(detail?.key ?? null)) return;
     this.reloadDisplayMetadataAndEmit();
+  };
+
+  private readonly handleDisplayMetadataMessage = (event: MessageEvent<unknown>): void => {
+    const data = event.data;
+    if (typeof data !== "object" || data === null || Array.isArray(data)) return;
+    const record = data as Record<string, unknown>;
+    if (!Number.isSafeInteger(record.roomId) || !isRoomDisplayMetadata(record.metadata)) return;
+    this.roomDisplayMetadata.set(record.roomId as number, record.metadata);
+    this.persistDisplayMetadata();
+    this.emitRooms();
   };
 
   private reloadDisplayMetadataAndEmit(): void {
@@ -380,6 +401,18 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
     return `${ROOM_DISPLAY_METADATA_KEY_PREFIX}${this.options.gameType ?? "TETRIS_DUEL"}`;
   }
 
+  private displayMetadataChannelName(): string {
+    return `${ROOM_DISPLAY_METADATA_CHANNEL_PREFIX}${this.options.gameType ?? "TETRIS_DUEL"}`;
+  }
+
+  private publishDisplayMetadata(roomId: number): void {
+    const metadata = this.roomDisplayMetadata.get(roomId);
+    if (!metadata || typeof BroadcastChannel === "undefined") return;
+    const channel = this.displayMetadataChannel ?? new BroadcastChannel(this.displayMetadataChannelName());
+    channel.postMessage({ roomId, metadata });
+    if (channel !== this.displayMetadataChannel) channel.close();
+  }
+
   private displayMetadataRoomStorageKey(roomId: number): string {
     return `${this.displayMetadataStorageKey()}:room:${roomId}`;
   }
@@ -426,8 +459,11 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   }
 
   private findDisplayMetadata(roomId: number, roomCode: string): RoomDisplayMetadata | undefined {
-    return this.roomDisplayMetadata.get(roomId)
-      ?? [...this.roomDisplayMetadata.values()].find((metadata) => metadata.roomCode === roomCode);
+    const direct = this.roomDisplayMetadata.get(roomId);
+    // Numeric room ids can be reused after a room is destroyed. Never apply
+    // the previous room's title/host to a new invitation code with that id.
+    if (direct && (!direct.roomCode || direct.roomCode === roomCode)) return direct;
+    return [...this.roomDisplayMetadata.values()].find((metadata) => metadata.roomCode === roomCode);
   }
 }
 

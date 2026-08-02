@@ -46,6 +46,9 @@ export const GLYPH_COLLISION_TUNING: Readonly<Partial<Record<string, GlyphCollis
 export const GLYPH_COLLIDER_GAP_PX = 0;
 export const GLYPH_SOURCE_FONT_SIZE = 200;
 export const GLYPH_DISPLAY_FONT_RATIO = 1;
+export const GAME_GLYPH_FILL_COLOR = "#f4fbff";
+export const GAME_GLYPH_STROKE_COLOR = "#5b432f";
+export const GAME_GLYPH_STROKE_WIDTH = 10;
 
 const FONT_SIZE = GLYPH_SOURCE_FONT_SIZE;
 /**
@@ -135,16 +138,19 @@ export function createGlyphRaster(symbol: string): GlyphRaster {
   const displayHeight = Math.max(1, Math.ceil(
     displayMetrics.actualBoundingBoxAscent + displayMetrics.actualBoundingBoxDescent,
   ));
-  const displayPadding = RASTER_PADDING + 2;
+  // Leave enough source-space for the outline before the artwork is scaled
+  // back into the existing collision box. Physics stays unchanged, while
+  // adjacent glyphs remain visually separable when a tower gets crowded.
+  const displayPadding = RASTER_PADDING + 8;
   source.width = displayWidth + displayPadding * 2;
   source.height = displayHeight + displayPadding * 2;
   const drawingContext = source.getContext("2d");
   if (!drawingContext) throw new Error("Could not resize the glyph source context");
   drawingContext.font = DISPLAY_FONT;
-  drawingContext.fillStyle = "#f4fbff";
-  drawingContext.strokeStyle = "#f4fbff";
+  drawingContext.fillStyle = GAME_GLYPH_FILL_COLOR;
+  drawingContext.strokeStyle = GAME_GLYPH_STROKE_COLOR;
   drawingContext.lineJoin = "round";
-  drawingContext.lineWidth = 2;
+  drawingContext.lineWidth = GAME_GLYPH_STROKE_WIDTH;
   drawingContext.textAlign = "left";
   drawingContext.textBaseline = "alphabetic";
   const drawX = displayPadding + displayMetrics.actualBoundingBoxLeft;
@@ -156,10 +162,10 @@ export function createGlyphRaster(symbol: string): GlyphRaster {
   context.imageSmoothingQuality = "high";
   context.drawImage(
     source,
-    displayPadding,
-    displayPadding,
-    displayWidth,
-    displayHeight,
+    0,
+    0,
+    source.width,
+    source.height,
     RASTER_PADDING,
     RASTER_PADDING,
     metrics.inkWidth,

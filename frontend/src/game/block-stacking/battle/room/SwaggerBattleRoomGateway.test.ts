@@ -253,6 +253,91 @@ describe("SwaggerBattleRoomGateway", () => {
     ]);
   });
 
+  it("pushes creator metadata to an already-open opponent tab without a refresh", async () => {
+    const values = new Map<string, string>();
+    const localStorage = {
+      get length() { return values.size; },
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+      key: (index: number) => [...values.keys()][index] ?? null,
+    };
+    vi.stubGlobal("window", {
+      localStorage,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    });
+
+    const peers = new Map<string, Set<FakeBroadcastChannel>>();
+    class FakeBroadcastChannel {
+      readonly listeners = new Set<(event: MessageEvent<unknown>) => void>();
+      constructor(readonly name: string) {
+        const members = peers.get(name) ?? new Set<FakeBroadcastChannel>();
+        members.add(this);
+        peers.set(name, members);
+      }
+      addEventListener(_type: string, listener: (event: MessageEvent<unknown>) => void): void { this.listeners.add(listener); }
+      removeEventListener(_type: string, listener: (event: MessageEvent<unknown>) => void): void { this.listeners.delete(listener); }
+      postMessage(data: unknown): void {
+        for (const peer of peers.get(this.name) ?? []) {
+          if (peer !== this) for (const listener of peer.listeners) listener({ data } as MessageEvent<unknown>);
+        }
+      }
+      close(): void { peers.get(this.name)?.delete(this); }
+    }
+    vi.stubGlobal("BroadcastChannel", FakeBroadcastChannel);
+
+    const guest = createGateway(vi.fn(), { userId: "2", displayName: "guest" });
+    const guestState = guest as unknown as {
+      lobbyCache: Map<number, unknown>;
+    };
+    guestState.lobbyCache.set(10, {
+      id: 10, roomCode: "ABC123", status: "WAITING",
+      participantCount: 1, capacity: 2, gameType: "TETRIS_DUEL",
+      title: "프링글수 대전방", hostName: "프링글수 유저",
+    });
+    const snapshots: Array<readonly { title: string; hostName: string }[]> = [];
+    const unsubscribe = guest.subscribeRooms((rooms) => snapshots.push(rooms));
+
+    const creator = createGateway(vi.fn(async () => response(room())), { userId: "1", displayName: "방장닉네임" });
+    await creator.createRoom({ title: "직접 입력한 방 제목", difficulty: "CONSONANTS", symbolRange: ["ㄱ"] });
+
+    expect(snapshots.at(-1)).toEqual([
+      expect.objectContaining({ title: "직접 입력한 방 제목", hostName: "방장닉네임" }),
+    ]);
+    unsubscribe();
+  });
+
+  it("does not reuse stale metadata when a destroyed room id gets a new invitation code", () => {
+    const values = new Map<string, string>([[
+      "sudal:battle-room-display:TETRIS_DUEL",
+      JSON.stringify([[10, {
+        title: "예전 방", hostName: "예전 방장", difficulty: "CONSONANTS",
+        symbolRange: ["ㄱ"], roomCode: "OLD123",
+      }]]),
+    ]]);
+    vi.stubGlobal("window", {
+      localStorage: {
+        get length() { return values.size; },
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => values.set(key, value),
+        key: (index: number) => [...values.keys()][index] ?? null,
+      },
+    });
+    const gateway = createGateway(vi.fn());
+    const state = gateway as unknown as {
+      lobbyCache: Map<number, unknown>;
+      currentRooms(): readonly { title: string; hostName: string }[];
+    };
+    state.lobbyCache.set(10, {
+      id: 10, roomCode: "NEW456", status: "WAITING",
+      participantCount: 1, capacity: 2, gameType: "TETRIS_DUEL",
+    });
+
+    expect(state.currentRooms()[0]).not.toMatchObject({ title: "예전 방", hostName: "예전 방장" });
+  });
+
   it("merges stale gateway metadata instead of erasing another room", async () => {
     const values = new Map<string, string>();
     const localStorage = {

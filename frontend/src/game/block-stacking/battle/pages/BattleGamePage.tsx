@@ -34,6 +34,7 @@ import { createDevAuthHeaders } from "../../../app/devAuthHeaders";
 import { BattleResultClient, BattleResultRequestError } from "../../../results/BattleResultClient";
 import { submitBattleResult } from "../../../results/BattleResultSubmission";
 import { BattleRoomRecoveryCancelledError, isMissingOrForbiddenRoom, recoverBattleRoom } from "../core/BattleRoomRecovery";
+import { consumeBattleRefreshExit, markBattlePageUnload } from "../core/BattleRefreshExit";
 
 const INITIAL: BattleControllerSnapshot = { state: "IDLE", gameConnectionState: "DISCONNECTED", aiConnectionState: "DISCONNECTED", countdownMs: 0, reconnectDeadlineAt: null, score: 0, combo: 0, opponentCombo: 0, maxCombo: 0, removedCount: 0, targetSymbol: null, prediction: null, message: "Waiting for board initialization.", result: null };
 const BATTLE_CANVAS_WIDTH = 1680;
@@ -55,6 +56,7 @@ const BATTLE_RECOGNITION_RATE_CONFIG = Object.freeze({
 export function BattleGamePage() {
   const { roomId = "" } = useParams(); const navigate = useNavigate();
   const { user, accessToken, config, services, battleMediaSession, sharedCameraSession, activePlayerSession, battleRoomSession, setBattleRoomSession } = useGameModuleContext();
+  const [refreshExitRequired] = useState(() => Boolean(roomId) && consumeBattleRefreshExit(roomId));
   const transport = useMemo(() => services.battleGameTransportFactory.create(roomId), [roomId, services]);
   const resultClient = useMemo(() => new BattleResultClient({ apiBaseUrl: config.roomApiBaseUrl, userId: user.userId, headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : createDevAuthHeaders(user) }), [accessToken, config.roomApiBaseUrl, user]);
   const recognizer = useMemo(() => new PythonWebSocketSignRecognizer({ url: config.aiWebSocketUrl, aiInferenceFps: BATTLE_RECOGNITION_RATE_CONFIG.aiInferenceFps, decoderConfig: RESPONSIVE_GAMEPLAY_SIGN_DECODER_CONFIG }), [config.aiWebSocketUrl]);
@@ -154,6 +156,49 @@ export function BattleGamePage() {
   useEffect(() => battleMediaSession.subscribe(refreshMedia), [battleMediaSession, refreshMedia]);
 
   useEffect(() => {
+    if (!roomId || finalResultRef.current) return;
+    const handlePageUnload = () => {
+      if (finalResultRef.current) return;
+      markBattlePageUnload(roomId);
+      // Best effort only: the next page load also performs an authenticated
+      // leave. keepalive makes the room disappear sooner for other players.
+      const leaveUrl = `${config.roomApiBaseUrl.replace(/\/$/, "")}/game-rooms/${encodeURIComponent(roomId)}/leave?userId=${encodeURIComponent(user.userId)}`;
+      void fetch(leaveUrl, {
+        method: "POST",
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : createDevAuthHeaders(user),
+        keepalive: true,
+      }).catch(() => undefined);
+    };
+    window.addEventListener("beforeunload", handlePageUnload);
+    window.addEventListener("pagehide", handlePageUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handlePageUnload);
+      window.removeEventListener("pagehide", handlePageUnload);
+    };
+  }, [accessToken, config.roomApiBaseUrl, roomId, user]);
+
+  useEffect(() => {
+    if (!refreshExitRequired || !roomId || exitInFlightRef.current) return;
+    exitInFlightRef.current = true;
+    void (async () => {
+      try {
+        await services.battleRoomGateway.leaveRoom(roomId);
+      } catch {
+        // The unload keepalive may already have removed this participant.
+      } finally {
+        await Promise.allSettled([
+          battleMediaSession.disconnect(),
+          sharedCameraSession.stop(),
+        ]);
+        activePlayerSession?.clearRegistration();
+        setBattleRoomSession(null);
+        navigate("/game/battle", { replace: true });
+      }
+    })();
+  }, [activePlayerSession, battleMediaSession, navigate, refreshExitRequired, roomId, services.battleRoomGateway, setBattleRoomSession, sharedCameraSession]);
+
+  useEffect(() => {
+    if (refreshExitRequired) return;
     if (battleMediaSession.getConnectionState() === "CONNECTED") {
       recoveredMediaRoomRef.current = roomId;
       setMediaReady(true);
@@ -219,12 +264,12 @@ export function BattleGamePage() {
   // Re-run only when media changes state: a FAILED mesh session must be
   // recreated from the authoritative PLAYING room rather than leaving this
   // page permanently gated after a transient ICE/DataChannel failure.
-  }, [battleMediaSession, battleRoomSession, navigate, refreshMedia, roomId, rtcState, services.battleRoomGateway, setBattleRoomSession, sharedCameraSession]);
+  }, [battleMediaSession, battleRoomSession, navigate, refreshExitRequired, refreshMedia, roomId, rtcState, services.battleRoomGateway, setBattleRoomSession, sharedCameraSession]);
 
   useEffect(() => { const track = sharedCameraSession.getVideoTrack(); const update = () => setCameraState(track?.readyState === "live" && track.enabled ? "CONNECTED" : "DISCONNECTED"); update(); if (!track) return; track.addEventListener("ended", update); track.addEventListener("mute", update); track.addEventListener("unmute", update); return () => { track.removeEventListener("ended", update); track.removeEventListener("mute", update); track.removeEventListener("unmute", update); }; }, [sharedCameraSession]);
 
   useEffect(() => {
-    if (!localRenderer || !remoteRenderer || !roomId || !mediaReady) return;
+    if (refreshExitRequired || !localRenderer || !remoteRenderer || !roomId || !mediaReady) return;
     const physics = new MatterPhysicsWorld({
       ...DEFAULT_PHYSICS_CONFIG,
       width: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth,
@@ -280,7 +325,7 @@ export function BattleGamePage() {
     };
     remoteLoopRef.current = requestAnimationFrame(renderRemote);
     return () => { if (remoteLoopRef.current !== null) cancelAnimationFrame(remoteLoopRef.current); if (claimEffectTimerRef.current !== null) window.clearTimeout(claimEffectTimerRef.current); if (drainEffectTimerRef.current !== null) window.clearTimeout(drainEffectTimerRef.current); if (hammerEffectTimerRef.current !== null) window.clearTimeout(hammerEffectTimerRef.current); remoteLoopRef.current = null; unsubscribe(); controller.dispose(); controllerRef.current = null; localRuntimeRef.current = null; remote.clear(); };
-  }, [accessToken, battleRoomSession?.activeMatchId, config.gameWebSocketUrl, localRenderer, mediaReady, recognizer, remoteRenderer, replica, roomId, transport, user]);
+  }, [accessToken, battleRoomSession?.activeMatchId, config.gameWebSocketUrl, localRenderer, mediaReady, recognizer, refreshExitRequired, remoteRenderer, replica, roomId, transport, user]);
 
   useEffect(() => {
     let frame = 0;
@@ -411,6 +456,7 @@ export function BattleGamePage() {
           <BattleBoardPanel title={user.displayName} dropBurst={claimedSymbol?.winnerPlayerId === user.userId ? claimedSymbol : null} towerHeightRatio={towerHeights.local} toolbar={<BattleComboMeter count={snapshot.combo} effect={comboEffects.local} hammerActive={hammerAttack?.attackerPlayerId === user.userId} />} rendererConfig={{ coordinateWidth: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, coordinateHeight: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight, dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO, showScenery: false }} onRendererReady={(renderer, viewport) => { localViewportRef.current = viewport; setLocalRenderer(renderer); }} onViewportResize={(viewport) => { localViewportRef.current = viewport; }} />
           <BattleBoardPanel className={styles.remoteBoardPanel} title={remoteDisplayName} dropBurst={claimedSymbol && claimedSymbol.winnerPlayerId !== user.userId ? claimedSymbol : null} towerHeightRatio={towerHeights.remote} toolbar={<BattleComboMeter count={snapshot.opponentCombo} effect={comboEffects.remote} hammerActive={!!hammerAttack && hammerAttack.attackerPlayerId !== user.userId} />} rendererConfig={{ coordinateWidth: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, coordinateHeight: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight, dangerLineY: BATTLE_DANGER_LINE_Y, dangerLineRatio: BATTLE_DANGER_LINE_RATIO, showScenery: false }} onRendererReady={(renderer, viewport) => { remoteViewportRef.current = viewport; setRemoteRenderer(renderer); }} onViewportResize={(viewport) => { remoteViewportRef.current = viewport; }} />
           {hammerAttack ? <HammerAttackOverlay key={hammerAttack.attackId} event={hammerAttack} localPlayerId={user.userId} /> : null}
+          {snapshot.state === "COUNTDOWN" ? <div className={styles.countdown}>{Math.max(1, Math.ceil(snapshot.countdownMs / 1000))}</div> : null}
         </div>
         {showSharedTarget ? <div className={[styles.sharedTargetOtter, drainingSymbol ? styles.isDraining : ""].filter(Boolean).join(" ")} aria-label={`공유 목표 ${drainingSymbol?.symbol ?? snapshot.targetSymbol ?? "대기 중"}`}>
           <img src={letterOtter} alt="" draggable={false} />
@@ -432,7 +478,6 @@ export function BattleGamePage() {
         </section>
       </aside>
     </div>
-    {snapshot.state === "COUNTDOWN" ? <div className={styles.countdown}>{Math.max(1, Math.ceil(snapshot.countdownMs / 1000))}</div> : null}
     <BattleResultModal result={finalResult} playerId={user.userId} busy={resultBusy} readyForRematch={resultRecorded} error={resultError} onReturnToWaiting={() => void returnToWaiting()} onRoomList={() => void leaveBattle("/game/battle")} />
   </main>;
 }

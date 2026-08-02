@@ -1687,6 +1687,21 @@
   filter: drop-shadow(0 5px 0 rgba(81, 57, 43, .18));
 }
 
+/* The countdown belongs to the shared board, not the full viewport (which
+   also includes the camera rail). Keeping it inside duelBoards centers 3-2-1
+   exactly between the two play fields. */
+.battleFixedPage .duelBoards > .countdown {
+  z-index: 30;
+  font-size: 86px;
+  color: #ef5f80;
+  text-shadow:
+    -4px -4px 0 #fffdf5,
+    4px -4px 0 #fffdf5,
+    -4px 4px 0 #fffdf5,
+    4px 4px 0 #fffdf5,
+    0 9px 18px rgba(93, 67, 49, .22);
+}
+
 @media (prefers-reduced-motion:reduce) {
   .battleFixedPage .hammerOtter > i,.battleFixedPage .hammerVictim,.battleFixedPage .hammerImpact,.battleFixedPage .comboSlots i,.battleFixedPage .hammerAttackBanner { animation-duration:.01ms!important; animation-iteration-count:1!important; }
 }
