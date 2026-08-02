@@ -32,7 +32,7 @@ type OtterZone = "none" | "left" | "right";
 type OtterDirection = "left-to-right" | "right-to-left";
 type OtterTransfer = { readonly symbol: string; readonly direction: OtterDirection; readonly phase: "carry" | "throw" } | null;
 
-const INITIAL: BattleControllerSnapshot = { state: "IDLE", gameConnectionState: "DISCONNECTED", aiConnectionState: "DISCONNECTED", countdownMs: 0, reconnectDeadlineAt: null, score: 0, combo: 0, maxCombo: 0, removedCount: 0, targetSymbol: null, prediction: null, message: "게임을 준비하고 있습니다.", result: null };
+const INITIAL: BattleControllerSnapshot = { state: "IDLE", gameConnectionState: "DISCONNECTED", aiConnectionState: "DISCONNECTED", countdownMs: 0, reconnectDeadlineAt: null, score: 0, combo: 0, opponentCombo: 0, maxCombo: 0, removedCount: 0, targetSymbol: null, prediction: null, message: "게임을 준비하고 있습니다.", result: null };
 
 export function BattleBotPracticePage() {
   const navigate = useNavigate();

@@ -1,4 +1,7 @@
+@import url("https://fonts.googleapis.com/css2?family=Jua&display=swap");
+
 :root {
+  --game-glyph-font: "Jua", "Noto Sans KR", "Malgun Gothic", sans-serif;
   font-family: Inter, Pretendard, "Noto Sans KR", system-ui, sans-serif;
   color: #17324d;
   background: #dceefa;

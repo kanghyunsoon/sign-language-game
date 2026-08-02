@@ -48,7 +48,15 @@ export const GLYPH_SOURCE_FONT_SIZE = 200;
 export const GLYPH_DISPLAY_FONT_RATIO = 1;
 
 const FONT_SIZE = GLYPH_SOURCE_FONT_SIZE;
-const FONT = `700 ${FONT_SIZE}px "Noto Sans KR", "Malgun Gothic", sans-serif`;
+/**
+ * Keep measuring against the original game font so the hand-tuned collision
+ * rectangles and every existing spawn/board ratio remain unchanged. The
+ * visible glyph is drawn with the rounder display font and normalized into
+ * this reference ink box below.
+ */
+const COLLISION_REFERENCE_FONT = `700 ${FONT_SIZE}px "Noto Sans KR", "Malgun Gothic", sans-serif`;
+export const GAME_GLYPH_FONT_FAMILY = "Jua";
+const DISPLAY_FONT = `400 ${FONT_SIZE}px "${GAME_GLYPH_FONT_FAMILY}", "Noto Sans KR", "Malgun Gothic", sans-serif`;
 const RASTER_PADDING = 4;
 const COLLISION_CELL_SIZE = 8;
 const COLLISION_ALPHA_THRESHOLD = 0.025;
@@ -67,7 +75,13 @@ declare global {
 }
 
 export async function prepareGameGlyphFont(): Promise<void> {
-  return Promise.resolve();
+  if (typeof document === "undefined" || !document.fonts) return;
+  try {
+    await document.fonts.load(`400 ${FONT_SIZE}px "${GAME_GLYPH_FONT_FAMILY}"`);
+  } catch {
+    // The fallback font still keeps the game playable when the webfont cannot
+    // be fetched (for example, in an offline classroom environment).
+  }
 }
 
 export async function primeGlyphCollisionCache(symbols: readonly string[]): Promise<void> {
@@ -88,7 +102,7 @@ export function getGlyphRasterMetrics(symbol: string): GlyphRasterMetrics {
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
   if (!context) return fallbackMetrics(symbol);
-  context.font = FONT;
+  context.font = COLLISION_REFERENCE_FONT;
   const measured = context.measureText(symbol);
   const inkWidth = Math.max(1, Math.ceil(measured.actualBoundingBoxLeft + measured.actualBoundingBoxRight));
   const inkHeight = Math.max(1, Math.ceil(measured.actualBoundingBoxAscent + measured.actualBoundingBoxDescent));
@@ -107,15 +121,49 @@ export function createGlyphRaster(symbol: string): GlyphRaster {
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Could not create a glyph canvas context");
 
-  context.font = FONT;
-  const measured = context.measureText(symbol);
-  context.fillStyle = "#f4fbff";
-  context.textAlign = "left";
-  context.textBaseline = "alphabetic";
-  context.fillText(
-    symbol,
-    RASTER_PADDING + measured.actualBoundingBoxLeft,
-    RASTER_PADDING + measured.actualBoundingBoxAscent,
+  // Rasterize the friendly display face separately, then fit it into the
+  // original collision ink box. This changes only the artwork: physics body
+  // size, tuned collision rectangles, and solo/battle board scale stay exact.
+  const source = document.createElement("canvas");
+  const sourceContext = source.getContext("2d");
+  if (!sourceContext) throw new Error("Could not create a glyph source context");
+  sourceContext.font = DISPLAY_FONT;
+  const displayMetrics = sourceContext.measureText(symbol);
+  const displayWidth = Math.max(1, Math.ceil(
+    displayMetrics.actualBoundingBoxLeft + displayMetrics.actualBoundingBoxRight,
+  ));
+  const displayHeight = Math.max(1, Math.ceil(
+    displayMetrics.actualBoundingBoxAscent + displayMetrics.actualBoundingBoxDescent,
+  ));
+  const displayPadding = RASTER_PADDING + 2;
+  source.width = displayWidth + displayPadding * 2;
+  source.height = displayHeight + displayPadding * 2;
+  const drawingContext = source.getContext("2d");
+  if (!drawingContext) throw new Error("Could not resize the glyph source context");
+  drawingContext.font = DISPLAY_FONT;
+  drawingContext.fillStyle = "#f4fbff";
+  drawingContext.strokeStyle = "#f4fbff";
+  drawingContext.lineJoin = "round";
+  drawingContext.lineWidth = 2;
+  drawingContext.textAlign = "left";
+  drawingContext.textBaseline = "alphabetic";
+  const drawX = displayPadding + displayMetrics.actualBoundingBoxLeft;
+  const drawY = displayPadding + displayMetrics.actualBoundingBoxAscent;
+  drawingContext.strokeText(symbol, drawX, drawY);
+  drawingContext.fillText(symbol, drawX, drawY);
+
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+  context.drawImage(
+    source,
+    displayPadding,
+    displayPadding,
+    displayWidth,
+    displayHeight,
+    RASTER_PADDING,
+    RASTER_PADDING,
+    metrics.inkWidth,
+    metrics.inkHeight,
   );
   return { ...metrics, canvas };
 }
