@@ -2,14 +2,18 @@ package backend.ssafy.suhwa.gameresult.service;
 
 import backend.ssafy.suhwa.gameresult.domain.GameResult;
 import backend.ssafy.suhwa.gameresult.domain.GameResultType;
+import backend.ssafy.suhwa.gameresult.dto.DuelSelfAggregate;
+import backend.ssafy.suhwa.gameresult.dto.RankedPlayer;
 import backend.ssafy.suhwa.gameresult.repository.GameResultRepository;
-import backend.ssafy.suhwa.gameresult.dto.DuelAggregate;
-import backend.ssafy.suhwa.gameresult.dto.SoloBestScore;
+import backend.ssafy.suhwa.gameresult.repository.GameResultRepository.DuelSelfRow;
+import backend.ssafy.suhwa.gameresult.repository.GameResultRepository.RankedRow;
 import backend.ssafy.suhwa.growth.config.GrowthPolicyProperties;
 import backend.ssafy.suhwa.growth.domain.UserPet;
 import backend.ssafy.suhwa.growth.service.GrowthRewardService;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,12 +61,45 @@ public class GameResultService {
         growthRewardService.rewardLocked(loserPet, policy.getDuelLoserExp());
     }
 
-    public List<SoloBestScore> findBestScoresByGameType(GameResultType gameType) {
-        return gameResultRepository.findBestScoresByGameType(gameType);
+    /**
+     * 랭킹 집계 — SQL GROUP BY/ORDER BY/LIMIT + 커버링 인덱스로 처리한다(RankingService 참고).
+     * 리포지토리 프로젝션(GameResultRepository.RankedRow/DuelSelfRow)은 이 서비스 밖으로 내보내지
+     * 않는다 — 다른 모듈이 리포지토리 타입에 의존하면 모듈 경계 규칙(FR-020, ModuleBoundaryTest)에
+     * 걸리므로, 여기서 gameresult.dto 타입으로 옮겨 담아 반환한다.
+     */
+    public List<RankedPlayer> findDuelTopRanked(GameResultType gameType, Pageable topN) {
+        return gameResultRepository.findDuelTopRanked(gameType.name(), topN).stream()
+                .map(this::toRankedPlayer)
+                .toList();
     }
 
-    /** 랭킹 집계 원본 — 대전 유저별 승수/전체 판수. DB에서 SUM/COUNT까지 집계해 돌려준다. */
-    public List<DuelAggregate> findDuelAggregatesByGameType(GameResultType gameType) {
-        return gameResultRepository.findDuelAggregatesByGameType(gameType);
+    public Optional<DuelSelfAggregate> findDuelSelf(GameResultType gameType, Long userId) {
+        return gameResultRepository.findDuelSelf(gameType.name(), userId).map(this::toDuelSelfAggregate);
+    }
+
+    public long countDuelUsersRankedAbove(GameResultType gameType, int myWins, int myLosses) {
+        return gameResultRepository.countDuelUsersRankedAbove(gameType.name(), myWins, myLosses);
+    }
+
+    public List<RankedPlayer> findSoloTopRanked(GameResultType gameType, Pageable topN) {
+        return gameResultRepository.findSoloTopRanked(gameType.name(), topN).stream()
+                .map(this::toRankedPlayer)
+                .toList();
+    }
+
+    public Optional<RankedPlayer> findSoloSelf(GameResultType gameType, Long userId) {
+        return gameResultRepository.findSoloSelf(gameType.name(), userId).map(this::toRankedPlayer);
+    }
+
+    public long countSoloUsersRankedAbove(GameResultType gameType, int myScore) {
+        return gameResultRepository.countSoloUsersRankedAbove(gameType.name(), myScore);
+    }
+
+    private RankedPlayer toRankedPlayer(RankedRow row) {
+        return new RankedPlayer(row.getUserId(), row.getNickname(), row.getScore());
+    }
+
+    private DuelSelfAggregate toDuelSelfAggregate(DuelSelfRow row) {
+        return new DuelSelfAggregate(row.getUserId(), row.getNickname(), row.getWins(), row.getLosses());
     }
 }

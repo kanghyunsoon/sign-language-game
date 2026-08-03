@@ -2,26 +2,21 @@ package backend.ssafy.suhwa.ranking;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import backend.ssafy.suhwa.auth.service.RefreshTokenService;
 import backend.ssafy.suhwa.gameresult.domain.GameResult;
 import backend.ssafy.suhwa.gameresult.domain.GameResultType;
 import backend.ssafy.suhwa.gameresult.repository.GameResultRepository;
 import backend.ssafy.suhwa.gameresult.service.GameResultService;
 import backend.ssafy.suhwa.growth.config.GrowthPolicyProperties;
 import backend.ssafy.suhwa.growth.service.GrowthRewardService;
-import backend.ssafy.suhwa.growth.service.PetGrowthService;
 import backend.ssafy.suhwa.ranking.dto.RankingResponse;
 import backend.ssafy.suhwa.ranking.service.RankingService;
 import backend.ssafy.suhwa.user.domain.User;
 import backend.ssafy.suhwa.user.repository.UserRepository;
-import backend.ssafy.suhwa.user.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.transaction.PlatformTransactionManager;
 
 @DataJpaTest
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
@@ -29,7 +24,6 @@ class RankingIntegrationTest {
 
     @Autowired private GameResultRepository gameResultRepository;
     @Autowired private UserRepository userRepository;
-    @Autowired private PlatformTransactionManager transactionManager;
 
     @Test
     void ranksMinimumScoresAscendingWithCompetitionRanks() {
@@ -52,17 +46,11 @@ class RankingIntegrationTest {
     }
 
     private RankingService rankingService() {
-        UserService userService = new UserService(
-                userRepository,
-                Mockito.mock(RefreshTokenService.class),
-                Mockito.mock(PasswordEncoder.class),
-                Mockito.mock(PetGrowthService.class),
-                transactionManager);
         GameResultService gameResultService = new GameResultService(
                 gameResultRepository,
                 Mockito.mock(GrowthRewardService.class),
                 new GrowthPolicyProperties());
-        return new RankingService(gameResultService, userService);
+        return new RankingService(gameResultService);
     }
 
     private Long createUser(String nickname) {
