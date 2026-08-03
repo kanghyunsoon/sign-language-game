@@ -22,11 +22,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 @SecurityRequirement(name = OpenApiConfig.BEARER_SCHEME_NAME)
 public interface GameRoomApi {
 
-    @Operation(summary = "게임방 생성 (변경 — gameType 필수, 응답에 realtimeTicket 포함)", description =
-            "고유 참가 코드가 발급된 방 생성, 요청자가 방장이 됨. 게임 종류(FR-017/018)와 실시간 연결용 "
-                    + "단기 티켓(FR-001)이 응답에 함께 포함되어, 별도 API 호출 없이 방 WebSocket을 즉시 연결할 수 있다(FR-002).")
+    @Operation(summary = "게임방 생성 (변경 — roomTitle/symbolRange/gameType 필수, 응답에 title/hostName 포함)",
+            description =
+            "고유 참가 코드가 발급된 방 생성, 요청자가 방장이 됨. 방 제목(roomTitle)과 기호 범위(symbolRange), "
+                    + "게임 종류(gameType, FR-017/018)를 요청으로 받는다. 방장 닉네임(hostName)은 요청값이 아니라 "
+                    + "로그인한 사용자(userId)로 조회해 서버가 채운다. 응답에는 title/hostName/symbolRange와 함께 "
+                    + "실시간 연결용 단기 티켓(FR-001)이 포함되어, 별도 API 호출 없이 방 WebSocket을 즉시 연결할 수 있다(FR-002).")
     @ApiResponse(responseCode = "201", description = "방 생성 성공")
-    @ApiResponse(responseCode = "400", description = "gameType 누락 (FR-017)")
+    @ApiResponse(responseCode = "400", description = "roomTitle/symbolRange/gameType 누락 (FR-017)")
     @PostMapping("/game-rooms")
     ResponseEntity<GameRoomResponse> createRoom(
             @LoginUser Long userId, @RequestBody @Valid CreateRoomRequest request);
