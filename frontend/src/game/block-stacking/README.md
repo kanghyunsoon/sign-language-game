@@ -16,7 +16,7 @@
 
 - `../docs/reference/solo-game-runtime.md`
 - `../docs/reference/game-results-api.md`
-- `../docs/solo-game-status-2026-07-29.md`
+- `../docs/game-troubleshooting.md`
 
 ## 2026-08-02 프링글수 1:1 기준
 
@@ -29,7 +29,7 @@
 세부 기준:
 
 - `../docs/battle-ui-room-status-2026-08-02.md`
-- `../docs/battle-room-ui-troubleshooting-2026-08-02.md`
+- `../docs/game-troubleshooting.md`
 
 ## 2026-08-02 장시간 게임 성능 기준
 
@@ -39,7 +39,7 @@
 - 상대 제거 이력과 P2P 처리 명령 이력은 각각 최근 128개와 256개로 제한한다.
 - 제한된 글자 집합의 래스터 캐시는 유지하고, 모든 캐시를 주기적으로 삭제하지 않는다.
 
-상세 원인·해결·검증은 `../docs/battle-progressive-lag-troubleshooting-2026-08-02.md`를 기준으로 한다.
+상세 원인·해결·검증은 `../docs/game-troubleshooting.md`의 「1:1 누적 성능」 절을 기준으로 한다.
 
 ### 2026-08-03 상대 보드 보간 후속 기준
 

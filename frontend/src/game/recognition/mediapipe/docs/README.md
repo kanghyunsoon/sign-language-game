@@ -45,21 +45,35 @@ MediaPipe WASM과 task 모델 경로는 기존 `createVisionFileset.ts`, `MediaP
 
 ## 실시간 렌더링과 AI 지연 기준
 
-- 손 추론과 AI 전송은 18Hz, 화면 오버레이는 60Hz로 분리한다.
-- worker 전송 영상은 최대 256px로 축소하고, main-thread fallback은 재사용 canvas에서 최대 480px로 축소한다.
-- 처리 중 요청은 1개, 대기 프레임은 최신 1개만 유지한다.
-- 표시 좌표에만 이동 예측과 안정화를 적용한다. AI에는 원본 측정 좌표를 전달해 인식 정확도를 보존한다.
-- 손 검출 평균/p95 지연과 AI 평균/p95 지연을 별도로 기록한다.
-- 숫자는 capabilities, prediction 후보, Temporal Decoder와 솔로 생성 목록에서 제외한다.
+주기 값은 이 문서가 아니라 `recognition/runtime/RecognitionPerformanceProfiles.ts`와 `RecognitionRateConfig.ts`가 원천이다. 현재 값은 다음과 같다.
 
-2026-07-23 동일 랜드마크 120회 측정 결과:
+| 프로필 | render | hand | pose | AI |
+| --- | ---: | ---: | ---: | ---: |
+| `HIGH` | 60 | 30 | 12 | 15 |
+| `BALANCED` (기본) | 30 | 24 | 8 | 12 |
+| `LOW_POWER` | 30 | 18 | 6 | 8 |
+
+`RecognitionRateConfig`의 `RESPONSIVE_GAMEPLAY`는 render 20, hand 24, pose 4, AI 18을 사용한다. 24Hz latest-only가 과부하된 30~60Hz 큐보다 종단 지연이 낮기 때문이다.
+
+- 화면 오버레이는 새 추적 결과나 캔버스 크기 변경이 있을 때만 다시 그린다.
+- worker 전송 영상은 최대 256px로 축소하고, main-thread fallback은 재사용 canvas에서 최대 480px로 축소한다.
+- 처리 중 요청은 1개, 대기 프레임은 최신 1개만 유지한다(`LatestOnlyInferenceController`).
+- 응답 신선도는 랜드마크가 준비된 시점부터 계산한다(`maximumPredictionAgeMs` 기본 750ms). 캡처 시각부터 계산하면 MediaPipe 지연 때문에 정상 응답이 전부 stale로 판정된다.
+- 표시 좌표에만 이동 예측과 안정화를 적용한다. AI에는 원본 측정 좌표를 전달해 인식 정확도를 보존한다.
+- 손 검출 평균/p95 지연과 AI 평균/p95 지연을 별도로 기록한다(`RecognitionPerformanceMonitor`, 240샘플 링버퍼).
+
+## 모델 버전과 출제 범위
+
+`game-contracts/recognition/readiness.json`이 모델 버전과 경쟁 사용 가능 글자의 유일한 원천이다. 현재 `modelVersion`은 `jamo-31-v1`이고 31개 자모 중 24개만 `competitiveEligible`이다. 확정 권위는 서버가 아니라 프런트의 연속 지문자 Decoder(`confirmationAuthority: FRONTEND_TEMPORAL_DECODER`)다.
+
+지숫자 1~9는 `GAME_SYMBOL_REGISTRY`에 `modelSupported: false`로 등록되어 있고 안내 이미지도 있으나 readiness 클래스가 없어 AI 경쟁 출제에는 포함되지 않는다. 어댑터는 숫자 예측을 `withoutNumericPrediction()`으로 걸러낸다.
+
+2026-07-23 동일 랜드마크 120회 측정 결과는 다음과 같다. 하이브리드 숫자 모델은 지연이 커서 기본값으로 쓰지 않는다.
 
 | 모델 | 평균 | p95 | 처리량 |
 | --- | ---: | ---: | ---: |
 | `jamo-number-hybrid-v1` | 169.078ms | 220.968ms | 5.96fps |
 | `jamo-31-v1` | 2.288ms | 3.216ms | 429.78fps |
-
-현재 기본 모델은 지문자 전용 `jamo-31-v1`이다.
 
 ## 변경 체크리스트
 
