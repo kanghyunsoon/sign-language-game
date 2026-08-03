@@ -4,13 +4,13 @@ import { Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { AppNav } from "../../../shared/nav/AppNav";
-import { DetailStepper } from "../components/DetailStepper";
 import { FingerspellingDetail } from "../components/FingerspellingDetail";
 import { WordSignDetail } from "../components/WordSignDetail";
 import { fingerspellingCategories } from "../data/fingerspelling";
 import type { LearningCategoryId } from "../data/learningEntries";
 import { useReviewNotes, useRemoveReviewNotes } from "../data/reviewNotes";
 import { SYMBOLS_PARAM, formatSymbolSelection } from "../data/symbolSelection";
+import { findWordSignEntry } from "../data/wordSigns";
 
 /** 카테고리 필터 값. "all"은 전체 보기. */
 type NoteFilterId = "all" | LearningCategoryId;
@@ -26,6 +26,15 @@ const noteFilters: readonly { id: NoteFilterId; label: string }[] = [
 
 /** 알림이 화면에 머무는 시간(ms). 테스트 결과 화면과 동일하게 맞춘다. */
 const TOAST_DURATION_MS = 2000;
+
+/**
+ * 카드 태그 문구. 단어는 모두 "단어"로 같아 구분이 안 되므로
+ * 탈것·자연처럼 소분류를 보여준다.
+ */
+function noteTagLabel(entry: { categoryId: string; symbol: string; categoryLabel: string }) {
+  if (entry.categoryId !== "word") return entry.categoryLabel;
+  return findWordSignEntry(entry.symbol)?.groupLabel ?? entry.categoryLabel;
+}
 
 export function ReviewNotesPage() {
   const navigate = useNavigate();
@@ -156,13 +165,12 @@ export function ReviewNotesPage() {
   const previousNote = selectedIndex > 0 ? visibleNotes[selectedIndex - 1] : undefined;
   const nextNote = selectedIndex >= 0 ? visibleNotes[selectedIndex + 1] : undefined;
 
-  const detailStepper = (
-    <DetailStepper
-      unitLabel="항목"
-      onPrevious={previousNote ? () => setSelectedSymbol(previousNote.symbol) : undefined}
-      onNext={nextNote ? () => setSelectedSymbol(nextNote.symbol) : undefined}
-    />
-  );
+  const goPreviousNote = previousNote
+    ? () => setSelectedSymbol(previousNote.symbol)
+    : undefined;
+  const goNextNote = nextNote
+    ? () => setSelectedSymbol(nextNote.symbol)
+    : undefined;
 
   return (
     <div className="review-notes-page">
@@ -261,7 +269,9 @@ export function ReviewNotesPage() {
                           }
                           onClick={() => handleCardClick(entry.symbol)}
                         >
-                          <span className="review-notes-card-tag">{entry.categoryLabel}</span>
+                          <span className="review-notes-card-tag">
+                            {noteTagLabel(entry)}
+                          </span>
                           <span className="review-notes-card-symbol">{entry.symbol}</span>
                           {entry.categoryId !== "word" && (
                             <span className="review-notes-card-name">{entry.name}</span>
@@ -316,7 +326,8 @@ export function ReviewNotesPage() {
               <WordSignDetail
                 className="review-notes-detail"
                 entry={selectedEntry}
-                stepper={detailStepper}
+                onPrevious={goPreviousNote}
+                onNext={goNextNote}
                 footer={
                   <button
                     className="review-notes-detail-delete"
@@ -331,7 +342,8 @@ export function ReviewNotesPage() {
               <FingerspellingDetail
                 className="review-notes-detail"
                 entry={selectedEntry}
-                stepper={detailStepper}
+                onPrevious={goPreviousNote}
+                onNext={goNextNote}
                 footer={
                   <button
                     className="review-notes-detail-delete"

@@ -104,7 +104,8 @@ describe("DictionaryPage 검색", () => {
     renderPage();
 
     fireEvent.change(getSearchInput(), { target: { value: "비행기" } });
-    fireEvent.click(screen.getByRole("button", { name: /비행기.*단어/ }));
+    // 검색 결과의 단어 라벨은 "단어" 대신 소분류(탈것)를 보여준다.
+    fireEvent.click(screen.getByRole("button", { name: /비행기.*탈것/ }));
 
     expect(readDetailSymbol()).toBe("비행기");
     const video = screen.getByLabelText("비행기 수어 동작 영상");
