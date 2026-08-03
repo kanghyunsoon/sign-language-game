@@ -207,12 +207,6 @@ export function ProfileEditPage() {
           <section className="profile-edit-card" aria-labelledby="profile-edit-title">
             <h1 id="profile-edit-title">정보 수정</h1>
 
-            {!PASSWORD_CHANGE_ENABLED && (
-              <p className="profile-edit-pending">
-                비밀번호 변경은 서버 준비가 끝나는 대로 열립니다.
-              </p>
-            )}
-
             <form className="profile-edit-form" onSubmit={handleSubmit}>
               <label className="profile-edit-field">
                 <span>닉네임</span>
@@ -310,6 +304,12 @@ export function ProfileEditPage() {
                   </button>
                 </div>
               </label>
+
+              {!PASSWORD_CHANGE_ENABLED && (
+                <p className="profile-edit-pending">
+                  비밀번호 변경은 서버 준비가 끝나는 대로 열립니다.
+                </p>
+              )}
 
               {error && (
                 <p className="profile-edit-error" role="alert">
