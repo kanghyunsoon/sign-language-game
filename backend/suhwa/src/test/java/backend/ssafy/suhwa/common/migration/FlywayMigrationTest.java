@@ -59,7 +59,7 @@ class FlywayMigrationTest {
         assertThat(result.success).isTrue();
         assertThat(result.migrationsExecuted)
                 .as("신규 DB에서는 V1부터 전부 실행돼야 한다")
-                .isGreaterThanOrEqualTo(8);
+                .isGreaterThanOrEqualTo(9);
         assertThat(appliedVersions(schema))
                 .as("버전이 빠짐없이 성공으로 기록돼야 한다")
                 .containsEntry("1", true)
@@ -69,13 +69,15 @@ class FlywayMigrationTest {
                 .containsEntry("6", true)
                 .containsEntry("7", true)
                 .containsEntry("8", true)
-                .containsEntry("9", true);
+                .containsEntry("9", true)
+                .containsEntry("10", true);
         assertGameRoomIndexReplaced(schema);
         assertTestSessionSchemaCreated(schema);
         assertGrowthSchemaMigrated(schema);
         assertExpandedPetGrowthConstraints(schema);
         assertObsoleteActivitySessionSchemaRemoved(schema);
         assertUserProfileImageRemoved(schema);
+        assertGameRoomLobbyMetadataAdded(schema);
     }
 
     @Test
@@ -96,7 +98,8 @@ class FlywayMigrationTest {
                 .containsEntry("6", true)
                 .containsEntry("7", true)
                 .containsEntry("8", true)
-                .containsEntry("9", true);
+                .containsEntry("9", true)
+                .containsEntry("10", true);
         assertThat(baselineRowExists(schema))
                 .as("baseline-on-migrate가 동작했다면 BASELINE 타입 행이 있어야 한다")
                 .isTrue();
@@ -106,6 +109,7 @@ class FlywayMigrationTest {
         assertExpandedPetGrowthConstraints(schema);
         assertObsoleteActivitySessionSchemaRemoved(schema);
         assertUserProfileImageRemoved(schema);
+        assertGameRoomLobbyMetadataAdded(schema);
     }
 
     @Test
@@ -202,6 +206,24 @@ class FlywayMigrationTest {
                         + "AND COLUMN_NAME IN ('solo_session_id', 'play_duration_ms')"))
                 .as("V8 restores game_results to game_type and score only")
                 .isZero();
+    }
+
+    /** V10이 노리는 최종 상태: room_title/symbol_range 컬럼이 NOT NULL 기본값과 함께 추가돼야 한다. */
+    private void assertGameRoomLobbyMetadataAdded(String schema) throws SQLException {
+        assertThat(count(schema,
+                "SELECT COUNT(*) FROM information_schema.COLUMNS "
+                        + "WHERE TABLE_SCHEMA = '" + schema + "' "
+                        + "AND TABLE_NAME = 'game_rooms' "
+                        + "AND COLUMN_NAME = 'room_title' AND IS_NULLABLE = 'NO'"))
+                .as("V10 adds a required room_title column")
+                .isEqualTo(1);
+        assertThat(count(schema,
+                "SELECT COUNT(*) FROM information_schema.COLUMNS "
+                        + "WHERE TABLE_SCHEMA = '" + schema + "' "
+                        + "AND TABLE_NAME = 'game_rooms' "
+                        + "AND COLUMN_NAME = 'symbol_range' AND IS_NULLABLE = 'NO'"))
+                .as("V10 adds a required symbol_range column")
+                .isEqualTo(1);
     }
 
     private void assertUserProfileImageRemoved(String schema) throws SQLException {

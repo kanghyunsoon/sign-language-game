@@ -13,6 +13,7 @@ import backend.ssafy.suhwa.common.exception.BusinessException;
 import backend.ssafy.suhwa.common.exception.ErrorCode;
 import backend.ssafy.suhwa.game.domain.GameRoomStatus;
 import backend.ssafy.suhwa.game.domain.GameType;
+import backend.ssafy.suhwa.game.domain.SymbolRange;
 import backend.ssafy.suhwa.game.dto.CreateRoomRequest;
 import backend.ssafy.suhwa.game.dto.GameResultRequest;
 import backend.ssafy.suhwa.game.dto.GameRoomResponse;
@@ -58,17 +59,19 @@ class GameRoomControllerTest {
 
     private GameRoomResponse sampleRoom() {
         return new GameRoomResponse(
-                1L, "ABC123", 1L, null, false, false, GameRoomStatus.WAITING, 1, 2,
-                GameType.SIGN_DUEL, "ticket-abc");
+                1L, "ABC123", "방 제목", 1L, "host", null, false, false, GameRoomStatus.WAITING, 1, 2,
+                GameType.SIGN_DUEL, SymbolRange.ALL, "ticket-abc");
     }
 
     @Test
     void createRoom_returns201() throws Exception {
-        given(gameRoomService.create(anyLong(), any(GameType.class))).willReturn(sampleRoom());
+        given(gameRoomService.create(anyLong(), any(GameType.class), anyString(), any(SymbolRange.class)))
+                .willReturn(sampleRoom());
 
         mockMvc.perform(post("/game-rooms")
                         .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(new CreateRoomRequest(GameType.SIGN_DUEL))))
+                        .content(objectMapper.writeValueAsString(
+                                new CreateRoomRequest("방 제목", SymbolRange.ALL, GameType.SIGN_DUEL))))
                 .andExpect(status().isCreated());
     }
 
@@ -76,7 +79,15 @@ class GameRoomControllerTest {
     void createRoom_missingGameType_returns400() throws Exception {
         mockMvc.perform(post("/game-rooms")
                         .contentType("application/json")
-                        .content("{}"))
+                        .content("{\"roomTitle\":\"방 제목\",\"symbolRange\":\"ALL\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createRoom_missingRoomTitle_returns400() throws Exception {
+        mockMvc.perform(post("/game-rooms")
+                        .contentType("application/json")
+                        .content("{\"symbolRange\":\"ALL\",\"gameType\":\"SIGN_DUEL\"}"))
                 .andExpect(status().isBadRequest());
     }
 

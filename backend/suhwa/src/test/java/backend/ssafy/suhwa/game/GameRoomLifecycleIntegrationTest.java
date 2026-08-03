@@ -56,7 +56,7 @@ class GameRoomLifecycleIntegrationTest {
         MvcResult createResult = mockMvc.perform(post("/game-rooms")
                         .header("Authorization", hostToken)
                         .contentType("application/json")
-                        .content("{\"gameType\":\"SIGN_DUEL\"}"))
+                        .content("{\"roomTitle\":\"방 제목\",\"symbolRange\":\"ALL\",\"gameType\":\"SIGN_DUEL\"}"))
                 .andExpect(status().isCreated())
                 .andReturn();
         JsonNode created = objectMapper.readTree(createResult.getResponse().getContentAsString());

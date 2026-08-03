@@ -12,6 +12,7 @@ import backend.ssafy.suhwa.game.realtime.RoomParticipantRegistry;
 import backend.ssafy.suhwa.game.realtime.RoomRealtimeNotifier;
 import backend.ssafy.suhwa.game.repository.GameRoomRepository;
 import backend.ssafy.suhwa.gameresult.service.GameResultService;
+import backend.ssafy.suhwa.user.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.scheduling.TaskScheduler;
@@ -29,6 +30,7 @@ class GameRoomCodeGenerationTest {
     private GameRoomService serviceWith(GameRoomRepository repository) {
         return new GameRoomService(
                 repository,
+                Mockito.mock(UserService.class),
                 Mockito.mock(GameResultService.class),
                 Mockito.mock(RoomRealtimeNotifier.class),
                 Mockito.mock(LobbyBroadcastService.class),
