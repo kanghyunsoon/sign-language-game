@@ -46,6 +46,22 @@ export class RemoteTransformBuffer {
     const distance = Math.hypot(right.value.x - left.value.x, right.value.y - left.value.y);
     const angleDelta = shortestAngle(right.value.angle - left.value.angle);
     if (distance > this.config.snapDistanceThreshold || Math.abs(angleDelta) > this.config.snapAngleThreshold) return right.value;
+    // A short data-channel/WebSocket delay must not make a falling letter
+    // freeze until its next packet arrives. Continue the last observed motion
+    // briefly, then let the next authoritative sample smoothly correct it.
+    if (target > right.receivedAt && right.value.state === "FALLING") {
+      const elapsed = Math.min(this.config.maxExtrapolationMs, target - right.receivedAt);
+      const sampleSpan = right.receivedAt - left.receivedAt;
+      if (sampleSpan > 0) {
+        const multiplier = elapsed / sampleSpan;
+        return {
+          ...right.value,
+          x: right.value.x + (right.value.x - left.value.x) * multiplier,
+          y: right.value.y + (right.value.y - left.value.y) * multiplier,
+          angle: right.value.angle + angleDelta * multiplier,
+        };
+      }
+    }
     return { ...right.value, x: lerp(left.value.x, right.value.x, t), y: lerp(left.value.y, right.value.y, t), angle: left.value.angle + angleDelta * t, velocityX: lerp(left.value.velocityX, right.value.velocityX, t), velocityY: lerp(left.value.velocityY, right.value.velocityY, t), angularVelocity: lerp(left.value.angularVelocity, right.value.angularVelocity, t) };
   }
   ids(): readonly string[] { return [...this.buffers.keys()]; }

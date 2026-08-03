@@ -1206,6 +1206,10 @@
   letter-spacing: .1em;
 }
 .module:has(> :global(.solo-game-page)) :global(.solo-back-button) {
+  /* The title artwork extends over this area. Keep the whole visible circle
+     above it so the button's hit target matches what is shown. */
+  position: relative;
+  z-index: 3;
   width: 58px;
   height: 58px;
   border-color: #ead7bf;
@@ -1216,6 +1220,7 @@
   width: 260px;
   height: 82px;
   overflow: visible;
+  pointer-events: none;
 }
 .module:has(> :global(.solo-game-page)) :global(.solo-header-logo img) {
   top: -57px;

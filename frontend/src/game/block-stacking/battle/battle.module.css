@@ -1089,6 +1089,9 @@
   align-self: center;
   margin: 0 0 0 4px;
   position: relative;
+  /* The decorative logo overlaps this area; keep the full visible button
+     above it so the actual click target is not partially covered. */
+  z-index: 3;
   top: 19px;
   transition: transform .16s ease, box-shadow .16s ease;
 }
@@ -1114,6 +1117,7 @@
   height: 82px;
   margin: 0;
   overflow: visible;
+  pointer-events: none;
 }
 
 .battleFixedPage .battleHeaderLogo img {

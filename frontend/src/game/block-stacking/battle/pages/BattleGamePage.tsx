@@ -331,10 +331,10 @@ export function BattleGamePage() {
     let lastRemoteRenderAt = Number.NEGATIVE_INFINITY;
     let remoteMoving = true;
     const renderRemote = (at: number) => {
-      // Interpolate a falling opponent block at 30 FPS. Once the board is
+      // Interpolate a falling opponent block at display refresh rate. Once the board is
       // settled, 10 FPS is enough for network changes and avoids traversing
       // every accumulated glyph on every display refresh.
-      const interval = remoteMoving ? 1000 / 30 : 100;
+      const interval = remoteMoving ? 1000 / 60 : 100;
       if (at - lastRemoteRenderAt >= interval) {
         lastRemoteRenderAt = at;
         remoteMoving = remote.render(Date.now());

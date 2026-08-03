@@ -67,3 +67,26 @@
 - `block-stacking/battle/transport/P2pBattleTransport.ts`
 - `block-stacking/render/PixiGameRenderer.ts`
 - `shared/GameModule.module.css`
+
+## 2026-08-03 후속: 상대 보드 부드러움·뒤로가기 클릭 범위
+
+### 증상
+
+- 장시간 누적 비용을 줄인 뒤에도 상대 낙하 글자는 전송 패킷 사이에서 끊겨 보일 수 있었다.
+- 솔로와 1:1 플레이 헤더의 타이틀 이미지 투명 영역이 뒤로가기 원형 버튼 일부를 덮어,
+  보이는 범위보다 실제 클릭 범위가 작았다.
+
+### 조치
+
+- 이동 중인 글자 변환은 30Hz로 전송하고 상대 보드는 낙하 중 60Hz로 샘플링한다.
+  정착 보드는 기존 저비용 갱신 주기를 유지한다.
+- 주기 전체 스냅샷은 5초 간격으로 낮추되, 정착·제거·구조 변경에서는 즉시 권위 스냅샷을 전송한다.
+- `RemoteTransformBuffer`가 마지막 FALLING 변환을 최대 70ms까지만 제한적으로 예측해
+  짧은 패킷 공백을 메운다. 권위 상태와 멀어지는 장시간 예측은 허용하지 않는다.
+- 솔로·1:1의 뒤로가기 버튼을 타이틀 이미지보다 위 레이어로 올리고 타이틀 이미지는 포인터
+  이벤트를 받지 않도록 해, 보이는 원형 전체를 클릭할 수 있게 했다.
+
+### 검증
+
+- `RemoteTransformBuffer`, `RemoteBoardReplica`, `LocalBoardPublisher` 집중 테스트 21건 통과.
+- `npm.cmd run build` 통과.

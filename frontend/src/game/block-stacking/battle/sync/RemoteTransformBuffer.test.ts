@@ -7,6 +7,12 @@ describe("RemoteTransformBuffer", () => {
   it("interpolates position", () => { const b = new RemoteTransformBuffer({ ...DEFAULT_BATTLE_SYNC_CONFIG, interpolationDelayMs: 0 }); b.push(1, 0, body(0)); b.push(2, 100, body(.1)); expect(b.sample("a", 50)?.x).toBeCloseTo(.05); });
   it("interpolates the shortest angle", () => { const b = new RemoteTransformBuffer({ ...DEFAULT_BATTLE_SYNC_CONFIG, interpolationDelayMs: 0, snapAngleThreshold: Math.PI }); b.push(1, 0, body(0, Math.PI - .1)); b.push(2, 100, body(0, -Math.PI + .1)); expect(Math.abs(b.sample("a", 50)?.angle ?? 0)).toBeCloseTo(Math.PI); });
   it("snaps when distance is large", () => { const b = new RemoteTransformBuffer({ ...DEFAULT_BATTLE_SYNC_CONFIG, interpolationDelayMs: 0, snapDistanceThreshold: .1 }); b.push(1, 0, body(0)); b.push(2, 100, body(1)); expect(b.sample("a", 10)?.x).toBe(1); });
+  it("briefly extrapolates a falling glyph when the next packet is late", () => {
+    const b = new RemoteTransformBuffer({ ...DEFAULT_BATTLE_SYNC_CONFIG, interpolationDelayMs: 0, maxExtrapolationMs: 50 });
+    b.push(1, 0, body(0));
+    b.push(2, 100, body(.2));
+    expect(b.sample("a", 125)?.x).toBeCloseTo(.25);
+  });
   it("ignores stale sequences", () => { const b = new RemoteTransformBuffer(DEFAULT_BATTLE_SYNC_CONFIG); expect(b.push(2, 2, body(.2))).toBe(true); expect(b.push(1, 3, body(.1))).toBe(false); });
   it("ignores transforms after removal", () => { const b = new RemoteTransformBuffer(DEFAULT_BATTLE_SYNC_CONFIG); b.remove("a"); expect(b.push(1, 1, body(1))).toBe(false); });
   it("bounds each letter buffer", () => { const b = new RemoteTransformBuffer({ ...DEFAULT_BATTLE_SYNC_CONFIG, maxBufferedSnapshots: 2 }); b.push(1, 1, body(.1)); b.push(2, 2, body(.2)); b.push(3, 3, body(.3)); expect(b.size("a")).toBe(2); });
