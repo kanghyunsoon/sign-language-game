@@ -4,6 +4,15 @@
   justify-content: center;
 }
 
+/*
+ * 단어 설명은 지문자보다 문장이 길어 지문자와 같은 크기(24px)로는 카드 폭
+ * (약 616px)을 넘긴다. 데이터가 나눠 둔 줄이 그대로 한 줄에 들어가도록 줄인다.
+ * 상자 높이는 지문자와 같은 3줄 기준을 그대로 쓴다.
+ */
+.word-answer-guide .practice-item-description {
+  font-size: min(1.041667vw, 1.666667vh);
+}
+
 .word-guide-placeholder {
   width: min(19.270833vw, 30.833333vh);
   height: min(15.625vw, 25vh);
