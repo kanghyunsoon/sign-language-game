@@ -100,11 +100,17 @@
   background: #fffaf2;
 }
 
+/*
+ * 목록을 모두 펼쳐도 페이지 전체가 스크롤되지 않도록 본문에서 넘침을 막는다.
+ * 늘어나는 쪽은 왼쪽 사이드바뿐이고, 스크롤은 그 안(.dictionary-tree)에서만 생긴다.
+ */
 .dictionary-main {
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
   padding: 34px 62px 40px;
-  overflow-y: auto;
+  overflow: hidden;
   background: #faf7f1;
 }
 
@@ -139,6 +145,8 @@
 
 .dictionary-layout {
   width: min(1440px, 100%);
+  flex: 1;
+  min-height: 0;
   margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
@@ -150,7 +158,8 @@
 .dictionary-sidebar {
   position: relative;
   top: auto;
-  max-height: 1050px;
+  height: 100%;
+  max-height: 100%;
   display: flex;
   flex-direction: column;
   gap: 16px;
