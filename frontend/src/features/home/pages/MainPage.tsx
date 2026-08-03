@@ -250,7 +250,7 @@ export function MainPage() {
         style={{ transform: `translate(-50%, -50%) scale(${pageScale})` }}
       >
         <header className="main-header">
-          <AppNav prefix="main" />
+          <AppNav prefix="main" metric="fixed" />
         </header>
 
         <main className="main-content">
