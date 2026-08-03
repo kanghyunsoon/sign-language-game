@@ -6,6 +6,7 @@ import { AppNav } from "../../../shared/nav/AppNav";
 import { useAuth } from "../../auth/AuthContext";
 import { AuthApiError, getProfile } from "../../auth/api/authApi";
 import { AttendanceCard } from "../../home/components/AttendanceCard";
+import { useAttendance } from "../../home/data/attendance";
 import {
   getAttendance,
   getPetGrowth,
@@ -33,6 +34,7 @@ export function ProfilePage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { accessToken, user, logout, updateDisplayName } = useAuth();
+  const attendedDates = useAttendance();
   const [nickname, setNickname] = useState(user?.displayName ?? "");
   const [profileError, setProfileError] = useState<string | null>(null);
   const [statsError, setStatsError] = useState<string | null>(null);
@@ -232,6 +234,9 @@ export function ProfilePage() {
           <section className="profile-user-card">
             {/* 닉네임 수정은 정보 수정 페이지(/profile/edit)로 일원화했다. */}
             <div className="profile-name">
+              <span className="profile-training-days">
+                {attendedDates.length}일째 수련중
+              </span>
               <strong>{nickname || user?.displayName || "게스트"}</strong>
             </div>
             {profileError && <p className="profile-user-error" role="alert">{profileError}</p>}
