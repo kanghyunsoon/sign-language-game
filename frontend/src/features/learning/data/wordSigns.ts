@@ -38,6 +38,11 @@ export interface WordSignItem {
   readonly groupId: WordSignGroupId;
   /** 수형 설명. 지문자와 같은 형식으로 문장 단위 배열로 둔다. */
   readonly description: readonly string[];
+  /**
+   * 좁은 카드(테스트 결과)용 줄 나눔. 설명 상자가 좁아 기본 줄이 넘치는 단어만 둔다.
+   * 없으면 description을 그대로 쓴다.
+   */
+  readonly narrowDescription?: readonly string[];
   readonly video: string;
 }
 
@@ -68,6 +73,12 @@ const wordSignLabels: readonly Omit<WordSignItem, "video">[] = [
       "다른 손은 검지와 중지를 살짝 구부려 올린 뒤,",
       "앞뒤로 움직여 버스가 달리는 모습을 표현합니다.",
     ],
+    narrowDescription: [
+      "한 손을 손바닥이 아래로 향하게",
+      "가로로 펴서 길을 표현합니다.",
+      "다른 손은 검지와 중지를 살짝 구부려 올린 뒤,",
+      "앞뒤로 움직여 버스가 달리는 모습을 표현합니다.",
+    ],
   },
   {
     id: "car",
@@ -86,6 +97,11 @@ const wordSignLabels: readonly Omit<WordSignItem, "video">[] = [
       "양손을 손등이 보이도록 주먹 쥐어 올리고,",
       "자전거 페달을 밟는 것처럼 번갈아가며 원을 그리며 돌려줍니다.",
     ],
+    narrowDescription: [
+      "양손을 손등이 보이도록 주먹 쥐어 올리고,",
+      "자전거 페달을 밟는 것처럼",
+      "번갈아가며 원을 그리며 돌려줍니다.",
+    ],
   },
   {
     id: "motorcycle",
@@ -94,6 +110,11 @@ const wordSignLabels: readonly Omit<WordSignItem, "video">[] = [
     description: [
       "손등이 위로 향하게 가볍게 주먹 쥐고,",
       "한 손을 앞뒤로 돌려 가속 손잡이를 당기는 모습을 표현합니다.",
+    ],
+    narrowDescription: [
+      "양손을 손등이 위로 향하게 주먹쥐고,",
+      "한 손을 앞뒤로 돌려",
+      "가속 손잡이를 당기는 모습을 표현합니다.",
     ],
   },
   {
@@ -216,6 +237,12 @@ const wordSignLabels: readonly Omit<WordSignItem, "video">[] = [
       "한쪽 팔을 손등이 위로 향하게 가로로 올려주세요.",
       "다른 손의 검지와 중지를 편 뒤, 팔꿈치 위에서",
       "두 손가락을 번갈아 움직이며 손끝 방향으로 이동합니다.",
+    ],
+    narrowDescription: [
+      "한 손을 손등이 위로 향하게 가로로 펴주세요.",
+      "다른 손의 검지와 중지를 펴서 그 위에 댄 뒤,",
+      "두 손가락을 번갈아 움직이며",
+      "편 손의 손끝 방향으로 이동합니다.",
     ],
   },
 
