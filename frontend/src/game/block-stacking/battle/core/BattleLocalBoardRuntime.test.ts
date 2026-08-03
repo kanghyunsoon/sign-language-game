@@ -127,7 +127,7 @@ describe("BattleLocalBoardRuntime", () => {
     expect(runtime.getTargetSymbol()).toBe("ㄷ");
   });
 
-  it("reports game over once when a settled block crosses the proportional danger line", () => {
+  it("reports game over when the settled block remains over the proportional danger line for 1.2 seconds", () => {
     let now = 0;
     const states = new Map<string, ReturnType<typeof letterState>>();
     const world = physics();
@@ -138,9 +138,13 @@ describe("BattleLocalBoardRuntime", () => {
     runtime.spawn(spawn("danger", "ㄱ", 1));
     vi.mocked(world.update).mockReturnValue([{ type: "LETTER_SETTLED", id: "danger" }]);
     const handler = vi.fn(); runtime.setGameOverHandler(handler); runtime.start();
-    runtime.advance(17); now = 1_201; vi.mocked(world.update).mockReturnValue([]); runtime.advance(17);
+    runtime.advance(17);
     expect(handler).not.toHaveBeenCalled();
-    now = 7_201; runtime.advance(17);
+    now = 1_199; vi.mocked(world.update).mockReturnValue([]); runtime.advance(17);
+    expect(handler).not.toHaveBeenCalled();
+    // A fully settled board is sampled at most once per 100ms to avoid an
+    // unnecessary full-board traversal on every display frame.
+    now = 1_299; runtime.advance(17);
     expect(handler).toHaveBeenCalledOnce();
   });
 

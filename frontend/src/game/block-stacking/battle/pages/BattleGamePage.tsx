@@ -161,6 +161,23 @@ export function BattleGamePage() {
   useEffect(() => battleMediaSession.subscribe(refreshMedia), [battleMediaSession, refreshMedia]);
 
   useEffect(() => {
+    if (refreshExitRequired || finalResultRef.current) return;
+    let active = true;
+    // A waiting-room participant may have muted their camera instead of
+    // releasing permission. The match needs the live video track for hand
+    // recognition, so re-enable it when the actual game starts. Permission
+    // denial or an unavailable device remains a non-fatal camera-off state.
+    void sharedCameraSession.start()
+      .then(async (stream) => {
+        stream.getVideoTracks().forEach((track) => { track.enabled = true; });
+        await battleMediaSession.setCameraEnabled(true);
+        if (active) setCameraState("CONNECTED");
+      })
+      .catch(() => { if (active) setCameraState("DISCONNECTED"); });
+    return () => { active = false; };
+  }, [battleMediaSession, refreshExitRequired, sharedCameraSession]);
+
+  useEffect(() => {
     if (!roomId || finalResultRef.current) return;
     const handlePageUnload = () => {
       if (finalResultRef.current || unloadForfeitSentRef.current) return;

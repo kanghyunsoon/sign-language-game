@@ -66,13 +66,18 @@ export class BattleController {
   private handleServer(message: ServerBattleMessage): void {
     // MATCH_FINISHED is terminal for a mounted game page. Late recovery/start
     // snapshots from signaling must not resurrect PLAYING and erase the result.
-    if (this.result && message.type !== "RESULT_RECORDED") return;
-    if (message.type === "START_MATCH" || message.type === "MATCH_STARTED" || message.type === "GAME_START") {
+    const isMatchStart = message.type === "START_MATCH" || message.type === "MATCH_STARTED" || message.type === "GAME_START";
+    // A distinct, non-recovery match may begin in the same room after both
+    // players return to the waiting screen. All late messages from the old
+    // match remain ignored, while the new match is allowed to reset the board.
+    if (this.result && !(isMatchStart && !message.resume && message.matchId !== this.result.matchId)) return;
+    if (isMatchStart) {
       this.opponentPlayerId = message.playerIds.find((playerId) => playerId !== this.options.playerId) ?? null;
     }
-    if (message.type === "START_MATCH" || message.type === "MATCH_STARTED" || message.type === "GAME_START") {
+    if (isMatchStart) {
       const currentState = this.machine.getState();
       if (!message.resume && this.matchId === message.matchId && (currentState === "COUNTDOWN" || currentState === "PLAYING")) return;
+      if (!message.resume && this.runtimeMatchId !== message.matchId) this.resetForFreshMatch();
       this.matchId = message.matchId;
       this.gameOverReported = false;
 
@@ -315,6 +320,33 @@ export class BattleController {
   }
   private clearReconnectTimers(): void { if (this.reconnectTimer) this.clearTimer(this.reconnectTimer); if (this.graceTimer) this.clearTimer(this.graceTimer); this.reconnectTimer = null; this.graceTimer = null; }
   private clearStartTimer(): void { if (this.startTimer) this.clearTimer(this.startTimer); this.startTimer = null; this.startDeadlineAt = null; }
+  private resetForFreshMatch(): void {
+    this.clearReconnectTimers();
+    this.clearStartTimer();
+    for (const timer of this.pendingSpawnTimers) this.clearTimer(timer);
+    this.pendingSpawnTimers.clear();
+    for (const timer of this.pendingHammerTimers) this.clearTimer(timer);
+    this.pendingHammerTimers.clear();
+    this.options.localBoard.reset();
+    this.options.remoteBoard.clear();
+    this.result = null;
+    this.gameOverReported = false;
+    this.awaitingResumeOwnBoard = false;
+    this.peerRecoveryObserved = false;
+    this.lastRemoteBoardSnapshot = null;
+    this.score = 0;
+    this.combo = 0;
+    this.opponentCombo = 0;
+    this.maxCombo = 0;
+    this.removedCount = 0;
+    this.sharedTargetId = null;
+    this.sharedTargetSymbol = null;
+    this.sharedTargetReceivedAt = Number.NEGATIVE_INFINITY;
+    this.wrongReportedTargetId = null;
+    this.pendingTargetId = null;
+    this.pendingLetterId = null;
+    this.prediction = null;
+  }
   private ensureMatchRuntime(matchId: string): void {
     if (this.runtimeMatchId === matchId) return;
     this.runtimeMatchId = matchId;

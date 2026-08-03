@@ -15,7 +15,7 @@ const SETTLED_BOARD_FRAME_INTERVAL_MS = 100;
 const DANGER_VISIBLE_HALF_HEIGHT = BATTLE_LETTER_SIZE * .32;
 
 export interface BattleLocalBoard {
-  start(): void; stop(): void; spawn(event: SpawnLetterEvent): void; selectRemoval(symbol: string): string | null;
+  start(): void; stop(): void; reset(): void; spawn(event: SpawnLetterEvent): void; selectRemoval(symbol: string): string | null;
   acceptRemoval(letterId: string): void; rejectRemoval(letterId?: string): void; restore?(bodies: readonly BattleBodyTransform[], snapshotAt?: number, receivedAt?: number): void; getTargetSymbol(): string | null; takeTargetForOtter(): string | null; takeLetterForOtter(letterId: string): string | null; resize(width: number, height: number): void; setPublisher(publisher: LocalBoardPublisher): void; setGameOverHandler(handler: () => void): void; dispose(): void;
   removeLetter(letterId: string): boolean;
 }
@@ -36,8 +36,21 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
     private readonly requestFrame: (callback: FrameRequestCallback) => number = (callback) => globalThis.requestAnimationFrame(callback),
     private readonly cancelFrame: (frame: number) => void = (frame) => globalThis.cancelAnimationFrame(frame),
   ) { this.width = config.boardWidth; this.height = config.boardHeight; this.publisher = publisher; }
-  start(): void { if (this.running || this.disposed) return; this.running = true; this.gameOverReported = false; this.dangerArmedAt = this.now() + 6_000; this.previousAt = null; this.schedule(); }
+  start(): void { if (this.running || this.disposed) return; this.running = true; this.gameOverReported = false; this.dangerArmedAt = this.now(); this.previousAt = null; this.schedule(); }
   stop(): void { this.running = false; if (this.frame !== null) { this.cancelFrame(this.frame); this.frame = null; } }
+  reset(): void {
+    this.stop();
+    for (const id of this.letters.keys()) this.physics.removeLetter(id);
+    this.letters.clear();
+    this.priorityTargetId = null;
+    this.physicsAccumulatorMs = 0;
+    this.hasMovingLetters = false;
+    this.lastSettledBoardFrameAt = Number.NEGATIVE_INFINITY;
+    this.gameOverReported = false;
+    this.dangerArmedAt = null;
+    this.renderer.setTarget(null);
+    this.renderer.render([]);
+  }
   spawn(event: SpawnLetterEvent): void {
     if (this.letters.has(event.letterId)) return;
     // Both players start every confirmed letter from the exact board center.
@@ -132,11 +145,11 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
   private checkDangerLine(states: readonly PhysicsLetterState[]): void {
     if (this.gameOverReported || this.dangerArmedAt === null || this.now() < this.dangerArmedAt) return;
     const dangerLineY = this.height * this.config.dangerLineRatio;
-    // A newly-created body can briefly report an idle velocity before gravity
-    // has taken effect. It is not a stack yet, so it must never end the match.
-    // Arm the danger line only after a real LETTER_SETTLED event has persisted.
+    // A new body cannot win until Matter has emitted LETTER_SETTLED for it.
+    // The body that crossed the line must remain settled for 1.2 seconds so
+    // a tower which is about to roll away does not win. Other falling letters
+    // do not delay this check.
     const now = this.now();
-    if (states.some((state) => !state.settled)) return;
     const reached = states.some((state) => {
       const record = this.letters.get(state.id);
       return state.settled
