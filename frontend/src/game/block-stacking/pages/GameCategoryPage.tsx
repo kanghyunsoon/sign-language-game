@@ -11,7 +11,7 @@ const CATEGORY_CANVAS_WIDTH = 1280;
 const CATEGORY_CANVAS_HEIGHT = 720;
 
 export function GameCategoryPage() {
-  const { onExit } = useGameModuleContext();
+  const { onExit, user } = useGameModuleContext();
   const navigate = useNavigate();
   const [showComingSoon, setShowComingSoon] = useState(false);
   const [pageScale, setPageScale] = useState(1);
@@ -41,6 +41,7 @@ export function GameCategoryPage() {
       style={{ transform: `translate(-50%, -50%) scale(${pageScale})` }}
     >
       <img className={styles.categoryReferenceImage} src={gameMenuReference} alt="" aria-hidden="true" />
+      <span className={styles.categoryReferenceUserBadge}>{user.displayName}</span>
       <h1 className={styles.visuallyHidden}>수어의 달인 게임 선택</h1>
 
       <button

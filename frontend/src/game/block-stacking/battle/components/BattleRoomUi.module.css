@@ -232,7 +232,7 @@
   z-index: 5;
   pointer-events: auto;
 }
-.lobbyPage.fixedCanvasPage .lobbyHome { position:absolute; top:25px; left:102px; width:58px; min-height:58px; border:2px solid #eadcc8 !important; border-radius:22px !important; background:#fffdf8 !important; box-shadow:0 3px 0 rgba(133,101,68,.12); color:#6f893d !important; transition:transform .16s ease, box-shadow .16s ease; }
+.lobbyPage.fixedCanvasPage .lobbyHome { position:absolute; z-index:5; top:25px; left:102px; width:58px; min-height:58px; border:2px solid #eadcc8 !important; border-radius:22px !important; background:#fffdf8 !important; box-shadow:0 3px 0 rgba(133,101,68,.12); color:#6f893d !important; pointer-events:auto; transition:transform .16s ease, box-shadow .16s ease; }
 .lobbyPage.fixedCanvasPage .lobbyHome:hover { background:#fff !important; box-shadow:0 4px 0 rgba(133,101,68,.14); transform:translateY(-1px); }
 
 .lobbyPage.fixedCanvasPage .lobbyProfile {
