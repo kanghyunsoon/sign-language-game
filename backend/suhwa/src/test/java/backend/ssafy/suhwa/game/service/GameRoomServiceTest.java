@@ -4,11 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import backend.ssafy.suhwa.auth.service.RealtimeTicketService;
+import backend.ssafy.suhwa.auth.service.RefreshTokenService;
 import backend.ssafy.suhwa.common.config.JpaAuditingConfig;
 import backend.ssafy.suhwa.common.exception.BusinessException;
 import backend.ssafy.suhwa.game.domain.GameRoom;
 import backend.ssafy.suhwa.game.domain.GameRoomStatus;
 import backend.ssafy.suhwa.game.domain.GameType;
+import backend.ssafy.suhwa.game.domain.SymbolRange;
 import backend.ssafy.suhwa.game.dto.GameResultResponse;
 import backend.ssafy.suhwa.game.dto.GameRoomResponse;
 import backend.ssafy.suhwa.game.realtime.LobbyBroadcastService;
@@ -22,8 +24,10 @@ import backend.ssafy.suhwa.gameresult.service.GameResultService;
 import backend.ssafy.suhwa.growth.config.GrowthPolicyProperties;
 import backend.ssafy.suhwa.growth.domain.UserPet;
 import backend.ssafy.suhwa.growth.service.GrowthRewardService;
+import backend.ssafy.suhwa.growth.service.PetGrowthService;
 import backend.ssafy.suhwa.user.domain.User;
 import backend.ssafy.suhwa.user.repository.UserRepository;
+import backend.ssafy.suhwa.user.service.UserService;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,7 +36,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.scheduling.TaskScheduler;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.transaction.PlatformTransactionManager;
 
 @DataJpaTest
 @TestPropertySource(properties = {
@@ -65,6 +71,9 @@ class GameRoomServiceTest {
         guestPet = Mockito.mock(UserPet.class);
         gameRoomService = new GameRoomService(
                 gameRoomRepository,
+                new UserService(userRepository, Mockito.mock(RefreshTokenService.class),
+                        Mockito.mock(PasswordEncoder.class), Mockito.mock(PetGrowthService.class),
+                        Mockito.mock(PlatformTransactionManager.class)),
                 new GameResultService(
                         gameResultRepository, growthRewardService, new GrowthPolicyProperties()),
                 Mockito.mock(RoomRealtimeNotifier.class), Mockito.mock(LobbyBroadcastService.class),
@@ -97,6 +106,28 @@ class GameRoomServiceTest {
         assertThat(room.realtimeTicket()).isNotBlank();
         // 대전 모드 정원은 게임 종류와 무관하게 항상 2명이다(FR-020).
         assertThat(room.capacity()).isEqualTo(2);
+    }
+
+    @Test
+    void create_withTitleAndSymbolRange_includesThemAndResolvedHostName() {
+        GameRoomResponse room = gameRoomService.create(
+                hostId, GameType.SIGN_DUEL, "호스트의 방", SymbolRange.CONSONANT);
+
+        assertThat(room.title()).isEqualTo("호스트의 방");
+        assertThat(room.symbolRange()).isEqualTo(SymbolRange.CONSONANT);
+        assertThat(room.hostName()).isEqualTo("host");
+    }
+
+    @Test
+    void waitingLeave_hostLeavesWithGuestPresent_deriveshostNameFromNewHostOnNextResponse() {
+        GameRoomResponse room = gameRoomService.create(hostId, GameType.SIGN_DUEL);
+        gameRoomService.join(room.roomCode(), guestId);
+
+        gameRoomService.leave(room.id(), hostId);
+
+        GameRoomResponse afterDelegation = gameRoomService.setReady(room.id(), guestId, true);
+        assertThat(afterDelegation.hostUserId()).isEqualTo(guestId);
+        assertThat(afterDelegation.hostName()).isEqualTo("guest");
     }
 
     @Test

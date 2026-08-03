@@ -3,6 +3,7 @@ package backend.ssafy.suhwa.gameresult;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import backend.ssafy.suhwa.auth.service.RealtimeTicketService;
+import backend.ssafy.suhwa.auth.service.RefreshTokenService;
 import backend.ssafy.suhwa.common.config.JpaAuditingConfig;
 import backend.ssafy.suhwa.game.domain.GameType;
 import backend.ssafy.suhwa.game.dto.GameRoomResponse;
@@ -18,8 +19,10 @@ import backend.ssafy.suhwa.gameresult.service.GameResultService;
 import backend.ssafy.suhwa.growth.config.GrowthPolicyProperties;
 import backend.ssafy.suhwa.growth.domain.UserPet;
 import backend.ssafy.suhwa.growth.service.GrowthRewardService;
+import backend.ssafy.suhwa.growth.service.PetGrowthService;
 import backend.ssafy.suhwa.user.domain.User;
 import backend.ssafy.suhwa.user.repository.UserRepository;
+import backend.ssafy.suhwa.user.service.UserService;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,7 +31,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.scheduling.TaskScheduler;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.transaction.PlatformTransactionManager;
 
 /**
  * 대전 결과(game_results) 기록 정합성 검증(spec 004 FR-015, GAME-02-16).
@@ -63,6 +68,9 @@ class GameResultIntegrityTest {
                 .thenReturn(Mockito.mock(UserPet.class));
         gameRoomService = new GameRoomService(
                 gameRoomRepository,
+                new UserService(userRepository, Mockito.mock(RefreshTokenService.class),
+                        Mockito.mock(PasswordEncoder.class), Mockito.mock(PetGrowthService.class),
+                        Mockito.mock(PlatformTransactionManager.class)),
                 new GameResultService(
                         gameResultRepository, growthRewardService, new GrowthPolicyProperties()),
                 Mockito.mock(RoomRealtimeNotifier.class), Mockito.mock(LobbyBroadcastService.class),

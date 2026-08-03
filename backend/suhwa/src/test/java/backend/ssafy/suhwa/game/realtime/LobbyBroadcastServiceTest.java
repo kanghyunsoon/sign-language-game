@@ -12,8 +12,11 @@ import static org.mockito.Mockito.verify;
 import backend.ssafy.suhwa.game.domain.GameRoom;
 import backend.ssafy.suhwa.game.domain.GameRoomStatus;
 import backend.ssafy.suhwa.game.domain.GameType;
+import backend.ssafy.suhwa.game.domain.SymbolRange;
 import backend.ssafy.suhwa.game.realtime.dto.LobbyRoomList;
 import backend.ssafy.suhwa.game.repository.GameRoomRepository;
+import backend.ssafy.suhwa.user.domain.User;
+import backend.ssafy.suhwa.user.service.UserService;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -30,16 +33,26 @@ class LobbyBroadcastServiceTest {
     @Test
     void snapshot_returnsWaitingRoomsAsSummaries() {
         GameRoomRepository repository = mock(GameRoomRepository.class);
+        UserService userService = mock(UserService.class);
         LobbySubscriberRegistry registry = new LobbySubscriberRegistry();
-        LobbyBroadcastService service = new LobbyBroadcastService(repository, registry);
+        LobbyBroadcastService service = new LobbyBroadcastService(repository, userService, registry);
 
-        GameRoom room = GameRoom.builder().roomCode("ABC123").hostUserId(1L).gameType(GameType.TETRIS_DUEL).build();
+        GameRoom room = GameRoom.builder()
+                .roomCode("ABC123").roomTitle("호스트의 방").hostUserId(1L).gameType(GameType.TETRIS_DUEL)
+                .symbolRange(SymbolRange.CONSONANT).build();
         given(repository.findByStatus(GameRoomStatus.WAITING)).willReturn(List.of(room));
+        User host = mock(User.class);
+        given(host.getId()).willReturn(1L);
+        given(host.getNickname()).willReturn("호스트");
+        given(userService.findActiveByIds(List.of(1L))).willReturn(List.of(host));
 
         LobbyRoomList snapshot = service.snapshot();
 
         assertThat(snapshot.rooms()).hasSize(1);
         assertThat(snapshot.rooms().get(0).roomCode()).isEqualTo("ABC123");
+        assertThat(snapshot.rooms().get(0).title()).isEqualTo("호스트의 방");
+        assertThat(snapshot.rooms().get(0).hostName()).isEqualTo("호스트");
+        assertThat(snapshot.rooms().get(0).symbolRange()).isEqualTo(SymbolRange.CONSONANT);
         // 서로 다른 게임 종류의 방이 로비 목록에서 각자의 gameType과 함께 구분되어 노출된다(FR-018).
         assertThat(snapshot.rooms().get(0).gameType()).isEqualTo(GameType.TETRIS_DUEL);
         assertThat(snapshot.rooms().get(0).capacity()).isEqualTo(2);
@@ -52,7 +65,7 @@ class LobbyBroadcastServiceTest {
         LobbySubscriberRegistry registry = new LobbySubscriberRegistry();
         SseEmitter emitter = mock(SseEmitter.class);
         registry.register("session-1", emitter);
-        LobbyBroadcastService service = new LobbyBroadcastService(repository, registry);
+        LobbyBroadcastService service = new LobbyBroadcastService(repository, mock(UserService.class), registry);
 
         service.broadcastUpdate();
 
@@ -74,7 +87,7 @@ class LobbyBroadcastServiceTest {
         willThrow(new AsyncRequestNotUsableException("client gone"))
                 .given(emitter).send(any(SseEmitter.SseEventBuilder.class));
         registry.register("session-1", emitter);
-        LobbyBroadcastService service = new LobbyBroadcastService(repository, registry);
+        LobbyBroadcastService service = new LobbyBroadcastService(repository, mock(UserService.class), registry);
 
         service.sendHeartbeat();
 
@@ -91,7 +104,7 @@ class LobbyBroadcastServiceTest {
         IOException failure = new IOException("전송 실패");
         willThrow(failure).given(emitter).send(any(SseEmitter.SseEventBuilder.class));
         registry.register("session-1", emitter);
-        LobbyBroadcastService service = new LobbyBroadcastService(repository, registry);
+        LobbyBroadcastService service = new LobbyBroadcastService(repository, mock(UserService.class), registry);
 
         service.sendHeartbeat();
 
@@ -124,7 +137,7 @@ class LobbyBroadcastServiceTest {
         }).given(emitter).send(any(SseEmitter.SseEventBuilder.class));
 
         registry.register("session-1", emitter);
-        LobbyBroadcastService service = new LobbyBroadcastService(repository, registry);
+        LobbyBroadcastService service = new LobbyBroadcastService(repository, mock(UserService.class), registry);
 
         int threads = 8;
         CountDownLatch start = new CountDownLatch(1);
@@ -169,7 +182,7 @@ class LobbyBroadcastServiceTest {
         willThrow(new AsyncRequestNotUsableException("client gone"))
                 .given(emitter).send(any(SseEmitter.SseEventBuilder.class));
         registry.register("session-1", emitter);
-        LobbyBroadcastService service = new LobbyBroadcastService(repository, registry);
+        LobbyBroadcastService service = new LobbyBroadcastService(repository, mock(UserService.class), registry);
 
         service.broadcastUpdate();
 
