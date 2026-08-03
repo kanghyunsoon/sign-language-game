@@ -1,11 +1,37 @@
-/* 메인페이지 .panel과 동일한 패널 토큰 */
+/*
+ * 사전·오답노트·테스트 결과가 공유하는 수어 상세 카드.
+ *
+ * 배치는 여섯 행을 고정한 그리드로 정한다. 지문자와 단어, 그리고 세 화면이
+ * 같은 행 구조를 쓰므로 항목을 넘겨도 요소의 세로 위치가 흔들리지 않는다.
+ *   1) 배지  2) 글자·이름  3) 발음 이름  4) 그림·영상  5) 수형 설명  6) 페이지 버튼
+ *
+ * 이름이 없는 단어 카드와 hideName을 쓰는 테스트 결과에서도 3행은 자리를
+ * 지키므로 위치가 어긋나지 않는다. 단어 영상은 3~4행을 함께 차지한다.
+ *
+ * 치수는 아래 변수로 노출한다. 화면 폭이 달라 값 자체는 페이지가 정한다.
+ */
 .fingerspelling-detail {
+  --detail-symbol-row: 100px;
+  --detail-name-row: 36px;
+  --detail-image-size: 310px;
+  --detail-video-width: 470px;
+  --detail-description-width: min(560px, 100%);
+  --detail-description-height: 160px;
+  --detail-row-gap: 20px;
+
   position: relative;
   min-height: 640px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
+  display: grid;
+  grid-template-rows:
+    auto
+    var(--detail-symbol-row)
+    var(--detail-name-row)
+    var(--detail-image-size)
+    var(--detail-description-height)
+    auto;
+  row-gap: var(--detail-row-gap);
+  justify-items: center;
+  align-content: center;
   padding: 34px 40px 40px;
   border: 1px solid #e7d9c7;
   border-radius: 30px;
@@ -55,6 +81,8 @@
 }
 
 .fingerspelling-detail-badge {
+  grid-row: 1;
+  align-self: center;
   padding: 7px 14px;
   border-radius: 999px;
   background: #eef2e3;
@@ -63,16 +91,22 @@
   font-weight: 800;
 }
 
+/* 글자 크기가 지문자 96px, 단어 64px로 달라 행 안에서 가운데로 맞춘다. */
 .fingerspelling-detail-symbol {
-  margin: 8px 0 0;
+  grid-row: 2;
+  align-self: center;
+  margin: 0;
   color: #3f2b20;
   font-size: 96px;
   line-height: 1;
   letter-spacing: -0.04em;
 }
 
+/* 글자와의 간격이 넓어 보여 이름과 그림을 위로 당긴다. 이름을 조금 더 올린다. */
 .fingerspelling-detail-name {
-  margin: 0;
+  grid-row: 3;
+  align-self: center;
+  margin: -36px 0 0;
   color: #827368;
   font-size: 27px;
   font-weight: 700;
@@ -89,9 +123,20 @@
   font-size: 17px;
 }
 
-.word-sign-detail-video {
+/*
+ * 단어는 발음 이름이 없어 3행이 빈다. 영상이 3~4행을 함께 차지해
+ * 지문자의 이름 + 그림을 합친 높이·위치와 일치한다.
+ *
+ * 지문자 손그림과 같은 요소(.fingerspelling-detail-image)를 쓰므로 원형 마스크와
+ * 흰 배경을 여기서 되돌린다. 뒤에 오는 규칙에 지지 않도록 두 클래스를 겹쳐 쓴다.
+ */
+.fingerspelling-detail-image.word-sign-detail-video {
+  grid-row: 3 / 5;
+  width: var(--detail-video-width);
+  height: 100%;
   border-radius: 20px;
   background: #000000;
+  box-shadow: none;
 }
 
 .word-sign-detail-video video {
@@ -100,11 +145,12 @@
   object-fit: contain;
 }
 
-/* 연습 화면 정답 이미지와 동일한 310px 원형 컨테이너 */
+/* 연습 화면 정답 이미지와 동일한 원형 컨테이너. 크기는 페이지가 변수로 정한다. */
 .fingerspelling-detail-image {
-  width: 310px;
-  height: 310px;
-  flex: 0 0 310px;
+  grid-row: 4;
+  width: var(--detail-image-size);
+  height: var(--detail-image-size);
+  margin-top: -14px;
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -119,11 +165,19 @@
   object-fit: contain;
 }
 
+/*
+ * 높이를 고정해 문장 수가 다른 항목을 번갈아 봐도 상자가 흔들리지 않게 한다.
+ * 설명은 최대 세 문장이고 문장마다 한 줄을 쓴다.
+ */
 .fingerspelling-detail-description {
-  width: min(560px, 100%);
-  display: grid;
+  grid-row: 5;
+  width: var(--detail-description-width);
+  height: var(--detail-description-height);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   gap: 8px;
-  margin-top: 8px;
   padding: 20px 24px;
   border: 1px solid #eee7de;
   border-radius: 20px;
@@ -145,9 +199,9 @@
 }
 
 /* 페이지가 덧붙이는 하단 영역(예: 테스트 결과의 오답노트 버튼) */
+/* 오답노트·테스트 결과가 넣는 버튼 영역. 설명 상자 아래 6행을 쓴다. */
 .fingerspelling-detail-footer {
-  width: min(560px, 100%);
-  flex-shrink: 0;
-  margin-top: auto;
+  grid-row: 6;
+  width: var(--detail-description-width);
   padding-top: 16px;
 }

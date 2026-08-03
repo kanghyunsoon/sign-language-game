@@ -149,22 +149,26 @@
   min-height: 0;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  /*
+   * 왼쪽 목록 폭은 지문자 칩 6개가 한 줄에 들어가도록 400px로 둔다.
+   * 400 - 52(카드 패딩) - 12(스크롤 여백) - 16(분류 들여쓰기와 선) - 4(그리드 패딩) = 316px
+   * 이고, 칩 6개는 6x44 + 5x8 = 304px를 쓴다.
+   * 오른쪽은 남은 폭을 채우므로 전체 너비는 그대로다.
+   */
+  grid-template-columns: 400px minmax(0, 1fr);
   gap: 26px;
-  /* 오른쪽 상세 카드는 내용 높이를 그대로 쓴다. 왼쪽 목록만 align-self로 늘린다. */
-  align-items: start;
+  /* 두 카드가 같은 높이로 끝나도록 나란히 늘린다. */
+  align-items: stretch;
 }
 
 /* 메인페이지 .panel과 동일한 패널 토큰 */
 /*
  * 목록이 아무리 길어져도 카드 자체는 남은 높이에 맞춰 고정하고, 넘치는 부분은
- * 안쪽 목록(.dictionary-tree)에서 스크롤한다. align-self로 이 카드만 늘려
- * 오른쪽 상세 카드 높이에는 영향을 주지 않는다.
+ * 안쪽 목록(.dictionary-tree)에서 스크롤한다.
  */
 .dictionary-sidebar {
   position: relative;
   top: auto;
-  align-self: stretch;
   min-height: 0;
   max-height: 100%;
   display: flex;
@@ -473,6 +477,12 @@
   font-weight: 700;
 }
 
+/* 단어는 큰 글자 없이 이름만 보여주므로 그 자리를 대신할 크기로 키운다. */
+.dictionary-result-name-word {
+  font-size: 26px;
+  font-weight: 800;
+}
+
 .dictionary-result-category {
   margin-left: auto;
   padding: 4px 10px;
@@ -488,52 +498,13 @@
   background: #f3f6ea;
 }
 
+/*
+ * 배치 규칙은 FingerspellingDetail.css가 갖고 있다. 이 화면은 치수만 정한다.
+ * 목록이 400px뿐이라 카드가 넓어 설명 상자와 영상을 크게 쓴다.
+ */
 .fingerspelling-detail.dictionary-detail {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr auto 1fr;
-  grid-template-rows: 1fr auto auto auto auto 1fr;
-  align-items: center;
-  justify-items: center;
-  column-gap: 24px;
-  row-gap: 10px;
-  text-align: left;
-}
-
-.dictionary-detail .fingerspelling-detail-badge {
-  grid-area: 2 / 2 / 3 / 3;
-}
-
-.dictionary-detail .fingerspelling-detail-symbol {
-  grid-area: 3 / 2 / 4 / 3;
-}
-
-.dictionary-detail .fingerspelling-detail-name {
-  grid-area: 4 / 2 / 5 / 3;
-}
-
-.dictionary-detail .fingerspelling-detail-description {
-  grid-area: 5 / 2 / 6 / 3;
-  width: 560px;
-  height: 160px;
-  margin: 30px 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  
-}
-
-/* 손그림은 오른쪽 열에서 세로 가운데. */
-.dictionary-detail .fingerspelling-detail-image {
-  grid-area: 1 / 4 / -1 / 5;
-  align-self: center;
-}
-
-.dictionary-detail .word-sign-detail-video {
-  width: 470px;
-  height: 381px;
-  flex: 0 0 381px;
-  border-radius: 20px;
+  --detail-description-width: 680px;
+  --detail-video-width: 470px;
 }
 
 /*

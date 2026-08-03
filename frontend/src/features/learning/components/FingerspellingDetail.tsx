@@ -1,33 +1,28 @@
 import "./FingerspellingDetail.css";
 import type { ReactNode } from "react";
 import type { FingerspellingEntry } from "../data/fingerspelling";
+import { DetailStepper, type DetailStepperProps } from "./DetailStepper";
 
-interface FingerspellingDetailProps {
+interface FingerspellingDetailProps extends DetailStepperProps {
   /** 표시할 지문자 항목. */
   readonly entry: FingerspellingEntry;
-  /** 페이지별 크기·여백 보정을 위한 추가 클래스. */
+  /** 페이지별 치수 보정을 위한 추가 클래스. */
   readonly className?: string;
-  /** 기본 분류 배지 대신 표시할 문구. */
-  readonly badgeLabel?: string;
-  /** 테스트 결과처럼 발음 이름을 생략해야 할 때 사용한다. */
-  readonly hideName?: boolean;
-  /** 수형 설명 아래에 덧붙일 영역. 사전은 쓰지 않고 테스트 결과만 사용한다. */
+  /** 수형 설명 아래에 덧붙일 영역. 오답노트·테스트 결과의 버튼이 들어온다. */
   readonly footer?: ReactNode;
-  /** 카드 상단 양 끝에 놓을 이전/다음 이동 버튼. */
-  readonly stepper?: ReactNode;
 }
 
 /**
  * 지문자 한 글자의 상세 정보(분류·글자·이름·동작 사진·수형 설명) 패널.
- * 사전 페이지와 테스트 결과 화면이 동일한 구조·스타일로 공유한다.
+ * 사전·오답노트·테스트 결과가 동일한 구조·스타일로 공유한다.
  */
 export function FingerspellingDetail({
   entry,
   className,
-  badgeLabel,
-  hideName = false,
   footer,
-  stepper,
+  onPrevious,
+  onNext,
+  unitLabel,
 }: FingerspellingDetailProps) {
   return (
     <section
@@ -38,17 +33,15 @@ export function FingerspellingDetail({
       }
       aria-live="polite"
     >
-      {stepper}
+      <DetailStepper onPrevious={onPrevious} onNext={onNext} unitLabel={unitLabel} />
 
       <span className="fingerspelling-detail-badge">
-        {badgeLabel ?? `지문자 · ${entry.categoryLabel}`}
+        {`지문자 · ${entry.categoryLabel}`}
       </span>
 
       <h2 className="fingerspelling-detail-symbol">{entry.symbol}</h2>
 
-      {hideName ? null : (
-        <p className="fingerspelling-detail-name">{entry.name}</p>
-      )}
+      <p className="fingerspelling-detail-name">{entry.name}</p>
 
       <div className="fingerspelling-detail-image">
         <img src={entry.image} alt={`${entry.name} 지문자 동작`} />

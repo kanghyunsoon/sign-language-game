@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import type { ChangeEvent } from "react";
 import { ChevronDown, Search, X } from "lucide-react";
 import { AppNav } from "../../../shared/nav/AppNav";
-import { DetailStepper } from "../components/DetailStepper";
 import { FingerspellingDetail } from "../components/FingerspellingDetail";
 import { WordSignDetail } from "../components/WordSignDetail";
 import {
@@ -128,21 +127,12 @@ export function DictionaryPage() {
   const nextEntry =
     selectedIndex >= 0 ? learningEntries[selectedIndex + 1] : undefined;
 
-  const detailStepper = (
-    <DetailStepper
-      unitLabel="항목"
-      onPrevious={
-        previousEntry
-          ? () => handleEntrySelect(previousEntry.symbol, previousEntry.categoryId)
-          : undefined
-      }
-      onNext={
-        nextEntry
-          ? () => handleEntrySelect(nextEntry.symbol, nextEntry.categoryId)
-          : undefined
-      }
-    />
-  );
+  const goPreviousEntry = previousEntry
+    ? () => handleEntrySelect(previousEntry.symbol, previousEntry.categoryId)
+    : undefined;
+  const goNextEntry = nextEntry
+    ? () => handleEntrySelect(nextEntry.symbol, nextEntry.categoryId)
+    : undefined;
 
   return (
     <div className="dictionary-page">
@@ -220,16 +210,28 @@ export function DictionaryPage() {
                               handleEntrySelect(entry.symbol, entry.categoryId)
                             }
                           >
-                            <span className="dictionary-result-symbol">
-                              {entry.symbol}
-                            </span>
+                            {/* 단어는 큰 글자와 이름이 같은 값이라 이름만 크게 보여준다. */}
+                            {entry.categoryId !== "word" && (
+                              <span className="dictionary-result-symbol">
+                                {entry.symbol}
+                              </span>
+                            )}
 
-                            <span className="dictionary-result-name">
+                            <span
+                              className={`dictionary-result-name ${
+                                entry.categoryId === "word"
+                                  ? "dictionary-result-name-word"
+                                  : ""
+                              }`}
+                            >
                               {entry.name}
                             </span>
 
+                            {/* 단어는 모두 "단어"라 구분이 안 되므로 소분류를 보여준다. */}
                             <span className="dictionary-result-category">
-                              {entry.categoryLabel}
+                              {entry.categoryId === "word"
+                                ? entry.groupLabel
+                                : entry.categoryLabel}
                             </span>
                           </button>
                         </li>
@@ -483,13 +485,15 @@ export function DictionaryPage() {
             <WordSignDetail
               className="dictionary-detail"
               entry={selectedEntry}
-              stepper={detailStepper}
+              onPrevious={goPreviousEntry}
+              onNext={goNextEntry}
             />
           ) : (
             <FingerspellingDetail
               className="dictionary-detail"
               entry={selectedEntry}
-              stepper={detailStepper}
+              onPrevious={goPreviousEntry}
+              onNext={goNextEntry}
             />
           )}
         </div>

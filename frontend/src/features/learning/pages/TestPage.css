@@ -786,12 +786,12 @@
 /* ---------------- 결과 화면 ---------------- */
 
 .test-result-layout {
-  /* 사전 페이지와 같은 폭, 좌우 3:2 */
   width: min(1440px, 100%);
   height: 100%;
   min-height: 0;
   margin: 0 auto;
   display: grid;
+  /* 사전 페이지와 같은 폭, 좌우 3:2 */
   grid-template-columns: 3fr 2fr;
   gap: 28px;
   /* stretch로 두 카드가 같은 높이를 갖게 한다. start면 카드가 내용만큼
@@ -807,7 +807,7 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 10px;
-  padding: 32px 34px 28px;
+  padding: 34px 34px 28px;
   border: 1px solid #e7d9c7;
   border-radius: 30px;
   background: rgba(255, 250, 242, 0.94);
@@ -816,22 +816,34 @@
 
 /* 상단 안내 영역은 높이를 고정한다. */
 .test-result-list-panel > .test-badge,
-.test-result-title,
-.test-result-summary {
+.test-result-headline {
   flex-shrink: 0;
 }
 
+/*
+ * 제목과 요약을 한 줄에 나란히 둔다. 요약은 제목의 글자 아래선에 맞춰
+ * 붙여 읽히도록 baseline으로 정렬한다.
+ */
+.test-result-headline {
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin: 18px 0 20px;
+}
+
 .test-result-title {
-  margin: 8px 0 0;
+  margin: 0;
   color: #3f2b20;
   font-size: 40px;
   letter-spacing: -0.03em;
 }
 
 .test-result-summary {
-  margin: 0 0 6px;
+  margin: 0;
   color: #827368;
   font-size: 20px;
+  white-space: nowrap;
 }
 
 /* 상단·하단 고정 영역 사이 남은 공간을 모두 쓰고, 넘칠 때만 여기서 스크롤한다. */
@@ -915,6 +927,8 @@
 .test-result-symbol-word {
   width: auto;
   flex: 1;
+  /* 지문자는 한 글자라 35px이 맞지만 단어는 길어 목록에서 과하게 커 보인다. */
+  font-size: 26px;
   white-space: nowrap;
 }
 
@@ -956,6 +970,7 @@
   display: flex;
   gap: 12px;
   padding-top: 14px;
+  padding-bottom: 4px;
 }
 
 .test-result-retry-button,
@@ -1007,14 +1022,27 @@
 .fingerspelling-detail.test-result-detail {
   height: 100%;
   min-height: 0;
+  /*
+   * 좌우 여백을 공용값 40px에서 24px로 좁혀 600px 설명 상자가 세로 스크롤바와
+   * 함께 있어도 들어가게 한다. 그래도 남지 않는 폭은 잘라 가로 스크롤을 막는다.
+   */
+  padding-left: 24px;
+  padding-right: 24px;
+  /*
+   * 단어 카드의 영상이 왼쪽 1번 문항 버튼과 같은 높이에서 시작하도록 맞춘다.
+   * 왼쪽: 패널 여백 32 + 배지 35 + 10 + 제목 여백 22 + 제목 48 + 10 + 요약 여백 12
+   *       + 요약 24 + 26 + 10 = 229px
+   * 오른쪽: 카드 여백 P + 배지 35 + 20 + 글자 행 100 + 20 = P + 175
+   * 두 값이 같아지는 P = 54px. 세로 가운데 정렬을 끄고 위에서부터 쌓아야
+   * 이 계산이 유지된다.
+   */
+  padding-top: 70px;
+  align-content: start;
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: #d5c5b1 transparent;
-}
-
-.test-result-detail .fingerspelling-detail-symbol {
-  font-size: 64px;
 }
 
 .fingerspelling-detail.test-result-detail::-webkit-scrollbar {
@@ -1034,24 +1062,41 @@
   background: #bda98d;
 }
 
-/* 카드 안에서 지문자 사진이 줄어들지 않도록 고정한다. */
-.test-result-detail .fingerspelling-detail-image {
-  flex-shrink: 0;
+/*
+ * 배치 규칙은 FingerspellingDetail.css가 갖고 있다. 이 화면은 치수만 정한다.
+ * 문항 목록과 카드를 나눠 쓰므로 오답노트와 같은 크기를 쓴다.
+ */
+.fingerspelling-detail.test-result-detail {
+  --detail-image-size: 270px;
+  --detail-video-width: 400px;
+  /*
+   * 카드가 좁으므로(3:2에서 약 565px) 상자도 그 안에 들어가는 폭으로 둔다.
+   * 565 - 좌우 여백 48 - 세로 스크롤바 8 = 509px.
+   * 이 폭에 맞춰 일부 단어는 narrowDescription으로 줄을 더 나눠 둔다.
+   *
+   * 상자 안쪽 좌우 여백을 24px에서 12px로 좁혀, 같은 문장을 담으면서 상자를
+   * 460px까지 줄였다. 가장 긴 줄인 버스 넷째 줄이 약 429px이다.
+   */
+  --detail-description-width: 460px;
+  /* 네 줄까지 들어가야 한다. 4x32 + 줄 사이 24 + 상자 안쪽 42 = 194px */
+  --detail-description-height: 200px;
 }
 
-.test-result-detail .word-sign-detail-video {
-  width: 400px;
-  height: 324px;
-  flex: 0 0 324px;
-  border-radius: 20px;
+.test-result-detail .fingerspelling-detail-description {
+  padding-right: 12px;
+  padding-left: 12px;
 }
 
 /* 오답노트 담기·빼기 토글. 기존 버튼 시스템(입체 그림자 + active 눌림)을 따른다. */
+/*
+ * 오답노트 페이지의 삭제 버튼(.review-notes-detail-delete)과 같은 규격을 쓴다.
+ * 두 화면에서 같은 일을 하는 버튼이라 크기·모양·위치를 맞춘다.
+ */
 .test-wrong-note-toggle {
-  width: 100%;
   min-height: 52px;
-  border: 0;
-  border-radius: 16px;
+  padding: 0 34px;
+  border: 1px solid #b6c496;
+  border-radius: 999px;
   background: #8fa071;
   box-shadow: 0 4px 0 #6f8052;
   color: #ffffff;
@@ -1071,20 +1116,25 @@
   box-shadow: 0 2px 0 #6f8052;
 }
 
-/* 삭제는 파괴적 동작이라 로즈 계열로 구분하되, 결과 목록의 오답 태그와
-   같은 옅은 톤을 써서 팔레트와 어울리게 한다. */
+/* 삭제 상태는 오답노트 페이지의 삭제 버튼과 완전히 같은 색을 쓴다. */
 .test-wrong-note-toggle-remove {
-  background: #f7e0d6;
+  border-color: #e8b8a4;
+  background: #fbeee8;
   box-shadow: 0 4px 0 #e8c4b6;
   color: #b4523a;
 }
 
 .test-wrong-note-toggle-remove:hover {
-  background: #f2d5c8;
+  background: #f7e0d6;
 }
 
 .test-wrong-note-toggle-remove:active {
   box-shadow: 0 2px 0 #e8c4b6;
+}
+
+/* 버튼 위치도 오답노트 카드와 같게 맞춘다. */
+.test-result-detail .fingerspelling-detail-footer {
+  padding-top: 90px;
 }
 
 /* 오답노트 변경 알림 — 기존 개발중 팝업과 같은 두툼한 테두리·입체 그림자 결 */
