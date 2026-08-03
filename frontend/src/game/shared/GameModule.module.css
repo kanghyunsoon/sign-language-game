@@ -1077,7 +1077,7 @@
 .categoryReferencePage { display: block; padding: 0; border: 0; background: #dff0f6; }
 .categoryReferenceImage { position: absolute; z-index: 0; inset: 0; display: block; width: 100%; height: 100%; object-fit: fill; user-select: none; }
 .categoryReferenceBack { position: absolute; z-index: 5; top: 24px; left: 29px; width: 59px; height: 59px; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; }
-.categoryReferenceHome { position: absolute; z-index: 6; top: 24px; left: 96px; display: grid; width: 59px; height: 59px; place-items: center; border: 2px solid #eadcc8; border-radius: 20px; background: #fffdf8; box-shadow: 0 4px 0 rgba(133,101,68,.14); color: #6f893d; transition: transform .18s ease, box-shadow .18s ease; }
+.categoryReferenceHome { position: absolute; z-index: 6; top: 24px; left: 100px; display: grid; width: 59px; height: 59px; place-items: center; border: 2px solid #eadcc8; border-radius: 20px; background: #fffdf8; box-shadow: 0 4px 0 rgba(133,101,68,.14); color: #6f893d; transition: transform .18s ease, box-shadow .18s ease; }
 .categoryReferenceHome:hover { transform: translateY(-2px); box-shadow: 0 6px 0 rgba(133,101,68,.16); }
 .categoryReferenceChoices { position: absolute; z-index: 5; inset: 0; pointer-events: none; }
 .categoryReferenceChoice { position: absolute; display: block; height: 239px; padding: 0; border: 0; border-radius: 25px; background: transparent; color: transparent; cursor: pointer; pointer-events: auto; }
@@ -1114,7 +1114,7 @@
 .modePage2d .tetrisModeHeader { position: absolute; z-index: 5; top: 25px; right: 32px; left: 32px; display: grid; grid-template-columns: 58px 58px minmax(0, 1fr) 138px; align-items: start; gap: 20px; }
 .modePage2d .modeBackButton { width: 58px; height: 58px; border: 2px solid #eadcc8; border-radius: 22px; background: #fffdf8; box-shadow: 0 4px 0 rgba(133,101,68,.14); color: #543823; }
 .modePage2d .modeBackButton:hover { box-shadow: 0 6px 0 rgba(133,101,68,.16); transform: translateY(-2px); }
-.modePage2d .modeHomeButton { width: 58px; height: 58px; border: 2px solid #eadcc8; border-radius: 22px; background: #fffdf8; box-shadow: 0 4px 0 rgba(133,101,68,.14); color: #6f893d; }
+.modePage2d .modeHomeButton { position: absolute; top: 0; left: 70px; width: 58px; height: 58px; border: 2px solid #eadcc8; border-radius: 22px; background: #fffdf8; box-shadow: 0 4px 0 rgba(133,101,68,.14); color: #6f893d; }
 .modePage2d .modeTitleBlock { justify-self: center; text-align: center; }
 .modePage2d .modeTitleBlock > span { justify-content: center; color: #6c8b2d; font-size: 11px; letter-spacing: .13em; }
 .modePage2d .layersMark i { width: 8px; height: 8px; border-radius: 2px; box-shadow: none; }
