@@ -80,9 +80,6 @@ export function PracticeSessionPage({
     isStable?: boolean;
   } | null>(null);
   const [isCorrect, setIsCorrect] = useState(false);
-  const [autoAdvanceSeconds, setAutoAdvanceSeconds] = useState(
-    CORRECT_AUTO_ADVANCE_SECONDS,
-  );
   const [recognitionMessage, setRecognitionMessage] =
     useState("AI 연결을 준비하고 있습니다.");
   const [cameraMessage, setCameraMessage] =
@@ -197,6 +194,14 @@ export function PracticeSessionPage({
   const currentCategoryLabel =
     findFingerspellingEntry(currentPracticeItem?.symbol ?? "")?.categoryLabel ??
     "";
+  /*
+   * 사전·오답노트와 같은 표기를 쓴다. 자음·모음은 "지문자 · 자음"처럼 상위 분류를
+   * 함께 보여주고, 숫자는 지문자와 구분되는 이름이라 "지숫자"만 쓴다.
+   */
+  const practiceTagLabel =
+    currentCategoryLabel === "숫자"
+      ? "지숫자"
+      : `지문자 · ${currentCategoryLabel}`;
   const isFirstItem = currentIndex === 0;
   const isLastItem = currentIndex === currentPracticeItems.length - 1;
   const correctProgress = Math.round(
@@ -266,19 +271,12 @@ export function PracticeSessionPage({
   useEffect(() => {
     if (!isCorrect || isPracticeComplete) return;
 
-    setAutoAdvanceSeconds(CORRECT_AUTO_ADVANCE_SECONDS);
-    const countdownId = window.setInterval(() => {
-      setAutoAdvanceSeconds((seconds) => Math.max(1, seconds - 1));
-    }, 1000);
     const nextId = window.setTimeout(
       handleCorrectNext,
       CORRECT_AUTO_ADVANCE_SECONDS * 1000,
     );
 
-    return () => {
-      window.clearInterval(countdownId);
-      window.clearTimeout(nextId);
-    };
+    return () => window.clearTimeout(nextId);
   }, [isCorrect, isPracticeComplete]);
 
   const handleCameraClick = async () => {
@@ -397,9 +395,7 @@ export function PracticeSessionPage({
           <article className="practice-answer-panel">
             <span className="practice-panel-label">
               정답 동작
-              <span className="practice-panel-tag">
-                기초 {currentCategoryLabel}
-              </span>
+              <span className="practice-panel-tag">{practiceTagLabel}</span>
             </span>
             <div className="practice-answer-content">
               <div className="practice-answer-guide">
@@ -426,10 +422,13 @@ export function PracticeSessionPage({
 
                 {currentPracticeItem.sideImage && (
                   <div className="practice-answer-side">
-                    <img
-                      src={currentPracticeItem.sideImage}
-                      alt={`${currentPracticeItem.name} 지문자 동작 옆모습`}
-                    />
+                    <div className="practice-answer-side-image">
+                      <img
+                        src={currentPracticeItem.sideImage}
+                        alt={`${currentPracticeItem.name} 지문자 동작 옆모습`}
+                      />
+                    </div>
+                    <span className="practice-answer-side-label">측면</span>
                   </div>
                 )}
 
@@ -524,7 +523,6 @@ export function PracticeSessionPage({
         {isCorrect && !isPracticeComplete && (
           <CorrectFeedbackModal
             symbol={currentPracticeItem.symbol}
-            autoAdvanceSeconds={autoAdvanceSeconds}
             onClose={handleCorrectNext}
           />
         )}
@@ -547,7 +545,7 @@ export function PracticeSessionPage({
                 오늘의 연습 {currentPracticeItems.length}개를 모두 완료했어요.
               </h2>
 
-              <p>같은 범위를 다시 연습하거나 메인페이지로 이동해보세요.</p>
+              <p>같은 범위를 다시 연습하거나 선택페이지로 이동해보세요.</p>
 
               <div className="practice-completion-stats">
                 <div>

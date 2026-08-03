@@ -5,13 +5,11 @@ import otterClapImage from "../assets/otter_clap.png";
 
 interface CorrectFeedbackModalProps {
   readonly symbol: string;
-  readonly autoAdvanceSeconds: number;
   readonly onClose: () => void;
 }
 
 export function CorrectFeedbackModal({
   symbol,
-  autoAdvanceSeconds,
   onClose,
 }: CorrectFeedbackModalProps) {
   const titleId = useId();
@@ -34,10 +32,7 @@ export function CorrectFeedbackModal({
         </button>
         <img src={otterClapImage} alt="정답을 축하하며 박수치는 수달" />
         <h2 id={titleId}>맞췄습니다!</h2>
-        <p>AI가 {symbol} 동작을 정확히 인식했어요.</p>
-        <p className="practice-correct-countdown">
-          {autoAdvanceSeconds}초 뒤에 자동으로 다음 문제로 넘어가요.
-        </p>
+        <p>AI가 '{symbol}' 동작을 정확히 인식했어요.</p>
       </section>
     </div>,
     document.body,

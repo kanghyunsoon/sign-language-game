@@ -302,7 +302,8 @@
 
 .practice-session-panel {
   width: min(min(75vw, 120vh), 100%);
-  min-height: min(35.416667vw, 56.666667vh);
+  /* 카드 안 요소가 늘어나 답답해 보여 세로를 680px 기준에서 760px 기준으로 키운다. */
+  min-height: min(39.583333vw, 63.333333vh);
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -442,11 +443,27 @@
 
 /* 손끝이 앞을 향하는 글자는 정면 그림만으로 방향을 알기 어려워 옆모습을 덧붙인다.
    왼쪽 위 글자 라벨과 마주 보는 자리에, 정면 그림보다 작은 흰 카드로 놓는다. */
+/* 옆모습 사진과 그 아래 [측면] 라벨을 한 묶음으로 둔다. */
 .practice-answer-side {
   position: absolute;
   top: min(1.458333vw, 2.333333vh);
   right: min(1.458333vw, 2.333333vh);
   z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: min(.208333vw, .333333vh);
+}
+
+/* 글자 색은 문제 이름(.practice-item-navigation strong)과 같은 값을 쓴다. */
+.practice-answer-side-label {
+  color: #3f2b20;
+  font-size: min(1.197917vw, 1.916667vh);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.practice-answer-side-image {
   width: min(5.729167vw, 9.166667vh);
   height: min(5.729167vw, 9.166667vh);
   display: grid;
@@ -637,8 +654,10 @@
   max-width: min(13.020833vw, 20.833333vh);
   margin: 0;
   padding: min(0.833333vw, 1.333333vh) min(1.041667vw, 1.666667vh);
-  color: #d9dfe1;
-  font-size: min(0.989583vw, 1.583333vh);
+  /* 글자 색은 문제 이름(.practice-item-navigation strong)과 같은 값을 쓴다. */
+  color: #3f2b20;
+  font-size: min(1.25vw, 2vh);
+  font-weight: 700;
   line-height: 1.6;
   text-align: center;
   word-break: keep-all;
@@ -725,12 +744,7 @@
 .practice-correct-card p {
   margin: 0 0 min(1.041667vw, 1.666667vh);
   color: #827368;
-  font-size: min(1.25vw, 2vh);
-}
-
-.practice-correct-card .practice-correct-countdown {
-  margin-top: calc(min(0.729167vw, 1.166667vh) * -1);
-  margin-bottom: 0;
+  font-size: min(1.458333vw, 2.333333vh);
 }
 
 .practice-correct-card button {
