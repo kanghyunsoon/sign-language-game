@@ -10,29 +10,27 @@
   display: grid;
   place-items: center;
   padding: 0;
-  border: min(.052083vw, .083333vh) solid #dbc8b1;
-  border-radius: 50%;
+  border: 0;
   color: #5f402b;
-  background: #fffaf2;
+  background: transparent;
   cursor: pointer;
   transform: translateY(-50%);
-  transition: background .2s ease;
+  transition: color .2s ease;
 }
 
 .app-bgm-toggle:hover {
-  background: #f6ecdd;
+  color: #8a6544;
 }
 
 .app-bgm-toggle[aria-pressed="true"] {
-  color: #9c8b7c;
-  background: #f0e9df;
+  color: #b0a294;
 }
 
 /* vw/vh 캔버스 페이지 — 메인, 연습, 연습 세션, 마이페이지, 정보 수정 */
 .app-bgm-toggle-viewport {
   left: min(1.666667vw, 2.666667vh);
-  width: min(2.5vw, 4vh);
-  height: min(2.5vw, 4vh);
+  width: min(3.072917vw, 4.916667vh);
+  height: min(3.072917vw, 4.916667vh);
 }
 
 .app-bgm-toggle-viewport.app-bgm-toggle-offset {
@@ -40,16 +38,15 @@
 }
 
 .app-bgm-toggle-viewport svg {
-  width: min(1.354167vw, 2.166667vh);
-  height: min(1.354167vw, 2.166667vh);
+  width: min(2.708333vw, 4.333333vh);
+  height: min(2.708333vw, 4.333333vh);
 }
 
 /* 1920x1200 고정 캔버스 페이지 — 사전, 오답노트, 테스트 */
 .app-bgm-toggle-fixed {
   left: 32px;
-  width: 48px;
-  height: 48px;
-  border-width: 1px;
+  width: 59px;
+  height: 59px;
 }
 
 .app-bgm-toggle-fixed.app-bgm-toggle-offset {
@@ -57,6 +54,6 @@
 }
 
 .app-bgm-toggle-fixed svg {
-  width: 26px;
-  height: 26px;
+  width: 52px;
+  height: 52px;
 }

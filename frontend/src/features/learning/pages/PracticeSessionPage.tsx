@@ -1,6 +1,8 @@
 import "./PracticeSessionPage.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+
+import { AppNav } from "../../../shared/nav/AppNav";
 import otterClapImage from "../assets/otter_clap.png";
 
 const CORRECT_AUTO_ADVANCE_SECONDS = 2;
@@ -365,19 +367,7 @@ export function PracticeSessionPage({
           </Link>
         )}
 
-        <nav className="practice-session-nav" aria-label="주요 메뉴">
-          <Link to="/main">메인페이지</Link>
-
-          <Link className="active" to="/practice">연습</Link>
-          <Link to="/test">테스트</Link>
-          <Link to="/review-notes">오답노트</Link>
-          <Link to="/dictionary">사전</Link>
-          <Link to="/game">게임</Link>
-        </nav>
-
-        <Link className="practice-session-mypage-button" to="/profile">
-          마이페이지
-        </Link>
+        <AppNav prefix="practice-session" hasBackButton />
       </header>
 
       <main className="practice-session-main">

@@ -1,7 +1,9 @@
 import "./ReviewNotesPage.css";
 import { useEffect, useMemo, useState } from "react";
 import { Sparkles } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+
+import { AppNav } from "../../../shared/nav/AppNav";
 import { FingerspellingDetail } from "../components/FingerspellingDetail";
 import { WordSignDetail } from "../components/WordSignDetail";
 import { fingerspellingCategories } from "../data/fingerspelling";
@@ -151,18 +153,7 @@ export function ReviewNotesPage() {
         style={{ transform: `translate(-50%, -50%) scale(${pageScale})` }}
       >
         <header className="review-notes-header">
-          <nav className="review-notes-nav" aria-label="주요 메뉴">
-            <Link to="/main">메인페이지</Link>
-            <Link to="/practice">연습</Link>
-            <Link to="/test">테스트</Link>
-            <Link className="active" to="/review-notes">오답노트</Link>
-            <Link to="/dictionary">사전</Link>
-            <Link to="/game">게임</Link>
-          </nav>
-
-          <Link className="review-notes-mypage-button" to="/profile">
-            마이페이지
-          </Link>
+          <AppNav prefix="review-notes" metric="fixed" />
         </header>
 
         <main className="review-notes-main">
