@@ -7,12 +7,15 @@ interface WordSignDetailProps {
   readonly entry: WordSignEntry;
   readonly className?: string;
   readonly footer?: ReactNode;
+  /** 카드 상단 양 끝에 놓을 이전/다음 이동 버튼. */
+  readonly stepper?: ReactNode;
 }
 
 export function WordSignDetail({
   entry,
   className,
   footer,
+  stepper,
 }: WordSignDetailProps) {
   return (
     <section
@@ -21,6 +24,8 @@ export function WordSignDetail({
       }`}
       aria-live="polite"
     >
+      {stepper}
+
       <span className="fingerspelling-detail-badge">단어</span>
       <h2 className="fingerspelling-detail-symbol">{entry.name}</h2>
       <div className="fingerspelling-detail-image word-sign-detail-video">

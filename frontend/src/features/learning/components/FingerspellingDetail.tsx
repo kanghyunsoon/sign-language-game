@@ -13,6 +13,8 @@ interface FingerspellingDetailProps {
   readonly hideName?: boolean;
   /** 수형 설명 아래에 덧붙일 영역. 사전은 쓰지 않고 테스트 결과만 사용한다. */
   readonly footer?: ReactNode;
+  /** 카드 상단 양 끝에 놓을 이전/다음 이동 버튼. */
+  readonly stepper?: ReactNode;
 }
 
 /**
@@ -25,6 +27,7 @@ export function FingerspellingDetail({
   badgeLabel,
   hideName = false,
   footer,
+  stepper,
 }: FingerspellingDetailProps) {
   return (
     <section
@@ -35,6 +38,8 @@ export function FingerspellingDetail({
       }
       aria-live="polite"
     >
+      {stepper}
+
       <span className="fingerspelling-detail-badge">
         {badgeLabel ?? `지문자 · ${entry.categoryLabel}`}
       </span>

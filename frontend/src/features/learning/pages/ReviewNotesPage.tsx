@@ -4,6 +4,7 @@ import { Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { AppNav } from "../../../shared/nav/AppNav";
+import { DetailStepper } from "../components/DetailStepper";
 import { FingerspellingDetail } from "../components/FingerspellingDetail";
 import { WordSignDetail } from "../components/WordSignDetail";
 import { fingerspellingCategories } from "../data/fingerspelling";
@@ -149,6 +150,19 @@ export function ReviewNotesPage() {
   };
 
   const hasNotes = notes.length > 0;
+
+  // 이동 순서는 지금 보고 있는 목록(필터 적용 후)을 그대로 따른다.
+  const selectedIndex = selectedEntry ? visibleNotes.indexOf(selectedEntry) : -1;
+  const previousNote = selectedIndex > 0 ? visibleNotes[selectedIndex - 1] : undefined;
+  const nextNote = selectedIndex >= 0 ? visibleNotes[selectedIndex + 1] : undefined;
+
+  const detailStepper = (
+    <DetailStepper
+      unitLabel="항목"
+      onPrevious={previousNote ? () => setSelectedSymbol(previousNote.symbol) : undefined}
+      onNext={nextNote ? () => setSelectedSymbol(nextNote.symbol) : undefined}
+    />
+  );
 
   return (
     <div className="review-notes-page">
@@ -302,6 +316,7 @@ export function ReviewNotesPage() {
               <WordSignDetail
                 className="review-notes-detail"
                 entry={selectedEntry}
+                stepper={detailStepper}
                 footer={
                   <button
                     className="review-notes-detail-delete"
@@ -316,6 +331,7 @@ export function ReviewNotesPage() {
               <FingerspellingDetail
                 className="review-notes-detail"
                 entry={selectedEntry}
+                stepper={detailStepper}
                 footer={
                   <button
                     className="review-notes-detail-delete"

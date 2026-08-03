@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import type { ChangeEvent } from "react";
 import { ChevronDown, Search, X } from "lucide-react";
 import { AppNav } from "../../../shared/nav/AppNav";
+import { DetailStepper } from "../components/DetailStepper";
 import { FingerspellingDetail } from "../components/FingerspellingDetail";
 import { WordSignDetail } from "../components/WordSignDetail";
 import {
@@ -98,6 +99,31 @@ export function DictionaryPage() {
       setOpenCategoryMap((previous) => ({ ...previous, [categoryId]: true }));
     }
   };
+
+  /*
+   * learningEntries는 자음 → 모음 → 지숫자 → 단어 순이라 목록 순서와 그대로 맞는다.
+   * 분류 경계를 넘어 이어지므로 ㅎ 다음은 ㅏ, ㅢ 다음은 1, 10 다음은 첫 단어가 된다.
+   */
+  const selectedIndex = learningEntries.indexOf(selectedEntry);
+  const previousEntry = selectedIndex > 0 ? learningEntries[selectedIndex - 1] : undefined;
+  const nextEntry =
+    selectedIndex >= 0 ? learningEntries[selectedIndex + 1] : undefined;
+
+  const detailStepper = (
+    <DetailStepper
+      unitLabel="항목"
+      onPrevious={
+        previousEntry
+          ? () => handleEntrySelect(previousEntry.symbol, previousEntry.categoryId)
+          : undefined
+      }
+      onNext={
+        nextEntry
+          ? () => handleEntrySelect(nextEntry.symbol, nextEntry.categoryId)
+          : undefined
+      }
+    />
+  );
 
   return (
     <div className="dictionary-page">
@@ -395,11 +421,13 @@ export function DictionaryPage() {
             <WordSignDetail
               className="dictionary-detail"
               entry={selectedEntry}
+              stepper={detailStepper}
             />
           ) : (
             <FingerspellingDetail
               className="dictionary-detail"
               entry={selectedEntry}
+              stepper={detailStepper}
             />
           )}
         </div>
