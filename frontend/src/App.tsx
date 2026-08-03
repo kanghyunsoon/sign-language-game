@@ -15,6 +15,7 @@ import { GameModule } from "./game";
 import signSongBgm from "./game/assets/otters-sign-song.mp3";
 import { PROD_GAME_CONFIG } from "./game/config/prodConfig";
 import { useLoopingGameBgm } from "./game/shared/useLoopingGameBgm";
+import { useBgmMuted } from "./shared/bgm/bgmMuteStore";
 
 /** 로컬 UI·게임 검증용 로그인 우회. 프로덕션 빌드에서는 항상 비활성화된다. */
 const LOCAL_GAME_LOGIN_BYPASS = import.meta.env.DEV;
@@ -26,9 +27,10 @@ function isDedicatedBlockStackingPlayRoute(pathname: string): boolean {
 
 function AppBackgroundMusic() {
   const { pathname } = useLocation();
+  const [muted] = useBgmMuted();
 
   useLoopingGameBgm(signSongBgm, {
-    enabled: !isDedicatedBlockStackingPlayRoute(pathname),
+    enabled: !muted && !isDedicatedBlockStackingPlayRoute(pathname),
     volume: OTHER_SCREEN_BGM_VOLUME,
   });
 
