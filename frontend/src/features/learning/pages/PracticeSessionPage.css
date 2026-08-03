@@ -484,7 +484,11 @@
 /* 디귿 아래 손동작 설명 */
 
 .practice-item-description {
-  min-height: min(2.5vw, 4vh);
+  /*
+   * 지문자 설명은 2줄과 3줄이 섞여 있다. 글자를 넘길 때 카드가 들썩이지 않도록
+   * 3줄 높이(font-size x line-height 1.65 x 3줄)로 고정하고 짧은 설명은 가운데 정렬한다.
+   */
+  min-height: min(6.1875vw, 9.9vh);
   display: flex;
   align-items: center;
   justify-content: center;
