@@ -151,7 +151,9 @@
   display: grid;
   grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
   gap: 26px;
-  align-items: start;
+  /* start면 카드 높이가 내용에 따라 정해져 사이드바가 남은 높이를 못 받는다.
+     stretch로 두어야 사이드바가 행 높이에 맞춰지고 그 안에서 목록이 스크롤된다. */
+  align-items: stretch;
 }
 
 /* 메인페이지 .panel과 동일한 패널 토큰 */
