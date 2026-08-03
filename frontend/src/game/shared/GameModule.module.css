@@ -512,7 +512,7 @@
    bottom edge of the actual game board. */
 .module :global(.solo-physics-letter-layer) { position: absolute; z-index: 900; inset: 0; overflow: visible; pointer-events: none; -webkit-clip-path: inset(-360px 0 0 0); clip-path: inset(-360px 0 0 0); }
 .module :global(.solo-stage-column.is-game-over .solo-physics-letter-layer) { visibility: hidden; }
-.module :global(.solo-physics-letter) { position: absolute; top: 0; left: 0; display: block; contain: layout style paint; background: #416d72; -webkit-mask-position: center; mask-position: center; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-size: 100% 100%; mask-size: 100% 100%; filter: drop-shadow(2px 3px 0 rgba(255,255,255,.92)) drop-shadow(0 5px 7px rgba(54,90,96,.24)); transform-origin: center; }
+.module :global(.solo-physics-letter) { position: absolute; top: 0; left: 0; display: block; contain: layout style paint; background: #416d72; -webkit-mask-position: center; mask-position: center; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-size: 100% 100%; mask-size: 100% 100%; filter: drop-shadow(1.7px 1.7px 0 rgba(42,66,65,.94)) drop-shadow(-1.7px -1.7px 0 rgba(42,66,65,.94)) drop-shadow(0 5px 7px rgba(54,90,96,.24)); transform-origin: center; }
 /* Grow on the paper to the exact physical block size. Matter takes over at
    that same point; the glyph itself never performs a separate falling path. */
 @keyframes solo-paper-release {

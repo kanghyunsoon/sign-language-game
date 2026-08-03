@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import { AuthProvider, useAuth } from "./features/auth/AuthContext";
 import { ProtectedRoute } from "./features/auth/components/ProtectedRoute";
@@ -12,10 +12,28 @@ import { PracticeHomePage } from "./features/learning/pages/PracticeHomePage";
 import { TestPage } from "./features/learning/pages/TestPage";
 import { ProfilePage } from "./features/profile/pages/ProfilePage";
 import { GameModule } from "./game";
+import signSongBgm from "./game/assets/otters-sign-song.mp3";
 import { PROD_GAME_CONFIG } from "./game/config/prodConfig";
+import { useLoopingGameBgm } from "./game/shared/useLoopingGameBgm";
 
 /** 로컬 UI·게임 검증용 로그인 우회. 프로덕션 빌드에서는 항상 비활성화된다. */
 const LOCAL_GAME_LOGIN_BYPASS = import.meta.env.DEV;
+const OTHER_SCREEN_BGM_VOLUME = 0.22;
+
+function isDedicatedBlockStackingPlayRoute(pathname: string): boolean {
+  return pathname === "/game/solo" || /^\/game\/battle\/[^/]+\/play\/?$/.test(pathname);
+}
+
+function AppBackgroundMusic() {
+  const { pathname } = useLocation();
+
+  useLoopingGameBgm(signSongBgm, {
+    enabled: !isDedicatedBlockStackingPlayRoute(pathname),
+    volume: OTHER_SCREEN_BGM_VOLUME,
+  });
+
+  return null;
+}
 const LOCAL_GAME_USER = { userId: "local-game-player", displayName: "로컬 플레이어" };
 
 /** 인증된 사용자로 게임 모듈을 마운트한다(배포 Swagger 게이트웨이 사용). */
@@ -32,6 +50,7 @@ function AuthenticatedGameModule() {
 export function App() {
   return (
     <AuthProvider>
+      <AppBackgroundMusic />
       <Routes>
         <Route path="/" element={<PreLoginPage />} />
         <Route path="/login" element={<LoginPage />} />

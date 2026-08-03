@@ -31,6 +31,7 @@ import { RESPONSIVE_GAMEPLAY_SIGN_DECODER_CONFIG } from "../../recognition/tempo
 import { SignGuideImage } from "../../recognition/components/SignGuideImage";
 import { useSharedCameraOwnerCleanup } from "../../media/camera/useSharedCameraOwnerCleanup";
 import { RankingClient } from "../../ranking";
+import { useLoopingGameBgm } from "../../shared/useLoopingGameBgm";
 import resultOtter from "../assets/game-menu-otter.png";
 import letterOtter from "../assets/solo-letter-otter.png";
 import startTitle from "../assets/solo-start-title.png";
@@ -43,6 +44,7 @@ import hintCelebrateFrame1 from "../assets/solo-paper-celebrate-frame-1.png";
 import hintCelebrateFrame2 from "../assets/solo-paper-celebrate-frame-2.png";
 import hintCelebrateFrame3 from "../assets/solo-paper-celebrate-frame-3.png";
 import hintPaperThrow from "../assets/solo-paper-throw.png";
+import pixelPartyBgm from "../assets/pixel-party.mp3";
 
 // Gameplay prioritises prompt feedback. Frames are still latest-only, so a
 // busy AI connection drops stale work instead of making the hand overlay lag.
@@ -160,6 +162,7 @@ export function SoloGamePage({
   const lastHintTargetRef = useRef<string | null>(null);
   const lastPaperBurstVersionRef = useRef(0);
   const [snapshot, setSnapshot] = useState<GameRuntimeSnapshot>(INITIAL_SNAPSHOT);
+  useLoopingGameBgm(pixelPartyBgm, { enabled: snapshot.runState !== "GAME_OVER" });
   const [recognition, setRecognition] = useState<RecognitionGameState>(INITIAL_RECOGNITION_STATE);
   const [hintOtter, setHintOtter] = useState<HintOtterState>(INITIAL_HINT_OTTER_STATE);
   const [sessionStarting, setSessionStarting] = useState(false);

@@ -35,6 +35,8 @@ import { BattleResultClient, BattleResultRequestError } from "../../../results/B
 import { submitBattleResult } from "../../../results/BattleResultSubmission";
 import { BattleRoomRecoveryCancelledError, isMissingOrForbiddenRoom, recoverBattleRoom } from "../core/BattleRoomRecovery";
 import { consumeBattleRefreshExit, markBattlePageUnload } from "../core/BattleRefreshExit";
+import { useLoopingGameBgm } from "../../../shared/useLoopingGameBgm";
+import pixelPartyBgm from "../../assets/pixel-party.mp3";
 
 const INITIAL: BattleControllerSnapshot = { state: "IDLE", gameConnectionState: "DISCONNECTED", aiConnectionState: "DISCONNECTED", countdownMs: 0, reconnectDeadlineAt: null, score: 0, combo: 0, opponentCombo: 0, maxCombo: 0, removedCount: 0, targetSymbol: null, prediction: null, message: "Waiting for board initialization.", result: null };
 const BATTLE_CANVAS_WIDTH = 1680;
@@ -69,6 +71,7 @@ export function BattleGamePage() {
   // controller lifecycle so a media reconnect or room-cache refresh cannot
   // briefly recreate a controller and make the modal disappear.
   const [finalResult, setFinalResult] = useState<MatchFinishedEvent | null>(null);
+  useLoopingGameBgm(pixelPartyBgm, { enabled: finalResult === null && snapshot.result === null });
   const [claimedSymbol, setClaimedSymbol] = useState<{ readonly id: number; readonly symbol: string; readonly winnerPlayerId: string } | null>(null);
   const [drainingSymbol, setDrainingSymbol] = useState<{ readonly id: number; readonly symbol: string } | null>(null);
   const [comboEffects, setComboEffects] = useState<{ readonly local: ComboMeterEffect; readonly remote: ComboMeterEffect }>({ local: null, remote: null });
