@@ -667,6 +667,10 @@
   backdrop-filter: blur(min(0.260417vw, 0.416667vh));
 }
 
+.correct-feedback-modal-overlay {
+  position: fixed;
+}
+
 .practice-correct-card {
   position: relative;
   width: min(min(25vw, 40vh), calc(100% - min(2.083333vw, 3.333333vh)));

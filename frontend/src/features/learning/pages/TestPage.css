@@ -913,10 +913,6 @@
 
 /* 테스트는 1920×1200 고정 캔버스가 한 번 더 축소되므로,
    정답 카드는 연습 화면에서 보이는 실제 크기에 맞춰 보정한다. */
-.test-progress .practice-correct-card {
-  transform: scale(0.68);
-}
-
 .test-result-symbol-word {
   width: auto;
   flex: 1;
