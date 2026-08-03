@@ -101,6 +101,7 @@ npm run build
 
 ## 최신 1:1 문서
 
-- [프링글수 1:1 UI·방 상태 — 2026-08-02](./docs/battle-ui-room-status-2026-08-02.md)
+- [1:1 UI와 방 생명주기](./docs/battle-ui-and-rooms.md)
 - [게임 트러블슈팅 통합 기록](./docs/game-troubleshooting.md)
-- [백엔드 계약 정렬 기준](./docs/backend-contract-alignment-2026-07-23.md)
+- [백엔드 계약](./docs/backend-contracts.md)
+- [모듈 구조](./docs/architecture.md) · [게임 엔진](./docs/game-engine.md) · [인식 파이프라인](./docs/recognition.md)

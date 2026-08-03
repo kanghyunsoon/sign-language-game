@@ -14,8 +14,8 @@
 
 세부 기준:
 
-- `../docs/reference/solo-game-runtime.md`
-- `../docs/reference/game-results-api.md`
+- `../docs/game-engine.md`
+- `../docs/backend-contracts.md`
 - `../docs/game-troubleshooting.md`
 
 ## 2026-08-02 프링글수 1:1 기준
@@ -28,7 +28,7 @@
 
 세부 기준:
 
-- `../docs/battle-ui-room-status-2026-08-02.md`
+- `../docs/battle-ui-and-rooms.md`
 - `../docs/game-troubleshooting.md`
 
 ## 2026-08-02 장시간 게임 성능 기준

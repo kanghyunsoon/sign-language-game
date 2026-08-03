@@ -177,7 +177,6 @@ prototype/
 ├─ shared/
 │  ├─ contracts/
 │  │  └─ recognition-contract.md
-│  └─ reference-templates/
 │     └─ templates.json
 │
 └─ docs/
@@ -767,7 +766,7 @@ export interface RecognitionVisionAdapter {
 
 # 19. 수동 검증 항목
 
-`frontend/src/game/docs/reference/manual-test-checklist.md`에 다음 항목을 작성한다.
+`frontend/src/game/docs/manual-test-checklist.md`에 다음 항목을 작성한다.
 
 ```text
 [ ] 브라우저에 내 웹캠 영상이 표시된다.
@@ -951,7 +950,7 @@ README에는 Python 버전, Node 버전, 브라우저 권한 설정, 카메라 �
 - 시각 결승선과 물리 승리 판정은 같은 값을 사용한다.
 - 결과의 `다시 하기`와 `같은 방으로`는 대기실로, `게임방 목록`은 leave 후 `/game/battle`로 이동한다.
 
-상세 구현·제한은 `battle-ui-room-status-2026-08-02.md`, 재발 점검은 `game-troubleshooting.md`를 기준으로 한다.
+상세 구현·제한은 `battle-ui-and-rooms.md`, 재발 점검은 `game-troubleshooting.md`를 기준으로 한다.
 
 ## 25. 장시간 렌더링·동기화 성능 기준 — 2026-08-02
 

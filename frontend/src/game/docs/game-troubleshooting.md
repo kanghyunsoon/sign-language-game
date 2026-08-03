@@ -4,8 +4,8 @@
 
 이 문서는 `frontend/src/game`에서 실제로 겪고 해결한 문제의 단일 기록이다. 이전에는 날짜별 트러블슈팅 문서 7개로 흩어져 있었고 같은 원인이 여러 파일에 중복돼 있었다. 새 트러블슈팅 문서를 따로 만들지 말고 해당 주제 절에 추가한다.
 
-- 현재 동작과 서버 계약 경계는 `battle-ui-room-status-2026-08-02.md`와 `backend-contract-alignment-2026-07-23.md`를 우선한다.
-- 제품 기준은 `game-spec.md`, 모듈 경계는 `reference/architecture.md`를 본다.
+- 현재 동작과 서버 계약 경계는 `battle-ui-and-rooms.md`와 `backend-contracts.md`를 우선한다.
+- 제품 기준은 `game-spec.md`, 모듈 경계는 `architecture.md`, 엔진 세부는 `game-engine.md`, 인식은 `recognition.md`를 본다.
 - 라인 레이스, STOMP 기반 Match, 프로토타입 저장소 시절의 기록은 현재 코드와 맞지 않으므로 옮기지 않았다.
 
 ## 목차

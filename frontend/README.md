@@ -18,7 +18,7 @@ frontend/src/
 
 게임 파트의 안정적인 병합 단위는 `src/game`, `public/guides`, `public/mediapipe`, `scripts/setup-mediapipe-assets.mjs`다. `package.json`, lockfile, `App.tsx`, `main.tsx`, 전역 `styles.css`는 공동 파일이므로 다른 프런트 변경과 함께 병합해야 한다.
 
-상세 게임 구조와 호스트 연결 방법은 `src/game/README.md`, 백엔드 연결은 `src/game/docs/backend-contract-alignment-2026-07-23.md`와 `src/game/docs/reference/backend-integration-guide.md`를 따른다.
+상세 게임 구조와 호스트 연결 방법은 `src/game/README.md`, 백엔드 연결은 `src/game/docs/backend-contracts.md`를 따른다.
 
 ## Git 병합 단위
 

@@ -1,57 +1,43 @@
-# 게임 문서 색인
+# 게임 문서
 
-`frontend/src/game`의 문서는 아래 네 종류로만 유지한다. 새 날짜 문서를 만들지 말고 해당 문서를 갱신한다.
+문서는 8개다. 새 문서를 만들지 말고 해당 문서의 절에 추가한다. 날짜를 파일명에 넣지 않는다.
 
-## 기준 문서
+## 어디에 쓸 것인가
 
-먼저 읽어야 하는 문서다. 서로 충돌하면 아래 순서대로 우선한다.
-
-| 문서 | 역할 |
+| 쓰려는 내용 | 문서 |
 | --- | --- |
-| [game-spec.md](./game-spec.md) | 게임 제품 명세. 화면, 규칙, 모드 구성의 기준 |
-| [battle-ui-room-status-2026-08-02.md](./battle-ui-room-status-2026-08-02.md) | 1:1 로비·대기실·게임·결과의 현재 동작과 서버 계약 경계 |
-| [backend-contract-alignment-2026-07-23.md](./backend-contract-alignment-2026-07-23.md) | REST/SSE/WebSocket 계약과 프런트 코드의 경계 |
+| 게임 규칙, 모드 구성, 화면 흐름 | [game-spec.md](./game-spec.md) |
+| 모듈 경계, 주입 포트, 상태 머신, 도메인 규칙 | [architecture.md](./architecture.md) |
+| 심볼 등록부, 콜라이더, 물리, 렌더, 솔로 런타임, 점수 | [game-engine.md](./game-engine.md) |
+| 인식 파이프라인, 손 소유권, Decoder, AI 계약, 카메라 | [recognition.md](./recognition.md) |
+| REST·SSE·WebSocket·P2P 계약, 솔로 결과 API | [backend-contracts.md](./backend-contracts.md) |
+| 1:1 로비·대기실·결과 동작, 화면 표현 원칙 | [battle-ui-and-rooms.md](./battle-ui-and-rooms.md) |
+| 증상·원인·조치, 재발 점검 순서 | [game-troubleshooting.md](./game-troubleshooting.md) |
+| 배포 전 수동 검증 절차 | [manual-test-checklist.md](./manual-test-checklist.md) |
 
-## 트러블슈팅
+## 충돌 시 우선순위
 
-| 문서 | 역할 |
-| --- | --- |
-| [game-troubleshooting.md](./game-troubleshooting.md) | 인식·솔로·1:1·성능·UI·턴 배틀·결과 저장의 증상·원인·조치와 재발 점검 순서 |
+같은 주제를 두 문서가 다르게 말하면 아래 순서로 우선한다.
 
-날짜별 트러블슈팅 문서 7개를 이 파일 하나로 합쳤다. 새 사고 기록은 해당 주제 절에 추가한다.
-
-## 계약
-
-| 문서 | 역할 |
-| --- | --- |
-| [contracts/README.md](./contracts/README.md) | 실행 계약의 위치 |
-| [contracts/recognition-contract.md](./contracts/recognition-contract.md) | AI WebSocket 메시지 계약 |
+1. **코드와 계약 파일** — `game-contracts/recognition/readiness.json`, 배포 Swagger
+2. `backend-contracts.md` / `battle-ui-and-rooms.md` — 현재 동작과 서버 경계
+3. `game-spec.md` — 제품 기준
+4. `game-engine.md` / `recognition.md` / `architecture.md` — 구현 세부
+5. `game-troubleshooting.md` — 과거 사고 기록
 
 모델 버전과 경쟁 출제 가능 글자는 문서가 아니라 `game-contracts/recognition/readiness.json`이 원천이다.
 
-## 기술 참조
+## 여기에 두지 않는 것
 
-구현 세부를 다루는 문서다. 코드를 고칠 때 함께 본다.
-
-| 문서 | 주제 |
+| 내용 | 위치 |
 | --- | --- |
-| [reference/architecture.md](./reference/architecture.md) | 모듈 경계와 포트-어댑터 구조 |
-| [reference/game-domain.md](./reference/game-domain.md) | 게임 도메인 모델 |
-| [reference/solo-game-runtime.md](./reference/solo-game-runtime.md) | 솔로 런타임 루프 |
-| [reference/matter-physics.md](./reference/matter-physics.md) | Matter 물리 설정과 충돌체 |
-| [reference/pixi-renderer.md](./reference/pixi-renderer.md) | Pixi 렌더러와 레이어 |
-| [reference/symbol-metadata.md](./reference/symbol-metadata.md) | 심볼 등록부 |
-| [reference/solo-ai-input.md](./reference/solo-ai-input.md) | 솔로 인식 입력 |
-| [reference/pose-feedback.md](./reference/pose-feedback.md) | 포즈 피드백 |
-| [reference/template-capture.md](./reference/template-capture.md) | 기준 템플릿 촬영 |
-| [reference/solo-score-statistics.md](./reference/solo-score-statistics.md) | 솔로 점수·통계 |
-| [reference/game-results-api.md](./reference/game-results-api.md) | 결과 API |
-| [reference/backend-integration-guide.md](./reference/backend-integration-guide.md) | 백엔드 연동과 DTO 재사용 |
-| [reference/ui-usability.md](./reference/ui-usability.md) | UI 사용성 기준 |
-| [reference/manual-test-checklist.md](./reference/manual-test-checklist.md) | 수동 검증 체크리스트 |
+| 배포·인프라 절차, 환경변수 | `frontend/docs/deployment-guide.md` |
+| AI 학습 이력, 모델 평가 | AI 서버 문서 |
+| 포트폴리오·발표용 심화 문서 | 저장소 루트 `docs/` |
+| 특정 작업자·특정 PC 기준 인수인계 스냅샷 | 남기지 않는다. 상태 변화는 위 문서에 반영한다 |
 
-## 이 폴더에 두지 않는 것
+## 기록 규칙
 
-- 배포·인프라 절차: `frontend/docs/deployment-guide.md`
-- AI 학습 이력과 모델 평가: AI 서버 문서
-- 특정 작업자·특정 PC 기준의 인수인계 스냅샷: 남기지 않는다. 상태 변화는 위 기준 문서에 반영한다
+- 계측하지 않은 수치는 `미측정`, 코드에서 추론한 내용은 `코드 기반 추정`, 근거를 못 찾은 항목은 `확인 필요`로 표시한다.
+- 실패했거나 되돌린 접근도 남긴다. 원인만 적힌 문서보다 "이 접근은 실패했다"가 적힌 문서가 다음 사람의 시간을 아낀다.
+- 수치를 쓸 때는 근거 파일 경로나 상수명을 함께 적는다.
