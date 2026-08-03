@@ -5,7 +5,7 @@ import {
   type RecognitionConnectionState,
 } from "../../../game/recognition";
 import { WordHandCamera } from "./WordHandCamera";
-import otterClapImage from "../assets/otter_clap.png";
+import { CorrectFeedbackModal } from "./CorrectFeedbackModal";
 import {
   getAiWebSocketUrl,
   getWordAiWebSocketUrl,
@@ -432,31 +432,11 @@ export function TestProgressView({
       </section>
 
       {isCorrectFeedbackOpen && (
-        <div
-          className="practice-correct-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="test-correct-title"
-        >
-          <section className="practice-correct-card">
-            <button
-              className="practice-correct-close"
-              type="button"
-              aria-label="정답 안내 닫기"
-              onClick={() => finishCorrectFeedbackRef.current()}
-            >
-              ×
-            </button>
-            <img src={otterClapImage} alt="정답을 축하하며 박수치는 수달" />
-            <h2 id="test-correct-title">정답입니다!</h2>
-            <p>
-              AI가 {currentQuestion.symbol} 동작을 정확히 인식했어요.
-            </p>
-            <p className="practice-correct-countdown">
-              {autoAdvanceSeconds}초 뒤에 자동으로 다음 문제로 넘어가요.
-            </p>
-          </section>
-        </div>
+        <CorrectFeedbackModal
+          symbol={currentQuestion.symbol}
+          autoAdvanceSeconds={autoAdvanceSeconds}
+          onClose={() => finishCorrectFeedbackRef.current()}
+        />
       )}
     </main>
   );
