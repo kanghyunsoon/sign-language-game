@@ -1,11 +1,16 @@
 import { Maximize, Pause, Play, RotateCcw, Volume2, VolumeX } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import "./WordSignVideo.css";
 
 interface WordSignVideoProps {
   readonly src: string;
   readonly label: string;
+  /**
+   * 영상을 불러오면 바로 재생한다. 브라우저 자동재생 정책상 소리가 있으면
+   * 막히므로 음소거로 시작하고, 사용자가 소리 버튼으로 켤 수 있다.
+   */
+  readonly autoPlay?: boolean;
 }
 
 function formatTime(seconds: number): string {
@@ -15,14 +20,32 @@ function formatTime(seconds: number): string {
   return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
 }
 
-export function WordSignVideo({ src, label }: WordSignVideoProps) {
+export function WordSignVideo({ src, label, autoPlay = false }: WordSignVideoProps) {
   const playerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isEnded, setIsEnded] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(autoPlay);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+
+  /*
+   * 영상이 바뀌면 처음부터 다시 재생한다. src만 바뀌고 요소는 재사용되는
+   * 경우가 있어 currentTime을 직접 되돌린다.
+   * 자동재생이 거부되면 재생 버튼이 그대로 남으므로 별도 처리는 하지 않는다.
+   */
+  useEffect(() => {
+    if (!autoPlay) return;
+
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.currentTime = 0;
+    setIsEnded(false);
+    void video.play().catch(() => {
+      // 브라우저가 막으면 사용자가 재생 버튼을 누르면 된다.
+    });
+  }, [autoPlay, src]);
 
   const togglePlayback = () => {
     const video = videoRef.current;
@@ -61,7 +84,8 @@ export function WordSignVideo({ src, label }: WordSignVideoProps) {
         ref={videoRef}
         src={src}
         playsInline
-        preload="metadata"
+        muted={isMuted}
+        preload={autoPlay ? "auto" : "metadata"}
         aria-label={label}
         onClick={togglePlayback}
         onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}

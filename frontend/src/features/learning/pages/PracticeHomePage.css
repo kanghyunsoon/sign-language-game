@@ -276,9 +276,9 @@
     transform 0.2s ease;
 }
 
+/* 글자 크기는 [연습 시작하기]와 같은 값(위 공통 규칙)을 그대로 쓴다. */
 .practice-guide-button {
   padding: 0 min(0.833333vw, 1.333333vh);
-  font-size: min(1.041667vw, 1.666667vh);
   line-height: 1;
   white-space: nowrap;
   overflow: hidden;

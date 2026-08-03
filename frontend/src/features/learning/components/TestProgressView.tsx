@@ -64,9 +64,6 @@ export function TestProgressView({
     "AI 연결을 준비하고 있습니다.",
   );
   const [isCorrectFeedbackOpen, setIsCorrectFeedbackOpen] = useState(false);
-  const [autoAdvanceSeconds, setAutoAdvanceSeconds] = useState(
-    CORRECT_AUTO_ADVANCE_SECONDS,
-  );
 
   const currentQuestion = questions[currentIndex];
   const useWordEndpoint = currentQuestion?.categoryId === "word";
@@ -116,7 +113,6 @@ export function TestProgressView({
     answeredRef.current = true;
     isCorrectFeedbackOpenRef.current = true;
     setRecognitionMessage("정답입니다!");
-    setAutoAdvanceSeconds(CORRECT_AUTO_ADVANCE_SECONDS);
     setIsCorrectFeedbackOpen(true);
   };
 
@@ -142,18 +138,12 @@ export function TestProgressView({
   useEffect(() => {
     if (!isCorrectFeedbackOpen) return;
 
-    const countdownId = window.setInterval(() => {
-      setAutoAdvanceSeconds((seconds) => Math.max(1, seconds - 1));
-    }, 1000);
     const nextId = window.setTimeout(
       () => finishCorrectFeedbackRef.current(),
       CORRECT_AUTO_ADVANCE_SECONDS * 1000,
     );
 
-    return () => {
-      window.clearInterval(countdownId);
-      window.clearTimeout(nextId);
-    };
+    return () => window.clearTimeout(nextId);
   }, [isCorrectFeedbackOpen]);
 
   // 카메라는 테스트 진행 중에만 켜 두고, 화면을 벗어나면 반드시 정리한다.
@@ -434,7 +424,6 @@ export function TestProgressView({
       {isCorrectFeedbackOpen && (
         <CorrectFeedbackModal
           symbol={currentQuestion.symbol}
-          autoAdvanceSeconds={autoAdvanceSeconds}
           onClose={() => finishCorrectFeedbackRef.current()}
         />
       )}

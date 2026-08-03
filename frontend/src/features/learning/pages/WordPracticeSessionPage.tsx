@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AppNav } from "../../../shared/nav/AppNav";
 import { WordHandCamera } from "../components/WordHandCamera";
 import { getWordAiWebSocketUrl } from "../data/aiRecognition";
-import { wordSigns, type WordSignItem } from "../data/wordSigns";
+import { wordSignGroups, wordSigns, type WordSignItem } from "../data/wordSigns";
 import { WordWebSocketSignRecognizer } from "../recognition/WordWebSocketSignRecognizer";
 import { WordSignVideo } from "../components/WordSignVideo";
 import otterClapImage from "../assets/otter_clap.png";
@@ -41,12 +41,13 @@ export function WordPracticeSessionPage({
   const [cameraMessage, setCameraMessage] =
     useState("카메라 시작 버튼을 눌러주세요.");
   const [isCorrect, setIsCorrect] = useState(false);
-  const [autoAdvanceSeconds, setAutoAdvanceSeconds] = useState(
-    CORRECT_AUTO_ADVANCE_SECONDS,
-  );
   const [isComplete, setIsComplete] = useState(false);
 
   const currentWord = words[currentIndex];
+  /* 사전·오답노트와 같이 "단어 · 탈것"처럼 소분류까지 보여준다. */
+  const currentWordGroupLabel = wordSignGroups.find(
+    (group) => group.id === currentWord?.groupId,
+  )?.label;
   const isFirst = currentIndex === 0;
   const isLast = currentIndex === words.length - 1;
   const progress = Math.round((correctCount / words.length) * 100);
@@ -179,19 +180,12 @@ export function WordPracticeSessionPage({
   useEffect(() => {
     if (!isCorrect || isComplete) return;
 
-    setAutoAdvanceSeconds(CORRECT_AUTO_ADVANCE_SECONDS);
-    const countdownId = window.setInterval(() => {
-      setAutoAdvanceSeconds((seconds) => Math.max(1, seconds - 1));
-    }, 1000);
     const nextId = window.setTimeout(
       finishOrNext,
       CORRECT_AUTO_ADVANCE_SECONDS * 1000,
     );
 
-    return () => {
-      window.clearInterval(countdownId);
-      window.clearTimeout(nextId);
-    };
+    return () => window.clearTimeout(nextId);
   }, [isCorrect, isComplete]);
 
   const retry = () => {
@@ -238,16 +232,32 @@ export function WordPracticeSessionPage({
             <article className="practice-answer-panel">
               <span className="practice-panel-label">
                 정답 동작
-                <span className="practice-panel-tag">단어</span>
+                <span className="practice-panel-tag">
+                  {currentWordGroupLabel
+                    ? `단어 · ${currentWordGroupLabel}`
+                    : "단어"}
+                </span>
               </span>
               <div className="practice-answer-content">
                 <div className="practice-answer-guide word-answer-guide">
                   <div className="word-guide-video">
-                    <WordSignVideo src={currentWord.video} label={`${currentWord.name} 수어 동작 영상`} />
+                    <WordSignVideo
+                      src={currentWord.video}
+                      label={`${currentWord.name} 수어 동작 영상`}
+                      autoPlay
+                    />
                   </div>
                   <div className="practice-item-navigation">
                     <strong>{currentWord.name}</strong>
                   </div>
+
+                  {currentWord.description.length > 0 && (
+                    <div className="practice-item-description">
+                      {currentWord.description.map((sentence) => (
+                        <p key={sentence}>{sentence}</p>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </article>
@@ -328,10 +338,7 @@ export function WordPracticeSessionPage({
                 </button>
                 <img src={otterClapImage} alt="박수치는 수달" />
                 <h2 id="word-correct-title">맞췄습니다!</h2>
-                <p>AI가 {currentWord.name} 동작을 정확히 인식했어요.</p>
-                <p className="practice-correct-countdown">
-                  {autoAdvanceSeconds}초 뒤에 자동으로 다음 문제로 넘어가요.
-                </p>
+                <p>AI가 '{currentWord.name}' 동작을 정확히 인식했어요.</p>
               </section>
             </div>
           )}
