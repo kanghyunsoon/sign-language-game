@@ -455,14 +455,25 @@
   display: flex;
   min-width: 0;
   align-items: center;
+  flex-direction: column;
   gap: min(.5208vw, .8333vh);
 }
 
 .profile-name strong {
   flex: 1 1 auto;
+  width: 100%;
   min-width: 0;
   font-size: min(1.6667vw, 2.6667vh);
-  text-align: right;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.profile-training-days {
+  color: #8a7d70;
+  font-size: min(.8333vw, 1.3333vh);
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
   white-space: nowrap;
 }
 
