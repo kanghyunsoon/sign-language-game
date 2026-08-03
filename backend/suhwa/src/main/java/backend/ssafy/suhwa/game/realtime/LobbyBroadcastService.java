@@ -1,9 +1,16 @@
 package backend.ssafy.suhwa.game.realtime;
 
+import backend.ssafy.suhwa.game.domain.GameRoom;
 import backend.ssafy.suhwa.game.domain.GameRoomStatus;
 import backend.ssafy.suhwa.game.realtime.dto.LobbyRoomList;
 import backend.ssafy.suhwa.game.repository.GameRoomRepository;
+import backend.ssafy.suhwa.user.domain.User;
+import backend.ssafy.suhwa.user.service.UserService;
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -20,10 +27,23 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public class LobbyBroadcastService {
 
     private final GameRoomRepository gameRoomRepository;
+    private final UserService userService;
     private final LobbySubscriberRegistry subscriberRegistry;
 
     public LobbyRoomList snapshot() {
-        return LobbyRoomList.from(gameRoomRepository.findByStatus(GameRoomStatus.WAITING));
+        List<GameRoom> rooms = gameRoomRepository.findByStatus(GameRoomStatus.WAITING);
+        return LobbyRoomList.from(rooms, hostNameResolver(rooms));
+    }
+
+    /**
+     * 방마다 조회하지 않도록 방장 id를 모아 한 번에 닉네임을 조회한다. 다른 모듈(user)의 리포지토리를
+     * 직접 잡지 않고 그 모듈의 서비스를 거친다(모듈 경계 규칙).
+     */
+    private Function<Long, String> hostNameResolver(List<GameRoom> rooms) {
+        List<Long> hostUserIds = rooms.stream().map(GameRoom::getHostUserId).distinct().toList();
+        Map<Long, String> nicknamesByUserId = userService.findActiveByIds(hostUserIds).stream()
+                .collect(Collectors.toMap(User::getId, User::getNickname));
+        return nicknamesByUserId::get;
     }
 
     public void sendSnapshot(SseEmitter emitter) {
