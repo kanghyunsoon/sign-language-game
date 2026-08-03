@@ -56,6 +56,10 @@ public class User extends BaseTimeEntity {
         }
     }
 
+    public void changePasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
     public void withdraw() {
         this.deletedAt = LocalDateTime.now();
         this.email = "deleted_%d_%d@withdrawn.local".formatted(this.id, System.currentTimeMillis());
