@@ -10,6 +10,7 @@ import { DictionaryPage } from "./features/learning/pages/DictionaryPage";
 import { ReviewNotesPage } from "./features/learning/pages/ReviewNotesPage";
 import { PracticeHomePage } from "./features/learning/pages/PracticeHomePage";
 import { TestPage } from "./features/learning/pages/TestPage";
+import { ProfileEditPage } from "./features/profile/pages/ProfileEditPage";
 import { ProfilePage } from "./features/profile/pages/ProfilePage";
 import { GameModule } from "./game";
 import signSongBgm from "./game/assets/otters-sign-song.mp3";
@@ -68,6 +69,14 @@ export function App() {
           element={
             <ProtectedRoute>
               <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile/edit"
+          element={
+            <ProtectedRoute>
+              <ProfileEditPage />
             </ProtectedRoute>
           }
         />

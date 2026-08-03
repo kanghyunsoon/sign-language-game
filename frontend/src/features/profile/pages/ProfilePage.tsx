@@ -1,13 +1,8 @@
-import { Pencil, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
-import {
-  AuthApiError,
-  deleteAccount,
-  getProfile,
-  updateProfile,
-} from "../../auth/api/authApi";
+import { AuthApiError, getProfile } from "../../auth/api/authApi";
 import { AttendanceCard } from "../../home/components/AttendanceCard";
 import {
   getAttendance,
@@ -17,7 +12,6 @@ import {
   type PetGrowth,
   type RankingEntry,
 } from "../api/profileApi";
-import { DeleteAccountModal } from "../components/DeleteAccountModal";
 import { HabitatSelectionView } from "../components/HabitatSelectionView";
 import homeIcon from "../assets/home.png";
 import otterProfile from "../assets/otter_profile.png";
@@ -38,9 +32,6 @@ export function ProfilePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { accessToken, user, logout, updateDisplayName } = useAuth();
   const [nickname, setNickname] = useState(user?.displayName ?? "");
-  const [nicknameDraft, setNicknameDraft] = useState(user?.displayName ?? "");
-  const [editingNickname, setEditingNickname] = useState(false);
-  const [savingNickname, setSavingNickname] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [statsError, setStatsError] = useState<string | null>(null);
   const [growth, setGrowth] = useState<PetGrowth | null>(null);
@@ -50,13 +41,9 @@ export function ProfilePage() {
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
   const [isExperienceGuideOpen, setIsExperienceGuideOpen] = useState(false);
   const [isHabitatSelectionOpen, setIsHabitatSelectionOpen] = useState(false);
-  const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
-  const [deleteAccountError, setDeleteAccountError] = useState<string | null>(null);
-  const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     setNickname(user?.displayName ?? "");
-    setNicknameDraft(user?.displayName ?? "");
   }, [user?.displayName]);
 
   useEffect(() => {
@@ -79,7 +66,6 @@ export function ProfilePage() {
           typeof profile.nickname === "string" ? profile.nickname.trim() : "";
         if (nextNickname) {
           setNickname(nextNickname);
-          setNicknameDraft(nextNickname);
           updateDisplayName(nextNickname);
         }
       })
@@ -146,72 +132,11 @@ export function ProfilePage() {
     return Math.min(100, Math.max(0, (growth.currentExp / experienceTotal) * 100));
   }, [growth, experienceTotal]);
 
-  async function handleNicknameSave() {
-    const nextNickname = nicknameDraft.trim();
-    if (!accessToken || !user?.userId || savingNickname) return;
-
-    if (nextNickname.length < 2 || nextNickname.length > 10) {
-      setProfileError("닉네임은 2자 이상 10자 이하로 입력해 주세요.");
-      return;
-    }
-
-    if (nextNickname === nickname) {
-      setEditingNickname(false);
-      setProfileError(null);
-      return;
-    }
-
-    setSavingNickname(true);
-    setProfileError(null);
-    try {
-      const updatedProfile = await updateProfile(accessToken, {
-        nickname: nextNickname,
-        profileImageUrl: null,
-      });
-      const savedNickname =
-        typeof updatedProfile.nickname === "string" && updatedProfile.nickname.trim()
-          ? updatedProfile.nickname.trim()
-          : nextNickname;
-      setNickname(savedNickname);
-      setNicknameDraft(savedNickname);
-      updateDisplayName(savedNickname);
-      setEditingNickname(false);
-    } catch (caught) {
-      setProfileError(
-        caught instanceof AuthApiError
-          ? caught.message
-          : "닉네임을 변경하지 못했습니다.",
-      );
-    } finally {
-      setSavingNickname(false);
-    }
-  }
-
   async function handleLogout() {
     try {
       await logout();
     } finally {
       navigate("/login");
-    }
-  }
-
-  async function handleDeleteAccount() {
-    if (!accessToken || deletingAccount) return;
-
-    setDeleteAccountError(null);
-    setDeletingAccount(true);
-    try {
-      await deleteAccount(accessToken);
-      await logout();
-      navigate("/login");
-    } catch (caught) {
-      setDeleteAccountError(
-        caught instanceof AuthApiError
-          ? caught.message
-          : "회원 탈퇴 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.",
-      );
-    } finally {
-      setDeletingAccount(false);
     }
   }
 
@@ -313,60 +238,10 @@ export function ProfilePage() {
 
         <aside className="profile-sidebar" aria-label="프로필 정보">
           <section className="profile-user-card">
-            {editingNickname ? (
-              <div className="profile-nickname-editor">
-                <input
-                  type="text"
-                  value={nicknameDraft}
-                  minLength={2}
-                  maxLength={10}
-                  autoFocus
-                  disabled={savingNickname}
-                  aria-label="닉네임"
-                  onChange={(event) => setNicknameDraft(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") void handleNicknameSave();
-                    if (event.key === "Escape") {
-                      setNicknameDraft(nickname);
-                      setEditingNickname(false);
-                      setProfileError(null);
-                    }
-                  }}
-                />
-                <div className="profile-nickname-editor-actions">
-                  <button type="button" disabled={savingNickname} onClick={() => void handleNicknameSave()}>
-                    {savingNickname ? "저장 중" : "저장"}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={savingNickname}
-                    onClick={() => {
-                      setNicknameDraft(nickname);
-                      setEditingNickname(false);
-                      setProfileError(null);
-                    }}
-                  >
-                    취소
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="profile-name">
-                <strong>{nickname || user?.displayName || "게스트"}</strong>
-                <button
-                  type="button"
-                  aria-label="닉네임 수정"
-                  disabled={!accessToken}
-                  onClick={() => {
-                    setNicknameDraft(nickname);
-                    setEditingNickname(true);
-                    setProfileError(null);
-                  }}
-                >
-                  <Pencil aria-hidden="true" />
-                </button>
-              </div>
-            )}
+            {/* 닉네임 수정은 정보 수정 페이지(/profile/edit)로 일원화했다. */}
+            <div className="profile-name">
+              <strong>{nickname || user?.displayName || "게스트"}</strong>
+            </div>
             {profileError && <p className="profile-user-error" role="alert">{profileError}</p>}
           </section>
 
@@ -415,8 +290,8 @@ export function ProfilePage() {
             {accessToken ? (
               <>
                 <button type="button" onClick={() => void handleLogout()}>로그아웃</button>
-                <button type="button" onClick={() => setIsDeleteAccountModalOpen(true)}>
-                  회원탈퇴
+                <button type="button" onClick={() => navigate("/profile/edit")}>
+                  정보 수정
                 </button>
               </>
             ) : (
@@ -515,14 +390,6 @@ export function ProfilePage() {
         </div>
       )}
 
-      {isDeleteAccountModalOpen && (
-        <DeleteAccountModal
-          error={deleteAccountError}
-          submitting={deletingAccount}
-          onClose={() => setIsDeleteAccountModalOpen(false)}
-          onConfirmDelete={handleDeleteAccount}
-        />
-      )}
       {isHabitatSelectionOpen && (
         <HabitatSelectionView
           currentLevel={growth?.level ?? 1}
