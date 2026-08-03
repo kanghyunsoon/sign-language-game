@@ -1,6 +1,7 @@
 import "./FingerspellingDetail.css";
 import type { ReactNode } from "react";
 import type { WordSignEntry } from "../data/wordSigns";
+import { WordSignVideo } from "./WordSignVideo";
 
 interface WordSignDetailProps {
   readonly entry: WordSignEntry;
@@ -22,8 +23,8 @@ export function WordSignDetail({
     >
       <span className="fingerspelling-detail-badge">단어</span>
       <h2 className="fingerspelling-detail-symbol">{entry.name}</h2>
-      <div className="fingerspelling-detail-image word-sign-detail-placeholder">
-        <p>수어 동작 영상은 준비 중입니다.</p>
+      <div className="fingerspelling-detail-image word-sign-detail-video">
+        <WordSignVideo src={entry.video} label={`${entry.name} 수어 동작 영상`} />
       </div>
       {footer ? (
         <div className="fingerspelling-detail-footer">{footer}</div>

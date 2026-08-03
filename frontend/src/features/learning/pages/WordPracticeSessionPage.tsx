@@ -6,6 +6,7 @@ import { WordHandCamera } from "../components/WordHandCamera";
 import { getWordAiWebSocketUrl } from "../data/aiRecognition";
 import { wordSigns, type WordSignItem } from "../data/wordSigns";
 import { WordWebSocketSignRecognizer } from "../recognition/WordWebSocketSignRecognizer";
+import { WordSignVideo } from "../components/WordSignVideo";
 import otterClapImage from "../assets/otter_clap.png";
 
 const CORRECT_AUTO_ADVANCE_SECONDS = 2;
@@ -241,8 +242,8 @@ export function WordPracticeSessionPage({
               </span>
               <div className="practice-answer-content">
                 <div className="practice-answer-guide word-answer-guide">
-                  <div className="word-guide-placeholder" aria-label="영상 준비 중">
-                    <p>수어 영상은 준비 중입니다.</p>
+                  <div className="word-guide-video">
+                    <WordSignVideo src={currentWord.video} label={`${currentWord.name} 수어 동작 영상`} />
                   </div>
                   <div className="practice-item-navigation">
                     <strong>{currentWord.name}</strong>

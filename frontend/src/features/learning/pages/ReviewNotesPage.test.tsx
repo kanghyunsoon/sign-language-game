@@ -52,15 +52,18 @@ describe("ReviewNotesPage 빈 상태", () => {
 });
 
 describe("ReviewNotesPage 목록", () => {
-  it("단어 오답을 저장하고 단어 필터에서 준비 중 상세를 보여준다", () => {
+  it("단어 오답을 저장하고 단어 필터에서 수어 동작 영상을 보여준다", () => {
     addReviewNote("비행기");
     renderPage();
 
     fireEvent.click(screen.getByRole("button", { name: "단어" }));
 
-    expect(screen.getByRole("button", { name: "비행기 비행기" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "비행기" })).toBeTruthy();
     expect(readDetailSymbol()).toBe("비행기");
-    expect(screen.getByText("수어 동작 영상은 준비 중입니다.")).toBeTruthy();
+    const video = screen.getByLabelText("비행기 수어 동작 영상");
+    expect(video.getAttribute("src")).toBe("/videos/words/airplane.webm");
+    expect(screen.getByRole("button", { name: "영상 재생" })).toBeTruthy();
+    expect(screen.getByLabelText("영상 재생 위치")).toBeTruthy();
   });
 
   it("담긴 글자를 카드로 보여주고 첫 항목의 상세를 띄운다", () => {
