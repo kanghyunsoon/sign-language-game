@@ -14,15 +14,11 @@ import { PasswordVisibilityIcon } from "../../auth/components/PasswordVisibility
 import { DeleteAccountModal } from "../components/DeleteAccountModal";
 import "./ProfileEditPage.css";
 
-/**
- * 비밀번호 변경 API가 백엔드에 아직 없다.
- * 배포되면 이 상수를 true로 바꾸고 authApi의 PASSWORD_CHANGE_PATH를 실제 계약에 맞춘다.
- */
-const PASSWORD_CHANGE_ENABLED = false;
-
 const NICKNAME_MIN_LENGTH = 2;
 const NICKNAME_MAX_LENGTH = 10;
+/** 백엔드 ChangePasswordRequest의 @Size(min = 8, max = 64)와 맞춘 값. */
 const PASSWORD_MIN_LENGTH = 8;
+const PASSWORD_MAX_LENGTH = 64;
 
 export function ProfileEditPage() {
   const navigate = useNavigate();
@@ -89,9 +85,9 @@ export function ProfileEditPage() {
 
     const nextNickname = nicknameDraft.trim();
     const nicknameChanged = nextNickname !== nickname;
-    const passwordTouched =
-      PASSWORD_CHANGE_ENABLED &&
-      Boolean(currentPassword || newPassword || newPasswordConfirm);
+    const passwordTouched = Boolean(
+      currentPassword || newPassword || newPasswordConfirm,
+    );
 
     setError(null);
     setNotice(null);
@@ -113,6 +109,10 @@ export function ProfileEditPage() {
       }
       if (newPassword.length < PASSWORD_MIN_LENGTH) {
         setError("새 비밀번호는 8자 이상이어야 합니다.");
+        return;
+      }
+      if (newPassword.length > PASSWORD_MAX_LENGTH) {
+        setError("새 비밀번호는 64자 이하로 입력해 주세요.");
         return;
       }
       if (newPassword !== newPasswordConfirm) {
@@ -150,7 +150,19 @@ export function ProfileEditPage() {
       }
 
       if (passwordTouched) {
-        await changePassword(accessToken, { currentPassword, newPassword });
+        try {
+          await changePassword(accessToken, { currentPassword, newPassword });
+        } catch (caught) {
+          /*
+           * 현재 비밀번호가 틀리면 백엔드가 INVALID_CREDENTIALS(401)로 답한다.
+           * 공용 메시지는 로그인 문맥의 "이메일 또는 비밀번호가..."라 이 화면에 맞지 않는다.
+           */
+          if (caught instanceof AuthApiError && caught.status === 401) {
+            throw new AuthApiError("현재 비밀번호가 올바르지 않습니다.", 401);
+          }
+          throw caught;
+        }
+
         setCurrentPassword("");
         setNewPassword("");
         setNewPasswordConfirm("");
@@ -230,13 +242,12 @@ export function ProfileEditPage() {
                     value={currentPassword}
                     placeholder="현재 비밀번호를 입력해주세요"
                     autoComplete="current-password"
-                    disabled={!PASSWORD_CHANGE_ENABLED || saving}
+                    disabled={saving}
                     onChange={(event) => setCurrentPassword(event.target.value)}
                   />
                   <button
                     type="button"
                     className="profile-edit-password-toggle"
-                    disabled={!PASSWORD_CHANGE_ENABLED}
                     onClick={() => setShowCurrentPassword((visible) => !visible)}
                     aria-label={showCurrentPassword ? "현재 비밀번호 숨기기" : "현재 비밀번호 보기"}
                     aria-pressed={showCurrentPassword}
@@ -254,13 +265,13 @@ export function ProfileEditPage() {
                     value={newPassword}
                     placeholder="영문, 숫자 포함 8자 이상"
                     autoComplete="new-password"
-                    disabled={!PASSWORD_CHANGE_ENABLED || saving}
+                    maxLength={PASSWORD_MAX_LENGTH}
+                    disabled={saving}
                     onChange={(event) => setNewPassword(event.target.value)}
                   />
                   <button
                     type="button"
                     className="profile-edit-password-toggle"
-                    disabled={!PASSWORD_CHANGE_ENABLED}
                     onClick={() => setShowNewPassword((visible) => !visible)}
                     aria-label={showNewPassword ? "새 비밀번호 숨기기" : "새 비밀번호 보기"}
                     aria-pressed={showNewPassword}
@@ -278,13 +289,13 @@ export function ProfileEditPage() {
                     value={newPasswordConfirm}
                     placeholder="새 비밀번호를 다시 입력해주세요"
                     autoComplete="new-password"
-                    disabled={!PASSWORD_CHANGE_ENABLED || saving}
+                    maxLength={PASSWORD_MAX_LENGTH}
+                    disabled={saving}
                     onChange={(event) => setNewPasswordConfirm(event.target.value)}
                   />
                   <button
                     type="button"
                     className="profile-edit-password-toggle"
-                    disabled={!PASSWORD_CHANGE_ENABLED}
                     onClick={() => setShowNewPasswordConfirm((visible) => !visible)}
                     aria-label={
                       showNewPasswordConfirm ? "새 비밀번호 확인 숨기기" : "새 비밀번호 확인 보기"
@@ -295,12 +306,6 @@ export function ProfileEditPage() {
                   </button>
                 </div>
               </label>
-
-              {!PASSWORD_CHANGE_ENABLED && (
-                <p className="profile-edit-pending">
-                  비밀번호 변경은 서버 준비가 끝나는 대로 열립니다.
-                </p>
-              )}
 
               {error && (
                 <p className="profile-edit-error" role="alert">
