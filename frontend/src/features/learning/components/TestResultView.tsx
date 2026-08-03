@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { FingerspellingDetail } from "./FingerspellingDetail";
+import { WordSignVideo } from "./WordSignVideo";
 import type { TestQuestionResult } from "../data/testSession";
 import { wrongResults } from "../data/testSession";
 import { addReviewNote, removeReviewNotes } from "../data/reviewNotes";
@@ -214,8 +215,11 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
             <h2 className="fingerspelling-detail-symbol">
               {selectedResult.question.symbol}
             </h2>
-            <div className="fingerspelling-detail-image">
-              <p>수어 동작 영상은 준비 중입니다.</p>
+            <div className="fingerspelling-detail-image word-sign-detail-video">
+              <WordSignVideo
+                src={selectedResult.question.video ?? ""}
+                label={`${selectedResult.question.symbol} 수어 동작 영상`}
+              />
             </div>
             <div className="fingerspelling-detail-footer">
               <button

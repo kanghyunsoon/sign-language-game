@@ -12,6 +12,7 @@ export type TestCategoryId = FingerspellingCategoryId | "word";
 export interface TestQuestion
   extends Omit<FingerspellingEntry, "categoryId"> {
   readonly categoryId: TestCategoryId;
+  readonly video?: string;
   /** 화면 표시값과 AI 응답값이 다른 단어 문항에서 사용하는 정답 ID. */
   readonly recognitionSymbol?: string;
 }
@@ -107,7 +108,8 @@ export function testQuestionPool(
           symbol: word.name,
           name: word.name,
           image: "",
-          description: ["수어 동작 영상은 준비 중입니다."],
+          video: word.video,
+          description: [],
           categoryId: category.id,
           categoryLabel: category.label,
           recognitionSymbol: word.id,

@@ -507,6 +507,13 @@
   align-self: center;
 }
 
+.dictionary-detail .word-sign-detail-video {
+  width: 470px;
+  height: 381px;
+  flex: 0 0 381px;
+  border-radius: 20px;
+}
+
 /* 창이 좁아지면 오답노트 페이지처럼 목록이 위, 상세가 아래로 쌓인다.
    .dictionary-main이 내부 스크롤을 가지므로 길어져도 잘리지 않는다. */
 @media (max-width: 1100px) {

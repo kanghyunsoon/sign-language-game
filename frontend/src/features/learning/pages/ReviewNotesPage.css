@@ -454,6 +454,27 @@
   flex: 0 0 270px;
 }
 
+.review-notes-card-word .review-notes-card-symbol {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  font-size: 34px;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.review-notes-grid-all .review-notes-card-word .review-notes-card-symbol {
+  font-size: 30px;
+}
+
+.review-notes-detail .word-sign-detail-video {
+  width: 400px;
+  height: 324px;
+  flex: 0 0 324px;
+  border-radius: 20px;
+}
+
 /*
  * 설명 상자를 사전 페이지와 같은 크기로 고정한다. 문장 수가 2개인 글자와
  * 3개인 글자를 번갈아 보면 상자 높이가 들쭉날쭉했다. 높이를 고정하고 내용을

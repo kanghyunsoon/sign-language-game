@@ -1040,6 +1040,13 @@
   flex-shrink: 0;
 }
 
+.test-result-detail .word-sign-detail-video {
+  width: 400px;
+  height: 324px;
+  flex: 0 0 324px;
+  border-radius: 20px;
+}
+
 /* 오답노트 담기·빼기 토글. 기존 버튼 시스템(입체 그림자 + active 눌림)을 따른다. */
 .test-wrong-note-toggle {
   width: 100%;

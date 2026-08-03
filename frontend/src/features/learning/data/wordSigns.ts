@@ -22,6 +22,7 @@ export type WordSignId =
 export interface WordSignItem {
   readonly id: WordSignId;
   readonly name: string;
+  readonly video: string;
 }
 
 export interface WordSignEntry extends WordSignItem {
@@ -30,10 +31,11 @@ export interface WordSignEntry extends WordSignItem {
   readonly categoryLabel: "단어";
   readonly recognitionSymbol: WordSignId;
   readonly image: "";
+  readonly video: string;
   readonly description: string[];
 }
 
-export const wordSigns: readonly WordSignItem[] = [
+const wordSignLabels: readonly Omit<WordSignItem, "video">[] = [
   { id: "airplane", name: "비행기" },
   { id: "bicycle", name: "자전거" },
   { id: "moon", name: "달" },
@@ -55,6 +57,11 @@ export const wordSigns: readonly WordSignItem[] = [
   { id: "sun", name: "해" },
 ];
 
+export const wordSigns: readonly WordSignItem[] = wordSignLabels.map((word) => ({
+  ...word,
+  video: `/videos/words/${word.id}.webm`,
+}));
+
 export const wordSignEntries: readonly WordSignEntry[] = wordSigns.map(
   (word) => ({
     ...word,
@@ -63,7 +70,8 @@ export const wordSignEntries: readonly WordSignEntry[] = wordSigns.map(
     categoryLabel: "단어",
     recognitionSymbol: word.id,
     image: "",
-    description: ["수어 동작 영상은 준비 중입니다."],
+    video: word.video,
+    description: [],
   }),
 );
 

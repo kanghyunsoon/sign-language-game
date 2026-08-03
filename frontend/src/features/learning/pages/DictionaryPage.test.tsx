@@ -100,14 +100,17 @@ describe("DictionaryPage 분류 트리", () => {
 });
 
 describe("DictionaryPage 검색", () => {
-  it("단어를 검색하면 준비 중 상세 화면을 보여준다", () => {
+  it("단어를 검색하면 수어 동작 영상을 보여준다", () => {
     renderPage();
 
     fireEvent.change(getSearchInput(), { target: { value: "비행기" } });
     fireEvent.click(screen.getByRole("button", { name: /비행기.*단어/ }));
 
     expect(readDetailSymbol()).toBe("비행기");
-    expect(screen.getByText("수어 동작 영상은 준비 중입니다.")).toBeTruthy();
+    const video = screen.getByLabelText("비행기 수어 동작 영상");
+    expect(video.getAttribute("src")).toBe("/videos/words/airplane.webm");
+    expect(screen.getByRole("button", { name: "영상 재생" })).toBeTruthy();
+    expect(screen.getByLabelText("영상 재생 위치")).toBeTruthy();
   });
 
   it("호환 자모와 한글 이름 모두로 검색된다", () => {

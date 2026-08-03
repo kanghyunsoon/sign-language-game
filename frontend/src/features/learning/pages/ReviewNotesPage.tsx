@@ -46,7 +46,11 @@ export function ReviewNotesPage() {
 
     updatePageScale();
     window.addEventListener("resize", updatePageScale);
-    return () => window.removeEventListener("resize", updatePageScale);
+    window.visualViewport?.addEventListener("resize", updatePageScale);
+    return () => {
+      window.removeEventListener("resize", updatePageScale);
+      window.visualViewport?.removeEventListener("resize", updatePageScale);
+    };
   }, []);
 
   // 알림은 잠깐 떴다가 스스로 사라진다.
@@ -217,7 +221,11 @@ export function ReviewNotesPage() {
                     : "오답노트가 비어있습니다."}
                 </p>
               ) : (
-                <ul className="review-notes-grid">
+                <ul
+                  className={`review-notes-grid ${
+                    activeFilter === "all" ? "review-notes-grid-all" : ""
+                  }`}
+                >
                   {visibleNotes.map((entry) => {
                     const isChecked = checkedSymbols.includes(entry.symbol);
                     const isHighlighted = isMultiSelectMode
@@ -227,15 +235,23 @@ export function ReviewNotesPage() {
                     return (
                       <li key={entry.symbol}>
                         <button
-                          className={`review-notes-card ${isHighlighted ? "review-notes-card-active" : ""}`}
+                          className={`review-notes-card ${
+                            entry.categoryId === "word" ? "review-notes-card-word" : ""
+                          } ${isHighlighted ? "review-notes-card-active" : ""}`}
                           type="button"
                           aria-pressed={isHighlighted}
-                          aria-label={`${entry.symbol} ${entry.name}`}
+                          aria-label={
+                            entry.categoryId === "word"
+                              ? entry.symbol
+                              : `${entry.symbol} ${entry.name}`
+                          }
                           onClick={() => handleCardClick(entry.symbol)}
                         >
                           <span className="review-notes-card-tag">{entry.categoryLabel}</span>
                           <span className="review-notes-card-symbol">{entry.symbol}</span>
-                          <span className="review-notes-card-name">{entry.name}</span>
+                          {entry.categoryId !== "word" && (
+                            <span className="review-notes-card-name">{entry.name}</span>
+                          )}
                         </button>
                       </li>
                     );

@@ -50,7 +50,11 @@ export function DictionaryPage() {
 
     updateDictionaryScale();
     window.addEventListener("resize", updateDictionaryScale);
-    return () => window.removeEventListener("resize", updateDictionaryScale);
+    window.visualViewport?.addEventListener("resize", updateDictionaryScale);
+    return () => {
+      window.removeEventListener("resize", updateDictionaryScale);
+      window.visualViewport?.removeEventListener("resize", updateDictionaryScale);
+    };
   }, []);
   const searchResults = isSearching
     ? searchLearningEntries(searchQuery)
