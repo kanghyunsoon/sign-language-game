@@ -1,0 +1,278 @@
+/* 마이페이지(ProfilePage.css)와 같은 캔버스·색 체계를 쓴다. */
+.profile-edit-page {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: #493a32;
+  background: #f8f5ed;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+.profile-edit-page,
+.profile-edit-page * {
+  box-sizing: border-box;
+}
+
+.profile-edit-page button,
+.profile-edit-page input {
+  font: inherit;
+}
+
+.profile-edit-canvas {
+  position: relative;
+  width: min(100vw, 162.6667vh);
+  aspect-ratio: 122 / 75;
+  overflow: hidden;
+  font-size: min(1.09375vw, 1.75vh);
+  background: #fbf8f0;
+}
+
+/* 헤더 — 마이페이지와 동일한 형태를 유지해 화면 간 이동감을 맞춘다. */
+.profile-edit-header {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 10;
+  height: min(4.479167vw, 7.166667vh);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: min(.052083vw, .083333vh) solid #e7d9c7;
+  background: rgba(255, 250, 242, .94);
+  box-shadow: 0 min(.208333vw, .333333vh) min(.9375vw, 1.5vh) rgba(85, 57, 37, .05);
+}
+
+.profile-edit-nav {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: min(3.020833vw, 4.833333vh);
+}
+
+.profile-edit-nav a {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  color: #7d6d61;
+  font-size: min(1.25vw, 2vh);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.profile-edit-mypage-button {
+  position: absolute;
+  top: min(1.041667vw, 1.666667vh);
+  right: min(3.020833vw, 4.833333vh);
+  width: min(8.072917vw, 12.916667vh);
+  height: min(2.291667vw, 3.666667vh);
+  display: grid;
+  place-items: center;
+  border: min(.052083vw, .083333vh) solid #dbc8b1;
+  border-radius: min(52.03125vw, 83.25vh);
+  color: #5f402b;
+  font-size: min(1.09375vw, 1.75vh);
+  font-weight: 800;
+  text-decoration: none;
+  background: #fffaf2;
+}
+
+/* 본문 */
+.profile-edit-body {
+  position: absolute;
+  top: min(4.479167vw, 7.166667vh);
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2em 1em 2.5em;
+  overflow-y: auto;
+}
+
+.profile-edit-titlebar {
+  width: min(46em, 92%);
+  margin-bottom: 1.4em;
+  text-align: center;
+}
+
+.profile-edit-titlebar h1 {
+  margin: 0;
+  color: #4a3526;
+  font-size: 2.4em;
+  font-weight: 800;
+  letter-spacing: -.01em;
+}
+
+.profile-edit-titlebar p {
+  margin: .5em 0 0;
+  color: #8e877e;
+  font-size: 1.1em;
+  font-weight: 600;
+}
+
+.profile-edit-card {
+  width: min(46em, 92%);
+  margin-bottom: 1.3em;
+  padding: 1.6em 1.8em;
+  border: .18em solid rgba(99, 78, 64, .3);
+  border-radius: 1em;
+  background: rgba(255, 253, 248, .95);
+  box-shadow: 0 .4em .75em rgba(72, 52, 39, .13);
+}
+
+.profile-edit-card h2 {
+  margin: 0 0 1em;
+  padding-bottom: .6em;
+  border-bottom: 1px solid #e7dfd4;
+  color: #564131;
+  font-size: 1.35em;
+  font-weight: 800;
+}
+
+.profile-edit-pending {
+  margin: -.4em 0 1em;
+  padding: .6em .9em;
+  border-radius: .5em;
+  color: #7d6d61;
+  font-size: .95em;
+  font-weight: 700;
+  background: #f3ece1;
+}
+
+.profile-edit-form {
+  display: grid;
+  gap: 1em;
+}
+
+.profile-edit-field {
+  display: grid;
+  gap: .45em;
+}
+
+.profile-edit-field > span {
+  color: #6d5c50;
+  font-size: 1em;
+  font-weight: 700;
+}
+
+.profile-edit-field input {
+  width: 100%;
+  height: 3em;
+  padding: 0 1em;
+  border: 1px solid #dbc8b1;
+  border-radius: .6em;
+  color: #493a32;
+  font-size: 1em;
+  font-weight: 600;
+  background: #fff;
+  outline: none;
+}
+
+.profile-edit-field input::placeholder {
+  color: #b3a99e;
+  font-weight: 500;
+}
+
+.profile-edit-field input:focus {
+  border-color: #b98f62;
+  box-shadow: 0 0 0 .18em rgba(185, 143, 98, .2);
+}
+
+.profile-edit-field input:disabled {
+  color: #9c9086;
+  background: #f5f1ea;
+}
+
+.profile-edit-password-input {
+  position: relative;
+}
+
+.profile-edit-password-input input {
+  padding-right: 3em;
+}
+
+.profile-edit-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: .75em;
+  display: grid;
+  padding: 0;
+  border: 0;
+  place-items: center;
+  color: #8e877e;
+  background: transparent;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.profile-edit-password-toggle:disabled {
+  cursor: default;
+  opacity: .4;
+}
+
+.profile-edit-error,
+.profile-edit-notice {
+  margin: 0;
+  font-size: .95em;
+  font-weight: 700;
+}
+
+.profile-edit-error {
+  color: #b44949;
+}
+
+.profile-edit-notice {
+  color: #4f7d52;
+}
+
+.profile-edit-submit {
+  width: 100%;
+  height: 3em;
+  margin-top: .2em;
+  border: 0;
+  border-radius: .6em;
+  color: #fffaf2;
+  font-size: 1.05em;
+  font-weight: 800;
+  background: #564131;
+  cursor: pointer;
+}
+
+.profile-edit-submit:hover:not(:disabled) {
+  background: #6b5340;
+}
+
+.profile-edit-submit:disabled {
+  cursor: default;
+  background: #c4b6a7;
+}
+
+/* 회원 탈퇴 — 화면 맨 하단, 다른 동작과 시각적으로 분리한다. */
+.profile-edit-danger {
+  width: min(46em, 92%);
+  padding-top: 1.2em;
+  border-top: 1px solid #e7dfd4;
+  text-align: center;
+}
+
+.profile-edit-danger button {
+  min-width: 12em;
+  height: 2.8em;
+  padding: 0 1.4em;
+  border: 1px solid #ddb4b4;
+  border-radius: .6em;
+  color: #b44949;
+  font-size: 1em;
+  font-weight: 800;
+  background: #fff7f6;
+  cursor: pointer;
+}
+
+.profile-edit-danger button:hover {
+  background: #fdeceb;
+}
