@@ -94,44 +94,24 @@
   overflow-y: auto;
 }
 
-.profile-edit-titlebar {
-  width: min(46em, 92%);
-  margin-bottom: 1.4em;
-  text-align: center;
-}
-
-.profile-edit-titlebar h1 {
-  margin: 0;
-  color: #4a3526;
-  font-size: 2.4em;
-  font-weight: 800;
-  letter-spacing: -.01em;
-}
-
-.profile-edit-titlebar p {
-  margin: .5em 0 0;
-  color: #8e877e;
-  font-size: 1.1em;
-  font-weight: 600;
-}
-
 .profile-edit-card {
-  width: min(46em, 92%);
-  margin-bottom: 1.3em;
-  padding: 1.6em 1.8em;
+  width: min(40em, 92%);
+  padding: 1.8em 2em 2em;
   border: .18em solid rgba(99, 78, 64, .3);
   border-radius: 1em;
   background: rgba(255, 253, 248, .95);
   box-shadow: 0 .4em .75em rgba(72, 52, 39, .13);
 }
 
-.profile-edit-card h2 {
-  margin: 0 0 1em;
+.profile-edit-card h1 {
+  margin: 0 0 1.1em;
   padding-bottom: .6em;
   border-bottom: 1px solid #e7dfd4;
-  color: #564131;
-  font-size: 1.35em;
+  color: #4a3526;
+  font-size: 1.9em;
   font-weight: 800;
+  letter-spacing: -.01em;
+  text-align: center;
 }
 
 .profile-edit-pending {
@@ -188,6 +168,21 @@
   background: #f5f1ea;
 }
 
+/* 이메일 — 변경 불가라 입력칸 대신 값만 보여준다. */
+.profile-edit-readonly {
+  display: flex;
+  height: 3em;
+  align-items: center;
+  margin: 0;
+  padding: 0 1em;
+  border: 1px solid #e7dfd4;
+  border-radius: .6em;
+  color: #8e877e;
+  font-size: 1em;
+  font-weight: 600;
+  background: #f5f1ea;
+}
+
 .profile-edit-password-input {
   position: relative;
 }
@@ -230,17 +225,27 @@
   color: #4f7d52;
 }
 
-.profile-edit-submit {
+.profile-edit-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .8em;
+  margin-top: .4em;
+}
+
+.profile-edit-submit,
+.profile-edit-delete {
   width: 100%;
   height: 3em;
-  margin-top: .2em;
-  border: 0;
   border-radius: .6em;
-  color: #fffaf2;
   font-size: 1.05em;
   font-weight: 800;
-  background: #564131;
   cursor: pointer;
+}
+
+.profile-edit-submit {
+  border: 0;
+  color: #fffaf2;
+  background: #564131;
 }
 
 .profile-edit-submit:hover:not(:disabled) {
@@ -252,27 +257,18 @@
   background: #c4b6a7;
 }
 
-/* 회원 탈퇴 — 화면 맨 하단, 다른 동작과 시각적으로 분리한다. */
-.profile-edit-danger {
-  width: min(46em, 92%);
-  padding-top: 1.2em;
-  border-top: 1px solid #e7dfd4;
-  text-align: center;
-}
-
-.profile-edit-danger button {
-  min-width: 12em;
-  height: 2.8em;
-  padding: 0 1.4em;
+/* 회원 탈퇴 — 수정과 나란히 두되 색으로 무게를 낮춘다. */
+.profile-edit-delete {
   border: 1px solid #ddb4b4;
-  border-radius: .6em;
   color: #b44949;
-  font-size: 1em;
-  font-weight: 800;
   background: #fff7f6;
-  cursor: pointer;
 }
 
-.profile-edit-danger button:hover {
+.profile-edit-delete:hover:not(:disabled) {
   background: #fdeceb;
+}
+
+.profile-edit-delete:disabled {
+  cursor: default;
+  opacity: .5;
 }

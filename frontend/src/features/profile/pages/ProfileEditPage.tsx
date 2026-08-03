@@ -29,9 +29,7 @@ export function ProfileEditPage() {
 
   const [nickname, setNickname] = useState(user?.displayName ?? "");
   const [nicknameDraft, setNicknameDraft] = useState(user?.displayName ?? "");
-  const [savingNickname, setSavingNickname] = useState(false);
-  const [nicknameError, setNicknameError] = useState<string | null>(null);
-  const [nicknameNotice, setNicknameNotice] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -39,9 +37,10 @@ export function ProfileEditPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showNewPasswordConfirm, setShowNewPasswordConfirm] = useState(false);
-  const [savingPassword, setSavingPassword] = useState(false);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [passwordNotice, setPasswordNotice] = useState<string | null>(null);
+
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
   const [deleteAccountError, setDeleteAccountError] = useState<string | null>(null);
@@ -66,10 +65,11 @@ export function ProfileEditPage() {
           setNicknameDraft(nextNickname);
           updateDisplayName(nextNickname);
         }
+        if (typeof profile.email === "string") setEmail(profile.email);
       })
       .catch((caught) => {
         if (cancelled) return;
-        setNicknameError(
+        setError(
           caught instanceof AuthApiError
             ? caught.message
             : "프로필 정보를 불러오지 못했습니다.",
@@ -81,88 +81,88 @@ export function ProfileEditPage() {
     };
   }, [accessToken, user?.userId, updateDisplayName]);
 
-  async function handleNicknameSubmit(event: FormEvent<HTMLFormElement>) {
+  /** 닉네임과 비밀번호를 한 번에 저장한다. 입력하지 않은 항목은 건너뛴다. */
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!accessToken || savingNickname) return;
+    if (!accessToken || saving) return;
 
     const nextNickname = nicknameDraft.trim();
-    setNicknameError(null);
-    setNicknameNotice(null);
+    const nicknameChanged = nextNickname !== nickname;
+    const passwordTouched =
+      PASSWORD_CHANGE_ENABLED &&
+      Boolean(currentPassword || newPassword || newPasswordConfirm);
 
-    if (
-      nextNickname.length < NICKNAME_MIN_LENGTH ||
-      nextNickname.length > NICKNAME_MAX_LENGTH
-    ) {
-      setNicknameError("닉네임은 2자 이상 10자 이하로 입력해 주세요.");
+    setError(null);
+    setNotice(null);
+
+    if (nicknameChanged) {
+      if (
+        nextNickname.length < NICKNAME_MIN_LENGTH ||
+        nextNickname.length > NICKNAME_MAX_LENGTH
+      ) {
+        setError("닉네임은 2자 이상 10자 이하로 입력해 주세요.");
+        return;
+      }
+    }
+
+    if (passwordTouched) {
+      if (!currentPassword) {
+        setError("현재 비밀번호를 입력해 주세요.");
+        return;
+      }
+      if (newPassword.length < PASSWORD_MIN_LENGTH) {
+        setError("새 비밀번호는 8자 이상이어야 합니다.");
+        return;
+      }
+      if (newPassword !== newPasswordConfirm) {
+        setError("새 비밀번호가 일치하지 않습니다.");
+        return;
+      }
+      if (newPassword === currentPassword) {
+        setError("현재 비밀번호와 다른 비밀번호를 입력해 주세요.");
+        return;
+      }
+    }
+
+    if (!nicknameChanged && !passwordTouched) {
+      setNotice("변경된 내용이 없습니다.");
       return;
     }
-    if (nextNickname === nickname) {
-      setNicknameNotice("기존 닉네임과 같습니다.");
-      return;
-    }
 
-    setSavingNickname(true);
+    setSaving(true);
     try {
-      const updatedProfile = await updateProfile(accessToken, {
-        nickname: nextNickname,
-        profileImageUrl: null,
-      });
-      const savedNickname =
-        typeof updatedProfile.nickname === "string" && updatedProfile.nickname.trim()
-          ? updatedProfile.nickname.trim()
-          : nextNickname;
-      setNickname(savedNickname);
-      setNicknameDraft(savedNickname);
-      updateDisplayName(savedNickname);
-      setNicknameNotice("닉네임을 변경했습니다.");
+      const changed: string[] = [];
+
+      if (nicknameChanged) {
+        const updatedProfile = await updateProfile(accessToken, {
+          nickname: nextNickname,
+          profileImageUrl: null,
+        });
+        const savedNickname =
+          typeof updatedProfile.nickname === "string" && updatedProfile.nickname.trim()
+            ? updatedProfile.nickname.trim()
+            : nextNickname;
+        setNickname(savedNickname);
+        setNicknameDraft(savedNickname);
+        updateDisplayName(savedNickname);
+        changed.push("닉네임");
+      }
+
+      if (passwordTouched) {
+        await changePassword(accessToken, { currentPassword, newPassword });
+        setCurrentPassword("");
+        setNewPassword("");
+        setNewPasswordConfirm("");
+        changed.push("비밀번호");
+      }
+
+      setNotice(`${changed.join("과 ")}를 변경했습니다.`);
     } catch (caught) {
-      setNicknameError(
-        caught instanceof AuthApiError ? caught.message : "닉네임을 변경하지 못했습니다.",
+      setError(
+        caught instanceof AuthApiError ? caught.message : "정보를 수정하지 못했습니다.",
       );
     } finally {
-      setSavingNickname(false);
-    }
-  }
-
-  async function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!accessToken || savingPassword) return;
-
-    setPasswordError(null);
-    setPasswordNotice(null);
-
-    if (!currentPassword) {
-      setPasswordError("현재 비밀번호를 입력해 주세요.");
-      return;
-    }
-    if (newPassword.length < PASSWORD_MIN_LENGTH) {
-      setPasswordError("새 비밀번호는 8자 이상이어야 합니다.");
-      return;
-    }
-    if (newPassword !== newPasswordConfirm) {
-      setPasswordError("새 비밀번호가 일치하지 않습니다.");
-      return;
-    }
-    if (newPassword === currentPassword) {
-      setPasswordError("현재 비밀번호와 다른 비밀번호를 입력해 주세요.");
-      return;
-    }
-
-    setSavingPassword(true);
-    try {
-      await changePassword(accessToken, { currentPassword, newPassword });
-      setCurrentPassword("");
-      setNewPassword("");
-      setNewPasswordConfirm("");
-      setPasswordNotice("비밀번호를 변경했습니다.");
-    } catch (caught) {
-      setPasswordError(
-        caught instanceof AuthApiError
-          ? caught.message
-          : "비밀번호를 변경하지 못했습니다.",
-      );
-    } finally {
-      setSavingPassword(false);
+      setSaving(false);
     }
   }
 
@@ -204,15 +204,16 @@ export function ProfileEditPage() {
         </header>
 
         <div className="profile-edit-body">
-          <div className="profile-edit-titlebar">
-            <h1>정보 수정</h1>
-            <p>닉네임과 비밀번호를 변경할 수 있어요.</p>
-          </div>
+          <section className="profile-edit-card" aria-labelledby="profile-edit-title">
+            <h1 id="profile-edit-title">정보 수정</h1>
 
-          <section className="profile-edit-card" aria-labelledby="profile-edit-nickname-title">
-            <h2 id="profile-edit-nickname-title">닉네임</h2>
+            {!PASSWORD_CHANGE_ENABLED && (
+              <p className="profile-edit-pending">
+                비밀번호 변경은 서버 준비가 끝나는 대로 열립니다.
+              </p>
+            )}
 
-            <form className="profile-edit-form" onSubmit={handleNicknameSubmit}>
+            <form className="profile-edit-form" onSubmit={handleSubmit}>
               <label className="profile-edit-field">
                 <span>닉네임</span>
                 <input
@@ -222,42 +223,20 @@ export function ProfileEditPage() {
                   autoComplete="nickname"
                   minLength={NICKNAME_MIN_LENGTH}
                   maxLength={NICKNAME_MAX_LENGTH}
-                  disabled={savingNickname}
+                  disabled={saving}
                   onChange={(event) => {
                     setNicknameDraft(event.target.value);
-                    setNicknameError(null);
-                    setNicknameNotice(null);
+                    setError(null);
+                    setNotice(null);
                   }}
                 />
               </label>
 
-              {nicknameError && (
-                <p className="profile-edit-error" role="alert">
-                  {nicknameError}
-                </p>
-              )}
-              {nicknameNotice && <p className="profile-edit-notice">{nicknameNotice}</p>}
+              <div className="profile-edit-field">
+                <span>이메일</span>
+                <p className="profile-edit-readonly">{email || "-"}</p>
+              </div>
 
-              <button
-                className="profile-edit-submit"
-                type="submit"
-                disabled={savingNickname}
-              >
-                {savingNickname ? "저장 중…" : "닉네임 저장"}
-              </button>
-            </form>
-          </section>
-
-          <section className="profile-edit-card" aria-labelledby="profile-edit-password-title">
-            <h2 id="profile-edit-password-title">비밀번호</h2>
-
-            {!PASSWORD_CHANGE_ENABLED && (
-              <p className="profile-edit-pending">
-                비밀번호 변경은 서버 준비가 끝나는 대로 열립니다.
-              </p>
-            )}
-
-            <form className="profile-edit-form" onSubmit={handlePasswordSubmit}>
               <label className="profile-edit-field">
                 <span>현재 비밀번호</span>
                 <div className="profile-edit-password-input">
@@ -266,7 +245,7 @@ export function ProfileEditPage() {
                     value={currentPassword}
                     placeholder="현재 비밀번호를 입력해주세요"
                     autoComplete="current-password"
-                    disabled={!PASSWORD_CHANGE_ENABLED || savingPassword}
+                    disabled={!PASSWORD_CHANGE_ENABLED || saving}
                     onChange={(event) => setCurrentPassword(event.target.value)}
                   />
                   <button
@@ -290,7 +269,7 @@ export function ProfileEditPage() {
                     value={newPassword}
                     placeholder="영문, 숫자 포함 8자 이상"
                     autoComplete="new-password"
-                    disabled={!PASSWORD_CHANGE_ENABLED || savingPassword}
+                    disabled={!PASSWORD_CHANGE_ENABLED || saving}
                     onChange={(event) => setNewPassword(event.target.value)}
                   />
                   <button
@@ -314,7 +293,7 @@ export function ProfileEditPage() {
                     value={newPasswordConfirm}
                     placeholder="새 비밀번호를 다시 입력해주세요"
                     autoComplete="new-password"
-                    disabled={!PASSWORD_CHANGE_ENABLED || savingPassword}
+                    disabled={!PASSWORD_CHANGE_ENABLED || saving}
                     onChange={(event) => setNewPasswordConfirm(event.target.value)}
                   />
                   <button
@@ -332,28 +311,28 @@ export function ProfileEditPage() {
                 </div>
               </label>
 
-              {passwordError && (
+              {error && (
                 <p className="profile-edit-error" role="alert">
-                  {passwordError}
+                  {error}
                 </p>
               )}
-              {passwordNotice && <p className="profile-edit-notice">{passwordNotice}</p>}
+              {notice && <p className="profile-edit-notice">{notice}</p>}
 
-              <button
-                className="profile-edit-submit"
-                type="submit"
-                disabled={!PASSWORD_CHANGE_ENABLED || savingPassword}
-              >
-                {savingPassword ? "변경 중…" : "비밀번호 변경"}
-              </button>
+              <div className="profile-edit-actions">
+                <button className="profile-edit-submit" type="submit" disabled={saving}>
+                  {saving ? "저장 중…" : "수정"}
+                </button>
+                <button
+                  className="profile-edit-delete"
+                  type="button"
+                  disabled={saving}
+                  onClick={() => setIsDeleteAccountModalOpen(true)}
+                >
+                  회원 탈퇴
+                </button>
+              </div>
             </form>
           </section>
-
-          <div className="profile-edit-danger">
-            <button type="button" onClick={() => setIsDeleteAccountModalOpen(true)}>
-              회원 탈퇴
-            </button>
-          </div>
         </div>
       </div>
 
