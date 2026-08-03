@@ -677,11 +677,11 @@
 
 .practice-correct-card {
   position: relative;
-  width: min(min(25vw, 40vh), calc(100% - min(2.083333vw, 3.333333vh)));
+  width: min(min(31.25vw, 50vh), calc(100% - min(2.083333vw, 3.333333vh)));
   display: flex;
   align-items: center;
   flex-direction: column;
-  padding: min(1.5625vw, 2.5vh);
+  padding: min(1.875vw, 3vh);
   border: min(0.15625vw, 0.25vh) solid #d8c8a9;
   border-radius: min(1.25vw, 2vh);
   color: #4c4037;
@@ -711,21 +711,21 @@
 }
 
 .practice-correct-card img {
-  width: min(9.375vw, 15vh);
-  height: min(9.375vw, 15vh);
+  width: min(11.458333vw, 18.333333vh);
+  height: min(11.458333vw, 18.333333vh);
   object-fit: contain;
 }
 
 .practice-correct-card h2 {
   margin: min(0.416667vw, 0.666667vh) 0;
   color: #5f402b;
-  font-size: min(2.083333vw, 3.333333vh);
+  font-size: min(2.5vw, 4vh);
 }
 
 .practice-correct-card p {
   margin: 0 0 min(1.041667vw, 1.666667vh);
   color: #827368;
-  font-size: min(1.041667vw, 1.666667vh);
+  font-size: min(1.25vw, 2vh);
 }
 
 .practice-correct-card .practice-correct-countdown {
