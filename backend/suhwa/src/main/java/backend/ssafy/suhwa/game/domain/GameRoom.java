@@ -28,6 +28,9 @@ public class GameRoom extends BaseTimeEntity {
     @Column(name = "room_code", nullable = false, unique = true, length = 20)
     private String roomCode;
 
+    @Column(name = "room_title", nullable = false, length = 50)
+    private String roomTitle;
+
     @Column(name = "host_user_id", nullable = false)
     private Long hostUserId;
 
@@ -48,12 +51,16 @@ public class GameRoom extends BaseTimeEntity {
     @Column(name = "game_type", nullable = false, length = 20)
     private GameType gameType;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "symbol_range", nullable = false, length = 20)
+    private SymbolRange symbolRange;
+
     @Version
     @Column(nullable = false)
     private Long version;
 
     @Builder
-    public GameRoom(String roomCode, Long hostUserId, GameType gameType) {
+    public GameRoom(String roomCode, String roomTitle, Long hostUserId, GameType gameType, SymbolRange symbolRange) {
         this.roomCode = roomCode;
         this.hostUserId = hostUserId;
         this.hostReady = false;
@@ -62,6 +69,9 @@ public class GameRoom extends BaseTimeEntity {
         // gameType을 지정하지 않고 빌더를 호출하는 기존 코드(테스트 등)와의 호환을 위해, 미지정 시
         // 기존 데이터 백필 규칙(data-model.md)과 동일하게 SIGN_DUEL을 기본값으로 둔다(FR-017).
         this.gameType = gameType != null ? gameType : GameType.SIGN_DUEL;
+        // roomTitle/symbolRange도 같은 이유(테스트 등 기존 빌더 호출과의 호환)로 미지정 시 기본값을 둔다.
+        this.roomTitle = roomTitle != null ? roomTitle : "새로운 방";
+        this.symbolRange = symbolRange != null ? symbolRange : SymbolRange.ALL;
     }
 
     public boolean isHost(Long userId) {
