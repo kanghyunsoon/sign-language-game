@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { FingerspellingDetail } from "./FingerspellingDetail";
-import { WordSignVideo } from "./WordSignVideo";
+import type { WordSignDetailEntry } from "./WordSignDetail";
+import { WordSignDetail } from "./WordSignDetail";
 import type { TestQuestionResult } from "../data/testSession";
 import { wrongResults } from "../data/testSession";
 import { addReviewNote, removeReviewNotes } from "../data/reviewNotes";
 import type { FingerspellingEntry } from "../data/fingerspelling";
+import { findWordSignEntry } from "../data/wordSigns";
 
 interface TestResultViewProps {
   readonly results: readonly TestQuestionResult[];
@@ -99,6 +101,44 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
     selectedResult.question.symbol,
   );
 
+  /*
+   * 단어 문항은 TestQuestion으로 새로 만든 객체라 수형 설명과 소분류가 없다.
+   * 사전 데이터에서 같은 단어를 찾아 넘겨 사전·오답노트와 같은 카드를 쓴다.
+   * 못 찾는 경우에도 문항이 가진 정보만으로 카드를 채운다.
+   *
+   * 이 화면은 카드가 좁아 설명 상자도 좁다. 기본 줄 나눔이 넘치는 단어는
+   * narrowDescription에 더 잘게 나눠 둔 값을 쓴다.
+   */
+  const wordEntry = findWordSignEntry(selectedResult.question.symbol);
+  const selectedWordEntry: WordSignDetailEntry = wordEntry
+    ? { ...wordEntry, description: wordEntry.narrowDescription ?? wordEntry.description }
+    : {
+        name: selectedResult.question.symbol,
+        video: selectedResult.question.video ?? "",
+        description: [],
+      };
+
+  // 이동 순서는 왼쪽 문항 목록 순서를 그대로 따른다.
+  const goPreviousResult =
+    selectedIndex > 0 ? () => setSelectedIndex(selectedIndex - 1) : undefined;
+  const goNextResult =
+    selectedIndex < results.length - 1
+      ? () => setSelectedIndex(selectedIndex + 1)
+      : undefined;
+
+  const wrongNoteToggleButton = (
+    <button
+      className={`test-wrong-note-toggle ${
+        isSelectedInWrongNote ? "test-wrong-note-toggle-remove" : ""
+      }`}
+      type="button"
+      aria-pressed={isSelectedInWrongNote}
+      onClick={() => handleWrongNoteToggle(selectedResult.question.symbol)}
+    >
+      {isSelectedInWrongNote ? "오답노트 삭제하기" : "오답노트 추가하기"}
+    </button>
+  );
+
   return (
     <main className="test-main test-result">
       <div className="test-result-layout">
@@ -107,16 +147,18 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
 
           {/* 상세에서 넣고 뺀 결과가 바로 반영되도록 현재 담긴 개수를 보여준다.
               담긴 글자가 없으면 개수 대신 다 맞췄다고 알려 준다. */}
-          <h1 className="test-result-title">
-            {correctCount === results.length
-              ? "모든 문제를 맞췄어요!"
-              : `${correctCount}문제를 맞췄어요!`}
-          </h1>
+          <div className="test-result-headline">
+            <h1 className="test-result-title">
+              {correctCount === results.length
+                ? "모든 문제를 맞췄어요!"
+                : `${correctCount}문제를 맞췄어요!`}
+            </h1>
 
-          <p className="test-result-summary">
-            총 {results.length}문항 중 정답 {correctCount}개 · 오답 {wrongCount}
-            개
-          </p>
+            <p className="test-result-summary">
+              총 {results.length}문항 중 정답 {correctCount}개 · 오답{" "}
+              {wrongCount}개
+            </p>
+          </div>
 
           <ul className="test-result-list">
             {results.map((result, index) => {
@@ -192,52 +234,18 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
           <FingerspellingDetail
             className="test-result-detail"
             entry={selectedResult.question}
-            badgeLabel={selectedResult.question.categoryLabel}
-            hideName
-            footer={
-              <button
-                className={`test-wrong-note-toggle ${
-                  isSelectedInWrongNote ? "test-wrong-note-toggle-remove" : ""
-                }`}
-                type="button"
-                aria-pressed={isSelectedInWrongNote}
-                onClick={() =>
-                  handleWrongNoteToggle(selectedResult.question.symbol)
-                }
-              >
-                {isSelectedInWrongNote ? "오답노트 삭제하기" : "오답노트 추가하기"}
-              </button>
-            }
+            footer={wrongNoteToggleButton}
+            onPrevious={goPreviousResult}
+            onNext={goNextResult}
           />
         ) : (
-          <section className="fingerspelling-detail test-result-detail">
-            <span className="fingerspelling-detail-badge">단어</span>
-            <h2 className="fingerspelling-detail-symbol">
-              {selectedResult.question.symbol}
-            </h2>
-            <div className="fingerspelling-detail-image word-sign-detail-video">
-              <WordSignVideo
-                src={selectedResult.question.video ?? ""}
-                label={`${selectedResult.question.symbol} 수어 동작 영상`}
-              />
-            </div>
-            <div className="fingerspelling-detail-footer">
-              <button
-                className={`test-wrong-note-toggle ${
-                  isSelectedInWrongNote ? "test-wrong-note-toggle-remove" : ""
-                }`}
-                type="button"
-                aria-pressed={isSelectedInWrongNote}
-                onClick={() =>
-                  handleWrongNoteToggle(selectedResult.question.symbol)
-                }
-              >
-                {isSelectedInWrongNote
-                  ? "오답노트 삭제하기"
-                  : "오답노트 추가하기"}
-              </button>
-            </div>
-          </section>
+          <WordSignDetail
+            className="test-result-detail"
+            entry={selectedWordEntry}
+            footer={wrongNoteToggleButton}
+            onPrevious={goPreviousResult}
+            onNext={goNextResult}
+          />
         )}
       </div>
 

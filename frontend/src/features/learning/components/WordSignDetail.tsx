@@ -1,21 +1,33 @@
 import "./FingerspellingDetail.css";
 import type { ReactNode } from "react";
-import type { WordSignEntry } from "../data/wordSigns";
+import { DetailStepper, type DetailStepperProps } from "./DetailStepper";
 import { WordSignVideo } from "./WordSignVideo";
 
-interface WordSignDetailProps {
-  readonly entry: WordSignEntry;
+/**
+ * 카드가 실제로 쓰는 필드만 받는다. 사전의 WordSignEntry는 물론,
+ * 테스트 문항처럼 일부 정보만 가진 객체도 그대로 넘길 수 있다.
+ */
+export interface WordSignDetailEntry {
+  readonly name: string;
+  readonly video: string;
+  readonly description: readonly string[];
+  /** 소분류 표시 이름. 없으면 배지에 "단어"만 보여준다. */
+  readonly groupLabel?: string;
+}
+
+interface WordSignDetailProps extends DetailStepperProps {
+  readonly entry: WordSignDetailEntry;
   readonly className?: string;
   readonly footer?: ReactNode;
-  /** 카드 상단 양 끝에 놓을 이전/다음 이동 버튼. */
-  readonly stepper?: ReactNode;
 }
 
 export function WordSignDetail({
   entry,
   className,
   footer,
-  stepper,
+  onPrevious,
+  onNext,
+  unitLabel,
 }: WordSignDetailProps) {
   return (
     <section
@@ -24,7 +36,7 @@ export function WordSignDetail({
       }`}
       aria-live="polite"
     >
-      {stepper}
+      <DetailStepper onPrevious={onPrevious} onNext={onNext} unitLabel={unitLabel} />
 
       <span className="fingerspelling-detail-badge">
         {entry.groupLabel ? `단어 · ${entry.groupLabel}` : "단어"}
