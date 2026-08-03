@@ -6,7 +6,7 @@ import { AppNav } from "../../../shared/nav/AppNav";
 import otterClapImage from "../assets/otter_clap.png";
 import { CorrectFeedbackModal } from "../components/CorrectFeedbackModal";
 
-const CORRECT_AUTO_ADVANCE_SECONDS = 2;
+const CORRECT_AUTO_ADVANCE_SECONDS = 1.5;
 import {
   HandCamera,
   type RecognitionConnectionState,

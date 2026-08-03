@@ -22,7 +22,7 @@ import { TEST_TIME_LIMIT_SECONDS } from "../data/testSession";
 const TIME_LIMIT_MS = TEST_TIME_LIMIT_SECONDS * 1000;
 /** 남은 시간 표시 갱신 주기. */
 const TICK_INTERVAL_MS = 100;
-const CORRECT_AUTO_ADVANCE_SECONDS = 2;
+const CORRECT_AUTO_ADVANCE_SECONDS = 1.5;
 
 interface TestProgressViewProps {
   readonly questions: readonly TestQuestion[];
