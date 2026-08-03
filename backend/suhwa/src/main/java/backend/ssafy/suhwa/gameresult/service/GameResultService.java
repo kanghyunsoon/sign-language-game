@@ -2,8 +2,9 @@ package backend.ssafy.suhwa.gameresult.service;
 
 import backend.ssafy.suhwa.gameresult.domain.GameResult;
 import backend.ssafy.suhwa.gameresult.domain.GameResultType;
+import backend.ssafy.suhwa.gameresult.dto.RankedPlayer;
 import backend.ssafy.suhwa.gameresult.repository.GameResultRepository;
-import backend.ssafy.suhwa.gameresult.dto.SoloBestScore;
+import backend.ssafy.suhwa.gameresult.repository.GameResultRepository.RankedRow;
 import backend.ssafy.suhwa.growth.config.GrowthPolicyProperties;
 import backend.ssafy.suhwa.growth.domain.UserPet;
 import backend.ssafy.suhwa.growth.service.GrowthRewardService;
@@ -56,12 +57,25 @@ public class GameResultService {
         growthRewardService.rewardLocked(loserPet, policy.getDuelLoserExp());
     }
 
-    /** 랭킹 집계 원본. 해당 게임 종류의 기록 전체를 돌려준다. */
-    public List<GameResult> findByGameType(GameResultType gameType) {
-        return gameResultRepository.findByGameType(gameType);
+    /**
+     * 랭킹 집계 — SQL GROUP BY + 윈도우 함수로 순위까지 DB에서 매겨 상위 N명과 본인 행만 돌려받는다
+     * (RankingService 참고). 리포지토리 프로젝션(GameResultRepository.RankedRow)은 이 서비스 밖으로
+     * 내보내지 않는다 — 다른 모듈이 리포지토리 타입에 의존하면 모듈 경계 규칙(FR-020,
+     * ModuleBoundaryTest)에 걸리므로, 여기서 gameresult.dto 타입으로 옮겨 담아 반환한다.
+     */
+    public List<RankedPlayer> findDuelRanked(GameResultType gameType, Long requesterId, int topN) {
+        return gameResultRepository.findDuelRanked(gameType.name(), requesterId, topN).stream()
+                .map(this::toRankedPlayer)
+                .toList();
     }
 
-    public List<SoloBestScore> findBestScoresByGameType(GameResultType gameType) {
-        return gameResultRepository.findBestScoresByGameType(gameType);
+    public List<RankedPlayer> findSoloRanked(GameResultType gameType, Long requesterId, int topN) {
+        return gameResultRepository.findSoloRanked(gameType.name(), requesterId, topN).stream()
+                .map(this::toRankedPlayer)
+                .toList();
+    }
+
+    private RankedPlayer toRankedPlayer(RankedRow row) {
+        return new RankedPlayer(row.getRank(), row.getUserId(), row.getNickname(), row.getScore());
     }
 }

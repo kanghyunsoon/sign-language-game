@@ -2,28 +2,25 @@ package backend.ssafy.suhwa.ranking.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import backend.ssafy.suhwa.auth.service.RefreshTokenService;
 import backend.ssafy.suhwa.common.config.JpaAuditingConfig;
 import backend.ssafy.suhwa.gameresult.domain.GameResult;
 import backend.ssafy.suhwa.gameresult.domain.GameResultType;
 import backend.ssafy.suhwa.gameresult.repository.GameResultRepository;
 import backend.ssafy.suhwa.gameresult.service.GameResultService;
-import backend.ssafy.suhwa.growth.service.PetGrowthService;
 import backend.ssafy.suhwa.growth.service.GrowthRewardService;
 import backend.ssafy.suhwa.growth.config.GrowthPolicyProperties;
 import backend.ssafy.suhwa.ranking.dto.RankingResponse;
 import backend.ssafy.suhwa.user.domain.User;
 import backend.ssafy.suhwa.user.repository.UserRepository;
-import backend.ssafy.suhwa.user.service.UserService;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.transaction.PlatformTransactionManager;
 
 @DataJpaTest
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
@@ -40,21 +37,10 @@ class RankingServiceTest {
 
     @BeforeEach
     void setUp() {
-        // RankingService는 이제 UserRepository를 직접 잡지 않고 UserService를 거친다(모듈 경계, FR-020).
-        // 이 슬라이스 테스트에는 서비스 빈이 없으므로, 실제 조회 경로만 살리고 랭킹과 무관한
-        // 협력자(토큰 폐기·비밀번호 해싱)는 목으로 채운다.
-        UserService userService = new UserService(
-                userRepository,
-                Mockito.mock(RefreshTokenService.class),
-                Mockito.mock(PasswordEncoder.class),
-                Mockito.mock(PetGrowthService.class),
-                Mockito.mock(PlatformTransactionManager.class));
-        rankingService = new RankingService(
-                new GameResultService(
-                        gameResultRepository,
-                        Mockito.mock(GrowthRewardService.class),
-                        new GrowthPolicyProperties()),
-                userService);
+        rankingService = new RankingService(new GameResultService(
+                gameResultRepository,
+                Mockito.mock(GrowthRewardService.class),
+                new GrowthPolicyProperties()));
     }
 
     private Long createUser(String label) {
@@ -116,6 +102,27 @@ class RankingServiceTest {
         assertThat(response.top()).extracting(entry -> entry.score())
                 .containsExactly(90, 90, 110);
         assertThat(response.me().score()).isEqualTo(90);
+        assertThat(response.me().rank()).isEqualTo(1);
+    }
+
+    @Test
+    void soloRanking_tiedUsersExceedTopN_topStaysCappedAtTopN() {
+        // 공동 1위가 TOP_N(5명)보다 많으면(7명), 표시 순위 라벨(공동 1위)로 top을 자르면 안 되고
+        // 위치 기준으로 정확히 5명만 담아야 한다 — 실제로 이 케이스에서 라벨 기준 컷오프 버그가 있었다.
+        List<Long> tiedUsers = new ArrayList<>();
+        for (int i = 0; i < 7; i++) {
+            tiedUsers.add(createUser("tied" + i));
+        }
+        tiedUsers.forEach(userId -> record(userId, GameResultType.TETRIS_SOLO, 50));
+        Long beyondTopFive = tiedUsers.get(6);
+
+        RankingResponse response = rankingService.getRankings(beyondTopFive, GameResultType.TETRIS_SOLO);
+
+        assertThat(response.top()).hasSize(5);
+        assertThat(response.top()).allSatisfy(entry -> assertThat(entry.rank()).isEqualTo(1));
+        assertThat(response.top()).extracting(entry -> entry.userId()).doesNotContain(beyondTopFive);
+        assertThat(response.me()).isNotNull();
+        assertThat(response.me().userId()).isEqualTo(beyondTopFive);
         assertThat(response.me().rank()).isEqualTo(1);
     }
 
