@@ -2,6 +2,7 @@ package backend.ssafy.suhwa.gameresult.repository;
 
 import backend.ssafy.suhwa.gameresult.domain.GameResult;
 import backend.ssafy.suhwa.gameresult.domain.GameResultType;
+import backend.ssafy.suhwa.gameresult.dto.DuelAggregate;
 import backend.ssafy.suhwa.gameresult.dto.SoloBestScore;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,9 +12,6 @@ import org.springframework.data.repository.query.Param;
 /** GameRoomService(대전 결과), SoloResultService(솔로 결과), RankingService(집계) 3곳이 공유한다(plan.md Structure Decision). */
 public interface GameResultRepository extends JpaRepository<GameResult, Long> {
 
-    /** 랭킹 집계 원본 — 게임 종류별 전체 기록. 교육 프로젝트 규모라 집계는 서비스 계층에서 처리한다. */
-    List<GameResult> findByGameType(GameResultType gameType);
-
     @Query("""
             select result.userId as userId, min(result.score) as score
             from GameResult result
@@ -21,5 +19,18 @@ public interface GameResultRepository extends JpaRepository<GameResult, Long> {
             group by result.userId
             """)
     List<SoloBestScore> findBestScoresByGameType(
+            @Param("gameType") GameResultType gameType);
+
+    /**
+     * 대전 유저별 승수/전체 판수 집계 — idx_game_result_type_user_score(game_type, user_id, score)
+     * 커버링 인덱스로 game_results 본 테이블을 다시 찾아가지 않고 GROUP BY까지 처리된다.
+     */
+    @Query("""
+            select result.userId as userId, sum(result.score) as wins, count(result) as games
+            from GameResult result
+            where result.gameType = :gameType
+            group by result.userId
+            """)
+    List<DuelAggregate> findDuelAggregatesByGameType(
             @Param("gameType") GameResultType gameType);
 }

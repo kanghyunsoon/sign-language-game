@@ -1,7 +1,7 @@
 package backend.ssafy.suhwa.ranking.service;
 
-import backend.ssafy.suhwa.gameresult.domain.GameResult;
 import backend.ssafy.suhwa.gameresult.domain.GameResultType;
+import backend.ssafy.suhwa.gameresult.dto.DuelAggregate;
 import backend.ssafy.suhwa.gameresult.dto.SoloBestScore;
 import backend.ssafy.suhwa.gameresult.service.GameResultService;
 import backend.ssafy.suhwa.ranking.dto.RankingEntry;
@@ -55,18 +55,19 @@ public class RankingService {
     }
 
     private RankingResponse getDuelRankings(Long requesterId, GameResultType gameType) {
-        Map<Long, List<GameResult>> byUser = gameResultService.findByGameType(gameType).stream()
-                .collect(Collectors.groupingBy(GameResult::getUserId));
-        Map<Long, User> activeUsers = activeUsers(byUser.keySet());
+        List<DuelAggregate> aggregates = gameResultService.findDuelAggregatesByGameType(gameType);
+        Set<Long> userIds =
+                aggregates.stream().map(DuelAggregate::getUserId).collect(Collectors.toSet());
+        Map<Long, User> activeUsers = activeUsers(userIds);
 
-        List<Scored> scored = byUser.entrySet().stream()
-                .filter(entry -> activeUsers.containsKey(entry.getKey()))
-                .map(entry -> {
-                    int wins = entry.getValue().stream().mapToInt(GameResult::getScore).sum();
-                    int losses = entry.getValue().size() - wins;
+        List<Scored> scored = aggregates.stream()
+                .filter(row -> activeUsers.containsKey(row.getUserId()))
+                .map(row -> {
+                    int wins = row.getWins();
+                    int losses = (int) (row.getGames() - row.getWins());
                     return new Scored(
-                            entry.getKey(),
-                            activeUsers.get(entry.getKey()).getNickname(),
+                            row.getUserId(),
+                            activeUsers.get(row.getUserId()).getNickname(),
                             wins,
                             losses);
                 })

@@ -3,6 +3,7 @@ package backend.ssafy.suhwa.gameresult.service;
 import backend.ssafy.suhwa.gameresult.domain.GameResult;
 import backend.ssafy.suhwa.gameresult.domain.GameResultType;
 import backend.ssafy.suhwa.gameresult.repository.GameResultRepository;
+import backend.ssafy.suhwa.gameresult.dto.DuelAggregate;
 import backend.ssafy.suhwa.gameresult.dto.SoloBestScore;
 import backend.ssafy.suhwa.growth.config.GrowthPolicyProperties;
 import backend.ssafy.suhwa.growth.domain.UserPet;
@@ -56,12 +57,12 @@ public class GameResultService {
         growthRewardService.rewardLocked(loserPet, policy.getDuelLoserExp());
     }
 
-    /** 랭킹 집계 원본. 해당 게임 종류의 기록 전체를 돌려준다. */
-    public List<GameResult> findByGameType(GameResultType gameType) {
-        return gameResultRepository.findByGameType(gameType);
-    }
-
     public List<SoloBestScore> findBestScoresByGameType(GameResultType gameType) {
         return gameResultRepository.findBestScoresByGameType(gameType);
+    }
+
+    /** 랭킹 집계 원본 — 대전 유저별 승수/전체 판수. DB에서 SUM/COUNT까지 집계해 돌려준다. */
+    public List<DuelAggregate> findDuelAggregatesByGameType(GameResultType gameType) {
+        return gameResultRepository.findDuelAggregatesByGameType(gameType);
     }
 }
