@@ -65,7 +65,8 @@ const wordSignLabels: readonly Omit<WordSignItem, "video">[] = [
     groupId: "vehicle",
     description: [
       "한 손을 손바닥이 아래로 향하게 가로로 펴서 길을 표현합니다.",
-      "다른 손은 검지와 중지를 살짝 구부려 편 손 위에 올린 뒤 앞뒤로 움직여 버스가 달리는 모습을 표현합니다.",
+      "다른 손은 검지와 중지를 살짝 구부려 올린 뒤,",
+      "앞뒤로 움직여 버스가 달리는 모습을 표현합니다.",
     ],
   },
   {
@@ -73,7 +74,8 @@ const wordSignLabels: readonly Omit<WordSignItem, "video">[] = [
     name: "자동차",
     groupId: "vehicle",
     description: [
-      "한 손을 약간 구부려 손등이 위로 향하게 하고, 다른 손은 그 아래에 놓고 앞뒤로 움직입니다.",
+      "한 손을 약간 구부려 손등이 위로 향하게 하고,",
+      "다른 손은 그 아래에 놓고 앞뒤로 움직입니다.",
     ],
   },
   {
@@ -81,7 +83,8 @@ const wordSignLabels: readonly Omit<WordSignItem, "video">[] = [
     name: "자전거",
     groupId: "vehicle",
     description: [
-      "가슴 앞쪽에 양손을 두고, 자전거 페달을 밟는 것처럼 번갈아가며 원을 그리며 돌려줍니다.",
+      "양손을 손등이 보이도록 주먹 쥐어 올리고,",
+      "자전거 페달을 밟는 것처럼 번갈아가며 원을 그리며 돌려줍니다.",
     ],
   },
   {
@@ -89,7 +92,8 @@ const wordSignLabels: readonly Omit<WordSignItem, "video">[] = [
     name: "오토바이",
     groupId: "vehicle",
     description: [
-      "손등이 위로 향하게 가볍게 주먹을 쥐고, 한 손을 앞뒤로 돌려 가속 손잡이를 당기는 모습을 표현합니다.",
+      "손등이 위로 향하게 가볍게 주먹 쥐고,",
+      "한 손을 앞뒤로 돌려 가속 손잡이를 당기는 모습을 표현합니다.",
     ],
   },
   {
@@ -97,7 +101,9 @@ const wordSignLabels: readonly Omit<WordSignItem, "video">[] = [
     name: "지하철",
     groupId: "vehicle",
     description: [
-      "한 손을 손바닥이 아래로 향하게 가로로 펴고, 다른 손을 아래쪽으로 지나가게 움직여 지하로 달리는 열차를 표현합니다.",
+      "한 손을 손바닥이 아래로 향하게 가로로 펴고,",
+      "다른 손을 아래쪽으로 지나가게 움직여",
+      "지하로 달리는 열차를 표현합니다.",
     ],
   },
   {
@@ -106,7 +112,8 @@ const wordSignLabels: readonly Omit<WordSignItem, "video">[] = [
     groupId: "vehicle",
     description: [
       "한 손을 손끝이 바깥쪽을 향하게 펴주세요.",
-      "다른 손은 검지와 중지를 펴서 손끝을 편 손바닥에 댄 뒤, 바깥쪽으로 두 바퀴 돌립니다.",
+      "다른 손은 검지와 중지를 펴서 손끝을 편 손바닥에 댄 뒤,",
+      "바깥쪽으로 두 바퀴 돌립니다.",
     ],
   },
   {
@@ -114,7 +121,8 @@ const wordSignLabels: readonly Omit<WordSignItem, "video">[] = [
     name: "배",
     groupId: "vehicle",
     description: [
-      "새끼손가락끼리 붙여 양손을 모으고, 배가 물 위를 나아가듯 두 손을 앞으로 움직입니다.",
+      "새끼손가락끼리 붙여 양손을 모으고,",
+      "배가 물 위를 나아가듯 두 손을 앞으로 움직입니다.",
     ],
   },
   {
@@ -122,7 +130,8 @@ const wordSignLabels: readonly Omit<WordSignItem, "video">[] = [
     name: "비행기",
     groupId: "vehicle",
     description: [
-      "엄지손가락과 새끼손가락을 펴고, 비행기가 날아가듯 대각선 위로 움직입니다.",
+      "엄지손가락과 새끼손가락을 펴고,",
+      "비행기가 날아가듯 대각선 위로 움직입니다.",
     ],
   },
   {
@@ -137,7 +146,8 @@ const wordSignLabels: readonly Omit<WordSignItem, "video">[] = [
     name: "해",
     groupId: "nature",
     description: [
-      "양손의 엄지와 검지를 펴고, 두 손을 아래에서 위로 올려주세요.",
+      "양손의 엄지와 검지를 펴고,",
+      "두 손을 아래에서 위로 올리며",
       "해가 떠오르는 모습을 표현합니다.",
     ],
   },
@@ -146,7 +156,8 @@ const wordSignLabels: readonly Omit<WordSignItem, "video">[] = [
     name: "달",
     groupId: "nature",
     description: [
-      "엄지손가락과 검지손가락을 붙였다가 펴며 초승달 모양을 만듭니다.",
+      "엄지손가락과 검지손가락을 붙였다가 펴며",
+      "초승달 모양을 만듭니다.",
     ],
   },
   {
@@ -155,7 +166,8 @@ const wordSignLabels: readonly Omit<WordSignItem, "video">[] = [
     groupId: "nature",
     description: [
       "한 손을 머리 위쪽에 올립니다.",
-      "손가락을 오므렸다 폈다 하면서 별이 반짝이는 모습을 표현합니다.",
+      "손가락을 오므렸다 폈다 반복하며",
+      "별이 반짝이는 모습을 표현합니다.",
     ],
   },
   {
@@ -164,7 +176,8 @@ const wordSignLabels: readonly Omit<WordSignItem, "video">[] = [
     groupId: "nature",
     description: [
       "양손의 손가락이 아래를 향하게 펴주세요.",
-      "빗방울이 떨어지는 것처럼 두 손을 위에서 아래로 여러 번 내립니다.",
+      "빗방울이 떨어지는 것처럼",
+      "두 손을 위에서 아래로 여러 번 내립니다.",
     ],
   },
   {
@@ -172,7 +185,8 @@ const wordSignLabels: readonly Omit<WordSignItem, "video">[] = [
     name: "바람",
     groupId: "nature",
     description: [
-      "두 손을 벌려 손등이 위로 향하게 하였다가 안으로 두 번 돌려 올립니다.",
+      "두 손을 벌려 손등이 위로 향하게 하였다가",
+      "안으로 두 번 돌려 올립니다.",
     ],
   },
 
@@ -199,8 +213,9 @@ const wordSignLabels: readonly Omit<WordSignItem, "video">[] = [
     name: "수영하다",
     groupId: "motion",
     description: [
-      "한 손을 손등이 위로 향하게 가로로 펴주세요.",
-      "다른 손의 검지와 중지를 펴서 그 위에 댄 뒤, 두 손가락을 번갈아 움직이며 편 손의 손끝 방향으로 이동합니다.",
+      "한쪽 팔을 손등이 위로 향하게 가로로 올려주세요.",
+      "다른 손의 검지와 중지를 편 뒤, 팔꿈치 위에서",
+      "두 손가락을 번갈아 움직이며 손끝 방향으로 이동합니다.",
     ],
   },
 
@@ -208,14 +223,18 @@ const wordSignLabels: readonly Omit<WordSignItem, "video">[] = [
     id: "good",
     name: "좋다",
     groupId: "state",
-    description: ["한 손으로 주먹을 쥔 뒤, 검지와 엄지의 옆면을 코에 가볍게 댑니다."],
+    description: [
+      "한 손으로 주먹을 쥔 뒤,",
+      "검지와 엄지의 옆면을 코에 가볍게 대고 움직입니다.",
+    ],
   },
   {
     id: "bad",
     name: "나쁘다",
     groupId: "state",
     description: [
-      "검지를 코 옆에 대고 바깥쪽으로 튕기듯 움직이며 좋지 않은 표정을 짓습니다.",
+      "검지를 펴고 코 부근에서 튕기듯 움직이며",
+      "좋지 않은 표정을 짓습니다.",
     ],
   },
 ];
