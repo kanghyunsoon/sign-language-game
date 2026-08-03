@@ -1,6 +1,6 @@
 # Tasks: 출석 및 펫 성장
 
-**Input**: Design documents from `specs/001-growth-attendance-pet/`
+**Input**: Design documents from `backend/specs/005-growth-attendance-pet/`
 
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/, quickstart.md
 
@@ -83,7 +83,7 @@
 - [ ] T022 [US2] T015를 통과하도록 `backend/suhwa/src/main/java/backend/ssafy/suhwa/gameresult/service/GameResultService.java`와 `game/service/GameRoomService.java`의 승·패 결과 저장과 XP 10·3 원자성을 보완한다
 - [ ] T023 [US2] 삭제된 연습·솔로 세션 테스트를 제거하고 유효한 활동 보상 테스트로 대체하도록 `backend/suhwa/src/test/java/backend/ssafy/suhwa/learning/`, `gameresult/`, `growth/GrowthRewardIntegrationTest.java`를 정리한다
 - [ ] T024 [US2] 외부 연동에 필요한 활동 API만 노출하도록 `backend/suhwa/src/main/java/backend/ssafy/suhwa/common/config/OpenApiConfig.java`와 각 Api/DTO의 Swagger 설명을 정리하고 `OpenApiConfigTest.java`에서 연습·솔로 세션 경로 부재를 검증한다
-- [ ] T025 [US2] 실제 Swagger와 목표 계약이 일치하도록 `specs/001-growth-attendance-pet/contracts/activity-reward-api-delta.yaml` 및 `specs/001-growth-attendance-pet/contracts/growth-api.yaml`을 최종 구현에 맞춰 갱신한다
+- [ ] T025 [US2] 실제 Swagger와 목표 계약이 일치하도록 `backend/specs/005-growth-attendance-pet/contracts/activity-reward-api-delta.yaml` 및 `backend/specs/005-growth-attendance-pet/contracts/growth-api.yaml`을 최종 구현에 맞춰 갱신한다
 
 **Checkpoint**: 모든 활동 보상과 솔로 랭킹을 User Story 1과 독립적으로 검증할 수 있다.
 
@@ -114,9 +114,9 @@
 **Purpose**: 최종 스키마, 문서, 정합성 진단과 전체 회귀를 검증한다.
 
 - [ ] T030 [P] `game_type`별 `score` 규칙과 제거된 필드 부재를 점검하도록 `backend/suhwa/src/main/resources/db/queries/game_results_integrity.sql`을 갱신한다
-- [ ] T031 [P] 삭제된 타입·경로·`playDurationMs`·`practiceExp` 참조가 남지 않았는지 `backend/suhwa/src/main/`, `backend/suhwa/src/test/`, `specs/001-growth-attendance-pet/contracts/`를 정적 검색하고 발견된 참조를 제거한다
+- [ ] T031 [P] 삭제된 타입·경로·`playDurationMs`·`practiceExp` 참조가 남지 않았는지 `backend/suhwa/src/main/`, `backend/suhwa/src/test/`, `backend/specs/005-growth-attendance-pet/contracts/`를 정적 검색하고 발견된 참조를 제거한다
 - [ ] T032 H2 환경에서 `backend/suhwa`의 `./gradlew.bat test` 전체 테스트를 실행하고 실패를 수정한다
-- [ ] T033 Docker 가능 환경에서 `backend/suhwa`의 `./gradlew.bat benchmark`를 실행해 V1→V8·V7→V8 MySQL 마이그레이션과 랭킹 집계를 검증하고 `specs/001-growth-attendance-pet/quickstart.md`의 완료 판정을 갱신한다
+- [ ] T033 Docker 가능 환경에서 `backend/suhwa`의 `./gradlew.bat benchmark`를 실행해 V1→V8·V7→V8 MySQL 마이그레이션과 랭킹 집계를 검증하고 `backend/specs/005-growth-attendance-pet/quickstart.md`의 완료 판정을 갱신한다
 
 ---
 
