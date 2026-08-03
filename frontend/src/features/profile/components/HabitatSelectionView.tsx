@@ -37,10 +37,9 @@ export function HabitatSelectionView({
     () =>
       habitatOptions.map((_, index) => {
         const distance = index - focusedIndex;
+        const arcDistance = Math.abs(distance) ** 2;
         return {
-          transform: `translateX(${distance * 86}%) translateY(calc(${Math.abs(
-            distance,
-          )} * min(1.1458vw, 1.8333vh))) rotate(${distance * 5}deg)`,
+          transform: `translateX(${distance * 86}%) translateY(calc(${arcDistance} * min(1.0417vw, 1.6667vh))) rotate(${distance * 5}deg)`,
           zIndex: habitatOptions.length - Math.abs(distance),
         };
       }),

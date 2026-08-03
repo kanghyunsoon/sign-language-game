@@ -35,6 +35,9 @@
   right: min(1.4583vw, 2.3333vh);
   width: min(2.8125vw, 4.5vh);
   height: min(2.8125vw, 4.5vh);
+  min-width: min(2.8125vw, 4.5vh);
+  max-width: min(2.8125vw, 4.5vh);
+  padding: 0;
   display: grid;
   place-items: center;
   border: 0;
@@ -44,6 +47,11 @@
   box-shadow: 0 min(.2604vw, .4167vh) min(.8333vw, 1.3333vh)
     rgba(65, 55, 44, .12);
   cursor: pointer;
+}
+
+.habitat-selection-close svg {
+  width: min(1.25vw, 2vh);
+  height: min(1.25vw, 2vh);
 }
 
 .habitat-selection-view > header {
@@ -164,6 +172,9 @@
   flex: 0 0 auto;
   width: min(3.125vw, 5vh);
   height: min(3.125vw, 5vh);
+  min-width: min(3.125vw, 5vh);
+  max-width: min(3.125vw, 5vh);
+  padding: 0;
   display: grid;
   place-items: center;
   border: 0;
@@ -173,6 +184,11 @@
   box-shadow: 0 min(.4167vw, .6667vh) min(1.0417vw, 1.6667vh)
     rgba(64, 54, 42, .12);
   cursor: pointer;
+}
+
+.habitat-otter-stage button svg {
+  width: min(1.25vw, 2vh);
+  height: min(1.25vw, 2vh);
 }
 
 .habitat-otter-stage button:disabled {
