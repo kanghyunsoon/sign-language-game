@@ -1111,7 +1111,7 @@
 .mode2dBlockYellow { top: 151px; right: 203px; color: #ffc64a; transform: rotate(-10deg); }
 .mode2dBlockYellow i:nth-child(2) { grid-area: 2 / 2; }
 .modePage2d .modeCloud, .modePage2d .fallingBlock, .modePage2d .arcadeBackdrop, .modePage2d .modeArenaHud { display: none; }
-.modePage2d .tetrisModeHeader { position: absolute; z-index: 5; top: 25px; right: 32px; left: 32px; display: grid; grid-template-columns: 58px 58px minmax(0, 1fr) 138px; align-items: start; gap: 20px; }
+.modePage2d .tetrisModeHeader { position: absolute; z-index: 5; top: 25px; right: 32px; left: 32px; display: grid; grid-template-columns: 58px minmax(0, 1fr) 138px; align-items: start; gap: 20px; }
 .modePage2d .modeBackButton { width: 58px; height: 58px; border: 2px solid #eadcc8; border-radius: 22px; background: #fffdf8; box-shadow: 0 4px 0 rgba(133,101,68,.14); color: #543823; }
 .modePage2d .modeBackButton:hover { box-shadow: 0 6px 0 rgba(133,101,68,.16); transform: translateY(-2px); }
 .modePage2d .modeHomeButton { position: absolute; top: 0; left: 70px; width: 58px; height: 58px; border: 2px solid #eadcc8; border-radius: 22px; background: #fffdf8; box-shadow: 0 4px 0 rgba(133,101,68,.14); color: #6f893d; }
