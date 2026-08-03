@@ -234,10 +234,10 @@ export function ProfilePage() {
           <section className="profile-user-card">
             {/* 닉네임 수정은 정보 수정 페이지(/profile/edit)로 일원화했다. */}
             <div className="profile-name">
+              <strong>{nickname || user?.displayName || "게스트"} 님</strong>
               <span className="profile-training-days">
-                {attendedDates.length}일째 수련중
+                함께한 지 {attendedDates.length}일째예요!
               </span>
-              <strong>{nickname || user?.displayName || "게스트"}</strong>
             </div>
             {profileError && <p className="profile-user-error" role="alert">{profileError}</p>}
           </section>
@@ -286,10 +286,10 @@ export function ProfilePage() {
           <div className="profile-quick-actions">
             {accessToken ? (
               <>
-                <button type="button" onClick={() => void handleLogout()}>로그아웃</button>
                 <button type="button" onClick={() => navigate("/profile/edit")}>
                   정보 수정
                 </button>
+                <button type="button" onClick={() => void handleLogout()}>로그아웃</button>
               </>
             ) : (
               <button className="profile-login-button" type="button" onClick={() => navigate("/login")}>
@@ -297,6 +297,24 @@ export function ProfilePage() {
               </button>
             )}
           </div>
+
+          <section className="profile-training-tips" aria-labelledby="profile-training-tips-title">
+            <h2 id="profile-training-tips-title">오늘의 학습 팁</h2>
+            <ul>
+              <li>
+                <span aria-hidden="true">💡</span>
+                <strong>오답노트 복습은 매일 꾸준히!</strong>
+              </li>
+              <li>
+                <span aria-hidden="true">💡</span>
+                <strong>집중력을 높이는 명상하기!</strong>
+              </li>
+              <li>
+                <span aria-hidden="true">💡</span>
+                <strong>친구와 함께 퀴즈 대결!</strong>
+              </li>
+            </ul>
+          </section>
         </aside>
       </div>
 

@@ -21,8 +21,8 @@
 
 .profile-canvas {
   position: relative;
-  width: min(100vw, 162.6667vh);
-  aspect-ratio: 122 / 75;
+  width: min(100vw, 160vh);
+  aspect-ratio: 8 / 5;
   overflow: hidden;
   font-size: min(1.09375vw, 1.75vh);
   background: #fbf8f0;
@@ -422,7 +422,7 @@
   position: absolute;
   z-index: 3;
   top: 22.7%;
-  right: 7.7%;
+  right: 7.5%;
   width: 22.8%;
 }
 
@@ -449,7 +449,7 @@
 
 .profile-name {
   position: absolute;
-  top: 15%;
+  top: 22%;
   right: min(1.0417vw, 1.6667vh);
   left: min(1.0417vw, 1.6667vh);
   display: flex;
@@ -470,7 +470,7 @@
 
 .profile-training-days {
   color: #8a7d70;
-  font-size: min(.8333vw, 1.3333vh);
+  font-size: min(1.0417vw, 1.6667vh);
   font-weight: 700;
   line-height: 1;
   text-align: center;
@@ -701,6 +701,96 @@
   grid-column: 1 / -1;
   color: #fff;
   background: #765b48;
+}
+
+.profile-training-tips {
+  position: relative;
+  width: calc(100% + min(1.4583vw, 2.3333vh));
+  margin-top: min(5vw, 20vh);
+  margin-left: max(-1.4583vw, -2.3333vh);
+  padding: min(1.5625vw, 2.5vh) min(1.4583vw, 2.3333vh);
+  border: min(.1042vw, .1667vh) solid rgba(99, 78, 64, .35);
+  border-radius:
+    min(.7292vw, 1.1667vh)
+    min(.7292vw, 1.1667vh)
+    min(.9375vw, 1.5vh)
+    min(.9375vw, 1.5vh);
+  background: rgba(255, 253, 244, .97);
+  box-shadow:
+    0 min(.3125vw, .5vh) min(.8333vw, 1.3333vh) rgba(72, 52, 39, .12),
+    inset 0 0 min(1.0417vw, 1.6667vh) rgba(193, 172, 139, .06);
+}
+
+.profile-training-tips::before {
+  position: absolute;
+  top: 0;
+  right: min(.3125vw, .5vh);
+  color: #9b806b;
+  font-size: min(2.2917vw, 3.6667vh);
+  filter: grayscale(.25);
+  transform: rotate(16deg);
+  content: "🐾";
+}
+
+.profile-training-tips::after {
+  position: absolute;
+  top: max(-.7292vw, -1.1667vh);
+  left: 50%;
+  width: min(6.7708vw, 10.8333vh);
+  height: min(1.6667vw, 2.6667vh);
+  background:
+    linear-gradient(90deg, rgba(221, 204, 158, .66), rgba(235, 220, 177, .78));
+  box-shadow: 0 min(.1042vw, .1667vh) min(.2083vw, .3333vh) rgba(92, 72, 49, .12);
+  clip-path: polygon(2% 8%, 98% 0, 96% 92%, 3% 100%);
+  content: "";
+  opacity: .9;
+  transform: translateX(-50%) rotate(-2deg);
+}
+
+.profile-training-tips h2 {
+  margin: 0 0 min(.8333vw, 1.3333vh);
+  color: #493a32;
+  font-size: min(1.4063vw, 2.25vh);
+  font-weight: 900;
+}
+
+.profile-training-tips ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.profile-training-tips li {
+  display: grid;
+  grid-template-columns: min(3.125vw, 5vh) minmax(0, 1fr);
+  min-height: min(4.4792vw, 7.1667vh);
+  align-items: center;
+  gap: min(.8333vw, 1.3333vh);
+  border-top: min(.0521vw, .0833vh) solid #e8dfd4;
+}
+
+.profile-training-tips li:first-child {
+  border-top: 0;
+}
+
+.profile-training-tips li > span {
+  display: grid;
+  width: min(3.125vw, 5vh);
+  aspect-ratio: 1;
+  place-items: center;
+  border: min(.0521vw, .0833vh) dashed #d8cdbf;
+  border-radius: 50%;
+  font-size: min(1.4063vw, 2.25vh);
+  background: #fffdf8;
+}
+
+.profile-training-tips strong {
+  min-width: 0;
+  color: #493a32;
+  font-size: min(1.0938vw, 1.75vh);
+  font-weight: 800;
+  line-height: 1.35;
+  white-space: nowrap;
 }
 
 .profile-main-button {
