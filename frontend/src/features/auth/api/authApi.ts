@@ -48,6 +48,11 @@ export interface UpdateProfileRequest {
   readonly profileImageUrl?: string | null;
 }
 
+export interface ChangePasswordRequest {
+  readonly currentPassword: string;
+  readonly newPassword: string;
+}
+
 /** 서버가 내려준 메시지를 최대한 보존하는 인증 에러. */
 export class AuthApiError extends Error {
   constructor(
@@ -130,6 +135,24 @@ export function updateProfile(
   request: UpdateProfileRequest,
 ): Promise<MeResponse> {
   return requestJson<MeResponse>("/users/me", {
+    method: "PATCH",
+    headers: authHeader(accessToken),
+    body: JSON.stringify(request),
+  });
+}
+
+/**
+ * 비밀번호 변경 엔드포인트는 아직 배포 계약에 없다(백엔드 신설 예정).
+ * 백엔드가 올라오면 아래 PASSWORD_CHANGE_PATH와 요청 형태만 실제 계약에 맞추고
+ * ProfileEditPage의 PASSWORD_CHANGE_ENABLED를 켜면 연결된다.
+ */
+const PASSWORD_CHANGE_PATH = "/users/me/password";
+
+export function changePassword(
+  accessToken: string,
+  request: ChangePasswordRequest,
+): Promise<void> {
+  return requestJson<void>(PASSWORD_CHANGE_PATH, {
     method: "PATCH",
     headers: authHeader(accessToken),
     body: JSON.stringify(request),
