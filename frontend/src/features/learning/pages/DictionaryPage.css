@@ -151,16 +151,21 @@
   display: grid;
   grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
   gap: 26px;
-  /* start면 카드 높이가 내용에 따라 정해져 사이드바가 남은 높이를 못 받는다.
-     stretch로 두어야 사이드바가 행 높이에 맞춰지고 그 안에서 목록이 스크롤된다. */
-  align-items: stretch;
+  /* 오른쪽 상세 카드는 내용 높이를 그대로 쓴다. 왼쪽 목록만 align-self로 늘린다. */
+  align-items: start;
 }
 
 /* 메인페이지 .panel과 동일한 패널 토큰 */
+/*
+ * 목록이 아무리 길어져도 카드 자체는 남은 높이에 맞춰 고정하고, 넘치는 부분은
+ * 안쪽 목록(.dictionary-tree)에서 스크롤한다. align-self로 이 카드만 늘려
+ * 오른쪽 상세 카드 높이에는 영향을 주지 않는다.
+ */
 .dictionary-sidebar {
   position: relative;
   top: auto;
-  height: 100%;
+  align-self: stretch;
+  min-height: 0;
   max-height: 100%;
   display: flex;
   flex-direction: column;
