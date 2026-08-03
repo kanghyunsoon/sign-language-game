@@ -12,6 +12,8 @@ import backend.ssafy.suhwa.growth.config.GrowthPolicyProperties;
 import backend.ssafy.suhwa.ranking.dto.RankingResponse;
 import backend.ssafy.suhwa.user.domain.User;
 import backend.ssafy.suhwa.user.repository.UserRepository;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -100,6 +102,27 @@ class RankingServiceTest {
         assertThat(response.top()).extracting(entry -> entry.score())
                 .containsExactly(90, 90, 110);
         assertThat(response.me().score()).isEqualTo(90);
+        assertThat(response.me().rank()).isEqualTo(1);
+    }
+
+    @Test
+    void soloRanking_tiedUsersExceedTopN_topStaysCappedAtTopN() {
+        // 공동 1위가 TOP_N(5명)보다 많으면(7명), 표시 순위 라벨(공동 1위)로 top을 자르면 안 되고
+        // 위치 기준으로 정확히 5명만 담아야 한다 — 실제로 이 케이스에서 라벨 기준 컷오프 버그가 있었다.
+        List<Long> tiedUsers = new ArrayList<>();
+        for (int i = 0; i < 7; i++) {
+            tiedUsers.add(createUser("tied" + i));
+        }
+        tiedUsers.forEach(userId -> record(userId, GameResultType.TETRIS_SOLO, 50));
+        Long beyondTopFive = tiedUsers.get(6);
+
+        RankingResponse response = rankingService.getRankings(beyondTopFive, GameResultType.TETRIS_SOLO);
+
+        assertThat(response.top()).hasSize(5);
+        assertThat(response.top()).allSatisfy(entry -> assertThat(entry.rank()).isEqualTo(1));
+        assertThat(response.top()).extracting(entry -> entry.userId()).doesNotContain(beyondTopFive);
+        assertThat(response.me()).isNotNull();
+        assertThat(response.me().userId()).isEqualTo(beyondTopFive);
         assertThat(response.me().rank()).isEqualTo(1);
     }
 
