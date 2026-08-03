@@ -1,6 +1,7 @@
 package backend.ssafy.suhwa.user.controller;
 
 import backend.ssafy.suhwa.user.domain.User;
+import backend.ssafy.suhwa.user.dto.ChangePasswordRequest;
 import backend.ssafy.suhwa.user.dto.UpdateProfileRequest;
 import backend.ssafy.suhwa.user.dto.UserProfileResponse;
 import backend.ssafy.suhwa.user.service.UserService;
@@ -23,6 +24,12 @@ public class UserController implements UserApi {
     public ResponseEntity<UserProfileResponse> updateMyProfile(Long userId, UpdateProfileRequest request) {
         User user = userService.updateProfile(userId, request.nickname());
         return ResponseEntity.ok(UserProfileResponse.from(user));
+    }
+
+    @Override
+    public ResponseEntity<Void> changePassword(Long userId, ChangePasswordRequest request) {
+        userService.changePassword(userId, request.currentPassword(), request.newPassword());
+        return ResponseEntity.noContent().build();
     }
 
     @Override

@@ -86,6 +86,19 @@ public class UserService {
         return user;
     }
 
+    /**
+     * 비밀번호 변경. 기존 비밀번호가 일치하지 않으면 로그인 실패와 동일한 에러코드로
+     * 처리해 계정 존재 여부·비밀번호 정보를 구분해 노출하지 않는다.
+     */
+    @Transactional
+    public void changePassword(Long userId, String currentPassword, String newPassword) {
+        User user = getActiveUser(userId);
+        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
+        }
+        user.changePasswordHash(passwordEncoder.encode(newPassword));
+    }
+
     @Transactional
     public void withdraw(Long userId) {
         User user = getActiveUser(userId);
