@@ -497,6 +497,11 @@
   align-items: center;
 }
 
+/* 카드 아래에 붙어 있던 삭제 버튼을 조금 띄운다. */
+.review-notes-detail .fingerspelling-detail-footer {
+  padding-bottom: 26px;
+}
+
 .review-notes-detail-delete {
   min-height: 52px;
   padding: 0 34px;
