@@ -2,7 +2,7 @@ import "./DictionaryPage.css";
 import { useEffect, useState } from "react";
 import type { ChangeEvent } from "react";
 import { ChevronDown, Search, X } from "lucide-react";
-import { Link } from "react-router-dom";
+import { AppNav } from "../../../shared/nav/AppNav";
 import { FingerspellingDetail } from "../components/FingerspellingDetail";
 import { WordSignDetail } from "../components/WordSignDetail";
 import {
@@ -104,18 +104,7 @@ export function DictionaryPage() {
         }}
       >
       <header className="dictionary-header">
-        <nav className="dictionary-nav" aria-label="주요 메뉴">
-          <Link to="/main">메인페이지</Link>
-          <Link to="/practice">연습</Link>
-          <Link to="/test">테스트</Link>
-          <Link to="/review-notes">오답노트</Link>
-          <Link className="active" to="/dictionary">사전</Link>
-          <Link to="/game">게임</Link>
-        </nav>
-
-        <Link className="dictionary-mypage-button" to="/profile">
-          마이페이지
-        </Link>
+        <AppNav prefix="dictionary" metric="fixed" />
       </header>
 
       <main className="dictionary-main">

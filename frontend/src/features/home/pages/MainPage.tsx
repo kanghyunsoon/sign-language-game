@@ -14,6 +14,7 @@ import otterWithLog from "../assets/otter_with_log.webp";
 import otterWithLog2 from "../assets/otter_with_log_2.webp";
 import rocksLeft from "../assets/rocks_left.webp";
 import rocksRight from "../assets/rocks_right.webp";
+import { AppNav } from "../../../shared/nav/AppNav";
 import "./MainPage.css";
 
 interface LearningMenu {
@@ -249,18 +250,7 @@ export function MainPage() {
         style={{ transform: `translate(-50%, -50%) scale(${pageScale})` }}
       >
         <header className="main-header">
-          <nav className="main-nav" aria-label="주요 메뉴">
-            <Link className="active" to="/main">메인페이지</Link>
-            <Link to="/practice">연습</Link>
-            <Link to="/test">테스트</Link>
-            <Link to="/review-notes">오답노트</Link>
-            <Link to="/dictionary">사전</Link>
-            <Link to="/game">게임</Link>
-          </nav>
-
-          <Link className="main-mypage-button" to="/profile">
-            마이페이지
-          </Link>
+          <AppNav prefix="main" metric="fixed" />
         </header>
 
         <main className="main-content">

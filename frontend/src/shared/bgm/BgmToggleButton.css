@@ -1,0 +1,63 @@
+/*
+ * 네비게이션 바 왼쪽 끝의 배경음악 토글.
+ * 헤더가 모두 position: relative | absolute라 헤더 기준으로 절대 배치한다.
+ * 페이지가 vw/vh 캔버스와 1920x1200 고정 캔버스 두 갈래라 크기 단위를 나눠 둔다.
+ */
+.app-bgm-toggle {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  color: #5f402b;
+  background: transparent;
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: color .2s ease;
+}
+
+.app-bgm-toggle:hover {
+  color: #8a6544;
+}
+
+.app-bgm-toggle[aria-pressed="true"] {
+  color: #b0a294;
+}
+
+/*
+ * vw/vh 캔버스 페이지 — 연습 홈, 연습 세션, 단어 연습, 마이페이지.
+ * 마이페이지 버튼의 오른쪽 여백을 기준으로 삼되, 아이콘이 글자보다 작아 보여
+ * 조금 더 바깥으로 뺀다.
+ */
+.app-bgm-toggle-viewport {
+  left: min(2.395833vw, 3.833333vh);
+  width: min(3.072917vw, 4.916667vh);
+  height: min(3.072917vw, 4.916667vh);
+}
+
+.app-bgm-toggle-viewport.app-bgm-toggle-offset {
+  left: min(5.208333vw, 8.333333vh);
+}
+
+.app-bgm-toggle-viewport svg {
+  width: min(2.192708vw, 3.508333vh);
+  height: min(2.192708vw, 3.508333vh);
+}
+
+/* 1920x1200 고정 캔버스 페이지 — 메인, 사전, 오답노트, 테스트 */
+.app-bgm-toggle-fixed {
+  left: 46px;
+  width: 59px;
+  height: 59px;
+}
+
+.app-bgm-toggle-fixed.app-bgm-toggle-offset {
+  left: 100px;
+}
+
+.app-bgm-toggle-fixed svg {
+  width: 42px;
+  height: 42px;
+}

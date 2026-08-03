@@ -1,6 +1,8 @@
 import { Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+
+import { AppNav } from "../../../shared/nav/AppNav";
 import { useAuth } from "../../auth/AuthContext";
 import { AuthApiError, getProfile } from "../../auth/api/authApi";
 import { AttendanceCard } from "../../home/components/AttendanceCard";
@@ -151,17 +153,7 @@ export function ProfilePage() {
         <img className="profile-ring profile-ring-right" src={profileRingRight} alt="" />
 
         <header className="profile-header">
-          <nav className="profile-nav" aria-label="주요 메뉴">
-            <Link to="/main">메인페이지</Link>
-            <Link to="/practice">연습</Link>
-            <Link to="/test">테스트</Link>
-            <Link to="/review-notes">오답노트</Link>
-            <Link to="/dictionary">사전</Link>
-            <Link to="/game">게임</Link>
-          </nav>
-          <Link className="profile-mypage-button" to="/profile" aria-current="page">
-            마이페이지
-          </Link>
+          <AppNav prefix="profile" />
         </header>
 
         <section className="profile-hero" aria-labelledby="profile-title">

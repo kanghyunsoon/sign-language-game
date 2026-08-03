@@ -1,6 +1,8 @@
 import "./PracticeHomePage.css";
 import { useMemo, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+
+import { AppNav } from "../../../shared/nav/AppNav";
 import otterImage from "../assets/otter.png";
 import type { FingerspellingCategoryId } from "../data/fingerspelling";
 import { SYMBOLS_PARAM, parseSymbolSelection } from "../data/symbolSelection";
@@ -135,18 +137,7 @@ export function PracticeHomePage() {
     <div className="practice-page">
       <div className="practice-canvas">
       <header className="practice-home-header">
-        <nav className="practice-home-nav" aria-label="주요 메뉴">
-          <Link to="/main">메인페이지</Link>
-          <Link className="active" to="/practice">연습</Link>
-          <Link to="/test">테스트</Link>
-          <Link to="/review-notes">오답노트</Link>
-          <Link to="/dictionary">사전</Link>
-          <Link to="/game">게임</Link>
-        </nav>
-
-        <Link className="practice-home-mypage-button" to="/profile">
-          마이페이지
-        </Link>
+        <AppNav prefix="practice-home" />
       </header>
 
       <main className="practice-main">
