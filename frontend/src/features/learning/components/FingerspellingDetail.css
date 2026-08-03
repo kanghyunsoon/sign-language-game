@@ -1,5 +1,6 @@
 /* 메인페이지 .panel과 동일한 패널 토큰 */
 .fingerspelling-detail {
+  position: relative;
   min-height: 640px;
   display: flex;
   flex-direction: column;
@@ -11,6 +12,46 @@
   background: rgba(255, 250, 242, 0.94);
   box-shadow: 0 18px 38px rgba(82, 54, 35, 0.1);
   text-align: center;
+}
+
+/* 카드 상단 양 끝의 이전/다음 이동 버튼 */
+.detail-stepper-button {
+  position: absolute;
+  top: 30px;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 1px solid #e7d9c7;
+  border-radius: 50%;
+  color: #6f5b4c;
+  background: #fffaf2;
+  cursor: pointer;
+  transition: background .2s ease, color .2s ease;
+}
+
+.detail-stepper-previous {
+  left: 30px;
+}
+
+.detail-stepper-next {
+  right: 30px;
+}
+
+.detail-stepper-button svg {
+  width: 30px;
+  height: 30px;
+}
+
+.detail-stepper-button:hover:not(:disabled) {
+  color: #3f2b20;
+  background: #f3ece1;
+}
+
+.detail-stepper-button:disabled {
+  color: #cfc4b8;
+  cursor: default;
 }
 
 .fingerspelling-detail-badge {
