@@ -8,8 +8,7 @@ import { wordSignGroups, wordSigns, type WordSignItem } from "../data/wordSigns"
 import { WordWebSocketSignRecognizer } from "../recognition/WordWebSocketSignRecognizer";
 import { WordSignVideo } from "../components/WordSignVideo";
 import otterClapImage from "../assets/otter_clap.png";
-
-const CORRECT_AUTO_ADVANCE_SECONDS = 1.5;
+import { CORRECT_AUTO_ADVANCE_SECONDS } from "../components/CorrectFeedbackModal";
 
 interface WordPracticeSessionPageProps {
   readonly onExit?: () => void;
