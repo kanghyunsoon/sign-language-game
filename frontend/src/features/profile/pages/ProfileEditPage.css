@@ -114,16 +114,6 @@
   text-align: center;
 }
 
-.profile-edit-pending {
-  margin: 0;
-  padding: .6em .9em;
-  border-radius: .5em;
-  color: #7d6d61;
-  font-size: .95em;
-  font-weight: 700;
-  background: #f3ece1;
-}
-
 .profile-edit-form {
   display: grid;
   gap: 1em;

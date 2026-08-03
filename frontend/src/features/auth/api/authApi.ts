@@ -142,9 +142,9 @@ export function updateProfile(
 }
 
 /**
- * 비밀번호 변경 엔드포인트는 아직 배포 계약에 없다(백엔드 신설 예정).
- * 백엔드가 올라오면 아래 PASSWORD_CHANGE_PATH와 요청 형태만 실제 계약에 맞추고
- * ProfileEditPage의 PASSWORD_CHANGE_ENABLED를 켜면 연결된다.
+ * PATCH /users/me/password — 현재 비밀번호 확인 후 변경. 성공 시 204.
+ * 현재 비밀번호가 틀리면 401(INVALID_CREDENTIALS)로 답한다.
+ * newPassword는 백엔드에서 8~64자로 검증한다.
  */
 const PASSWORD_CHANGE_PATH = "/users/me/password";
 
