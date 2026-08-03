@@ -42,8 +42,8 @@
 }
 
 .app-bgm-toggle-viewport svg {
-  width: min(2.4375vw, 3.9vh);
-  height: min(2.4375vw, 3.9vh);
+  width: min(2.192708vw, 3.508333vh);
+  height: min(2.192708vw, 3.508333vh);
 }
 
 /* 1920x1200 고정 캔버스 페이지 — 메인, 사전, 오답노트, 테스트 */
@@ -58,6 +58,6 @@
 }
 
 .app-bgm-toggle-fixed svg {
-  width: 47px;
-  height: 47px;
+  width: 42px;
+  height: 42px;
 }
