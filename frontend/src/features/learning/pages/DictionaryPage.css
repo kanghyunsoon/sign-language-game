@@ -514,14 +514,8 @@
   border-radius: 20px;
 }
 
-/* 창이 좁아지면 오답노트 페이지처럼 목록이 위, 상세가 아래로 쌓인다.
-   .dictionary-main이 내부 스크롤을 가지므로 길어져도 잘리지 않는다. */
-@media (max-width: 1100px) {
-  .dictionary-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .fingerspelling-detail.dictionary-detail {
-    min-height: 0;
-  }
-}
+/*
+ * 이 화면은 1920x1200 캔버스를 transform으로 축소해 보여준다.
+ * 미디어 쿼리는 축소 전 뷰포트 너비로 판정되므로, 캔버스 안 배치를 창 크기에 따라
+ * 바꾸면 같은 화면이 두 가지 모습으로 보인다. 배치는 캔버스 기준으로 고정한다.
+ */
