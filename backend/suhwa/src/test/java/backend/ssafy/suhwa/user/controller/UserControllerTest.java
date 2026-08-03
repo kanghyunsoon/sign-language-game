@@ -2,7 +2,9 @@ package backend.ssafy.suhwa.user.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -10,7 +12,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
+import backend.ssafy.suhwa.common.exception.BusinessException;
+import backend.ssafy.suhwa.common.exception.ErrorCode;
 import backend.ssafy.suhwa.user.domain.User;
+import backend.ssafy.suhwa.user.dto.ChangePasswordRequest;
 import backend.ssafy.suhwa.user.dto.UpdateProfileRequest;
 import backend.ssafy.suhwa.user.service.UserService;
 import tools.jackson.databind.ObjectMapper;
@@ -85,6 +90,38 @@ class UserControllerTest {
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(
                                 new UpdateProfileRequest("a".repeat(11)))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void changePassword_returns204() throws Exception {
+        mockMvc.perform(patch("/users/me/password")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(
+                                new ChangePasswordRequest("oldPassword", "newPassword"))))
+                .andExpect(status().isNoContent());
+
+        verify(userService).changePassword(anyLong(), anyString(), anyString());
+    }
+
+    @Test
+    void changePassword_wrongCurrentPassword_returns401() throws Exception {
+        willThrow(new BusinessException(ErrorCode.INVALID_CREDENTIALS))
+                .given(userService).changePassword(anyLong(), anyString(), anyString());
+
+        mockMvc.perform(patch("/users/me/password")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(
+                                new ChangePasswordRequest("wrongPassword", "newPassword"))))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void changePassword_newPasswordUnderMinLength_returns400() throws Exception {
+        mockMvc.perform(patch("/users/me/password")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(
+                                new ChangePasswordRequest("oldPassword", "short"))))
                 .andExpect(status().isBadRequest());
     }
 
