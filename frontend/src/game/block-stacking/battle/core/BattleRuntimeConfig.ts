@@ -9,11 +9,11 @@ export interface BattleRuntimeConfig {
   readonly sync: BattleSyncConfig;
 }
 
-// A 1:1 board only occupies half of the shared stage. At 180px, the playable
-// area reaches the finish line after roughly 12-17 settled glyphs depending
+// A 1:1 board only occupies half of the shared stage. At 210px, the playable
+// area reaches the finish line after roughly 10-15 settled glyphs depending
 // on their shape and packing. Renderer, local/remote physics, tower-height
 // sampling and danger-line checks all share this value.
-export const BATTLE_LETTER_SIZE = 180;
+export const BATTLE_LETTER_SIZE = 210;
 export const BATTLE_LETTER_COLOR = 0xc85e7a;
 export const BATTLE_LETTER_SHADOW_COLOR = 0x704052;
 // The visible finish line and the real 1:1 victory threshold must stay on the

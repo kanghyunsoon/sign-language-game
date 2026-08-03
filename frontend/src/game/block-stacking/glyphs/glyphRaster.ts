@@ -49,6 +49,7 @@ export const GLYPH_DISPLAY_FONT_RATIO = 1;
 export const GAME_GLYPH_FILL_COLOR = "#f4fbff";
 export const GAME_GLYPH_STROKE_COLOR = "#5b432f";
 export const GAME_GLYPH_STROKE_WIDTH = 10;
+const HORIZONTAL_VOWEL_STROKE_WIDTH = 18;
 
 const FONT_SIZE = GLYPH_SOURCE_FONT_SIZE;
 /**
@@ -149,7 +150,10 @@ export function createGlyphRaster(symbol: string): GlyphRaster {
   drawingContext.fillStyle = GAME_GLYPH_FILL_COLOR;
   drawingContext.strokeStyle = GAME_GLYPH_STROKE_COLOR;
   drawingContext.lineJoin = "round";
-  drawingContext.lineWidth = GAME_GLYPH_STROKE_WIDTH;
+  // The horizontal vowel occupies very little vertical ink area. A stronger
+  // outline keeps it legible beside the taller consonants without changing
+  // its tuned Matter.js collision shape.
+  drawingContext.lineWidth = symbol === "ㅡ" ? HORIZONTAL_VOWEL_STROKE_WIDTH : GAME_GLYPH_STROKE_WIDTH;
   drawingContext.textAlign = "left";
   drawingContext.textBaseline = "alphabetic";
   const drawX = displayPadding + displayMetrics.actualBoundingBoxLeft;

@@ -4,7 +4,7 @@ import type { BattleBodyTransform, SpawnLetterEvent } from "../transport/battleT
 import type { LocalBoardPublisher } from "../sync/LocalBoardPublisher";
 import { BATTLE_BURST_SPAWN_RATIO, BATTLE_LETTER_SIZE, type BattleRuntimeConfig } from "./BattleRuntimeConfig";
 
-interface LetterRecord { readonly id: string; readonly symbol: string; readonly spawnedAt: number; settledAt?: number; pending: boolean; }
+interface LetterRecord { readonly id: string; readonly symbol: string; readonly spawnedAt: number; dangerTouchedAt?: number; pending: boolean; }
 const FIXED_PHYSICS_STEP_MS = 1000 / 60;
 const MAX_CATCH_UP_STEPS = 4;
 const DANGER_CONFIRMATION_MS = 1_200;
@@ -96,7 +96,7 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
       const settled = body.state === "SETTLED";
       const saved = { id: body.id, symbol: body.symbol, x: body.x * this.width, y: body.y * this.height, angle: body.angle, velocityX: settled ? 0 : body.velocityX, velocityY: settled ? 0 : body.velocityY, angularVelocity: settled ? 0 : body.angularVelocity, settled };
       const state = this.physics.restoreLetter?.(saved) ?? this.physics.createLetter(saved);
-      this.letters.set(body.id, { id: body.id, symbol: state.symbol, spawnedAt: 0, pending: false, ...(state.settled ? { settledAt: this.now() } : {}) });
+      this.letters.set(body.id, { id: body.id, symbol: state.symbol, spawnedAt: 0, pending: false });
     }
     // Continue falling bodies from the authoritative capture point. Limit the
     // correction so clock skew or a suspended tab cannot fast-forward a whole
@@ -145,17 +145,19 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
   private checkDangerLine(states: readonly PhysicsLetterState[]): void {
     if (this.gameOverReported || this.dangerArmedAt === null || this.now() < this.dangerArmedAt) return;
     const dangerLineY = this.height * this.config.dangerLineRatio;
-    // A new body cannot win until Matter has emitted LETTER_SETTLED for it.
-    // The body that crossed the line must remain settled for 1.2 seconds so
-    // a tower which is about to roll away does not win. Other falling letters
-    // do not delay this check.
     const now = this.now();
     const reached = states.some((state) => {
       const record = this.letters.get(state.id);
-      return state.settled
-        && record?.settledAt !== undefined
-        && now - record.settledAt >= DANGER_CONFIRMATION_MS
-        && state.y - DANGER_VISIBLE_HALF_HEIGHT <= dangerLineY;
+      if (!record) return false;
+      // Start the confirmation at the exact moment that the visible glyph
+      // reaches the finish line. Losing contact resets the timer, so a letter
+      // which only bounces over the line cannot finish the round.
+      if (state.y - DANGER_VISIBLE_HALF_HEIGHT > dangerLineY) {
+        record.dangerTouchedAt = undefined;
+        return false;
+      }
+      record.dangerTouchedAt ??= now;
+      return now - record.dangerTouchedAt >= DANGER_CONFIRMATION_MS;
     });
     if (!reached) return;
     this.gameOverReported = true;
@@ -168,11 +170,7 @@ export class BattleLocalBoardRuntime implements BattleLocalBoard {
       FIXED_PHYSICS_STEP_MS * MAX_CATCH_UP_STEPS,
     );
     while (this.physicsAccumulatorMs + .001 >= FIXED_PHYSICS_STEP_MS) {
-      for (const event of this.physics.update(FIXED_PHYSICS_STEP_MS)) {
-        const record = this.letters.get(event.id);
-        if (record && event.type === "LETTER_SETTLED") record.settledAt = this.now();
-        if (record && event.type === "LETTER_MOVED") record.settledAt = undefined;
-      }
+      this.physics.update(FIXED_PHYSICS_STEP_MS);
       this.physicsAccumulatorMs -= FIXED_PHYSICS_STEP_MS;
     }
   }

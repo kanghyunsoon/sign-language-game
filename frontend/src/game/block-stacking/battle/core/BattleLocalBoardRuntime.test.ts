@@ -127,7 +127,7 @@ describe("BattleLocalBoardRuntime", () => {
     expect(runtime.getTargetSymbol()).toBe("ㄷ");
   });
 
-  it("reports game over when the settled block remains over the proportional danger line for 1.2 seconds", () => {
+  it("reports game over when a block continuously touches the finish line for 1.2 seconds", () => {
     let now = 0;
     const states = new Map<string, ReturnType<typeof letterState>>();
     const world = physics();
@@ -136,15 +136,36 @@ describe("BattleLocalBoardRuntime", () => {
     vi.mocked(world.getLetterStates).mockImplementation(() => [...states.values()]);
     const runtime = new BattleLocalBoardRuntime(world, renderer(), DEFAULT_BATTLE_RUNTIME_CONFIG, undefined, () => now, () => 1, () => undefined);
     runtime.spawn(spawn("danger", "ㄱ", 1));
-    vi.mocked(world.update).mockReturnValue([{ type: "LETTER_SETTLED", id: "danger" }]);
     const handler = vi.fn(); runtime.setGameOverHandler(handler); runtime.start();
     runtime.advance(17);
     expect(handler).not.toHaveBeenCalled();
-    now = 1_199; vi.mocked(world.update).mockReturnValue([]); runtime.advance(17);
+    now = 1_199; runtime.advance(17);
     expect(handler).not.toHaveBeenCalled();
     // A fully settled board is sampled at most once per 100ms to avoid an
     // unnecessary full-board traversal on every display frame.
     now = 1_299; runtime.advance(17);
+    expect(handler).toHaveBeenCalledOnce();
+  });
+
+  it("resets finish-line confirmation when the letter falls back below it", () => {
+    let now = 0;
+    const states = new Map<string, ReturnType<typeof letterState>>();
+    const world = physics();
+    vi.mocked(world.createLetter).mockImplementation((spec) => { const state = letterState(spec.id, spec.symbol, spec.x, 180); states.set(spec.id, state); return state; });
+    vi.mocked(world.getLetterState).mockImplementation((id) => states.get(id));
+    vi.mocked(world.getLetterStates).mockImplementation(() => [...states.values()]);
+    const runtime = new BattleLocalBoardRuntime(world, renderer(), DEFAULT_BATTLE_RUNTIME_CONFIG, undefined, () => now, () => 1, () => undefined);
+    const handler = vi.fn(); runtime.setGameOverHandler(handler); runtime.spawn(spawn("danger", "\u3131", 1)); runtime.start();
+
+    runtime.advance(17);
+    now = 900; runtime.advance(17);
+    states.set("danger", letterState("danger", "\u3131", 360, 300));
+    now = 1_000; runtime.advance(17);
+    states.set("danger", letterState("danger", "\u3131", 360, 180));
+    now = 1_100; runtime.advance(17);
+    now = 2_299; runtime.advance(17);
+    expect(handler).not.toHaveBeenCalled();
+    now = 2_399; runtime.advance(17);
     expect(handler).toHaveBeenCalledOnce();
   });
 

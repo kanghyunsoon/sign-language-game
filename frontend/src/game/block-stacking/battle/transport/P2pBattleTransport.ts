@@ -50,6 +50,7 @@ export class P2pBattleTransport implements BattleGameTransport {
   private connectGeneration = 0;
   private hasConnected = false;
   private restoredAuthority = false;
+  private matchFinished = false;
 
   constructor(getChannel: () => GameDataChannel | null, private readonly localPlayerId: string, private readonly localDisplayName = localPlayerId) {
     this.delegate = new WebRtcDataChannelTransport(getChannel, isBattleEvent);
@@ -88,7 +89,13 @@ export class P2pBattleTransport implements BattleGameTransport {
       this.delegate.send({ type: "PLAYER_PROFILE_COMMAND", commandId: crypto.randomUUID(), matchId: this.matchId, playerId: this.localPlayerId, displayName: normalizeDisplayName(this.localDisplayName, this.localPlayerId), occurredAt: Date.now() });
     }
   }
-  disconnect(): void { this.persistAuthority(); this.connectGeneration += 1; this.unsubscribeCommands?.(); this.unsubscribeCommands = null; if (this.targetTimer) clearTimeout(this.targetTimer); this.targetTimer = null; if (this.resumeTimer) clearTimeout(this.resumeTimer); this.resumeTimer = null; this.pendingResumePlayerIds.clear(); this.delegate.disconnect(); }
+  disconnect(): void {
+    // A finished round must never be persisted again while its page unmounts.
+    // Otherwise the next round in the same room hydrates the old tower.
+    if (this.matchFinished) this.clearPersistedAuthority();
+    else this.persistAuthority();
+    this.connectGeneration += 1; this.unsubscribeCommands?.(); this.unsubscribeCommands = null; if (this.targetTimer) clearTimeout(this.targetTimer); this.targetTimer = null; if (this.resumeTimer) clearTimeout(this.resumeTimer); this.resumeTimer = null; this.pendingResumePlayerIds.clear(); this.delegate.disconnect();
+  }
   send(message: ClientBattleMessage): void { if (this.isHost()) this.handle(message, this.localPlayerId); else this.delegate.send(message); }
   subscribe(listener: (message: ServerBattleMessage) => void): () => void { return this.delegate.subscribe(listener); }
   subscribeConnectionState(listener: (state: BattleConnectionState) => void): () => void { return this.delegate.subscribeConnectionState(listener); }
@@ -258,12 +265,13 @@ export class P2pBattleTransport implements BattleGameTransport {
     if (!winnerPlayerId || !loserPlayerId) return;
     const loser = this.players.get(loserPlayerId); if (!loser || loser.gameOver) return; loser.gameOver = true;
     if (this.targetTimer) clearTimeout(this.targetTimer); this.targetTimer = null; this.sharedTarget = null;
+    this.matchFinished = true;
     this.clearPersistedAuthority();
     this.delegate.publishEvent({ type: "MATCH_FINISHED", sequence: ++this.sequence, matchId: this.matchId, winnerPlayerId, loserPlayerId, reason, finishedAt: Date.now(), results: this.playerIds.map((id) => { const state = this.players.get(id)!; return { playerId: id, score: state.score, maxCombo: state.maxCombo, removedCount: state.removedCount, attackCount: state.attackCount }; }) });
   }
   private storageKey(): string { return `${AUTHORITY_STORAGE_PREFIX}${this.localPlayerId}:${this.roomId}`; }
   private persistAuthority(): void {
-    if (!this.isHost() || !this.roomId || typeof window === "undefined") return;
+    if (this.matchFinished || !this.isHost() || !this.roomId || typeof window === "undefined") return;
     const value: PersistedAuthority = { roomId: this.roomId, hostPlayerId: this.hostPlayerId, playerIds: this.playerIds, sequence: this.sequence, startAt: this.startAt, spawnIndex: this.spawnIndex, targetIndex: this.targetIndex, symbolBag: this.symbolBag, lastTargetSymbol: this.lastTargetSymbol, sharedTarget: this.sharedTarget, players: [...this.players.entries()], playerProfiles: [...this.playerProfiles.entries()], letters: [...this.letters.entries()], boards: [...this.boards.entries()], boardUpdatedAt: [...this.boardUpdatedAt.entries()] };
     try { window.sessionStorage.setItem(this.storageKey(), JSON.stringify(value)); } catch { /* Storage is optional; a connected peer can still resync. */ }
   }
@@ -273,6 +281,9 @@ export class P2pBattleTransport implements BattleGameTransport {
       const raw = window.sessionStorage.getItem(this.storageKey()); if (!raw) return;
       const saved = JSON.parse(raw) as PersistedAuthority;
       if (saved.roomId !== this.roomId || saved.hostPlayerId !== this.hostPlayerId || saved.playerIds.length !== this.playerIds.length || saved.playerIds.some((id) => !this.playerIds.includes(id))) return;
+      // Clean up stale snapshots left behind by an older client after a
+      // completed match. Same-room rematches must start with empty boards.
+      if (saved.players.some(([, state]) => state.gameOver)) { this.clearPersistedAuthority(); return; }
       this.sequence = saved.sequence; this.startAt = saved.startAt ?? Date.now(); this.spawnIndex = saved.spawnIndex; this.targetIndex = saved.targetIndex; this.symbolBag = [...(saved.symbolBag ?? [])]; this.lastTargetSymbol = saved.lastTargetSymbol ?? saved.sharedTarget?.symbol ?? null; this.sharedTarget = saved.sharedTarget;
       this.players.clear(); for (const [id, state] of saved.players) this.players.set(id, { ...state, attackCount: state.attackCount ?? 0 });
       for (const [id, displayName] of saved.playerProfiles ?? []) this.playerProfiles.set(id, displayName);
