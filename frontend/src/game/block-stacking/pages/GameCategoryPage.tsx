@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Sparkles, X } from "lucide-react";
+import { House, Sparkles, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 import gameMenuReference from "../assets/game-menu-reference-2d.png";
@@ -50,6 +50,7 @@ export function GameCategoryPage() {
         aria-label="이전 화면으로 돌아가기"
       />
 
+      <Link className={styles.categoryReferenceHome} to="/main" aria-label="메인 화면으로 이동"><House aria-hidden="true" size={23} /></Link>
       <section className={styles.categoryReferenceChoices} aria-label="게임 카테고리">
         <button
           type="button"

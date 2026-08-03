@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Hand, Radio, Sparkles, Swords, Trophy, UserRound, Zap } from "lucide-react";
+import { ArrowLeft, Hand, House, Radio, Sparkles, Swords, Trophy, UserRound, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import modeBackground from "../assets/game-mode-background-2d.png";
@@ -42,6 +42,7 @@ export function GameModePage() {
 
       <header className={styles.tetrisModeHeader}>
         <Link className={styles.modeBackButton} to=".." aria-label="게임 선택으로 돌아가기"><ArrowLeft aria-hidden="true" size={26} /></Link>
+        <Link className={styles.modeHomeButton} to="/main" aria-label="메인 화면으로 이동"><House aria-hidden="true" size={23} /></Link>
         <div className={styles.modeTitleBlock}>
           <span><LayersMark /> BLOCK STACK</span>
           <h1>모드 선택</h1>

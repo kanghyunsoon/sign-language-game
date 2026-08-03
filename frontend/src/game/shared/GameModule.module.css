@@ -693,9 +693,11 @@
 .tetrisModePage { position: absolute; top: 50%; left: 50%; display: grid; width: 1280px; height: 720px; min-height: 0; margin: 0; padding: 30px 54px 28px; overflow: hidden; grid-template-rows: auto minmax(0, 1fr) auto; gap: 20px; border: 1px solid #d7e7ee; background: linear-gradient(to bottom, #e0f1ff 0 73%, #c9e59d 73% 91%, #a9cd7c 91%); isolation: isolate; transform-origin: center; }
 .tetrisModePage::before { position: absolute; inset: 0; z-index: -1; background-image: linear-gradient(rgba(83,147,177,.055) 1px, transparent 1px), linear-gradient(90deg, rgba(83,147,177,.055) 1px, transparent 1px); background-size: 32px 32px; content: ""; mask-image: linear-gradient(to bottom, #000, transparent 72%); }
 .tetrisModePage::after { position: absolute; z-index: -2; right: 0; bottom: 0; left: 0; height: 9%; border-top: 5px solid rgba(89,124,67,.18); background: linear-gradient(rgba(255,255,255,.09), rgba(61,96,55,.06)), repeating-linear-gradient(90deg, #a8cb7c 0 48px, #9fc273 48px 96px); box-shadow: inset 0 8px 0 rgba(255,255,255,.12); content: ""; }
-.tetrisModeHeader { position: relative; z-index: 3; display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; align-items: start; gap: 18px; }
+.tetrisModeHeader { position: relative; z-index: 3; display: grid; grid-template-columns: 48px 48px minmax(0, 1fr) auto; align-items: start; gap: 18px; }
 .modeBackButton { display: grid; width: 45px; height: 45px; place-items: center; border: 2px solid #d4e4e8; border-radius: 15px; background: rgba(255,255,255,.82); box-shadow: 0 5px 0 rgba(132,159,161,.18); color: #354248; transition: transform .18s ease, box-shadow .18s ease; }
 .modeBackButton:hover { transform: translateY(-3px) rotate(-4deg); box-shadow: 0 8px 0 rgba(132,159,161,.18); }
+.modeHomeButton { display: grid; width: 45px; height: 45px; place-items: center; border: 2px solid #d4e4e8; border-radius: 15px; background: rgba(255,255,255,.82); box-shadow: 0 5px 0 rgba(132,159,161,.18); color: #6f893d; transition: transform .18s ease, box-shadow .18s ease; }
+.modeHomeButton:hover { transform: translateY(-3px); box-shadow: 0 8px 0 rgba(132,159,161,.18); }
 .modeTitleBlock { min-width: 0; }
 .modeTitleBlock > span { display: inline-flex; align-items: center; gap: 8px; color: #728b39; font-size: 10px; font-weight: 1000; letter-spacing: .08em; }
 .layersMark { display: inline-flex; align-items: flex-end; gap: 2px; }
@@ -1075,6 +1077,8 @@
 .categoryReferencePage { display: block; padding: 0; border: 0; background: #dff0f6; }
 .categoryReferenceImage { position: absolute; z-index: 0; inset: 0; display: block; width: 100%; height: 100%; object-fit: fill; user-select: none; }
 .categoryReferenceBack { position: absolute; z-index: 5; top: 24px; left: 29px; width: 59px; height: 59px; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; }
+.categoryReferenceHome { position: absolute; z-index: 6; top: 24px; left: 96px; display: grid; width: 59px; height: 59px; place-items: center; border: 2px solid #eadcc8; border-radius: 20px; background: #fffdf8; box-shadow: 0 4px 0 rgba(133,101,68,.14); color: #6f893d; transition: transform .18s ease, box-shadow .18s ease; }
+.categoryReferenceHome:hover { transform: translateY(-2px); box-shadow: 0 6px 0 rgba(133,101,68,.16); }
 .categoryReferenceChoices { position: absolute; z-index: 5; inset: 0; pointer-events: none; }
 .categoryReferenceChoice { position: absolute; display: block; height: 239px; padding: 0; border: 0; border-radius: 25px; background: transparent; color: transparent; cursor: pointer; pointer-events: auto; }
 .categoryReferenceFlower { top: 379px; left: 110px; width: 514px; }
@@ -1107,9 +1111,10 @@
 .mode2dBlockYellow { top: 151px; right: 203px; color: #ffc64a; transform: rotate(-10deg); }
 .mode2dBlockYellow i:nth-child(2) { grid-area: 2 / 2; }
 .modePage2d .modeCloud, .modePage2d .fallingBlock, .modePage2d .arcadeBackdrop, .modePage2d .modeArenaHud { display: none; }
-.modePage2d .tetrisModeHeader { position: absolute; z-index: 5; top: 25px; right: 32px; left: 32px; display: grid; grid-template-columns: 58px minmax(0, 1fr) 138px; align-items: start; gap: 20px; }
+.modePage2d .tetrisModeHeader { position: absolute; z-index: 5; top: 25px; right: 32px; left: 32px; display: grid; grid-template-columns: 58px 58px minmax(0, 1fr) 138px; align-items: start; gap: 20px; }
 .modePage2d .modeBackButton { width: 58px; height: 58px; border: 2px solid #eadcc8; border-radius: 22px; background: #fffdf8; box-shadow: 0 4px 0 rgba(133,101,68,.14); color: #543823; }
 .modePage2d .modeBackButton:hover { box-shadow: 0 6px 0 rgba(133,101,68,.16); transform: translateY(-2px); }
+.modePage2d .modeHomeButton { width: 58px; height: 58px; border: 2px solid #eadcc8; border-radius: 22px; background: #fffdf8; box-shadow: 0 4px 0 rgba(133,101,68,.14); color: #6f893d; }
 .modePage2d .modeTitleBlock { justify-self: center; text-align: center; }
 .modePage2d .modeTitleBlock > span { justify-content: center; color: #6c8b2d; font-size: 11px; letter-spacing: .13em; }
 .modePage2d .layersMark i { width: 8px; height: 8px; border-radius: 2px; box-shadow: none; }

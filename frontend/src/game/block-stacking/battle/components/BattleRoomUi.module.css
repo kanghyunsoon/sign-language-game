@@ -69,6 +69,7 @@
 .lobbyPage::before { position:fixed; z-index:-2; inset:0; background:linear-gradient(180deg,#e5f3ff 0 70%,#c9e49e 70% 91%,#a8cc7d 91%); content:""; }
 .lobbyPage::after { position:absolute; z-index:-1; top:94px; left:5%; width:360px; height:145px; border-radius:999px; background:radial-gradient(circle at 30% 32%,rgba(255,255,255,.72) 0 20%,transparent 20.8%),radial-gradient(circle at 52% 20%,rgba(255,255,255,.72) 0 28%,transparent 28.8%),radial-gradient(circle at 67% 58%,rgba(255,255,255,.72) 0 35%,transparent 35.8%); opacity:.9; content:""; }
 .lobbyBack { position:absolute; top:48px; left:clamp(18px,4vw,64px); display:grid !important; width:40px; min-height:40px; padding:0 !important; place-items:center; border:0 !important; border-radius:50% !important; background:#fff !important; box-shadow:0 7px 16px rgba(76,111,129,.13); }
+.lobbyHome { position:absolute; top:48px; left:calc(clamp(18px,4vw,64px) + 50px); display:grid !important; width:40px; min-height:40px; padding:0 !important; place-items:center; border:0 !important; border-radius:50% !important; background:#fff !important; box-shadow:0 7px 16px rgba(76,111,129,.13); color:#6f8937 !important; }
 .lobbyProfile { position:absolute; top:40px; right:clamp(18px,4vw,64px); min-height:48px !important; border:0 !important; border-radius:15px !important; background:#fff !important; box-shadow:0 7px 16px rgba(76,111,129,.1); color:#35434d !important; }
 .lobbyHero { display:grid; justify-items:center; padding:88px 0 70px; text-align:center; }
 .lobbyHero > span { color:#86a447; font-size:.72rem; font-weight:1000; letter-spacing:.12em; }
@@ -231,6 +232,8 @@
   z-index: 5;
   pointer-events: auto;
 }
+.lobbyPage.fixedCanvasPage .lobbyHome { position:absolute; top:25px; left:102px; width:58px; min-height:58px; border:2px solid #eadcc8 !important; border-radius:22px !important; background:#fffdf8 !important; box-shadow:0 3px 0 rgba(133,101,68,.12); color:#6f893d !important; transition:transform .16s ease, box-shadow .16s ease; }
+.lobbyPage.fixedCanvasPage .lobbyHome:hover { background:#fff !important; box-shadow:0 4px 0 rgba(133,101,68,.14); transform:translateY(-1px); }
 
 .lobbyPage.fixedCanvasPage .lobbyProfile {
   top: 24px;

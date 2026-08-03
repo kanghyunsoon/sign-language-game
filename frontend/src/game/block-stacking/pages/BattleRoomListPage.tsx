@@ -1,4 +1,4 @@
-import { ArrowLeft, Gamepad2, RefreshCw, Search, Trophy } from "lucide-react";
+import { ArrowLeft, Gamepad2, House, RefreshCw, Search, Trophy } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGameModuleContext } from "../../app/GameModuleContext";
@@ -162,6 +162,7 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
       style={{ transform: `translate(-50%, -50%) scale(${pageScale})` }}
     >
       <button type="button" className={styles.lobbyBack} onClick={() => navigate(mode === "TURN" ? "/game" : "/game/block")} aria-label="게임 모드 선택으로 돌아가기"><ArrowLeft aria-hidden={true} size={23} /></button>
+      <button type="button" className={styles.lobbyHome} onClick={() => navigate("/main")} aria-label="메인 화면으로 이동"><House aria-hidden={true} size={21} /></button>
       <button type="button" className={styles.lobbyProfile}>{user.displayName}</button>
 
       <header className={styles.lobbyHero}>
