@@ -26,11 +26,21 @@ export function WordSignDetail({
     >
       {stepper}
 
-      <span className="fingerspelling-detail-badge">단어</span>
+      <span className="fingerspelling-detail-badge">
+        {entry.groupLabel ? `단어 · ${entry.groupLabel}` : "단어"}
+      </span>
       <h2 className="fingerspelling-detail-symbol">{entry.name}</h2>
       <div className="fingerspelling-detail-image word-sign-detail-video">
         <WordSignVideo src={entry.video} label={`${entry.name} 수어 동작 영상`} />
       </div>
+
+      {entry.description.length > 0 && (
+        <div className="fingerspelling-detail-description">
+          {entry.description.map((sentence) => (
+            <p key={sentence}>{sentence}</p>
+          ))}
+        </div>
+      )}
       {footer ? (
         <div className="fingerspelling-detail-footer">{footer}</div>
       ) : null}

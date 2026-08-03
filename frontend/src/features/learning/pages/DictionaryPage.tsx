@@ -17,7 +17,8 @@ import {
   learningEntries,
   searchLearningEntries,
 } from "../data/learningEntries";
-import { wordSignEntries } from "../data/wordSigns";
+import type { WordSignGroupId } from "../data/wordSigns";
+import { wordSignEntries, wordSignEntriesByGroup } from "../data/wordSigns";
 
 /** 분류별 펼침 상태. 사전 진입 시 자음만 펼쳐 둔다. */
 const initialOpenCategoryMap: Record<LearningCategoryId, boolean> = {
@@ -25,6 +26,14 @@ const initialOpenCategoryMap: Record<LearningCategoryId, boolean> = {
   vowel: false,
   number: false,
   word: false,
+};
+
+/** 단어 소분류 펼침 상태. 진입 시에는 모두 접어 둔다. */
+const initialOpenWordGroupMap: Record<WordSignGroupId, boolean> = {
+  vehicle: false,
+  nature: false,
+  motion: false,
+  state: false,
 };
 
 export function DictionaryPage() {
@@ -38,6 +47,9 @@ export function DictionaryPage() {
   const [isWordOpen, setIsWordOpen] = useState(false);
   const [openCategoryMap, setOpenCategoryMap] = useState(
     initialOpenCategoryMap,
+  );
+  const [openWordGroupMap, setOpenWordGroupMap] = useState(
+    initialOpenWordGroupMap,
   );
 
   const isSearching = searchQuery.trim().length > 0;
@@ -93,7 +105,14 @@ export function DictionaryPage() {
     if (categoryId === "number") {
       setIsNumberOpen(true);
     } else if (categoryId === "word") {
+      // 이전/다음 이동으로 다른 소분류로 넘어가도 그 소분류가 펼쳐지도록 한다.
       setIsWordOpen(true);
+      const groupId = wordSignEntries.find(
+        (entry) => entry.symbol === symbol,
+      )?.groupId;
+      if (groupId) {
+        setOpenWordGroupMap((previous) => ({ ...previous, [groupId]: true }));
+      }
     } else {
       setIsFingerspellingOpen(true);
       setOpenCategoryMap((previous) => ({ ...previous, [categoryId]: true }));
@@ -159,7 +178,7 @@ export function DictionaryPage() {
                 value={searchQuery}
                 onChange={handleSearchChange}
                 aria-label="지문자 검색"
-                placeholder="ㄱ, 기역, 1, 비행기처럼 입력해 보세요"
+                placeholder="ㄱ, 기역, 1, 버스처럼 입력하세요."
               />
 
               {isSearching && (
@@ -372,7 +391,7 @@ export function DictionaryPage() {
                   className="dictionary-tree-root"
                   type="button"
                   aria-expanded={isWordOpen}
-                  aria-controls="dictionary-chips-word"
+                  aria-controls="dictionary-word-branch"
                   onClick={() => setIsWordOpen((previous) => !previous)}
                 >
                   <span>단어</span>
@@ -388,30 +407,73 @@ export function DictionaryPage() {
                   />
                 </button>
 
+                {/* 지문자와 같은 구조로 단어도 소분류(탈것·자연·운동·감정)로 나눈다. */}
                 {isWordOpen && (
-                  <ul
-                    className="dictionary-chip-grid dictionary-root-chip-grid"
-                    id="dictionary-chips-word"
-                  >
-                    {wordSignEntries.map((item) => {
-                      const isSelected = item.symbol === selectedEntry.symbol;
+                  <div className="dictionary-tree-branch" id="dictionary-word-branch">
+                    {wordSignEntriesByGroup.map((group) => {
+                      const isOpen = openWordGroupMap[group.id];
 
                       return (
-                        <li key={item.id}>
+                        <div className="dictionary-tree-group" key={group.id}>
                           <button
-                            className={`dictionary-chip dictionary-chip-word ${
-                              isSelected ? "dictionary-chip-selected" : ""
-                            }`}
+                            className="dictionary-tree-category"
                             type="button"
-                            aria-pressed={isSelected}
-                            onClick={() => handleEntrySelect(item.symbol, "word")}
+                            aria-expanded={isOpen}
+                            aria-controls={`dictionary-words-${group.id}`}
+                            onClick={() =>
+                              setOpenWordGroupMap((previous) => ({
+                                ...previous,
+                                [group.id]: !previous[group.id],
+                              }))
+                            }
                           >
-                            {item.name}
+                            <span>{group.label}</span>
+
+                            <span className="dictionary-tree-count">
+                              {group.entries.length}
+                            </span>
+
+                            <ChevronDown
+                              className={`dictionary-tree-chevron ${
+                                isOpen ? "is-open" : ""
+                              }`}
+                              size={16}
+                              aria-hidden="true"
+                            />
                           </button>
-                        </li>
+
+                          {isOpen && (
+                            <ul
+                              className="dictionary-chip-grid"
+                              id={`dictionary-words-${group.id}`}
+                            >
+                              {group.entries.map((item) => {
+                                const isSelected =
+                                  item.symbol === selectedEntry.symbol;
+
+                                return (
+                                  <li key={item.id}>
+                                    <button
+                                      className={`dictionary-chip dictionary-chip-word ${
+                                        isSelected ? "dictionary-chip-selected" : ""
+                                      }`}
+                                      type="button"
+                                      aria-pressed={isSelected}
+                                      onClick={() =>
+                                        handleEntrySelect(item.symbol, "word")
+                                      }
+                                    >
+                                      {item.name}
+                                    </button>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                        </div>
                       );
                     })}
-                  </ul>
+                  </div>
                 )}
               </div>
             )}
