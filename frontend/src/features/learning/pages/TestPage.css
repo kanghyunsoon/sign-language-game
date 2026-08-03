@@ -59,11 +59,10 @@
   background: transparent;
   cursor: pointer;
   transform: translateY(-50%);
-  transition: transform 0.2s ease;
 }
 
 .test-page-back-button:hover {
-  transform: translate(-3px, -50%);
+  transform: translateY(-50%);
 }
 
 .test-nav {

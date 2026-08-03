@@ -9,7 +9,7 @@ import { WordWebSocketSignRecognizer } from "../recognition/WordWebSocketSignRec
 import { WordSignVideo } from "../components/WordSignVideo";
 import otterClapImage from "../assets/otter_clap.png";
 
-const CORRECT_AUTO_ADVANCE_SECONDS = 2;
+const CORRECT_AUTO_ADVANCE_SECONDS = 1.5;
 
 interface WordPracticeSessionPageProps {
   readonly onExit?: () => void;
