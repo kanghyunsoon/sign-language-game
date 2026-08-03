@@ -1,8 +1,8 @@
 # Implementation Plan: 출석 및 펫 성장
 
-**Branch**: `001-growth-attendance-pet` | **Date**: 2026-07-31 | **Spec**: [spec.md](./spec.md)
+**Branch**: `005-growth-attendance-pet` | **Date**: 2026-07-31 | **Spec**: [spec.md](./spec.md)
 
-**Input**: Feature specification from `specs/001-growth-attendance-pet/spec.md`
+**Input**: Feature specification from `backend/specs/005-growth-attendance-pet/spec.md`
 
 ## Summary
 
@@ -54,7 +54,7 @@
 ### Documentation (this feature)
 
 ```text
-specs/001-growth-attendance-pet/
+backend/specs/005-growth-attendance-pet/
 ├── plan.md
 ├── research.md
 ├── data-model.md
