@@ -199,6 +199,12 @@
   gap: 18px;
 }
 
+/* 목록이 스크롤바에 붙지 않도록 안쪽 폭만 줄인다. 스크롤바는 제자리에 둔다. */
+.dictionary-tree,
+.dictionary-results {
+  padding-right: 12px;
+}
+
 .dictionary-tree::-webkit-scrollbar-thumb,
 .dictionary-results::-webkit-scrollbar-thumb {
   border-radius: 999px;
