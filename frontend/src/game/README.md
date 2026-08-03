@@ -7,7 +7,7 @@
 ```text
 game/
 ├─ block-stacking/       # 블록쌓기 솔로·봇·1:1과 물리/렌더/점수 엔진
-├─ glyph-battle/         # 지문자 턴 배틀·라인레이스, 봇·1:1
+├─ glyph-battle/         # 지문자 턴 배틀, 봇·1:1
 ├─ app/                  # GameModule 라우터와 서비스 조립
 ├─ recognition/          # 게임 공용 인식 세션, MediaPipe/원격 AI 경계
 ├─ media/                # 공유 카메라와 WebRTC
@@ -47,7 +47,9 @@ import { GameModule } from "./game";
 - `/game/block`: 블록쌓기 모드 선택
 - `/game/solo`: 블록쌓기 솔로
 - `/game/battle/*`: 블록쌓기 방·대기실·1:1·결과
-- `/game/turn-battle/*`: 지문자 배틀 방·봇전·1:1·결과
+- `/game/turn-battle/*`: 지문자 배틀 방·봇전·1:1
+
+개발 환경에서만 열리는 라우트는 `/game/battle/preview`(1:1 시각 프리뷰), `/game/battle/practice`(봇 연습), `/game/recognition/crowd-test`다. 사용자용 `line-race` 라우트는 더 이상 존재하지 않는다. `glyph-battle` 디렉터리 안의 `LineRace*` 코드는 턴 배틀이 재사용하는 방·장애물·피드백 계층과 개발 harness로 남아 있고, 외부 route 이름으로는 노출되지 않는다.
 
 ### 솔로 화면 표현 기준
 
@@ -61,6 +63,7 @@ import { GameModule } from "./game";
 ### MediaPipe 렌더링 기준
 
 - 브라우저 화면 주사율이 카메라 FPS보다 높더라도 동일한 `video.currentTime` 프레임을 Hand/Pose 추론에 다시 제출하지 않는다.
+- 주기 값은 `recognition/runtime/RecognitionPerformanceProfiles.ts`가 원천이다. 기본 `BALANCED`는 render 30, hand 24, pose 8, AI 12FPS다.
 - 일반 플레이는 worker를 우선 사용하고 실패 시 기존 main-thread fallback으로 전환한다.
 - 손 스켈레톤 캔버스는 새로운 손 추적 결과 또는 캔버스 크기 변경이 있을 때만 다시 그린다.
 - 성능·손 소유권 디버그 상태는 디버그 화면에서만 React 상태로 구독한다.
@@ -68,21 +71,21 @@ import { GameModule } from "./game";
 ### 2026-07-23 게임·MediaPipe 통합 반영 상태
 
 - 블록 쌓기 선택·모드·솔로 화면을 같은 시각 언어로 정리하고, Pixi 게임판과 카메라·목표·현재 인식·가이드 패널을 독립적으로 유지한다.
-- 운영 AI 프로필의 숫자 라벨 가운데 게임은 `1`~`9`만 출제한다. 수형 안내 이미지는 `assets/guides/number-1.png`~`number-9.png`를 사용하며, `0`과 `10`은 게임 계약에 포함하지 않는다.
-- `game-contracts/recognition/readiness.json`은 MediaPipe 공용 모듈이 아닌 AI 모델 계약의 원천이다. 서버의 threshold·경쟁 가능 글자, 프런트의 출제 범위, 계약 테스트가 같은 파일을 읽는다.
+- 경쟁 출제 가능 글자는 `game-contracts/recognition/readiness.json`이 결정한다. 현재 `modelVersion`은 `jamo-31-v1`이고 31개 자모 중 24개만 `competitiveEligible`이다. 지숫자 `1`~`9`는 심볼 등록부에 `modelSupported: false`로 있고 `assets/guides/number-1.png`~`number-9.png` 안내 이미지도 있으나 readiness 클래스가 없어 AI 경쟁 출제에는 넣지 않는다. `0`과 `10`은 등록하지 않는다.
+- `game-contracts/recognition/readiness.json`은 MediaPipe 공용 모듈이 아닌 AI 모델 계약의 원천이다. 서버의 threshold·경쟁 가능 글자, 프런트의 출제 범위, 계약 테스트가 같은 파일을 읽는다. 확정 권위는 서버가 아니라 프런트 연속 지문자 Decoder다.
 - MediaPipe는 landmark 추출에만 책임을 두고, 프레임 중복 추론 방지·worker 우선 실행·main-thread fallback·스켈레톤 조건부 렌더링으로 게임 화면의 응답성을 유지한다.
 - 학습 이력과 모델 평가는 AI 서버 문서를 정본으로 관리한다. 게임 문서는 계약·카메라 통합·사용자 경험의 영향과 운영 제한만 기록한다.
-- 개발 전용 `/game/media/dev`, `/game/recognition/crowd-test`, `/game/turn-battle/dev`
 
-기존 URL 호환을 위해 지문자 배틀의 외부 route 이름은 당분간 `line-race`를 유지한다. 코드 소유 디렉터리는 `glyph-battle`이 기준이다.
+코드 소유 디렉터리는 `glyph-battle`이 기준이다.
 
 ## 교체 경계
 
 - 블록 Match 통신: `GameModuleServices.battleGameTransportFactory`
 - 지문자 Match 통신: `GameModuleServices.glyphTurnMatchTransportFactory`
-- 라인레이스 통신: `GameModuleServices.lineRaceTransportFactory`
 - 카메라 비전: `GameModuleServices.recognitionVisionAdapterFactory`
-- 방과 솔로 API: `battleRoomGateway`, `lineRaceRoomGateway`, `soloGameApi`
+- 방과 솔로 API: `battleRoomGateway`, `turnBattleRoomGateway`, `soloGameApi`
+- 방 실시간 소켓: `GameModuleServices.roomRealtimeSocketFactory`
+- 개발용 라인레이스 포트(`lineRaceRoomGateway`, `lineRaceBotGateway`, `lineRaceTransportFactory`)는 harness 전용 선택 항목이다.
 
 리드 서버나 원격 AI 구현이 바뀌어도 페이지와 게임 규칙은 수정하지 않고 이 factory/gateway만 교체한다.
 
@@ -99,6 +102,5 @@ npm run build
 ## 최신 1:1 문서
 
 - [프링글수 1:1 UI·방 상태 — 2026-08-02](./docs/battle-ui-room-status-2026-08-02.md)
-- [프링글수 로비·결과 UI 트러블슈팅 — 2026-08-02](./docs/battle-room-ui-troubleshooting-2026-08-02.md)
-- [1:1 Room Lifecycle 및 게임 배율 트러블슈팅 — 2026-07-30](./docs/room-lifecycle-and-zoom-troubleshooting-2026-07-30.md)
-- [1:1 대결 새로고침·이탈 트러블슈팅 — 2026-07-31](./docs/battle-reconnect-troubleshooting-2026-07-31.md)
+- [게임 트러블슈팅 통합 기록](./docs/game-troubleshooting.md)
+- [백엔드 계약 정렬 기준](./docs/backend-contract-alignment-2026-07-23.md)

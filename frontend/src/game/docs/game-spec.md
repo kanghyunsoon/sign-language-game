@@ -951,7 +951,7 @@ README에는 Python 버전, Node 버전, 브라우저 권한 설정, 카메라 �
 - 시각 결승선과 물리 승리 판정은 같은 값을 사용한다.
 - 결과의 `다시 하기`와 `같은 방으로`는 대기실로, `게임방 목록`은 leave 후 `/game/battle`로 이동한다.
 
-상세 구현·제한은 `battle-ui-room-status-2026-08-02.md`, 재발 점검은 `battle-room-ui-troubleshooting-2026-08-02.md`를 기준으로 한다.
+상세 구현·제한은 `battle-ui-room-status-2026-08-02.md`, 재발 점검은 `game-troubleshooting.md`를 기준으로 한다.
 
 ## 25. 장시간 렌더링·동기화 성능 기준 — 2026-08-02
 
@@ -961,4 +961,4 @@ README에는 Python 버전, Node 버전, 브라우저 권한 설정, 카메라 �
 - 상대 제거 tombstone과 P2P 처리 명령 기록은 유한한 최근 이력만 유지한다.
 - 정적 글자 래스터처럼 심볼 수로 자연스럽게 제한되는 재사용 캐시는 임의 주기로 초기화하지 않는다.
 
-세부 원인, 수치, 검증 절차는 `battle-progressive-lag-troubleshooting-2026-08-02.md`를 따른다.
+세부 원인, 수치, 검증 절차는 `game-troubleshooting.md`의 「1:1 누적 성능」 절을 따른다.
