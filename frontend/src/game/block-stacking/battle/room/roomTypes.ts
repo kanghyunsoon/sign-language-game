@@ -1,4 +1,5 @@
 import type { GameModuleUser } from "../../../app/GameModule";
+import type { SymbolRange } from "./symbolRange";
 
 export type BattleRoomStatus = "WAITING" | "FULL" | "COUNTDOWN" | "PLAYING" | "FINISHED";
 export type GameType = "BLOCK_BATTLE" | "LINE_RACE";
@@ -20,8 +21,9 @@ export interface BattleRoomSummary {
   readonly maxPlayers: number;
   readonly hostUserId: string;
   readonly hostName: string;
-  readonly difficulty: string;
-  readonly symbolRange: readonly string[];
+  /** Line-race rooms still keep an explicit list of supported symbols. */
+  readonly difficulty?: string;
+  readonly symbolRange: SymbolRange | readonly string[];
   readonly createdAt: number | null;
   readonly canJoin: boolean;
   readonly gameType?: GameType;
@@ -47,9 +49,8 @@ export interface BattleRoomSession extends BattleRoomDetail {
 }
 
 export interface CreateRoomRequest {
-  readonly title: string;
-  readonly difficulty: string;
-  readonly symbolRange: readonly string[];
+  readonly roomTitle: string;
+  readonly symbolRange: SymbolRange;
 }
 
 export interface BattleRoomGatewayOptions {

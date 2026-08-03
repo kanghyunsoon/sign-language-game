@@ -13,7 +13,7 @@ import { BattleRoomListPage } from "./BattleRoomListPage";
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 describe("BattleRoomListPage", () => {
-  it("shows room status, host, difficulty, range and player count", async () => {
+  it("shows room status, host, range and player count", async () => {
     renderPage(gateway({ getRooms: vi.fn(async () => [summary()]) }));
     expect(await screen.findByRole("heading", { name: "입문 연습방" })).toBeTruthy();
     expect(screen.getAllByText("나사용자")).toHaveLength(2);
@@ -108,7 +108,7 @@ describe("BattleRoomListPage", () => {
     expect(await screen.findByText("WAITING_ROUTE")).toBeTruthy();
   });
 
-  it("shows the stored title and current host nickname on the re-entry card", async () => {
+  it("uses the server-provided title and host nickname on the re-entry card", async () => {
     const activeSession = {
       ...session(),
       roomCode: "ABC123",
@@ -119,13 +119,13 @@ describe("BattleRoomListPage", () => {
       ...summary(),
       roomId: "ABC123",
       roomCode: "ABC123",
-      title: "프링글수 대전방",
-      hostName: "프링글수 유저",
+      title: "서버 방 제목",
+      hostName: "서버 방장",
     };
     renderPage(gateway({ getRooms: vi.fn(async () => [fallbackRoom]) }), 2_500, activeSession);
 
-    expect(await screen.findByRole("heading", { name: "내가 입력한 방 제목" })).toBeTruthy();
-    expect(screen.getAllByText("나사용자")).toHaveLength(2);
+    expect(await screen.findByRole("heading", { name: "서버 방 제목" })).toBeTruthy();
+    expect(screen.getByText("서버 방장")).toBeTruthy();
   });
 
   it("joins an available room", async () => {
@@ -197,7 +197,7 @@ function gateway(overrides: Partial<BattleRoomGateway> = {}): BattleRoomGateway 
 }
 
 function summary(): BattleRoomSummary {
-  return { roomId: "room-1", title: "입문 연습방", status: "WAITING", playerCount: 1, maxPlayers: 2, hostUserId: "user-1", hostName: "나사용자", difficulty: "EASY", symbolRange: ["ㄱ", "ㄴ"], createdAt: null, canJoin: true };
+  return { roomId: "room-1", title: "입문 연습방", status: "WAITING", playerCount: 1, maxPlayers: 2, hostUserId: "user-1", hostName: "나사용자", symbolRange: "CONSONANT", createdAt: null, canJoin: true };
 }
 
 function session(): BattleRoomSession {

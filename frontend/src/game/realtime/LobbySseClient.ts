@@ -8,10 +8,9 @@ export interface LobbyRoomSummary {
   readonly participantCount: number;
   readonly capacity: number;
   readonly gameType: BackendGameType;
-  readonly title?: string;
-  readonly hostName?: string;
-  readonly difficulty?: string;
-  readonly symbolRange?: readonly string[];
+  readonly title: string;
+  readonly hostName: string;
+  readonly symbolRange: "CONSONANT" | "VOWEL" | "ALL";
 }
 
 export interface LobbySseEvent {
@@ -100,9 +99,10 @@ export function parseLobbyRooms(value: unknown): readonly LobbyRoomSummary[] {
     const gameType = item.gameType;
     if (gameType !== "SIGN_DUEL" && gameType !== "TETRIS_DUEL") throw new Error("Invalid lobby game type.");
     const title = optionalText(item.title) ?? optionalText(item.roomTitle);
-    const hostName = optionalText(item.hostName) ?? optionalText(item.hostNickname);
-    const difficulty = optionalText(item.difficulty);
-    const symbolRange = optionalTextArray(item.symbolRange);
+    const hostName = optionalText(item.hostName);
+    const symbolRange = item.symbolRange;
+    if (symbolRange !== "CONSONANT" && symbolRange !== "VOWEL" && symbolRange !== "ALL") throw new Error("Invalid lobby symbolRange.");
+    if (!title || !hostName) throw new Error("Invalid lobby room metadata.");
     return {
       id: integer(item.id),
       roomCode: text(item.roomCode),
@@ -110,15 +110,13 @@ export function parseLobbyRooms(value: unknown): readonly LobbyRoomSummary[] {
       participantCount: integer(item.participantCount),
       capacity: integer(item.capacity),
       gameType,
-      ...(title ? { title } : {}),
-      ...(hostName ? { hostName } : {}),
-      ...(difficulty ? { difficulty } : {}),
-      ...(symbolRange ? { symbolRange } : {}),
+      title,
+      hostName,
+      symbolRange,
     };
   });
 }
 function integer(value: unknown): number { if (typeof value !== "number" || !Number.isSafeInteger(value)) throw new Error("Invalid integer."); return value; }
 function text(value: unknown): string { if (typeof value !== "string" || !value) throw new Error("Invalid text."); return value; }
 function optionalText(value: unknown): string | undefined { return typeof value === "string" && value.trim() ? value.trim() : undefined; }
-function optionalTextArray(value: unknown): readonly string[] | undefined { return Array.isArray(value) && value.every((item) => typeof item === "string") ? value : undefined; }
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null && !Array.isArray(value); }

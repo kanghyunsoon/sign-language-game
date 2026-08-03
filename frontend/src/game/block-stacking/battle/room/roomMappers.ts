@@ -8,6 +8,7 @@ import type {
   CreateRoomRequest,
   RoomApiErrorBody,
 } from "./roomTypes";
+import { isSymbolRange } from "./symbolRange";
 
 const ROOM_STATUSES = new Set<BattleRoomStatus>(["WAITING", "FULL", "COUNTDOWN", "PLAYING", "FINISHED"]);
 
@@ -40,8 +41,7 @@ export function mapRoomDetail(payload: unknown, currentUser: GameModuleUser): Ba
     maxPlayers,
     hostUserId,
     hostName: participants.find((participant) => participant.userId === hostUserId)?.displayName ?? shortParticipantName(hostUserId),
-    difficulty: readString(record, "difficulty"),
-    symbolRange: readStringArray(record, "symbolRange"),
+    symbolRange: readSymbolRange(record.symbolRange),
     createdAt: readTimestamp(record.createdAt),
     // A player who was already in a running room must be able to return to it
     // after a transient browser/WebRTC disconnect, even though new players may not join.
@@ -65,11 +65,17 @@ export function mapRoomSession(payload: unknown, currentUser: GameModuleUser): B
 }
 
 export function mapDevCreateRoomRequest(request: CreateRoomRequest): object {
-  return { roomTitle: request.title.trim(), maxPlayers: 2, difficulty: request.difficulty, symbolRange: [...request.symbolRange], rematch: false };
+  return { roomTitle: request.roomTitle.trim(), maxPlayers: 2, symbolRange: request.symbolRange, rematch: false };
 }
 
 export function mapBackendCreateRoomRequest(request: CreateRoomRequest): object {
-  return { title: request.title.trim(), difficulty: request.difficulty, symbolRange: [...request.symbolRange] };
+  return { roomTitle: request.roomTitle.trim(), symbolRange: request.symbolRange };
+}
+
+function readSymbolRange(value: unknown): import("./symbolRange").SymbolRange | readonly string[] {
+  if (isSymbolRange(value)) return value;
+  if (Array.isArray(value) && value.length > 0 && value.every((item) => typeof item === "string")) return value;
+  throw new Error("Invalid symbolRange.");
 }
 
 export function mapRoomApiError(payload: unknown, fallback: string): Error {

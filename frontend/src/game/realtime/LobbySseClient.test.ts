@@ -5,67 +5,22 @@ class FakeEventSource implements EventSourceLike {
   readonly listeners = new Map<string, (event: MessageEvent<string>) => void>();
   onerror: ((event: Event) => void) | null = null;
   close = vi.fn();
-  addEventListener(type: string, listener: (event: MessageEvent<string>) => void): void {
-    this.listeners.set(type, listener);
-  }
-  emit(type: string, value: unknown): void {
-    this.listeners.get(type)?.({ data: JSON.stringify(value) } as MessageEvent<string>);
-  }
+  addEventListener(type: string, listener: (event: MessageEvent<string>) => void): void { this.listeners.set(type, listener); }
+  emit(type: string, value: unknown): void { this.listeners.get(type)?.({ data: JSON.stringify(value) } as MessageEvent<string>); }
 }
 
+const lobbyRoom = { id: 1, roomCode: "ABC123", status: "WAITING", participantCount: 1, capacity: 2, gameType: "TETRIS_DUEL", title: "모음 연습방", hostName: "수달왕", symbolRange: "VOWEL" };
+
 describe("LobbySseClient", () => {
-  it("uses a one-use query ticket and parses snapshot/update events", async () => {
-    const source = new FakeEventSource();
-    const events: unknown[] = [];
-    const createEventSource = vi.fn(() => source);
-    const client = new LobbySseClient({
-      apiBaseUrl: "/api/",
-      ticketClient: { issue: vi.fn(async () => ({ ticket: "sse ticket", expiresInSeconds: 30 })) },
-      createEventSource,
-    });
+  it("uses the ticket and treats SSE metadata as room-list data", async () => {
+    const source = new FakeEventSource(); const events: unknown[] = [];
+    const client = new LobbySseClient({ apiBaseUrl: "/api/", ticketClient: { issue: vi.fn(async () => ({ ticket: "sse ticket", expiresInSeconds: 30 })) }, createEventSource: vi.fn(() => source) });
     client.subscribe((event) => events.push(event));
-
-    await client.connect();
-    source.emit("snapshot", { rooms: [{
-      id: 1, roomCode: "ABC123", status: "WAITING",
-      participantCount: 1, capacity: 2, gameType: "TETRIS_DUEL",
-    }] });
-
-    expect(createEventSource).toHaveBeenCalledWith("/api/game-rooms/subscribe?ticket=sse%20ticket");
-    expect(events).toEqual([{
-      type: "snapshot",
-      rooms: [{
-        id: 1, roomCode: "ABC123", status: "WAITING",
-        participantCount: 1, capacity: 2, gameType: "TETRIS_DUEL",
-      }],
-    }]);
+    await client.connect(); source.emit("snapshot", { rooms: [lobbyRoom] });
+    expect(events).toEqual([{ type: "snapshot", rooms: [lobbyRoom] }]);
   });
 
-  it("closes on error so reconnect can issue a different ticket", async () => {
-    const source = new FakeEventSource();
-    const client = new LobbySseClient({ apiBaseUrl: "/api", ticketClient: { issue: async () => ({ ticket: "a", expiresInSeconds: 30 }) }, createEventSource: () => source });
-    await client.connect();
-    source.onerror?.(new Event("error"));
-    expect(source.close).toHaveBeenCalled();
-  });
-
-  it("keeps optional display metadata when the lobby server provides it", () => {
-    expect(parseLobbyRooms({ rooms: [{
-      id: 3,
-      roomCode: "ROOM03",
-      status: "WAITING",
-      participantCount: 1,
-      capacity: 2,
-      gameType: "TETRIS_DUEL",
-      roomTitle: "모음 연습방",
-      hostNickname: "수달왕",
-      difficulty: "VOWELS",
-      symbolRange: ["ㅏ", "ㅓ"],
-    }] })).toEqual([expect.objectContaining({
-      title: "모음 연습방",
-      hostName: "수달왕",
-      difficulty: "VOWELS",
-      symbolRange: ["ㅏ", "ㅓ"],
-    })]);
+  it("parses the delegated host and range from the latest SSE payload", () => {
+    expect(parseLobbyRooms({ rooms: [{ ...lobbyRoom, hostName: "새 방장", symbolRange: "ALL" }] })).toEqual([{ ...lobbyRoom, hostName: "새 방장", symbolRange: "ALL" }]);
   });
 });

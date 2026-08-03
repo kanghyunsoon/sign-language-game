@@ -345,14 +345,6 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
             participants: remaining,
           };
           rememberRoomRef.current(nextRoom);
-          if (currentUserBecameHost) {
-            gateway.updateRoomDisplayMetadata?.(current.roomId, {
-              title: current.title,
-              hostName: user.displayName,
-              difficulty: current.difficulty,
-              symbolRange: current.symbolRange,
-            });
-          }
         }
         setNotice("상대방이 방을 나갔습니다. 새 참가자를 기다릴게요.");
       }
@@ -632,7 +624,7 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
         <aside className={[styles.waitingSidebar, styles.waitingSettings].join(" ")}>
           <header><h2>게임 설정</h2><span>{room ? waitingStatusLabel(room.status) : "확인 중"}</span></header>
           <dl className={styles.roomFacts}>
-            <div><dt>출제 범위</dt><dd>{room ? symbolRangeLabel(room) : "-"}</dd></div>
+            <div><dt>출제 범위</dt><dd>{room ? symbolRangeLabel(room.symbolRange) : "-"}</dd></div>
             <div><dt>참가 인원</dt><dd>{room ? `${room.playerCount}/${room.maxPlayers}명` : "-"}</dd></div>
           </dl>
           <section className={styles.waitingCompanion} aria-label="게임 준비 안내">
@@ -666,10 +658,8 @@ function waitingStatusLabel(status: BattleRoomDetail["status"]): string {
 }
 
 function participantDisplayName(primary?: string, fallback?: string | null): string | null {
-  for (const value of [primary, fallback]) {
-    const name = value?.trim();
-    if (name && !["방장", "상대방", "프링글수 유저"].includes(name)) return name;
-  }
+  if (primary?.trim()) return primary.trim();
+  if (fallback?.trim()) return fallback.trim();
   return null;
 }
 

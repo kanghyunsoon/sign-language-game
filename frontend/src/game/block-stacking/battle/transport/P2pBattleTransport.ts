@@ -2,6 +2,7 @@ import type { GameDataChannel } from "../../../media/core/GameDataChannel";
 import { WebRtcDataChannelTransport } from "../../../realtime";
 import { GAME_SYMBOLS } from "../../../recognition/core/symbols";
 import { isCompetitiveRecognitionReady } from "../../../recognition/readiness/recognitionReadiness";
+import { symbolsForRange } from "../room";
 import type { BattleGameTransport } from "./BattleGameTransport";
 import type { BattleBodyTransform, BattleConnectionOptions, BattleConnectionState, ClientBattleMessage, ServerBattleMessage } from "./battleTransportTypes";
 import { boardStateChecksum } from "../sync/BoardStateChecksum";
@@ -39,6 +40,7 @@ export class P2pBattleTransport implements BattleGameTransport {
   private spawnIndex = 0;
   private targetIndex = 0;
   private symbolBag: string[] = [];
+  private targetSymbols: readonly string[] = BATTLE_TARGET_SYMBOLS;
   private lastTargetSymbol: string | null = null;
   private sharedTarget: { readonly id: string; readonly symbol: string } | null = null;
   private targetTimer: ReturnType<typeof setTimeout> | null = null;
@@ -59,6 +61,7 @@ export class P2pBattleTransport implements BattleGameTransport {
     this.matchId = options.roomId;
     this.hostPlayerId = options.hostPlayerId ?? options.playerIds?.[0] ?? this.localPlayerId;
     this.playerIds = [...new Set(options.playerIds ?? [this.hostPlayerId, this.localPlayerId])].slice(0, 2);
+    if (this.isHost()) this.targetSymbols = symbolsForRange(options.symbolRange ?? "ALL");
     for (const playerId of this.playerIds) if (!this.players.has(playerId)) this.players.set(playerId, freshPlayer());
     this.playerProfiles.set(this.localPlayerId, normalizeDisplayName(this.localDisplayName, this.localPlayerId));
     await this.delegate.connect(options);
@@ -281,7 +284,7 @@ export class P2pBattleTransport implements BattleGameTransport {
   }
   private takeRandomSymbol(): string {
     if (this.symbolBag.length === 0) {
-      this.symbolBag = [...BATTLE_TARGET_SYMBOLS];
+      this.symbolBag = [...this.targetSymbols];
       for (let index = this.symbolBag.length - 1; index > 0; index -= 1) {
         const swapIndex = Math.floor(Math.random() * (index + 1));
         [this.symbolBag[index], this.symbolBag[swapIndex]] = [this.symbolBag[swapIndex]!, this.symbolBag[index]!];

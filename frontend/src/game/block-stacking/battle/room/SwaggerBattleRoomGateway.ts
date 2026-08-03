@@ -1,87 +1,39 @@
-import {
-  BackendGameRoomClient,
-  LobbySseClient,
-  RealtimeTicketClient,
-  type BackendGameRoom,
-  type LobbyRoomSummary,
-} from "../../../realtime";
+import { BackendGameRoomClient, LobbySseClient, RealtimeTicketClient, type BackendGameRoom, type LobbyRoomSummary } from "../../../realtime";
 import type { BattleRoomGateway } from "./BattleRoomGateway";
-import type {
-  BattleRoomDetail,
-  BattleRoomGatewayOptions,
-  BattleRoomParticipant,
-  BattleRoomSession,
-  BattleRoomSummary,
-  CreateRoomRequest,
-} from "./roomTypes";
+import type { BattleRoomDetail, BattleRoomGatewayOptions, BattleRoomParticipant, BattleRoomSession, BattleRoomSummary, CreateRoomRequest } from "./roomTypes";
 
 type RoomsListener = (rooms: readonly BattleRoomSummary[]) => void;
-type SwaggerRoomGatewayOptions = BattleRoomGatewayOptions & {
-  readonly gameType?: "TETRIS_DUEL" | "SIGN_DUEL";
-};
-type RoomDisplayMetadata = Pick<CreateRoomRequest, "title" | "difficulty" | "symbolRange"> & {
-  readonly hostName: string;
-  readonly roomCode?: string;
-};
-const ROOM_DISPLAY_METADATA_KEY_PREFIX = "sudal:battle-room-display:";
-const ROOM_DISPLAY_METADATA_UPDATED_EVENT = "sudal:battle-room-display-updated";
-const ROOM_DISPLAY_METADATA_CHANNEL_PREFIX = "sudal:battle-room-display-channel:";
-const DEFAULT_ROOM_TITLE = "프링글수 대전방";
-const DEFAULT_HOST_NAME = "프링글수 유저";
+type SwaggerRoomGatewayOptions = BattleRoomGatewayOptions & { readonly gameType?: "TETRIS_DUEL" | "SIGN_DUEL" };
 
 /**
- * Adapter for the deployed Swagger contract.
- *
- * The backend deliberately has no room-list REST endpoint and no room-detail GET.
- * Lobby state therefore comes from SSE, while the full room response is cached
- * from create/join/ready/start REST responses.
+ * The game-room REST response and lobby SSE are the sole metadata authority.
+ * No browser storage or cross-tab metadata cache is used: it could otherwise
+ * overwrite a renamed room or a newly delegated host with stale client data.
  */
 export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   private readonly client: BackendGameRoomClient;
   private readonly lobby: LobbySseClient;
   private readonly roomCache = new Map<number, BackendGameRoom>();
   private readonly lobbyCache = new Map<number, LobbyRoomSummary>();
-  private readonly roomDisplayMetadata = new Map<number, RoomDisplayMetadata>();
   private readonly listeners = new Set<RoomsListener>();
   private readonly errorListeners = new Set<(error: Error) => void>();
   private membershipMutation: Promise<void> = Promise.resolve();
   private pendingMembershipMutations = 0;
   private lobbyStarted = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private displayMetadataSyncStarted = false;
-  private displayMetadataChannel: BroadcastChannel | null = null;
 
   constructor(private readonly options: SwaggerRoomGatewayOptions) {
-    this.restoreDisplayMetadata();
-    const ticketClient = new RealtimeTicketClient({
-      apiBaseUrl: options.baseUrl,
-      userId: options.currentUser.userId,
-      headers: options.headers,
-      fetcher: options.fetch,
-    });
-    this.client = new BackendGameRoomClient({
-      apiBaseUrl: options.baseUrl,
-      userId: options.currentUser.userId,
-      headers: options.headers,
-      fetcher: options.fetch,
-    });
+    const ticketClient = new RealtimeTicketClient({ apiBaseUrl: options.baseUrl, userId: options.currentUser.userId, headers: options.headers, fetcher: options.fetch });
+    this.client = new BackendGameRoomClient({ apiBaseUrl: options.baseUrl, userId: options.currentUser.userId, headers: options.headers, fetcher: options.fetch });
     this.lobby = new LobbySseClient({ apiBaseUrl: options.baseUrl, ticketClient });
-    this.lobby.subscribe((event) => {
-      // Both `snapshot` and `update` carry the backend's complete WAITING-room
-      // list. Replacing the cache is required so a room omitted after its last
-      // participant leaves disappears for every connected lobby client.
-      this.applyLobbySnapshot(event.rooms);
-    });
+    this.lobby.subscribe((event) => this.applyLobbySnapshot(event.rooms));
     this.lobby.subscribeError((error) => {
       for (const listener of this.errorListeners) listener(error);
       this.scheduleReconnect();
     });
   }
 
-  async getRooms(): Promise<readonly BattleRoomSummary[]> {
-    this.ensureLobby();
-    return this.currentRooms();
-  }
+  async getRooms(): Promise<readonly BattleRoomSummary[]> { this.ensureLobby(); return this.currentRooms(); }
 
   async refreshRooms(): Promise<readonly BattleRoomSummary[]> {
     this.lobby.disconnect();
@@ -93,7 +45,6 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   }
 
   subscribeRooms(listener: RoomsListener, onError?: (error: Error) => void): () => void {
-    this.startDisplayMetadataSync();
     this.listeners.add(listener);
     if (onError) this.errorListeners.add(onError);
     listener(this.currentRooms());
@@ -106,167 +57,71 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
         this.lobbyStarted = false;
         if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
         this.reconnectTimer = null;
-        this.stopDisplayMetadataSync();
       }
     };
   }
 
   async createRoom(request: CreateRoomRequest): Promise<BattleRoomSession> {
-    return this.enqueueMembershipMutation(async () => {
-      const room = await this.client.create(this.options.gameType ?? "TETRIS_DUEL");
-      const metadata: RoomDisplayMetadata = {
-        title: request.title.trim(),
-        hostName: this.options.currentUser.displayName,
-        difficulty: request.difficulty,
-        symbolRange: [...request.symbolRange],
-        roomCode: room.roomCode,
-      };
-      this.roomDisplayMetadata.set(room.id, metadata);
-      // Do not wait for the asynchronous lobby SSE echo. The create response
-      // is authoritative for the room id/code, while the form and signed-in
-      // user already provide the exact display title and host nickname.
-      this.lobbyCache.set(room.id, {
-        id: room.id,
-        roomCode: room.roomCode,
-        status: room.status,
-        participantCount: room.participantCount,
-        capacity: room.capacity,
-        gameType: room.gameType,
-        title: metadata.title,
-        hostName: metadata.hostName,
-        difficulty: metadata.difficulty,
-        symbolRange: metadata.symbolRange,
-      });
-      this.persistDisplayMetadata();
-      this.publishDisplayMetadata(room.id);
-      const session = this.remember(room);
-      // The lobby SSE can announce the new room before the create response
-      // arrives. Re-publish now that its creator metadata is available so the
-      // fallback title/nickname never remains on screen until a refresh.
-      this.emitRooms();
-      return session;
-    });
+    return this.enqueueMembershipMutation(async () => this.remember(await this.client.create({
+      gameType: this.options.gameType ?? "TETRIS_DUEL",
+      roomTitle: request.roomTitle.trim(),
+      symbolRange: request.symbolRange,
+    })));
   }
 
   async joinRoom(roomCode: string): Promise<BattleRoomSession> {
-    // The current backend contract makes join idempotent for an existing
-    // participant and returns the authoritative room state plus a fresh ticket.
     return this.enqueueMembershipMutation(async () => this.remember(await this.client.join(roomCode)));
   }
 
   async getRoom(roomId: string): Promise<BattleRoomDetail> {
     const cached = this.roomCache.get(parseRoomId(roomId));
-    if (!cached) {
-      throw new Error("이 방의 상세 정보가 없습니다. 방 목록에서 다시 입장해 주세요.");
-    }
+    if (!cached) throw new Error("방의 상세 정보를 찾을 수 없습니다. 방 목록에서 다시 입장해 주세요.");
     return toDetail(cached, this.options);
-  }
-
-  updateRoomDisplayMetadata(
-    roomId: string,
-    metadata: Pick<BattleRoomSummary, "title" | "hostName" | "difficulty" | "symbolRange">,
-  ): void {
-    const id = parseRoomId(roomId);
-    this.roomDisplayMetadata.set(id, {
-      title: metadata.title.trim(),
-      hostName: metadata.hostName.trim(),
-      difficulty: metadata.difficulty,
-      symbolRange: [...metadata.symbolRange],
-      roomCode: this.roomCache.get(id)?.roomCode ?? this.roomDisplayMetadata.get(id)?.roomCode,
-    });
-    this.persistDisplayMetadata();
-    this.publishDisplayMetadata(id);
-    this.emitRooms();
   }
 
   async setReady(roomId: string, isReady: boolean): Promise<BattleRoomSession> {
     return this.remember(await this.client.ready(parseRoomId(roomId), isReady));
   }
 
-  async startGame(roomId: string): Promise<void> {
-    this.remember(await this.client.start(parseRoomId(roomId)));
-  }
+  async startGame(roomId: string): Promise<void> { this.remember(await this.client.start(parseRoomId(roomId))); }
 
   async leaveRoom(roomId: string): Promise<void> {
     const id = parseRoomId(roomId);
     const confirmAfterPendingMutation = this.pendingMembershipMutations > 0;
-
-    // A leave must reach the backend immediately. Waiting behind the
-    // idempotent room-hydration join kept an abandoned host room visible to
-    // every other lobby subscriber until that join eventually completed.
     this.forgetRoom(id);
-    const immediateLeave = this.client.leave(id).then(
-      () => ({ ok: true as const }),
-      (cause: unknown) => ({ ok: false as const, cause }),
-    );
-
+    const immediateLeave = this.client.leave(id).then(() => ({ ok: true as const }), (cause: unknown) => ({ ok: false as const, cause }));
     await this.enqueueMembershipMutation(async () => {
       try {
         const firstAttempt = await immediateLeave;
         if (confirmAfterPendingMutation) {
-          // The urgent request may race an older join. Once that join has
-          // settled, confirm leave again so a late join cannot resurrect the
-          // membership or make the room public again.
-          try {
-            await this.client.leave(id);
-          } catch (cause) {
-            if (!isAlreadyGoneRoom(cause)) throw cause;
-          }
-        } else if (!firstAttempt.ok && !isAlreadyGoneRoom(firstAttempt.cause)) {
-          throw firstAttempt.cause;
-        }
-      } finally {
-        // A failed/already-completed remote leave must not keep a ghost room in
-        // this browser's authoritative-looking local lobby cache.
-        this.forgetRoom(id);
-      }
+          try { await this.client.leave(id); } catch (cause) { if (!isAlreadyGoneRoom(cause)) throw cause; }
+        } else if (!firstAttempt.ok && !isAlreadyGoneRoom(firstAttempt.cause)) throw firstAttempt.cause;
+      } finally { this.forgetRoom(id); }
     });
   }
 
   async returnToWaiting(roomId: string): Promise<void> {
-    // The result endpoint itself returns the room to WAITING (FR-013). There
-    // is no follow-up room-detail endpoint, so mirror that documented state in
-    // the cache used by the waiting-room screen.
     const id = parseRoomId(roomId);
     const current = this.roomCache.get(id);
-    if (!current) throw new Error("이 방의 상세 정보가 없습니다. 방 목록에서 다시 입장해 주세요.");
-    this.roomCache.set(id, {
-      ...current,
-      status: "WAITING",
-      hostReady: false,
-      guestReady: false,
-    });
+    if (!current) throw new Error("방의 상세 정보를 찾을 수 없습니다.");
+    this.roomCache.set(id, { ...current, status: "WAITING", hostReady: false, guestReady: false });
     this.emitRooms();
   }
 
   private remember(room: BackendGameRoom): BattleRoomSession {
     this.roomCache.set(room.id, room);
-    return { ...toDetail(room, this.options, this.findDisplayMetadata(room.id, room.roomCode)), currentUser: this.options.currentUser };
+    return { ...toDetail(room, this.options), currentUser: this.options.currentUser };
   }
 
   private enqueueMembershipMutation<T>(operation: () => Promise<T>): Promise<T> {
-    // A route change can issue leave while the waiting room's idempotent join
-    // is still hydrating, and the lobby can issue create before that leave has
-    // completed. Preserve call order so a late join cannot resurrect a room
-    // membership and a new room is never created before the previous leave.
     this.pendingMembershipMutations += 1;
     const result = this.membershipMutation.then(operation, operation);
-    const tracked = result.finally(() => {
-      this.pendingMembershipMutations = Math.max(0, this.pendingMembershipMutations - 1);
-    });
+    const tracked = result.finally(() => { this.pendingMembershipMutations = Math.max(0, this.pendingMembershipMutations - 1); });
     this.membershipMutation = tracked.then(() => undefined, () => undefined);
     return tracked;
   }
 
-  private forgetRoom(id: number): void {
-    this.roomCache.delete(id);
-    this.lobbyCache.delete(id);
-    // Leaving only removes this browser's membership. The room can continue
-    // with the remaining participant as its new host, so deleting the shared
-    // display metadata here would turn its title and host back into fallbacks.
-    // A newly created room with the same id always overwrites this entry.
-    this.emitRooms();
-  }
+  private forgetRoom(id: number): void { this.roomCache.delete(id); this.lobbyCache.delete(id); this.emitRooms(); }
 
   private ensureLobby(): void {
     if (this.lobbyStarted) return;
@@ -282,295 +137,63 @@ export class SwaggerBattleRoomGateway implements BattleRoomGateway {
   private scheduleReconnect(): void {
     this.lobbyStarted = false;
     if (this.listeners.size === 0 || this.reconnectTimer) return;
-    this.reconnectTimer = setTimeout(() => {
-      this.reconnectTimer = null;
-      this.ensureLobby();
-    }, 1_000);
+    this.reconnectTimer = setTimeout(() => { this.reconnectTimer = null; this.ensureLobby(); }, 1_000);
   }
 
   private currentRooms(): readonly BattleRoomSummary[] {
     const expected = this.options.gameType ?? "TETRIS_DUEL";
     return [...this.lobbyCache.values()]
-      // The result endpoint resets a completed match to WAITING while both
-      // participants are still viewing the result modal. Such a 2/2 room is
-      // not joinable and must not reappear in room search before either player
-      // explicitly leaves. The same rule also keeps any other full room out of
-      // the public finder until a seat actually becomes available.
-      .filter((room) => (
-        room.gameType === expected
-        && room.status === "WAITING"
-        && room.participantCount < room.capacity
-      ))
-      .map((room) => toSummary(room, this.findDisplayMetadata(room.id, room.roomCode)));
+      .filter((room) => room.gameType === expected && room.status === "WAITING" && room.participantCount < room.capacity)
+      .map(toSummary);
   }
 
   private applyLobbySnapshot(rooms: readonly LobbyRoomSummary[]): void {
     this.lobbyCache.clear();
-    for (const room of rooms) {
-      if (room.status !== "CLOSED") this.lobbyCache.set(room.id, room);
-    }
+    for (const room of rooms) if (room.status !== "CLOSED") this.lobbyCache.set(room.id, room);
     this.emitRooms();
   }
 
-  private startDisplayMetadataSync(): void {
-    if (this.displayMetadataSyncStarted || typeof window === "undefined") return;
-    this.displayMetadataSyncStarted = true;
-    window.addEventListener("storage", this.handleDisplayMetadataStorage);
-    window.addEventListener(ROOM_DISPLAY_METADATA_UPDATED_EVENT, this.handleLocalDisplayMetadataUpdate);
-    if (typeof BroadcastChannel !== "undefined") {
-      this.displayMetadataChannel = new BroadcastChannel(this.displayMetadataChannelName());
-      this.displayMetadataChannel.addEventListener("message", this.handleDisplayMetadataMessage);
-    }
-  }
-
-  private stopDisplayMetadataSync(): void {
-    if (!this.displayMetadataSyncStarted || typeof window === "undefined") return;
-    this.displayMetadataSyncStarted = false;
-    window.removeEventListener("storage", this.handleDisplayMetadataStorage);
-    window.removeEventListener(ROOM_DISPLAY_METADATA_UPDATED_EVENT, this.handleLocalDisplayMetadataUpdate);
-    this.displayMetadataChannel?.removeEventListener("message", this.handleDisplayMetadataMessage);
-    this.displayMetadataChannel?.close();
-    this.displayMetadataChannel = null;
-  }
-
-  private readonly handleDisplayMetadataStorage = (event: StorageEvent): void => {
-    if (!this.isDisplayMetadataStorageKey(event.key)) return;
-    this.reloadDisplayMetadataAndEmit();
-  };
-
-  private readonly handleLocalDisplayMetadataUpdate = (event: Event): void => {
-    const detail = (event as CustomEvent<{ readonly key?: string }>).detail;
-    if (!this.isDisplayMetadataStorageKey(detail?.key ?? null)) return;
-    this.reloadDisplayMetadataAndEmit();
-  };
-
-  private readonly handleDisplayMetadataMessage = (event: MessageEvent<unknown>): void => {
-    const data = event.data;
-    if (typeof data !== "object" || data === null || Array.isArray(data)) return;
-    const record = data as Record<string, unknown>;
-    if (!Number.isSafeInteger(record.roomId) || !isRoomDisplayMetadata(record.metadata)) return;
-    this.roomDisplayMetadata.set(record.roomId as number, record.metadata);
-    this.persistDisplayMetadata();
-    this.emitRooms();
-  };
-
-  private reloadDisplayMetadataAndEmit(): void {
-    this.roomDisplayMetadata.clear();
-    this.restoreDisplayMetadata();
-    this.emitRooms();
-  }
-
-  private emitRooms(): void {
-    const rooms = this.currentRooms();
-    for (const listener of this.listeners) listener(rooms);
-  }
-
-  private restoreDisplayMetadata(): void {
-    try {
-      if (typeof window === "undefined") return;
-      // Read the former user-scoped key first so deployed clients keep their
-      // existing metadata, then let the shared key overwrite it. The shared
-      // key is required because the room finder is commonly tested with two
-      // signed-in tabs on the same origin.
-      for (const key of this.displayMetadataStorageKeys()) {
-        const raw = window.localStorage.getItem(key);
-        if (!raw) continue;
-        this.restoreDisplayMetadataValue(key, JSON.parse(raw) as unknown);
-      }
-    } catch {
-      // Storage may be unavailable in private browsing; the live room still works.
-    }
-  }
-
-  private persistDisplayMetadata(): void {
-    try {
-      if (typeof window === "undefined") return;
-      // A gateway instance may have been created before another signed-in tab
-      // saved a room. Merge the latest shared value before writing so a stale
-      // instance can never erase another room's title or host nickname.
-      const sharedKey = this.displayMetadataStorageKey();
-      const persisted = window.localStorage.getItem(sharedKey);
-      if (persisted) {
-        const ownEntries = new Map(this.roomDisplayMetadata);
-        this.restoreDisplayMetadataValue(sharedKey, JSON.parse(persisted) as unknown);
-        for (const [id, metadata] of ownEntries) this.roomDisplayMetadata.set(id, metadata);
-      }
-      window.localStorage.setItem(
-        sharedKey,
-        JSON.stringify([...this.roomDisplayMetadata.entries()]),
-      );
-      // Room-scoped keys avoid whole-map overwrite races between tabs and let
-      // a lobby room recover metadata by invitation code when numeric ids do
-      // not line up with an early SSE snapshot.
-      for (const [id, metadata] of this.roomDisplayMetadata) {
-        window.localStorage.setItem(this.displayMetadataRoomStorageKey(id), JSON.stringify(metadata));
-      }
-      window.dispatchEvent(new CustomEvent(ROOM_DISPLAY_METADATA_UPDATED_EVENT, {
-        detail: { key: sharedKey },
-      }));
-    } catch {
-      // Display metadata persistence is an enhancement, not a gameplay dependency.
-    }
-  }
-
-  private displayMetadataStorageKey(): string {
-    return `${ROOM_DISPLAY_METADATA_KEY_PREFIX}${this.options.gameType ?? "TETRIS_DUEL"}`;
-  }
-
-  private displayMetadataChannelName(): string {
-    return `${ROOM_DISPLAY_METADATA_CHANNEL_PREFIX}${this.options.gameType ?? "TETRIS_DUEL"}`;
-  }
-
-  private publishDisplayMetadata(roomId: number): void {
-    const metadata = this.roomDisplayMetadata.get(roomId);
-    if (!metadata || typeof BroadcastChannel === "undefined") return;
-    const channel = this.displayMetadataChannel ?? new BroadcastChannel(this.displayMetadataChannelName());
-    channel.postMessage({ roomId, metadata });
-    if (channel !== this.displayMetadataChannel) channel.close();
-  }
-
-  private displayMetadataRoomStorageKey(roomId: number): string {
-    return `${this.displayMetadataStorageKey()}:room:${roomId}`;
-  }
-
-  private isDisplayMetadataStorageKey(key: string | null): boolean {
-    const sharedKey = this.displayMetadataStorageKey();
-    return key === sharedKey || Boolean(key?.startsWith(`${sharedKey}:`));
-  }
-
-  private legacyDisplayMetadataStorageKey(): string {
-    return `${this.displayMetadataStorageKey()}:${this.options.currentUser.userId}`;
-  }
-
-  private displayMetadataStorageKeys(): readonly string[] {
-    const sharedKey = this.displayMetadataStorageKey();
-    const legacyKey = this.legacyDisplayMetadataStorageKey();
-    const legacyKeys = new Set<string>([legacyKey]);
-    const roomKeys: string[] = [];
-    // Migrate metadata created by another signed-in tab before the shared key
-    // was introduced. This keeps rooms already visible in the lobby from
-    // requiring recreation after the frontend update.
-    for (let index = 0; index < window.localStorage.length; index += 1) {
-      const key = window.localStorage.key(index);
-      if (!key?.startsWith(`${sharedKey}:`) || key === sharedKey) continue;
-      if (key.startsWith(`${sharedKey}:room:`)) roomKeys.push(key);
-      else legacyKeys.add(key);
-    }
-    // Room-scoped values are newest and therefore intentionally applied last.
-    return [...legacyKeys, sharedKey, ...roomKeys];
-  }
-
-  private restoreDisplayMetadataValue(key: string, value: unknown): void {
-    if (isRoomDisplayMetadata(value)) {
-      const match = /:room:(\d+)$/.exec(key);
-      const id = match ? Number(match[1]) : Number.NaN;
-      if (Number.isSafeInteger(id) && id > 0) this.roomDisplayMetadata.set(id, value);
-      return;
-    }
-    if (!Array.isArray(value)) return;
-    for (const entry of value) {
-      if (!Array.isArray(entry) || entry.length !== 2 || !Number.isSafeInteger(entry[0]) || !isRoomDisplayMetadata(entry[1])) continue;
-      this.roomDisplayMetadata.set(entry[0], entry[1]);
-    }
-  }
-
-  private findDisplayMetadata(roomId: number, roomCode: string): RoomDisplayMetadata | undefined {
-    const direct = this.roomDisplayMetadata.get(roomId);
-    // Numeric room ids can be reused after a room is destroyed. Never apply
-    // the previous room's title/host to a new invitation code with that id.
-    if (direct && (!direct.roomCode || direct.roomCode === roomCode)) return direct;
-    return [...this.roomDisplayMetadata.values()].find((metadata) => metadata.roomCode === roomCode);
-  }
+  private emitRooms(): void { const rooms = this.currentRooms(); for (const listener of this.listeners) listener(rooms); }
 }
 
-function isRoomDisplayMetadata(value: unknown): value is RoomDisplayMetadata {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
-  const record = value as Record<string, unknown>;
-  return typeof record.title === "string"
-    && typeof record.hostName === "string"
-    && typeof record.difficulty === "string"
-    && (record.roomCode === undefined || typeof record.roomCode === "string")
-    && Array.isArray(record.symbolRange)
-    && record.symbolRange.every((symbol) => typeof symbol === "string");
-}
+function isAlreadyGoneRoom(cause: unknown): boolean { return cause instanceof Error && /\((?:403|404|410)\)/.test(cause.message); }
 
-function isAlreadyGoneRoom(cause: unknown): boolean {
-  return cause instanceof Error && /\((?:403|404|410)\)/.test(cause.message);
-}
-
-function toSummary(room: LobbyRoomSummary, metadata?: RoomDisplayMetadata): BattleRoomSummary {
+function toSummary(room: LobbyRoomSummary): BattleRoomSummary {
+  if (!room.title || !room.hostName) throw new Error("Game room metadata is missing from the server response.");
   return {
-    // The list has no join-by-id API. The card carries the room code as its join key.
     roomId: room.roomCode,
-    title: room.title && !isPlaceholderRoomTitle(room.title) ? room.title : metadata?.title ?? DEFAULT_ROOM_TITLE,
+    title: room.title,
     status: room.status === "IN_PROGRESS" ? "PLAYING" : room.participantCount >= room.capacity ? "FULL" : "WAITING",
     playerCount: room.participantCount,
     maxPlayers: room.capacity,
     hostUserId: "",
-    hostName: room.hostName && !isPlaceholderHostName(room.hostName) ? room.hostName : metadata?.hostName ?? DEFAULT_HOST_NAME,
-    difficulty: room.difficulty ?? metadata?.difficulty ?? "BASIC",
-    symbolRange: room.symbolRange ?? metadata?.symbolRange ?? [],
+    hostName: room.hostName,
+    symbolRange: room.symbolRange,
     createdAt: null,
     canJoin: room.status === "WAITING" && room.participantCount < room.capacity,
     roomCode: room.roomCode,
   };
 }
 
-function isPlaceholderRoomTitle(value?: string): boolean {
-  return !value || value === DEFAULT_ROOM_TITLE;
-}
-
-function isPlaceholderHostName(value?: string): boolean {
-  return !value || value === DEFAULT_HOST_NAME || value === "방장";
-}
-
-function toDetail(room: BackendGameRoom, options: BattleRoomGatewayOptions, metadata?: RoomDisplayMetadata): BattleRoomDetail {
+function toDetail(room: BackendGameRoom, options: BattleRoomGatewayOptions): BattleRoomDetail {
   const currentUserId = options.currentUser.userId;
   const participants: BattleRoomParticipant[] = [
-    participant(String(room.hostUserId), true, room.hostReady, currentUserId, options),
-    ...(room.guestUserId === null ? [] : [
-      participant(String(room.guestUserId), false, room.guestReady, currentUserId, options),
-    ]),
+    { userId: String(room.hostUserId), displayName: room.hostName, isHost: true, ready: room.hostReady },
+    ...(room.guestUserId === null ? [] : [{ userId: String(room.guestUserId), displayName: String(room.guestUserId), isHost: false, ready: room.guestReady }]),
   ];
   const isHost = String(room.hostUserId) === currentUserId;
   const full = room.participantCount >= room.capacity;
   const canStart = isHost && full && room.hostReady && room.guestReady && room.status === "WAITING";
   return {
-    roomId: String(room.id),
-    title: metadata?.title ?? "프링글수 대전방",
+    roomId: String(room.id), title: room.roomTitle,
     status: room.status === "IN_PROGRESS" ? "PLAYING" : room.status === "CLOSED" ? "FINISHED" : full ? "FULL" : "WAITING",
-    playerCount: room.participantCount,
-    maxPlayers: room.capacity,
-    hostUserId: String(room.hostUserId),
-    hostName: metadata?.hostName ?? participants[0]?.displayName ?? "프링글수 유저",
-    difficulty: metadata?.difficulty ?? "BASIC",
-    symbolRange: metadata?.symbolRange ?? [],
-    createdAt: null,
-    canJoin: room.status === "WAITING" && !full,
-    roomCode: room.roomCode,
-    participants,
-    hostReady: room.hostReady,
-    guestReady: room.guestReady,
-    currentUserReady: isHost ? room.hostReady : room.guestReady,
-    canStart,
-    startBlockReason: canStart ? undefined : !full ? "상대방이 입장해야 시작할 수 있습니다." : "두 참가자가 모두 준비해야 시작할 수 있습니다.",
-    rematch: false,
-    activeMatchId: room.status === "IN_PROGRESS" ? String(room.id) : null,
-    matchStartAt: null,
+    playerCount: room.participantCount, maxPlayers: room.capacity,
+    hostUserId: String(room.hostUserId), hostName: room.hostName, symbolRange: room.symbolRange,
+    createdAt: null, canJoin: room.status === "WAITING" && !full, roomCode: room.roomCode, participants,
+    hostReady: room.hostReady, guestReady: room.guestReady, currentUserReady: isHost ? room.hostReady : room.guestReady,
+    canStart, startBlockReason: canStart ? undefined : !full ? "상대방이 입장해야 시작할 수 있습니다." : "두 참가자가 모두 준비해야 시작할 수 있습니다.",
+    rematch: false, activeMatchId: room.status === "IN_PROGRESS" ? String(room.id) : null, matchStartAt: null,
   };
 }
 
-function participant(userId: string, isHost: boolean, ready: boolean, currentUserId: string, options: BattleRoomGatewayOptions): BattleRoomParticipant {
-  return {
-    userId,
-    displayName: userId === currentUserId ? options.currentUser.displayName : isHost ? "방장" : "상대방",
-    isHost,
-    ready,
-  };
-}
-
-function parseRoomId(value: string): number {
-  const id = Number(value);
-  if (!Number.isSafeInteger(id) || id <= 0) throw new Error("올바르지 않은 방 ID입니다.");
-  return id;
-}
+function parseRoomId(value: string): number { const id = Number(value); if (!Number.isSafeInteger(id) || id <= 0) throw new Error("올바르지 않은 방 ID입니다."); return id; }

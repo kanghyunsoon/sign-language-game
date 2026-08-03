@@ -1,8 +1,9 @@
 import type { MatchConnectionOptions } from "../../../match";
+import type { SymbolRange } from "../room";
 
 export type BattleConnectionState = "DISCONNECTED" | "CONNECTING" | "CONNECTED" | "RECONNECTING" | "ERROR";
 
-export interface BattleConnectionOptions extends MatchConnectionOptions { readonly hostPlayerId?: string; readonly playerIds?: readonly string[]; }
+export interface BattleConnectionOptions extends MatchConnectionOptions { readonly hostPlayerId?: string; readonly playerIds?: readonly string[]; readonly symbolRange?: SymbolRange; }
 
 export type BattleLetterState = "FALLING" | "SETTLED" | "REMOVING" | "REMOVED";
 

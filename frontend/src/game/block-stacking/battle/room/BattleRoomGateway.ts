@@ -14,11 +14,6 @@ export interface BattleRoomGateway {
   /** The deployed backend joins by roomCode, not by room id. */
   joinRoom(roomId: string): Promise<BattleRoomSession>;
   getRoom(roomId: string): Promise<BattleRoomDetail>;
-  /** Keeps lobby-only display data in sync when room ownership changes. */
-  updateRoomDisplayMetadata?(
-    roomId: string,
-    metadata: Pick<BattleRoomSummary, "title" | "hostName" | "difficulty" | "symbolRange">,
-  ): void;
   setReady?(roomId: string, isReady: boolean): Promise<BattleRoomSession>;
   leaveRoom(roomId: string): Promise<void>;
   startGame(roomId: string): Promise<void>;

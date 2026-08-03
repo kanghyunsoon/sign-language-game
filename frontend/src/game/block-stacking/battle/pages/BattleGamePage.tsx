@@ -37,6 +37,7 @@ import { BattleRoomRecoveryCancelledError, isMissingOrForbiddenRoom, recoverBatt
 import { consumeBattleRefreshExit, markBattlePageUnload } from "../core/BattleRefreshExit";
 import { useLoopingGameBgm } from "../../../shared/useLoopingGameBgm";
 import pixelPartyBgm from "../../assets/pixel-party.mp3";
+import { isSymbolRange } from "../room/symbolRange";
 
 const INITIAL: BattleControllerSnapshot = { state: "IDLE", gameConnectionState: "DISCONNECTED", aiConnectionState: "DISCONNECTED", countdownMs: 0, reconnectDeadlineAt: null, score: 0, combo: 0, opponentCombo: 0, maxCombo: 0, removedCount: 0, targetSymbol: null, prediction: null, message: "Waiting for board initialization.", result: null };
 const BATTLE_CANVAS_WIDTH = 1680;
@@ -324,7 +325,7 @@ export function BattleGamePage() {
         setFinalResult(next.result);
       }
     });
-    void controller.connect({ url: config.gameWebSocketUrl, roomId, playerId: user.userId, accessToken, headers: accessToken ? undefined : createDevAuthHeaders(user), hostPlayerId: battleRoomSession?.hostUserId, playerIds: [...new Set(battleRoomSession?.participants.map((participant) => participant.userId) ?? [user.userId])] });
+    void controller.connect({ url: config.gameWebSocketUrl, roomId, playerId: user.userId, accessToken, headers: accessToken ? undefined : createDevAuthHeaders(user), hostPlayerId: battleRoomSession?.hostUserId, playerIds: [...new Set(battleRoomSession?.participants.map((participant) => participant.userId) ?? [user.userId])], symbolRange: isSymbolRange(battleRoomSession?.symbolRange) ? battleRoomSession.symbolRange : "ALL" });
     // The opponent board is an interpolated view of owner-authoritative
     // transforms. It deliberately does not run another Matter.js simulation.
     const remote = new RemoteBoardRenderer(remoteRenderer, replica);
@@ -343,7 +344,7 @@ export function BattleGamePage() {
     };
     remoteLoopRef.current = requestAnimationFrame(renderRemote);
     return () => { if (remoteLoopRef.current !== null) cancelAnimationFrame(remoteLoopRef.current); if (claimEffectTimerRef.current !== null) window.clearTimeout(claimEffectTimerRef.current); if (drainEffectTimerRef.current !== null) window.clearTimeout(drainEffectTimerRef.current); if (hammerEffectTimerRef.current !== null) window.clearTimeout(hammerEffectTimerRef.current); remoteLoopRef.current = null; unsubscribe(); controller.dispose(); controllerRef.current = null; localRuntimeRef.current = null; remote.clear(); };
-  }, [accessToken, battleRoomSession?.activeMatchId, config.gameWebSocketUrl, localRenderer, mediaReady, recognizer, refreshExitRequired, remoteRenderer, replica, roomId, transport, user]);
+  }, [accessToken, battleRoomSession?.activeMatchId, battleRoomSession?.symbolRange, config.gameWebSocketUrl, localRenderer, mediaReady, recognizer, refreshExitRequired, remoteRenderer, replica, roomId, transport, user]);
 
   useEffect(() => {
     let frame = 0;

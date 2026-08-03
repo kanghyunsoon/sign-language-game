@@ -95,24 +95,7 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
       window.removeEventListener("focus", refreshRanking);
     };
   }, [rankingClient]);
-  const displayRooms = useMemo(() => rooms.map((room) => {
-    if (!activeRoomSession || !sameRoom(room, activeRoomSession)) return room;
-    const currentUserIsHost = String(activeRoomSession.hostUserId) === String(user.userId);
-    return {
-      ...room,
-      title: room.title === "프링글수 대전방" && activeRoomSession.title !== "프링글수 대전방"
-        ? activeRoomSession.title
-        : room.title,
-      hostName: currentUserIsHost
-        ? user.displayName
-        : (room.hostName === "프링글수 유저" || room.hostName === "방장")
-          && activeRoomSession.hostName !== "프링글수 유저" && activeRoomSession.hostName !== "방장"
-          ? activeRoomSession.hostName
-          : room.hostName,
-      difficulty: room.difficulty === "BASIC" ? activeRoomSession.difficulty : room.difficulty,
-      symbolRange: room.symbolRange.length === 0 ? activeRoomSession.symbolRange : room.symbolRange,
-    };
-  }), [activeRoomSession, rooms, user.displayName, user.userId]);
+  const displayRooms = rooms;
   const visibleRooms = useMemo(() => displayRooms.filter((room) => { const byName = room.title.toLowerCase().includes(query.trim().toLowerCase()); const byStatus = filter === "ALL" || (filter === "WAITING" ? room.status === "WAITING" : room.canJoin); return byName && byStatus; }), [displayRooms, filter, query]);
   const createRoom = async (request: CreateRoomRequest) => {
     // React state is applied after the current event turn, so rapid submit
@@ -251,30 +234,14 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
   );
 }
 function errorMessage(cause: unknown, fallback: string): string { return cause instanceof Error && cause.message ? cause.message : fallback; }
-function sameRoom(room: BattleRoomSummary, session: BattleRoomSummary): boolean {
-  return Boolean(
-    (room.roomCode && session.roomCode && room.roomCode === session.roomCode)
-    || room.roomId === session.roomId
-    || room.roomId === session.roomCode,
-  );
-}
-
 function enrichJoinedSession(session: BattleRoomSession, listedRoom: BattleRoomSummary, currentUserId: string): BattleRoomSession {
-  const listedHostName = isPlaceholderName(listedRoom.hostName) ? null : listedRoom.hostName;
   return {
     ...session,
     title: listedRoom.title,
-    hostName: listedHostName ?? session.hostName,
-    difficulty: listedRoom.difficulty,
+    hostName: listedRoom.hostName,
     symbolRange: listedRoom.symbolRange,
-    participants: session.participants.map((participant) =>
-      participant.isHost && participant.userId !== currentUserId && listedHostName
-        ? { ...participant, displayName: listedHostName }
-        : participant
-    ),
+    participants: session.participants.map((participant) => participant.isHost && participant.userId !== currentUserId
+      ? { ...participant, displayName: listedRoom.hostName }
+      : participant),
   };
-}
-
-function isPlaceholderName(value: string): boolean {
-  return ["방장", "상대방", "프링글수 유저"].includes(value.trim());
 }

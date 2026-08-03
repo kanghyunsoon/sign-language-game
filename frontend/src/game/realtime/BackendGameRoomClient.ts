@@ -12,6 +12,9 @@ export interface BackendGameRoom {
   readonly participantCount: number;
   readonly capacity: number;
   readonly gameType: BackendGameType;
+  readonly roomTitle: string;
+  readonly hostName: string;
+  readonly symbolRange: "CONSONANT" | "VOWEL" | "ALL";
   readonly realtimeTicket?: string;
 }
 
@@ -31,10 +34,10 @@ export class BackendGameRoomClient {
     this.fetcher = options.fetcher ?? globalThis.fetch.bind(globalThis);
   }
 
-  create(gameType: BackendGameType): Promise<BackendGameRoom> {
+  create(request: { readonly gameType: BackendGameType; readonly roomTitle: string; readonly symbolRange: "CONSONANT" | "VOWEL" | "ALL" }): Promise<BackendGameRoom> {
     return this.roomRequest("", {
       method: "POST",
-      body: JSON.stringify({ gameType }),
+      body: JSON.stringify(request),
     });
   }
 
@@ -117,6 +120,12 @@ export function parseBackendGameRoom(value: unknown): BackendGameRoom {
   if (realtimeTicket !== undefined && realtimeTicket !== null && typeof realtimeTicket !== "string") {
     throw new Error("Invalid realtime ticket.");
   }
+  const roomTitle = optionalText(value.title) ?? string(value.roomTitle, "roomTitle");
+  const hostName = string(value.hostName, "hostName");
+  const symbolRange = value.symbolRange;
+  if (symbolRange !== "CONSONANT" && symbolRange !== "VOWEL" && symbolRange !== "ALL") {
+    throw new Error("Invalid symbolRange.");
+  }
   return {
     id: number(value.id, "id"),
     roomCode: string(value.roomCode, "roomCode"),
@@ -130,6 +139,9 @@ export function parseBackendGameRoom(value: unknown): BackendGameRoom {
     participantCount: number(value.participantCount, "participantCount"),
     capacity: number(value.capacity, "capacity"),
     gameType,
+    roomTitle,
+    hostName,
+    symbolRange,
     ...(typeof realtimeTicket === "string" && realtimeTicket.length > 0 ? { realtimeTicket } : {}),
   };
 }
@@ -141,6 +153,9 @@ function number(value: unknown, name: string): number {
 function string(value: unknown, name: string): string {
   if (typeof value !== "string" || value.length === 0) throw new Error(`Invalid ${name}.`);
   return value;
+}
+function optionalText(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 function boolean(value: unknown, name: string): boolean {
   if (typeof value !== "boolean") throw new Error(`Invalid ${name}.`);
