@@ -21,7 +21,7 @@ public class GameRoomController implements GameRoomApi {
     @Override
     public ResponseEntity<GameRoomResponse> createRoom(Long userId, CreateRoomRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(gameRoomService.create(userId, request.gameType()));
+                .body(gameRoomService.create(userId, request.gameType(), request.roomTitle(), request.symbolRange()));
     }
 
     @Override
