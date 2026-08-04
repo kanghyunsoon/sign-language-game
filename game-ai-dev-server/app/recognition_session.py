@@ -25,16 +25,27 @@ from .model_adapter import ModelContract, ModelRunner
 #   jitter σ=0.015      accuracy 0.887   ㅔ 0.145   ㅖ 0.000   margin 0.234
 #     + median-3        accuracy 0.938   ㅔ 0.242   ㅖ 0.305   margin 0.306
 #     + EMA α=0.5       accuracy 0.948   ㅔ 0.387   ㅖ 0.390   margin 0.484
-#     + EMA α=0.3 →     accuracy 0.966   ㅔ 0.677   ㅖ 0.627   margin 0.803
+#     + EMA α=0.3       accuracy 0.966   ㅔ 0.677   ㅖ 0.627   margin 0.803
 #
 #   jitter σ=0.008      accuracy 0.970   ㅔ 0.387   ㅖ 0.729   margin 0.532
-#     + EMA α=0.3 →     accuracy 0.977   ㅔ 1.000   ㅖ 0.797   margin 0.918
+#     + EMA α=0.3       accuracy 0.977   ㅔ 1.000   ㅖ 0.797   margin 0.918
 #
 # α is the weight of the *new* frame, so a smaller value smooths harder and lags
 # more. 1.0 disables smoothing. A median filter was measurably weaker than the
 # EMA at every jitter level, so it is not used. See T-154 in
 # docs/recognition/model-evaluation.md.
-LANDMARK_SMOOTHING_ALPHA = float(os.getenv("HANDPRACTICE_AI_LANDMARK_SMOOTHING", "0.3"))
+#
+# DISABLED BY DEFAULT (T-155). The numbers above are real but they were measured
+# against *synthetic* jitter: zero-mean displacement injected around otherwise
+# correct landmarks. An EMA recovers the truth only when the error is zero-mean
+# noise. Real MediaPipe self-occlusion failure is not that — it emits a
+# systematically wrong pose (collapsed fingers, inverted depth order), and
+# averaging a biased error just yields a smooth wrong pose plus added lag. Real
+# use after deploying α=0.3 got worse, not better, and the reported oscillation
+# was unchanged. Kept in the code (it is measured, tested, and one env var away)
+# but shipped off until the actual failure mode is characterised from real
+# frames rather than a synthetic model of it.
+LANDMARK_SMOOTHING_ALPHA = float(os.getenv("HANDPRACTICE_AI_LANDMARK_SMOOTHING", "1.0"))
 
 
 @dataclass(frozen=True)
@@ -76,6 +87,8 @@ class RecognitionSession:
 
     def _smooth(self, landmarks: tuple[Landmark, ...], handedness: str) -> tuple[Landmark, ...]:
         """EMA the raw landmarks so MediaPipe jitter does not reach the model.
+
+        Off unless HANDPRACTICE_AI_LANDMARK_SMOOTHING is lowered below 1.0.
 
         The history is dropped when the hand switches, because the two hands are
         not the same trajectory and blending them would invent a pose.

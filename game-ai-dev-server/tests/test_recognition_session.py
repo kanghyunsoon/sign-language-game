@@ -80,10 +80,10 @@ class RecognitionSessionTests(unittest.TestCase):
         })
 
     def test_landmark_smoothing_suppresses_jitter_but_follows_real_movement(self) -> None:
-        """Frontal jamo fail because MediaPipe oscillates the fingertips in place.
+        """Kept for when smoothing is re-enabled; it ships disabled (T-155).
 
-        The EMA must damp that oscillation while still tracking a sustained move,
-        otherwise a real handshape change would lag forever.
+        The EMA must damp an in-place oscillation while still tracking a sustained
+        move, otherwise a real handshape change would lag forever.
         """
         session = RecognitionSession(MockModelRunner([]), smoothing_alpha=0.3)
         flat = tuple(Landmark(0.5, 0.5, 0.0) for _ in range(21))
@@ -114,8 +114,10 @@ class RecognitionSessionTests(unittest.TestCase):
         session.process_hand_not_detected(1200)
         self.assertIsNone(session._smoothed)
 
-    def test_smoothing_can_be_disabled_and_default_is_configured(self) -> None:
-        self.assertAlmostEqual(LANDMARK_SMOOTHING_ALPHA, 0.3)
+    def test_smoothing_is_off_by_default(self) -> None:
+        # Shipped disabled (T-155): the measured benefit came from synthetic
+        # zero-mean jitter and did not hold in real use.
+        self.assertAlmostEqual(LANDMARK_SMOOTHING_ALPHA, 1.0)
         session = RecognitionSession(MockModelRunner([]), smoothing_alpha=1.0)
         raw = tuple(Landmark(0.1 * index, 0.2, 0.3) for index in range(21))
         self.assertIs(session._smooth(raw, "RIGHT"), raw)
