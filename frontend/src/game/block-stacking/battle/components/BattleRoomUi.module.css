@@ -143,7 +143,8 @@
 .waitingLobby::before { inset:0; background:linear-gradient(180deg,rgba(231,248,255,.06),rgba(255,255,255,.03) 48%,rgba(179,207,105,.08)); pointer-events:none; }
 .waitingLobby::after { display:none; }
 .waitingLobby .waitingBack { top:clamp(20px,3vw,40px); left:clamp(20px,4vw,64px); width:44px; min-height:44px; color:#6d583f; }
-.waitingLobby .waitingProfile { top:clamp(20px,3vw,40px); right:clamp(20px,4vw,64px); }
+/* `.waitingLobby > *`(0,1,1)가 `.waitingProfile`(0,1,0)의 absolute를 이긴다. 여기서 되돌린다. */
+.waitingLobby .waitingProfile { position:absolute; top:clamp(20px,3vw,40px); right:clamp(20px,4vw,64px); }
 .waitingLobby .waitingRoomHero { min-height:0; margin:72px 0 0; padding:16px 20px; }
 .waitingLobby .waitingLayout { min-height:0; height:100%; margin:0; grid-template-columns:minmax(0,1fr) minmax(230px,.28fr); gap:16px; overflow:hidden; }
 .waitingLobby .waitingStage { min-height:0; display:grid; grid-template-rows:minmax(0,1fr) auto; gap:12px; padding:14px; overflow:hidden; }
@@ -215,9 +216,9 @@
 
 .waitingLobby.fixedCanvasPage {
   width: 1920px;
-  height: 1200px;
+  height: 1080px;
   min-width: 1920px;
-  min-height: 1200px;
+  min-height: 1080px;
   padding: 24px 42px 26px;
 }
 
@@ -393,7 +394,10 @@
 
 .lobbyPage.fixedCanvasPage .lobbyBack:hover { background: #fff !important; box-shadow: 0 4px 0 rgba(133,101,68,.14); transform: translateY(-1px); }
 
+/* `.lobbyPage.fixedCanvasPage > *`가 직계 자식을 relative로 되돌린다. 같은 특이도라
+   여기서 다시 absolute로 못박지 않으면 칩이 grid 행을 차지해 히어로가 짓눌린다. */
 .lobbyPage.fixedCanvasPage .lobbyProfile {
+  position: absolute;
   top: 25px;
   right: 32px;
 }
