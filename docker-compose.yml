@@ -12,6 +12,10 @@ services:
       # Decision-margin gate (top1 - top2). Raise to 0.3~0.4 to demand a more
       # precise handshape; 0 disables the gate. See game-ai-dev-server/README.md.
       HANDPRACTICE_AI_MIN_MARGIN: ${HANDPRACTICE_AI_MIN_MARGIN:-0.25}
+      # Landmark EMA before feature extraction. Weight of the NEW frame, so a
+      # smaller value smooths harder and lags more; 1.0 disables it. 0.3 measured
+      # best against MediaPipe fingertip jitter (T-154).
+      HANDPRACTICE_AI_LANDMARK_SMOOTHING: ${HANDPRACTICE_AI_LANDMARK_SMOOTHING:-0.3}
 
     ports:
       - "127.0.0.1:${AI_PORT:-8765}:${AI_PORT:-8765}"
