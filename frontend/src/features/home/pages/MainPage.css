@@ -153,71 +153,6 @@ a {
   font-size: clamp(13px, 1vw, 19px);
 }
 
-.main-hero-actions {
-  position: absolute;
-  z-index: 3;
-  top: 47%;
-  right: clamp(45px, 13vw, 250px);
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  gap: clamp(25px, 4vh, 48px);
-}
-
-.main-secondary-button {
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  font-size: clamp(13px, 1vw, 19px);
-  font-weight: 700;
-  text-decoration: none;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.main-secondary-button {
-  position: relative;
-  grid-auto-flow: column;
-  width: 230px;
-  height: 70px;
-  padding: 0 24px;
-  border: 1px solid #d8cfc2;
-  border-radius: 999px;
-  color: var(--main-brown);
-  font-size: 22px;
-  font-weight: 800;
-  background: #fff;
-  box-shadow:
-    0 3px 6px rgba(72, 55, 41, 0.09),
-    0 12px 28px rgba(72, 55, 41, 0.14);
-}
-
-.main-secondary-button::before {
-  position: absolute;
-  bottom: -18px;
-  left: 24px;
-  width: 0;
-  height: 0;
-  border-top: 20px solid #d8cfc2;
-  border-right: 20px solid transparent;
-  content: "";
-}
-
-.main-secondary-button::after {
-  position: absolute;
-  bottom: -15px;
-  left: 26px;
-  width: 0;
-  height: 0;
-  border-top: 17px solid #fff;
-  border-right: 17px solid transparent;
-  content: "";
-}
-
-.main-secondary-button:hover {
-  box-shadow: 0 8px 18px rgba(72, 55, 41, 0.12);
-  transform: translateY(-2px);
-}
-
 .learning-menu-section {
   position: relative;
   z-index: 4;
@@ -497,13 +432,6 @@ a {
     width: 92px;
   }
 
-  .main-hero-actions {
-    top: auto;
-    right: 24px;
-    bottom: 40px;
-    gap: 12px;
-  }
-
   .learning-menu-card {
     align-items: flex-start;
     flex-direction: column;
@@ -541,21 +469,6 @@ a {
   .main-hero-heading {
     padding-right: 16px;
     padding-left: 16px;
-  }
-
-  .main-hero-actions {
-    right: 50%;
-    bottom: 8px;
-    width: 100%;
-    flex-direction: row;
-    justify-content: center;
-    transform: translateX(50%);
-  }
-
-  .main-secondary-button {
-    min-width: 0;
-    min-height: 42px;
-    padding: 0 16px;
   }
 
   .learning-menu-section {
@@ -703,32 +616,6 @@ a {
   right: 150px;
 }
 
-.main-hero-actions {
-  /* 버튼 한 칸(70px) + 간격(48px)만큼 올려, [학습 방법 보기]가 이전
-     [출석체크] 자리에 오고 [출석체크]는 그 위로 간다. */
-  top: 58%;
-  right: 460px;
-  bottom: auto;
-  width: auto;
-  flex-direction: column;
-  justify-content: initial;
-  gap: 48px;
-  transform: none;
-}
-
-.main-secondary-button {
-  min-height: 0;
-  font-size: 19px;
-}
-
-.main-secondary-button {
-  width: 230px;
-  min-width: 230px;
-  height: 70px;
-  min-height: 70px;
-  padding: 0 24px;
-  font-size: 22px;
-}
 
 .learning-menu-section {
   width: 1600px;
@@ -980,66 +867,7 @@ a {
   opacity: 0.6;
 }
 
-/* ---------------- 히어로 말풍선·수달 (839) ---------------- */
-
-/*
- * [출석체크]와 [학습 방법 보기]를 한 말풍선으로 잇는다. 각 버튼의 테두리·그림자·
- * 꼬리를 지우고 묶음에만 남겨, 사이에 선이 보이지 않게 한다.
- */
-.main-hero-actions {
-  gap: 0;
-  flex-direction: row;
-  border: 1px solid #d8cfc2;
-  border-radius: 36px;
-  background: #fff;
-  box-shadow:
-    0 3px 6px rgba(72, 55, 41, 0.09),
-    0 12px 28px rgba(72, 55, 41, 0.14);
-}
-
-.main-hero-actions .main-secondary-button {
-  border: 0;
-  border-radius: 36px;
-  background: transparent;
-  box-shadow: none;
-}
-
-.main-hero-actions .main-secondary-button::before,
-.main-hero-actions .main-secondary-button::after {
-  content: none;
-}
-
-.main-hero-actions .main-secondary-button:hover {
-  background: #f7f1e7;
-  transform: none;
-}
-
-.main-hero-actions .main-secondary-button + .main-secondary-button {
-  border-left: 1px solid #e4dbcf;
-}
-
-/* 꼬리는 묶음 아래에 하나만 둔다. */
-.main-hero-actions::before,
-.main-hero-actions::after {
-  position: absolute;
-  width: 0;
-  height: 0;
-  content: "";
-}
-
-.main-hero-actions::before {
-  bottom: -20px;
-  left: 26px;
-  border-top: 20px solid #d8cfc2;
-  border-right: 20px solid transparent;
-}
-
-.main-hero-actions::after {
-  bottom: -17px;
-  left: 28px;
-  border-top: 17px solid #fff;
-  border-right: 17px solid transparent;
-}
+/* ---------------- 히어로 수달 (839) ---------------- */
 
 /* 수달 이미지와 [이사하기]를 함께 감싸는 프레임. 위치는 프레임이 맡고
    이미지는 프레임을 채운다(선택자가 더 구체적이라 위 .main-otter 규칙을 덮는다). */

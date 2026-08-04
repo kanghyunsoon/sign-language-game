@@ -121,29 +121,6 @@ const otterHabitats: readonly OtterHabitat[] = [
   },
 ];
 
-const learningGuideSteps = [
-  {
-    title: "사전",
-    description: "궁금한 수어 표현과 손 모양을 찾아봐요.",
-  },
-  {
-    title: "연습",
-    description: "동작을 보고 직접 따라 하며 차근차근 익혀요.",
-  },
-  {
-    title: "테스트",
-    description: "배운 내용을 퀴즈로 풀며 제대로 익혔는지 확인해요.",
-  },
-  {
-    title: "오답노트",
-    description: "틀린 문제와 어려웠던 표현을 다시 복습해요.",
-  },
-  {
-    title: "게임",
-    description: "게임으로 재미있게 반복하며 수어의 달인이 되어보세요!",
-  },
-] as const;
-
 export function MainPage() {
   const { accessToken } = useAuth();
   /** 트랙 왼쪽 끝에 놓인 카드가 띠에서 몇 번째인지. 가운데 벌에서 시작한다. */
@@ -153,7 +130,6 @@ export function MainPage() {
   /** 미끄러지는 중인지. 이동이 끝난 뒤 되돌릴 때는 꺼서 순간이동시킨다. */
   const [isSliding, setIsSliding] = useState(false);
   const [pageScale, setPageScale] = useState(1);
-  const [isLearningGuideOpen, setIsLearningGuideOpen] = useState(false);
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
 
   useEffect(() => {
@@ -310,15 +286,6 @@ export function MainPage() {
               aria-hidden="true"
             /> */}
 
-            <div className="main-hero-actions">
-              <button
-                className="main-secondary-button"
-                type="button"
-                onClick={() => setIsLearningGuideOpen(true)}
-              >
-                학습 방법 보기
-              </button>
-            </div>
           </section>
 
           <section className="learning-menu-section" id="learning-menu">
@@ -418,56 +385,6 @@ export function MainPage() {
           </div>
         )}
 
-        {isLearningGuideOpen && (
-          <div
-            className="learning-guide-overlay"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="learning-guide-title"
-            onMouseDown={(event) => {
-              if (event.currentTarget === event.target) {
-                setIsLearningGuideOpen(false);
-              }
-            }}
-          >
-            <section className="learning-guide-modal">
-              <button
-                className="learning-guide-close"
-                type="button"
-                aria-label="학습 방법 안내 닫기"
-                onClick={() => setIsLearningGuideOpen(false)}
-              >
-                ×
-              </button>
-
-              <h2 id="learning-guide-title">
-                수어의 달인이 되는 추천 학습 순서
-              </h2>
-              <p className="learning-guide-intro">
-                궁금한 표현을 사전에서 찾아보고, 손 모양과 동작을 연습하며
-                차근차근 익혀보세요.
-                <br />
-                테스트로 실력을 확인하고 틀린 문제는 오답노트에서 다시 복습할
-                수 있어요.
-                <br />
-                마지막으로 게임을 통해 재미있게 반복하며 수어의 달인에
-                도전해보세요!
-              </p>
-
-              <ol className="learning-guide-steps">
-                {learningGuideSteps.map((step, index) => (
-                  <li key={step.title}>
-                    <span className={index === learningGuideSteps.length - 1 ? "active" : ""}>
-                      {index + 1}
-                    </span>
-                    <strong>{step.title}</strong>
-                    <p>{step.description}</p>
-                  </li>
-                ))}
-              </ol>
-            </section>
-          </div>
-        )}
       </div>
     </div>
   );
