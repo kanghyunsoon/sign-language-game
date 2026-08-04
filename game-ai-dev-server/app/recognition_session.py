@@ -6,6 +6,7 @@ import os
 
 import numpy as np
 
+from .diagnostics import PredictionDiagnostics
 from .feature_adapter import LANDMARK_COUNT, landmarks_to_features
 from .messages import Landmark, prediction_message
 from .model_adapter import ModelContract, ModelRunner
@@ -66,9 +67,11 @@ class RecognitionSession:
         runner: ModelRunner,
         config: RecognitionConfig = RecognitionConfig(),
         smoothing_alpha: float = LANDMARK_SMOOTHING_ALPHA,
+        diagnostics: PredictionDiagnostics | None = None,
     ) -> None:
         self._runner = runner
         self._config = config
+        self._diagnostics = diagnostics if diagnostics is not None else PredictionDiagnostics()
         length = runner.contract.sequence_length
         self._sequence_v2: deque[np.ndarray] = deque(maxlen=length)
         self._sequence_v3: deque[np.ndarray] = deque(maxlen=length)
@@ -138,6 +141,17 @@ class RecognitionSession:
             )
         if not np.all(np.isfinite(prediction)) or np.any(prediction < 0) or np.any(prediction > 1):
             raise ValueError("Model prediction values must be finite probabilities between 0 and 1")
+        # Recorded before argmax, with the landmarks the frontend actually sent,
+        # so a capture stays replayable no matter how smoothing is configured.
+        self._diagnostics.record(
+            frame_id=frame_id,
+            captured_at=captured_at,
+            handedness=handedness,
+            landmarks=landmarks,
+            labels=self._runner.contract.labels,
+            probabilities=prediction,
+            buffered_frames=len(self._sequence_v3),
+        )
         label_index = int(np.argmax(prediction))
         symbol = self._runner.contract.labels[label_index]
         confidence = float(prediction[label_index])
