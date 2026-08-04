@@ -1401,8 +1401,12 @@
  * 화면상 같은 크기·같은 서체로 보이게 한다. 게임 화면은 설계 폭이 1920이 아니므로
  * `--app-chrome-scale`(= 설계폭 / 1920)을 곱해 보정한다. 이 변수는
  * `shared/layout/fixedCanvas.ts`의 `fixedCanvasStyle()`이 캔버스 요소에 설정한다.
+ *
+ * 클래스를 두 번 겹쳐 특이도를 (0,2,0)으로 올린다. 페이지 CSS 모듈에
+ * `.page button`(0,1,1)처럼 버튼을 일괄 지정하는 규칙이 있어 (0,1,0)으로는
+ * min-height·padding·`font: inherit`에 밀린다. `/game/battle`이 실제로 그랬다.
  */
-:global(.game-user-chip) {
+:global(.game-user-chip.game-user-chip) {
   box-sizing: border-box;
   display: grid;
   width: calc(155px * var(--app-chrome-scale, 1));
