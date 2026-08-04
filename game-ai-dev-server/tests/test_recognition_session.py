@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import json
 import unittest
 from unittest.mock import ANY
 
 import numpy as np
 
+from app.diagnostics import PredictionDiagnostics
 from app.feature_adapter import FEATURE_SIZE
 from app.messages import Landmark, capabilities_message, parse_request
 from app.model_adapter import LABELS, MODEL_VERSION, ModelContract, load_recognition_readiness
@@ -121,6 +123,37 @@ class RecognitionSessionTests(unittest.TestCase):
         session = RecognitionSession(MockModelRunner([]), smoothing_alpha=1.0)
         raw = tuple(Landmark(0.1 * index, 0.2, 0.3) for index in range(21))
         self.assertIs(session._smooth(raw, "RIGHT"), raw)
+
+    def test_diagnostics_receive_the_raw_landmarks_and_full_probabilities(self) -> None:
+        """The failing frames must be replayable offline, so log what arrived.
+
+        Recording happens before argmax, and the landmarks handed over are the
+        ones the frontend sent, not the smoothed copy.
+        """
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "predictions.jsonl"
+            recorder = PredictionDiagnostics(path=str(path), mode="all")
+            runner = MockModelRunner([np.array([0.6, 0.4], dtype=np.float32)])
+            session = RecognitionSession(runner, diagnostics=recorder)
+            sent = parsed_landmarks(7, 1234)
+            session.process_landmark_frame(7, 1234, sent, "LEFT")
+
+            self.assertEqual(recorder.written, 1)
+            entry = json.loads(path.read_text(encoding="utf-8").strip())
+            self.assertEqual(entry["frameId"], 7)
+            self.assertEqual(entry["handedness"], "LEFT")
+            self.assertEqual(len(entry["landmarks"]), 21)
+            self.assertAlmostEqual(entry["landmarks"][0][0], sent[0].x, places=4)
+            self.assertAlmostEqual(entry["relativeGap"], (0.6 - 0.4) / 0.6, places=4)
+
+    def test_diagnostics_default_to_off_so_nothing_is_written_unasked(self) -> None:
+        runner = MockModelRunner([np.array([0.95, 0.05], dtype=np.float32)])
+        session = RecognitionSession(runner)
+        session.process_landmark_frame(1, 1000, parsed_landmarks(1, 1000))
+        self.assertFalse(session._diagnostics.enabled)
 
     def test_rejects_labels_and_output_size_mismatch(self) -> None:
         with self.assertRaises(ValueError):
