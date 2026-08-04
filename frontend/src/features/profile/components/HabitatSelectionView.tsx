@@ -38,8 +38,14 @@ export function HabitatSelectionView({
       habitatOptions.map((_, index) => {
         const distance = index - focusedIndex;
         const arcDistance = Math.abs(distance) ** 2;
+        /*
+         * 가운데 카드만 조금 키운다. scale을 마지막에 두면 translateX의 % 기준이
+         * 확대 전 카드 너비로 남아, 커진 카드 때문에 간격이 흔들리지 않는다.
+         * 되돌아가는 쪽도 같은 transform 전환(.28s)을 타서 자연히 작아진다.
+         */
+        const scale = distance === 0 ? 1.08 : 0.9;
         return {
-          transform: `translateX(${distance * 86}%) translateY(calc(${arcDistance} * min(1.0417vw, 1.6667vh))) rotate(${distance * 5}deg)`,
+          transform: `translateX(${distance * 86}%) translateY(calc(${arcDistance} * min(1.0417vw, 1.6667vh))) rotate(${distance * 5}deg) scale(${scale})`,
           zIndex: habitatOptions.length - Math.abs(distance),
         };
       }),
