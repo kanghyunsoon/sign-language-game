@@ -5,7 +5,7 @@
   place-items: center;
   overflow: hidden;
   color: #493a32;
-  background: #f8f5ed;
+  background: #f9f7f2;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
@@ -21,8 +21,8 @@
 
 .profile-canvas {
   position: relative;
-  width: min(100vw, 160vh);
-  aspect-ratio: 8 / 5;
+  width: min(100vw, 177.777778vh);
+  aspect-ratio: 16 / 9;
   overflow: hidden;
   font-size: min(1.09375vw, 1.75vh);
   background: #fbf8f0;
@@ -59,13 +59,13 @@
   position: absolute;
   inset: 0 0 auto;
   z-index: 10;
-  height: min(4.479167vw, 7.166667vh);
+  height: min(4.479167vw, 7.962963vh);
   display: flex;
   align-items: center;
   justify-content: center;
-  border-bottom: min(.052083vw, .083333vh) solid #e7d9c7;
+  border-bottom: min(.052083vw, .092593vh) solid #e7d9c7;
   background: rgba(255, 250, 242, 0.94);
-  box-shadow: 0 min(.208333vw, .333333vh) min(.9375vw, 1.5vh) rgba(85, 57, 37, .05);
+  box-shadow: 0 min(.208333vw, .37037vh) min(.9375vw, 1.666667vh) rgba(85, 57, 37, .05);
 }
 
 .profile-nav {
@@ -73,7 +73,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: min(3.020833vw, 4.833333vh);
+  gap: min(3.020833vw, 5.37037vh);
 }
 
 .profile-nav a,
@@ -85,9 +85,9 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: #7d6d61;
+  color: #7d746b;
   font-family: inherit;
-  font-size: min(1.25vw, 2vh);
+  font-size: min(1.25vw, 2.222222vh);
   font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
@@ -96,19 +96,30 @@
 
 .profile-mypage-button {
   position: absolute;
-  top: min(1.041667vw, 1.666667vh);
-  right: min(3.020833vw, 4.833333vh);
-  width: min(8.072917vw, 12.916667vh);
-  height: min(2.291667vw, 3.666667vh);
+  top: min(1.041667vw, 1.851852vh);
+  right: min(3.020833vw, 5.37037vh);
+  width: min(8.072917vw, 14.351852vh);
+  height: min(2.291667vw, 4.074074vh);
   display: grid;
   place-items: center;
-  border: min(.052083vw, .083333vh) solid #dbc8b1;
+  border: min(.052083vw, .092593vh) solid #dbc8b1;
   border-radius: min(52.03125vw, 83.25vh);
   color: #5f402b;
-  font-size: min(1.09375vw, 1.75vh);
+  font-size: min(1.09375vw, 1.944444vh);
   font-weight: 800;
   text-decoration: none;
   background: #fffaf2;
+}
+
+.profile-header .app-bgm-toggle-viewport {
+  left: min(2.395833vw, 4.259259vh);
+  width: min(3.072917vw, 5.462963vh);
+  height: min(3.072917vw, 5.462963vh);
+}
+
+.profile-header .app-bgm-toggle-viewport svg {
+  width: min(2.192708vw, 3.898148vh);
+  height: min(2.192708vw, 3.898148vh);
 }
 
 .profile-hero {

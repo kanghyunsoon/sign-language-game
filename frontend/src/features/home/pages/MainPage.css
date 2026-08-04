@@ -119,8 +119,8 @@ a {
     linear-gradient(
       180deg,
       var(--main-bg-top) 0,
-      var(--main-bg-top) 57%,
-      var(--main-bg-bottom) 57%,
+      var(--main-bg-top) 54%,
+      var(--main-bg-bottom) 54%,
       var(--main-bg-bottom) 100%
     );
 }
@@ -521,7 +521,7 @@ a {
   top: 50%;
   left: 50%;
   width: 1920px;
-  height: 1200px;
+  height: 1080px;
   min-height: 0;
   margin: 0;
   display: flex;
@@ -565,17 +565,17 @@ a {
 }
 
 .main-content {
-  height: calc(1200px - 86px - 52px);
-  flex: 0 0 calc(1200px - 86px - 52px);
+  height: calc(1080px - 86px);
+  flex: 0 0 calc(1080px - 86px);
 }
 
 .main-hero {
-  height: 720px;
-  min-height: 720px;
+  height: 680px;
+  min-height: 680px;
 }
 
 .main-hero-heading {
-  padding: 46px 0 0;
+  padding: 26px 0 0;
 }
 
 .main-hero-heading h1 {
@@ -641,7 +641,7 @@ a {
 
 .learning-menu-cards {
   width: 1400px;
-  min-height: 270px;
+  min-height: 220px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -652,7 +652,7 @@ a {
   align-items: center;
   flex-direction: row;
   gap: 26px;
-  padding: 58px 48px;
+  padding: 38px 48px;
 }
 
 .learning-menu-icon {
@@ -998,7 +998,7 @@ a {
 
 .learning-menu-track .learning-menu-card {
   flex: 0 0 var(--menu-slot);
-  min-height: 270px;
+  min-height: 220px;
   border-radius: 0;
 }
 

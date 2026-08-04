@@ -51,7 +51,7 @@ export function ReviewNotesPage() {
   // 사전 페이지와 동일한 1920x1200 캔버스 스케일링.
   useEffect(() => {
     const updatePageScale = () => {
-      setPageScale(Math.min(window.innerWidth / 1920, window.innerHeight / 1200));
+      setPageScale(Math.min(window.innerWidth / 1920, window.innerHeight / 1080));
     };
 
     updatePageScale();
