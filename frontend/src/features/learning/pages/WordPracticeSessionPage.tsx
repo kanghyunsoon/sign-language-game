@@ -9,16 +9,26 @@ import { WordWebSocketSignRecognizer } from "../recognition/WordWebSocketSignRec
 import { WordSignVideo } from "../components/WordSignVideo";
 import otterClapImage from "../assets/otter_clap.png";
 import { CORRECT_AUTO_ADVANCE_SECONDS } from "../components/CorrectFeedbackModal";
+import { PracticeCompletionActions } from "../components/PracticeCompletionActions";
 
 interface WordPracticeSessionPageProps {
   readonly onExit?: () => void;
   readonly words?: readonly WordSignItem[];
+  /**
+   * 완료 안내창의 [테스트하기]로 넘길 범위. [다음 단계]로 이어서 연습했다면
+   * 단어만이 아니라 이어온 분류 전체가 담겨 온다. 없으면 이번 세션 단어만 쓴다.
+   */
+  readonly testSymbols?: readonly string[];
 }
 
 export function WordPracticeSessionPage({
   onExit,
-  words = wordSigns,
+  words: selectedWords,
+  testSymbols,
 }: WordPracticeSessionPageProps) {
+  const words = selectedWords ?? wordSigns;
+  /* 오답노트에서 고른 단어만 연습하는 경우와 구분한다. 안내창 문구가 달라진다. */
+  const isFullWordPractice = !selectedWords;
   const streamRef = useRef<MediaStream | null>(null);
   const targetWordIdRef = useRef("");
   const answeredRef = useRef(false);
@@ -33,7 +43,6 @@ export function WordPracticeSessionPage({
   );
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [correctCount, setCorrectCount] = useState(0);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [recognitionMessage, setRecognitionMessage] =
     useState("단어 AI 연결을 준비하고 있습니다.");
@@ -49,7 +58,6 @@ export function WordPracticeSessionPage({
   )?.label;
   const isFirst = currentIndex === 0;
   const isLast = currentIndex === words.length - 1;
-  const progress = Math.round((correctCount / words.length) * 100);
   currentIndexRef.current = currentIndex;
 
   useEffect(() => {
@@ -87,10 +95,7 @@ export function WordPracticeSessionPage({
       if (event.type === "SIGN_CONFIRMED" && !answeredRef.current) {
         if (event.symbol === targetWordIdRef.current) {
           answeredRef.current = true;
-          if (!correctIndexesRef.current.has(currentIndexRef.current)) {
-            correctIndexesRef.current.add(currentIndexRef.current);
-            setCorrectCount(correctIndexesRef.current.size);
-          }
+          correctIndexesRef.current.add(currentIndexRef.current);
           setIsCorrect(true);
           setRecognitionMessage("맞췄습니다!");
         } else {
@@ -190,7 +195,6 @@ export function WordPracticeSessionPage({
   const retry = () => {
     correctIndexesRef.current.clear();
     setCurrentIndex(0);
-    setCorrectCount(0);
     setIsCorrect(false);
     setIsComplete(false);
     recognizer.resetSequence();
@@ -358,21 +362,13 @@ export function WordPracticeSessionPage({
                 <h2 id="word-completion-title">
                   단어 연습 {words.length}개를 모두 완료했어요!
                 </h2>
-                <div className="practice-completion-stats">
-                  <div>
-                    <strong>{correctCount}개</strong>
-                    <span>완료 문제</span>
-                  </div>
-                  <div>
-                    <strong>{progress}%</strong>
-                    <span>진행률</span>
-                  </div>
-                </div>
+
+                <PracticeCompletionActions
+                  categoryId={isFullWordPractice ? "word" : undefined}
+                  symbols={testSymbols ?? words.map((word) => word.name)}
+                  onRetry={retry}
+                />
               </section>
-              <div className="practice-completion-actions">
-                <button type="button" onClick={retry}>↻ 다시하기</button>
-                <button type="button" onClick={onExit}>처음으로</button>
-              </div>
             </div>
           )}
         </main>

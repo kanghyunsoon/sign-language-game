@@ -21,6 +21,8 @@ import {
   findFingerspellingEntry,
   fingerspellingItems,
 } from "../data/fingerspelling";
+import { PracticeCompletionActions } from "../components/PracticeCompletionActions";
+import type { PracticeFlowCategoryId } from "../data/practiceFlow";
 import { PracticeWebSocketSignRecognizer } from "../recognition/PracticeWebSocketSignRecognizer";
 
 type PracticeCategoryId = FingerspellingCategoryId;
@@ -33,6 +35,13 @@ interface PracticeSessionPageProps {
    */
   items?: readonly FingerspellingItem[];
   onExit?: () => void;
+  /** 완료 안내창에서 다음 분류 연습으로 넘어갈 때 호출한다. */
+  onNextCategory?: (categoryId: PracticeFlowCategoryId) => void;
+  /**
+   * 완료 안내창의 [테스트하기]로 넘길 범위. [다음 단계]로 이어서 연습했다면
+   * 지금 분류만이 아니라 이어온 분류 전체가 담겨 온다. 없으면 이번 세션 글자만 쓴다.
+   */
+  testSymbols?: readonly string[];
 }
 
 const isPracticeCategoryId = (
@@ -49,6 +58,8 @@ export function PracticeSessionPage({
   category,
   items,
   onExit,
+  onNextCategory,
+  testSymbols,
 }: PracticeSessionPageProps = {}) {
   const { categoryId: routeCategoryId } = useParams();
   const categoryId = category ?? routeCategoryId;
@@ -69,7 +80,6 @@ export function PracticeSessionPage({
   );
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [correctAnswerCount, setCorrectAnswerCount] = useState(0);
   const [isPracticeComplete, setIsPracticeComplete] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
@@ -130,10 +140,7 @@ export function PracticeSessionPage({
         if (event.symbol === targetSymbolRef.current) {
           correctAnswerRef.current = true;
 
-          if (!correctItemIndexesRef.current.has(currentIndexRef.current)) {
-            correctItemIndexesRef.current.add(currentIndexRef.current);
-            setCorrectAnswerCount(correctItemIndexesRef.current.size);
-          }
+          correctItemIndexesRef.current.add(currentIndexRef.current);
 
           setIsCorrect(true);
           setRecognitionMessage("맞췄습니다!");
@@ -205,10 +212,6 @@ export function PracticeSessionPage({
       : `지문자 · ${currentCategoryLabel}`;
   const isFirstItem = currentIndex === 0;
   const isLastItem = currentIndex === currentPracticeItems.length - 1;
-  const correctProgress = Math.round(
-    (correctAnswerCount / currentPracticeItems.length) * 100,
-  );
-
   currentIndexRef.current = currentIndex;
 
   const stopCamera = () => {
@@ -251,7 +254,6 @@ export function PracticeSessionPage({
   const handleRetryClick = () => {
     correctItemIndexesRef.current.clear();
     setCurrentIndex(0);
-    setCorrectAnswerCount(0);
     setIsPracticeComplete(false);
     setIsCorrect(false);
   };
@@ -546,30 +548,16 @@ export function PracticeSessionPage({
                 오늘의 연습 {currentPracticeItems.length}개를 모두 완료했어요.
               </h2>
 
-              <p>같은 범위를 다시 연습하거나 선택페이지로 이동해보세요.</p>
-
-              <div className="practice-completion-stats">
-                <div>
-                  <strong>{correctAnswerCount}개</strong>
-                  <span>완료 문제</span>
-                </div>
-
-                <div>
-                  <strong>{correctProgress}%</strong>
-                  <span>진행률</span>
-                </div>
-              </div>
+              <PracticeCompletionActions
+                categoryId={items ? undefined : categoryId}
+                symbols={
+                  testSymbols ??
+                  currentPracticeItems.map((item) => item.symbol)
+                }
+                onRetry={handleRetryClick}
+                onNextCategory={onNextCategory}
+              />
             </section>
-
-            <div className="practice-completion-actions">
-              <button type="button" onClick={handleRetryClick}>
-                ↻ 다시하기
-              </button>
-
-              <Link to="/practice" onClick={onExit}>
-                처음으로
-              </Link>
-            </div>
           </div>
         )}
       </main>

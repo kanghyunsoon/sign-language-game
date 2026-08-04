@@ -5,6 +5,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { AppNav } from "../../../shared/nav/AppNav";
 import otterImage from "../assets/otter.png";
 import type { FingerspellingCategoryId } from "../data/fingerspelling";
+import {
+  getPracticeCategorySymbols,
+  practiceFlowOrder,
+  type PracticeFlowCategoryId,
+} from "../data/practiceFlow";
 import { SYMBOLS_PARAM, parseSymbolSelection } from "../data/symbolSelection";
 import { wordSigns } from "../data/wordSigns";
 import { PracticeSessionPage } from "./PracticeSessionPage";
@@ -61,6 +66,14 @@ export function PracticeHomePage() {
   const [activeCategory, setActiveCategory] =
     useState<PracticeHomeCategoryId | null>(null);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  /**
+   * 이번에 이어서 연습한 분류들. [다음 단계]로 넘어올 때마다 쌓인다.
+   * 완료 안내창의 [테스트하기]가 여기 담긴 범위를 한꺼번에 출제한다.
+   * 예) 자음 → 모음 → 숫자로 이어왔으면 세 분류를 모두 테스트한다.
+   */
+  const [practicedCategories, setPracticedCategories] = useState<
+    readonly PracticeFlowCategoryId[]
+  >([]);
 
   // 오답노트에서 넘어온 글자 묶음. 있으면 분류 선택을 건너뛰고 바로 연습한다.
   const symbolsParam = searchParams.get(SYMBOLS_PARAM);
@@ -86,15 +99,27 @@ export function PracticeHomePage() {
     }
 
     setActiveCategory(selectedPracticeCategory.id);
+    /* 선택 페이지에서 새로 시작하면 이어온 기록을 버리고 이 분류만 담는다. */
+    setPracticedCategories([selectedPracticeCategory.id]);
   };
 
   const handlePracticeGuideOpen = () => {
     setIsGuideOpen(true);
   };
 
+  /** 완료 안내창에서 다음 분류로 넘어간다. 선택 페이지를 거치지 않는다. */
+  const handleNextCategory = (categoryId: PracticeFlowCategoryId) => {
+    setSelectedCategory(categoryId);
+    setActiveCategory(categoryId);
+    setPracticedCategories((previous) =>
+      previous.includes(categoryId) ? previous : [...previous, categoryId],
+    );
+  };
+
   const handlePracticeExit = () => {
     setActiveCategory(null);
     setSelectedCategory(null);
+    setPracticedCategories([]);
   };
 
   /** 오답노트에서 들어온 연습은 오답노트로 되돌린다(들어온 곳으로 나간다). */
@@ -121,14 +146,28 @@ export function PracticeHomePage() {
   }
 
   if (activeCategory) {
+    /* 이어서 연습한 분류를 학습 순서대로 모아 테스트 범위로 넘긴다. */
+    const testSymbols = practiceFlowOrder
+      .filter((categoryId) => practicedCategories.includes(categoryId))
+      .flatMap(getPracticeCategorySymbols);
+
     if (activeCategory === "word") {
-      return <WordPracticeSessionPage onExit={handlePracticeExit} />;
+      return (
+        <WordPracticeSessionPage
+          onExit={handlePracticeExit}
+          testSymbols={testSymbols}
+        />
+      );
     }
 
     return (
+      /* 분류가 바뀌면 진행 상태를 처음부터 다시 잡도록 새로 마운트한다. */
       <PracticeSessionPage
+        key={activeCategory}
         category={activeCategory}
         onExit={handlePracticeExit}
+        onNextCategory={handleNextCategory}
+        testSymbols={testSymbols}
       />
     );
   }
