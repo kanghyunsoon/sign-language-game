@@ -4,9 +4,10 @@ import { Link, useParams } from "react-router-dom";
 
 import { AppNav } from "../../../shared/nav/AppNav";
 import otterClapImage from "../assets/otter_clap.png";
-import { CorrectFeedbackModal } from "../components/CorrectFeedbackModal";
-
-const CORRECT_AUTO_ADVANCE_SECONDS = 1.5;
+import {
+  CORRECT_AUTO_ADVANCE_SECONDS,
+  CorrectFeedbackModal,
+} from "../components/CorrectFeedbackModal";
 import {
   HandCamera,
   type RecognitionConnectionState,

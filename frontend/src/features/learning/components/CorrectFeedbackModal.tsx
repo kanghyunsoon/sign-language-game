@@ -3,6 +3,12 @@ import { createPortal } from "react-dom";
 
 import otterClapImage from "../assets/otter_clap.png";
 
+/**
+ * 정답 안내창이 머문 뒤 다음 문제로 넘어가기까지의 시간.
+ * 연습·단어 연습·테스트가 같은 값을 쓴다.
+ */
+export const CORRECT_AUTO_ADVANCE_SECONDS = 1;
+
 interface CorrectFeedbackModalProps {
   readonly symbol: string;
   readonly onClose: () => void;
