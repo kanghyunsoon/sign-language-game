@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import backend.ssafy.suhwa.growth.domain.EvolutionStage;
+import backend.ssafy.suhwa.growth.dto.AttendanceCalendarResponse;
 import backend.ssafy.suhwa.growth.dto.AttendanceCompletionResponse;
 import backend.ssafy.suhwa.growth.dto.AttendanceResponse;
 import backend.ssafy.suhwa.growth.dto.PetStatusResponse;
@@ -15,6 +16,7 @@ import backend.ssafy.suhwa.growth.service.PetQueryService;
 import backend.ssafy.suhwa.common.exception.BusinessException;
 import backend.ssafy.suhwa.common.exception.ErrorCode;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -60,6 +62,31 @@ class GrowthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.attendedToday").value(false))
                 .andExpect(jsonPath("$.streakCount").value(3));
+    }
+
+    @Test
+    void getAttendanceCalendarReturnsAttendedDatesForRequestedMonth() throws Exception {
+        given(attendanceService.getCalendar(1L, YearMonth.of(2026, 8)))
+                .willReturn(new AttendanceCalendarResponse(
+                        YearMonth.of(2026, 8),
+                        List.of(LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 15))));
+
+        mockMvc.perform(get("/growth/attendance/calendar").param("yearMonth", "2026-08"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.yearMonth").value("2026-08"))
+                .andExpect(jsonPath("$.attendedDates[0]").value("2026-08-01"))
+                .andExpect(jsonPath("$.attendedDates[1]").value("2026-08-15"));
+    }
+
+    @Test
+    void getAttendanceCalendarWithoutYearMonthPassesNullToService() throws Exception {
+        given(attendanceService.getCalendar(1L, null))
+                .willReturn(new AttendanceCalendarResponse(YearMonth.of(2026, 7), List.of()));
+
+        mockMvc.perform(get("/growth/attendance/calendar"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.yearMonth").value("2026-07"))
+                .andExpect(jsonPath("$.attendedDates").isEmpty());
     }
 
     @Test
