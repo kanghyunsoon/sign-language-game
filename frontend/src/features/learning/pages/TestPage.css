@@ -497,7 +497,7 @@
 }
 
 .test-progress-area {
-  width: min(1440px, 100%);
+  width: min(1296px, 100%);
   display: flex;
   align-items: center;
   gap: 18px;
@@ -525,16 +525,15 @@
   white-space: nowrap;
 }
 
-/* 카드 크기·여백은 연습 세션 화면과 동일하게 맞춘다.
-   연습 쪽 min(Xvw, Yvh) 값을 1920x1200 캔버스 기준 px로 환산한 값이다. */
+/* 연습 진행 화면이 사용하는 16:9 기준의 실제 카드 규격과 맞춘다. */
 .test-progress-panel {
-  width: min(1440px, 100%);
-  min-height: 720px;
+  width: min(1296px, 100%);
+  min-height: 684px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 72px;
-  padding: 24px 68px;
-  border-radius: 34px;
+  gap: 65px;
+  padding: 22px 61px;
+  border-radius: 31px;
   background: rgba(255, 255, 255, 0.82);
   box-shadow: 0 24px 50px rgba(59, 42, 35, 0.13);
 }
@@ -543,23 +542,23 @@
 .test-question-panel,
 .test-camera-panel {
   min-width: 0;
-  min-height: 664px;
+  min-height: 567px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-radius: 25px;
+  border-radius: 23px;
   background: #ffffff;
   box-shadow: 0 10px 26px rgba(63, 43, 32, 0.1);
 }
 
 /* 카드 상단 머리말 바 — 안쪽에 타원형 뱃지를 얹는다. */
 .test-panel-label {
-  min-height: 70px;
+  min-height: 63px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   margin: 0;
-  padding: 0 28px;
+  padding: 0 25px;
   border-bottom: 1px solid #eee7de;
 }
 
@@ -1028,8 +1027,8 @@
    * 좌우 여백을 공용값 40px에서 24px로 좁혀 600px 설명 상자가 세로 스크롤바와
    * 함께 있어도 들어가게 한다. 그래도 남지 않는 폭은 잘라 가로 스크롤을 막는다.
    */
-  padding-left: 24px;
-  padding-right: 24px;
+  padding-right: 20px;
+  padding-left: 20px;
   /*
    * 단어 카드의 영상이 왼쪽 1번 문항 버튼과 같은 높이에서 시작하도록 맞춘다.
    * 왼쪽: 패널 여백 32 + 배지 35 + 10 + 제목 여백 22 + 제목 48 + 10 + 요약 여백 12
@@ -1038,30 +1037,10 @@
    * 두 값이 같아지는 P = 54px. 세로 가운데 정렬을 끄고 위에서부터 쌓아야
    * 이 계산이 유지된다.
    */
-  padding-top: 70px;
-  align-content: start;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: #d5c5b1 transparent;
-}
-
-.fingerspelling-detail.test-result-detail::-webkit-scrollbar {
-  width: 8px;
-}
-
-.fingerspelling-detail.test-result-detail::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.fingerspelling-detail.test-result-detail::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: #d5c5b1;
-}
-
-.fingerspelling-detail.test-result-detail::-webkit-scrollbar-thumb:hover {
-  background: #bda98d;
+  padding-top: 24px;
+  padding-bottom: 24px;
+  align-content: center;
+  overflow: hidden;
 }
 
 /*
@@ -1069,8 +1048,11 @@
  * 문항 목록과 카드를 나눠 쓰므로 오답노트와 같은 크기를 쓴다.
  */
 .fingerspelling-detail.test-result-detail {
+  --detail-symbol-row: 96px;
+  --detail-name-row: 36px;
   --detail-image-size: 270px;
   --detail-video-width: 400px;
+  --detail-row-gap: 12px;
   /*
    * 카드가 좁으므로(3:2에서 약 565px) 상자도 그 안에 들어가는 폭으로 둔다.
    * 565 - 좌우 여백 48 - 세로 스크롤바 8 = 509px.
@@ -1081,12 +1063,37 @@
    */
   --detail-description-width: 460px;
   /* 네 줄까지 들어가야 한다. 4x32 + 줄 사이 24 + 상자 안쪽 42 = 194px */
-  --detail-description-height: 200px;
+  --detail-description-height: 170px;
+}
+
+.test-result-detail .fingerspelling-detail-badge {
+  display: none;
 }
 
 .test-result-detail .fingerspelling-detail-description {
-  padding-right: 12px;
-  padding-left: 12px;
+  padding: 18px 14px;
+}
+
+.test-result-detail .fingerspelling-detail-symbol {
+  font-size: 96px;
+}
+
+.test-result-detail.word-sign-detail .fingerspelling-detail-symbol {
+  font-size: 64px;
+}
+
+.test-result-detail .fingerspelling-detail-name {
+  margin-top: -32px;
+  font-size: 27px;
+}
+
+.test-result-detail .fingerspelling-detail-description h3 {
+  font-size: 18px;
+}
+
+.test-result-detail .fingerspelling-detail-description p {
+  font-size: 19px;
+  line-height: 1.6;
 }
 
 /* 오답노트 담기·빼기 토글. 기존 버튼 시스템(입체 그림자 + active 눌림)을 따른다. */
@@ -1136,7 +1143,7 @@
 
 /* 버튼 위치도 오답노트 카드와 같게 맞춘다. */
 .test-result-detail .fingerspelling-detail-footer {
-  padding-top: 90px;
+  padding-top: 8px;
 }
 
 /* 오답노트 변경 알림 — 기존 개발중 팝업과 같은 두툼한 테두리·입체 그림자 결 */

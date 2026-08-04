@@ -176,16 +176,15 @@ export function TestPage() {
    * 오답노트에서 왔으면 오답노트로, 설정 화면에서 왔으면 설정 화면으로 간다.
    */
   const handleBackFromProgress = () => {
-    if (hasSelection) {
-      navigate("/review-notes");
-      return;
-    }
-
     setQuestions([]);
     setResults([]);
     setAwardedExp(0);
     setRewardAccuracy(0);
     setPhase("setup");
+
+    if (hasSelection) {
+      navigate("/test");
+    }
   };
 
   const handleRetry = () => {

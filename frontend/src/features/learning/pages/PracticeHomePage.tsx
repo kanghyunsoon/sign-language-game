@@ -263,7 +263,7 @@ export function PracticeHomePage() {
             <ol className="practice-guide-steps">
               <li>정답 동작을 확인해요.</li>
               <li>카메라에 손 전체가 보이도록 준비해요.</li>
-              <li>카메라 시작 버튼을 누르고 동작을 따라 해요.</li>
+              <li>카메라 영역을 누르고 동작을 따라 해요.</li>
               <li>연습이 끝나면 다음 문제로 이동해요.</li>
             </ol>
 
