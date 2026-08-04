@@ -9,16 +9,23 @@ import { WordWebSocketSignRecognizer } from "../recognition/WordWebSocketSignRec
 import { WordSignVideo } from "../components/WordSignVideo";
 import otterClapImage from "../assets/otter_clap.png";
 import { CORRECT_AUTO_ADVANCE_SECONDS } from "../components/CorrectFeedbackModal";
+import { PracticeCompletionActions } from "../components/PracticeCompletionActions";
 
 interface WordPracticeSessionPageProps {
   readonly onExit?: () => void;
   readonly words?: readonly WordSignItem[];
+  /** 완료 안내창의 나가기 버튼 이름. 들어온 곳에 맞춰 바꾼다. */
+  readonly exitLabel?: string;
 }
 
 export function WordPracticeSessionPage({
   onExit,
-  words = wordSigns,
+  words: selectedWords,
+  exitLabel,
 }: WordPracticeSessionPageProps) {
+  const words = selectedWords ?? wordSigns;
+  /* 오답노트에서 고른 단어만 연습하는 경우와 구분한다. 안내창 문구가 달라진다. */
+  const isFullWordPractice = !selectedWords;
   const streamRef = useRef<MediaStream | null>(null);
   const targetWordIdRef = useRef("");
   const answeredRef = useRef(false);
@@ -186,15 +193,6 @@ export function WordPracticeSessionPage({
 
     return () => window.clearTimeout(nextId);
   }, [isCorrect, isComplete]);
-
-  const retry = () => {
-    correctIndexesRef.current.clear();
-    setCurrentIndex(0);
-    setCorrectCount(0);
-    setIsCorrect(false);
-    setIsComplete(false);
-    recognizer.resetSequence();
-  };
 
   return (
     <div className="practice-session-page word-practice-session-page">
@@ -369,10 +367,12 @@ export function WordPracticeSessionPage({
                   </div>
                 </div>
               </section>
-              <div className="practice-completion-actions">
-                <button type="button" onClick={retry}>↻ 다시하기</button>
-                <button type="button" onClick={onExit}>처음으로</button>
-              </div>
+              <PracticeCompletionActions
+                categoryId={isFullWordPractice ? "word" : undefined}
+                symbols={words.map((word) => word.name)}
+                onExit={onExit}
+                exitLabel={exitLabel}
+              />
             </div>
           )}
         </main>

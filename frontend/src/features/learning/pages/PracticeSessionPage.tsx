@@ -21,6 +21,8 @@ import {
   findFingerspellingEntry,
   fingerspellingItems,
 } from "../data/fingerspelling";
+import { PracticeCompletionActions } from "../components/PracticeCompletionActions";
+import type { PracticeFlowCategoryId } from "../data/practiceFlow";
 import { PracticeWebSocketSignRecognizer } from "../recognition/PracticeWebSocketSignRecognizer";
 
 type PracticeCategoryId = FingerspellingCategoryId;
@@ -33,6 +35,10 @@ interface PracticeSessionPageProps {
    */
   items?: readonly FingerspellingItem[];
   onExit?: () => void;
+  /** 완료 안내창에서 다음 분류 연습으로 넘어갈 때 호출한다. */
+  onNextCategory?: (categoryId: PracticeFlowCategoryId) => void;
+  /** 완료 안내창의 나가기 버튼 이름. 들어온 곳에 맞춰 바꾼다. */
+  exitLabel?: string;
 }
 
 const isPracticeCategoryId = (
@@ -49,6 +55,8 @@ export function PracticeSessionPage({
   category,
   items,
   onExit,
+  onNextCategory,
+  exitLabel,
 }: PracticeSessionPageProps = {}) {
   const { categoryId: routeCategoryId } = useParams();
   const categoryId = category ?? routeCategoryId;
@@ -246,14 +254,6 @@ export function PracticeSessionPage({
     }
 
     setCurrentIndex((previousIndex) => previousIndex + 1);
-  };
-
-  const handleRetryClick = () => {
-    correctItemIndexesRef.current.clear();
-    setCurrentIndex(0);
-    setCorrectAnswerCount(0);
-    setIsPracticeComplete(false);
-    setIsCorrect(false);
   };
 
   const handleCorrectNext = () => {
@@ -546,8 +546,6 @@ export function PracticeSessionPage({
                 오늘의 연습 {currentPracticeItems.length}개를 모두 완료했어요.
               </h2>
 
-              <p>같은 범위를 다시 연습하거나 선택페이지로 이동해보세요.</p>
-
               <div className="practice-completion-stats">
                 <div>
                   <strong>{correctAnswerCount}개</strong>
@@ -561,15 +559,13 @@ export function PracticeSessionPage({
               </div>
             </section>
 
-            <div className="practice-completion-actions">
-              <button type="button" onClick={handleRetryClick}>
-                ↻ 다시하기
-              </button>
-
-              <Link to="/practice" onClick={onExit}>
-                처음으로
-              </Link>
-            </div>
+            <PracticeCompletionActions
+              categoryId={items ? undefined : categoryId}
+              symbols={currentPracticeItems.map((item) => item.symbol)}
+              onNextCategory={onNextCategory}
+              onExit={onExit}
+              exitLabel={exitLabel}
+            />
           </div>
         )}
       </main>

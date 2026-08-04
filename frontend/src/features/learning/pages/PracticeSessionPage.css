@@ -265,13 +265,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: min(0.625vw, 1vh);
+  gap: min(0.833333vw, 1.333333vh);
 }
 
+/* 버튼 이름이 "자음 테스트하러 가기"처럼 길어져, 좌우 여백을 두고 글자 수에 따라
+   너비가 늘어나게 한다. 줄바꿈은 막아 세 버튼의 높이를 같게 유지한다. */
 .practice-completion-actions button,
 .practice-completion-actions a {
   min-width: min(7.552083vw, 12.083333vh);
   height: min(2.5vw, 4vh);
+  padding: 0 min(1.041667vw, 1.666667vh);
+  white-space: nowrap;
   display: flex;
   align-items: center;
   justify-content: center;

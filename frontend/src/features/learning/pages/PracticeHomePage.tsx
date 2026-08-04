@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { AppNav } from "../../../shared/nav/AppNav";
 import otterImage from "../assets/otter.png";
 import type { FingerspellingCategoryId } from "../data/fingerspelling";
+import type { PracticeFlowCategoryId } from "../data/practiceFlow";
 import { SYMBOLS_PARAM, parseSymbolSelection } from "../data/symbolSelection";
 import { wordSigns } from "../data/wordSigns";
 import { PracticeSessionPage } from "./PracticeSessionPage";
@@ -92,6 +93,12 @@ export function PracticeHomePage() {
     setIsGuideOpen(true);
   };
 
+  /** 완료 안내창에서 다음 분류로 넘어간다. 선택 페이지를 거치지 않는다. */
+  const handleNextCategory = (categoryId: PracticeFlowCategoryId) => {
+    setSelectedCategory(categoryId);
+    setActiveCategory(categoryId);
+  };
+
   const handlePracticeExit = () => {
     setActiveCategory(null);
     setSelectedCategory(null);
@@ -108,6 +115,7 @@ export function PracticeHomePage() {
         <WordPracticeSessionPage
           words={selectedWordItems}
           onExit={handleSelectionExit}
+          exitLabel="오답노트로"
         />
       );
     }
@@ -116,6 +124,7 @@ export function PracticeHomePage() {
       <PracticeSessionPage
         items={selectedItems.filter((item) => item.categoryId !== "word")}
         onExit={handleSelectionExit}
+        exitLabel="오답노트로"
       />
     );
   }
@@ -126,9 +135,12 @@ export function PracticeHomePage() {
     }
 
     return (
+      /* 분류가 바뀌면 진행 상태를 처음부터 다시 잡도록 새로 마운트한다. */
       <PracticeSessionPage
+        key={activeCategory}
         category={activeCategory}
         onExit={handlePracticeExit}
+        onNextCategory={handleNextCategory}
       />
     );
   }
