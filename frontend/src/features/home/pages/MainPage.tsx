@@ -155,6 +155,19 @@ export function MainPage() {
   const [pageScale, setPageScale] = useState(1);
   const [isLearningGuideOpen, setIsLearningGuideOpen] = useState(false);
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isAttendanceOpen) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsAttendanceOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [isAttendanceOpen]);
   /** 지난번에 골라 둔 집에서 시작한다. 기록이 없으면 첫 집이다. */
   const [habitatIndex] = useState(() =>
     findHabitatIndex(

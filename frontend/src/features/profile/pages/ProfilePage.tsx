@@ -47,6 +47,31 @@ export function ProfilePage() {
   const [isHabitatSelectionOpen, setIsHabitatSelectionOpen] = useState(false);
 
   useEffect(() => {
+    if (
+      !isAttendanceOpen &&
+      !isExperienceGuideOpen &&
+      !isHabitatSelectionOpen
+    ) {
+      return;
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+
+      setIsAttendanceOpen(false);
+      setIsExperienceGuideOpen(false);
+      setIsHabitatSelectionOpen(false);
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [
+    isAttendanceOpen,
+    isExperienceGuideOpen,
+    isHabitatSelectionOpen,
+  ]);
+
+  useEffect(() => {
     setNickname(user?.displayName ?? "");
   }, [user?.displayName]);
 
