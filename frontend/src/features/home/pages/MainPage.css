@@ -909,10 +909,11 @@ a {
   transform: translateY(-2%) scale(0.85);
 }
 
+/* 수달 그림 오른쪽에 붙인다(프레임 기준). 말풍선 꼬리도 왼쪽 아래를 향하게 뒤집는다. */
 .main-otter-attendance-button {
   position: absolute;
   top: 23%;
-  left: -5%;
+  right: -1%;
   z-index: 3;
   height: 56px;
   padding: 0 24px;
@@ -948,16 +949,16 @@ a {
 
 .main-otter-attendance-button::before {
   bottom: -16px;
-  right: 24px;
+  left: 24px;
   border-top: 16px solid #d8cfc2;
-  border-left: 16px solid transparent;
+  border-right: 16px solid transparent;
 }
 
 .main-otter-attendance-button::after {
   bottom: -13px;
-  right: 25px;
+  left: 25px;
   border-top: 14px solid #fff;
-  border-left: 14px solid transparent;
+  border-right: 14px solid transparent;
 }
 
 /* [이사하기]도 히어로의 다른 버튼과 같은 흰 알약으로 맞추고, 화면 끝이 아니라
