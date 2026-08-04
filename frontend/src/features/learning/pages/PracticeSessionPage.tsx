@@ -37,8 +37,6 @@ interface PracticeSessionPageProps {
   onExit?: () => void;
   /** 완료 안내창에서 다음 분류 연습으로 넘어갈 때 호출한다. */
   onNextCategory?: (categoryId: PracticeFlowCategoryId) => void;
-  /** 완료 안내창의 나가기 버튼 이름. 들어온 곳에 맞춰 바꾼다. */
-  exitLabel?: string;
 }
 
 const isPracticeCategoryId = (
@@ -56,7 +54,6 @@ export function PracticeSessionPage({
   items,
   onExit,
   onNextCategory,
-  exitLabel,
 }: PracticeSessionPageProps = {}) {
   const { categoryId: routeCategoryId } = useParams();
   const categoryId = category ?? routeCategoryId;
@@ -77,7 +74,6 @@ export function PracticeSessionPage({
   );
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [correctAnswerCount, setCorrectAnswerCount] = useState(0);
   const [isPracticeComplete, setIsPracticeComplete] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
@@ -138,10 +134,7 @@ export function PracticeSessionPage({
         if (event.symbol === targetSymbolRef.current) {
           correctAnswerRef.current = true;
 
-          if (!correctItemIndexesRef.current.has(currentIndexRef.current)) {
-            correctItemIndexesRef.current.add(currentIndexRef.current);
-            setCorrectAnswerCount(correctItemIndexesRef.current.size);
-          }
+          correctItemIndexesRef.current.add(currentIndexRef.current);
 
           setIsCorrect(true);
           setRecognitionMessage("맞췄습니다!");
@@ -213,10 +206,6 @@ export function PracticeSessionPage({
       : `지문자 · ${currentCategoryLabel}`;
   const isFirstItem = currentIndex === 0;
   const isLastItem = currentIndex === currentPracticeItems.length - 1;
-  const correctProgress = Math.round(
-    (correctAnswerCount / currentPracticeItems.length) * 100,
-  );
-
   currentIndexRef.current = currentIndex;
 
   const stopCamera = () => {
@@ -254,6 +243,13 @@ export function PracticeSessionPage({
     }
 
     setCurrentIndex((previousIndex) => previousIndex + 1);
+  };
+
+  const handleRetryClick = () => {
+    correctItemIndexesRef.current.clear();
+    setCurrentIndex(0);
+    setIsPracticeComplete(false);
+    setIsCorrect(false);
   };
 
   const handleCorrectNext = () => {
@@ -545,26 +541,13 @@ export function PracticeSessionPage({
               <h2 id="practice-completion-title">
                 오늘의 연습 {currentPracticeItems.length}개를 모두 완료했어요.
               </h2>
-
-              <div className="practice-completion-stats">
-                <div>
-                  <strong>{correctAnswerCount}개</strong>
-                  <span>완료 문제</span>
-                </div>
-
-                <div>
-                  <strong>{correctProgress}%</strong>
-                  <span>진행률</span>
-                </div>
-              </div>
             </section>
 
             <PracticeCompletionActions
               categoryId={items ? undefined : categoryId}
               symbols={currentPracticeItems.map((item) => item.symbol)}
+              onRetry={handleRetryClick}
               onNextCategory={onNextCategory}
-              onExit={onExit}
-              exitLabel={exitLabel}
             />
           </div>
         )}

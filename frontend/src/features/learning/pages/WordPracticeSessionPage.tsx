@@ -14,14 +14,11 @@ import { PracticeCompletionActions } from "../components/PracticeCompletionActio
 interface WordPracticeSessionPageProps {
   readonly onExit?: () => void;
   readonly words?: readonly WordSignItem[];
-  /** 완료 안내창의 나가기 버튼 이름. 들어온 곳에 맞춰 바꾼다. */
-  readonly exitLabel?: string;
 }
 
 export function WordPracticeSessionPage({
   onExit,
   words: selectedWords,
-  exitLabel,
 }: WordPracticeSessionPageProps) {
   const words = selectedWords ?? wordSigns;
   /* 오답노트에서 고른 단어만 연습하는 경우와 구분한다. 안내창 문구가 달라진다. */
@@ -40,7 +37,6 @@ export function WordPracticeSessionPage({
   );
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [correctCount, setCorrectCount] = useState(0);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [recognitionMessage, setRecognitionMessage] =
     useState("단어 AI 연결을 준비하고 있습니다.");
@@ -56,7 +52,6 @@ export function WordPracticeSessionPage({
   )?.label;
   const isFirst = currentIndex === 0;
   const isLast = currentIndex === words.length - 1;
-  const progress = Math.round((correctCount / words.length) * 100);
   currentIndexRef.current = currentIndex;
 
   useEffect(() => {
@@ -94,10 +89,7 @@ export function WordPracticeSessionPage({
       if (event.type === "SIGN_CONFIRMED" && !answeredRef.current) {
         if (event.symbol === targetWordIdRef.current) {
           answeredRef.current = true;
-          if (!correctIndexesRef.current.has(currentIndexRef.current)) {
-            correctIndexesRef.current.add(currentIndexRef.current);
-            setCorrectCount(correctIndexesRef.current.size);
-          }
+          correctIndexesRef.current.add(currentIndexRef.current);
           setIsCorrect(true);
           setRecognitionMessage("맞췄습니다!");
         } else {
@@ -193,6 +185,14 @@ export function WordPracticeSessionPage({
 
     return () => window.clearTimeout(nextId);
   }, [isCorrect, isComplete]);
+
+  const retry = () => {
+    correctIndexesRef.current.clear();
+    setCurrentIndex(0);
+    setIsCorrect(false);
+    setIsComplete(false);
+    recognizer.resetSequence();
+  };
 
   return (
     <div className="practice-session-page word-practice-session-page">
@@ -356,22 +356,11 @@ export function WordPracticeSessionPage({
                 <h2 id="word-completion-title">
                   단어 연습 {words.length}개를 모두 완료했어요!
                 </h2>
-                <div className="practice-completion-stats">
-                  <div>
-                    <strong>{correctCount}개</strong>
-                    <span>완료 문제</span>
-                  </div>
-                  <div>
-                    <strong>{progress}%</strong>
-                    <span>진행률</span>
-                  </div>
-                </div>
               </section>
               <PracticeCompletionActions
                 categoryId={isFullWordPractice ? "word" : undefined}
                 symbols={words.map((word) => word.name)}
-                onExit={onExit}
-                exitLabel={exitLabel}
+                onRetry={retry}
               />
             </div>
           )}

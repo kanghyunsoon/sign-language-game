@@ -115,7 +115,6 @@ export function PracticeHomePage() {
         <WordPracticeSessionPage
           words={selectedWordItems}
           onExit={handleSelectionExit}
-          exitLabel="오답노트로"
         />
       );
     }
@@ -124,7 +123,6 @@ export function PracticeHomePage() {
       <PracticeSessionPage
         items={selectedItems.filter((item) => item.categoryId !== "word")}
         onExit={handleSelectionExit}
-        exitLabel="오답노트로"
       />
     );
   }

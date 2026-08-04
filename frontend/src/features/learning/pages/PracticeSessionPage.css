@@ -232,35 +232,6 @@
   font-size: min(1.041667vw, 1.666667vh);
 }
 
-.practice-completion-stats {
-  width: 100%;
-  margin-top: min(1.041667vw, 1.666667vh);
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: min(0.625vw, 1vh);
-}
-
-.practice-completion-stats > div {
-  min-height: min(3.229167vw, 5.166667vh);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: min(0.260417vw, 0.416667vh);
-  border-radius: min(0.729167vw, 1.166667vh);
-  background: #faf9f6;
-}
-
-.practice-completion-stats strong {
-  color: #43372f;
-  font-size: min(1.197917vw, 1.916667vh);
-}
-
-.practice-completion-stats span {
-  color: #aaa097;
-  font-size: min(0.78125vw, 1.25vh);
-}
-
 .practice-completion-actions {
   display: flex;
   align-items: center;
