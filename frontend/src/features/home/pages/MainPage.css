@@ -591,7 +591,7 @@ a {
   position: absolute;
   z-index: 2;
   bottom: -180px;
-  left: 49%;
+  left: 50%;
   width: 780px;
   aspect-ratio: 1 / 1;
   height: auto;
@@ -948,7 +948,7 @@ a {
    */
   z-index: 1;
   bottom: -180px;
-  left: 49%;
+  left: 50%;
   width: 780px;
   aspect-ratio: 1 / 1;
   transform: translateX(-50%);
@@ -980,7 +980,7 @@ a {
 
 /* 포근한 침실은 다른 집보다 커 보여 크기를 0.85에서 그 90%로 한 번 더 줄인다. */
 .main-otter-frame .main-otter-riverside {
-  transform: translateY(-6%) scale(0.765);
+  transform: translateY(-3%) scale(0.765);
 }
 
 /* 수달 그림 오른쪽에 붙인다(프레임 기준). 말풍선 꼬리도 왼쪽 아래를 향하게 뒤집는다. */
