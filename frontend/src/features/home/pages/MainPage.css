@@ -941,7 +941,12 @@ a {
    이미지는 프레임을 채운다(선택자가 더 구체적이라 위 .main-otter 규칙을 덮는다). */
 .main-otter-frame {
   position: absolute;
-  z-index: 2;
+  /*
+   * 히어로 문구(.main-hero-heading)와 같은 2층에 있으면 DOM 뒤쪽인 이 프레임이
+   * 위에 그려져, 위로 뻗은 그림(숲속동굴)이 문구를 가린다. 그림만 한 층 내린다.
+   * 문구 쪽을 올리면 전폭 블록인 문구 박스가 그림 위에 얹혀 클릭을 가로챈다.
+   */
+  z-index: 1;
   bottom: -180px;
   left: 49%;
   width: 780px;
@@ -970,11 +975,12 @@ a {
 }
 
 .main-otter-frame .main-otter-cave {
-  transform: translateY(-6%) scale(0.7);
+  transform: translateY(-4%) scale(0.7);
 }
 
+/* 포근한 침실은 다른 집보다 커 보여 크기를 0.85에서 그 90%로 한 번 더 줄인다. */
 .main-otter-frame .main-otter-riverside {
-  transform: translateY(-2%) scale(0.85);
+  transform: translateY(-6%) scale(0.765);
 }
 
 /* 수달 그림 오른쪽에 붙인다(프레임 기준). 말풍선 꼬리도 왼쪽 아래를 향하게 뒤집는다. */
