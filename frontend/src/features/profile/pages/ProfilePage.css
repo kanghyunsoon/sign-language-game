@@ -255,6 +255,7 @@
 }
 
 .profile-experience-guide-overlay {
+  --profile-guide-px: min(.052083vw, .092593vh);
   position: fixed;
   z-index: 120;
   inset: 0;
@@ -280,14 +281,14 @@
 
 .profile-experience-guide-close {
   position: absolute;
-  top: min(1.458333vw, 2.333333vh);
-  right: min(1.770833vw, 2.833333vh);
-  width: min(2.8125vw, 4.5vh);
-  height: min(2.8125vw, 4.5vh);
-  padding: 0 0 min(0.260417vw, 0.416667vh);
+  top: calc(28 * var(--profile-guide-px));
+  right: calc(34 * var(--profile-guide-px));
+  width: calc(54 * var(--profile-guide-px));
+  height: calc(54 * var(--profile-guide-px));
+  padding: 0 0 calc(5 * var(--profile-guide-px));
   border: 0;
   color: #6f645a;
-  font-size: min(2.291667vw, 3.666667vh);
+  font-size: calc(44 * var(--profile-guide-px));
   line-height: 1;
   background: transparent;
   cursor: pointer;
@@ -823,6 +824,76 @@
   cursor: pointer;
 }
 
+/* 브라우저 확대율과 관계없이 학습 방법 안내창을 1920x1080 기준 크기로 유지한다. */
+.profile-learning-guide-overlay {
+  --profile-guide-px: min(.052083vw, .092593vh);
+  position: fixed;
+  inset: 0;
+  padding: calc(70 * var(--profile-guide-px));
+}
+
+.profile-learning-guide-overlay .learning-guide-modal {
+  width: calc(1660 * var(--profile-guide-px));
+  min-height: calc(780 * var(--profile-guide-px));
+  padding:
+    calc(70 * var(--profile-guide-px))
+    calc(72 * var(--profile-guide-px))
+    calc(54 * var(--profile-guide-px));
+  border-width: var(--profile-guide-px);
+  border-radius: calc(30 * var(--profile-guide-px));
+  box-shadow:
+    0 calc(28 * var(--profile-guide-px))
+    calc(80 * var(--profile-guide-px))
+    rgba(44, 34, 27, .25);
+}
+
+.profile-learning-guide-overlay .learning-guide-close {
+  top: calc(28 * var(--profile-guide-px));
+  right: calc(34 * var(--profile-guide-px));
+  width: calc(54 * var(--profile-guide-px));
+  height: calc(54 * var(--profile-guide-px));
+  padding-bottom: calc(5 * var(--profile-guide-px));
+  font-size: calc(44 * var(--profile-guide-px));
+}
+
+.profile-learning-guide-overlay .learning-guide-modal h2 {
+  margin-bottom: calc(46 * var(--profile-guide-px));
+  font-size: calc(54 * var(--profile-guide-px));
+}
+
+.profile-learning-guide-overlay .learning-guide-intro {
+  font-size: calc(31 * var(--profile-guide-px));
+}
+
+.profile-learning-guide-overlay .learning-guide-steps {
+  gap: calc(46 * var(--profile-guide-px));
+  margin-top: calc(72 * var(--profile-guide-px));
+}
+
+.profile-learning-guide-overlay .learning-guide-steps li:not(:last-child)::after {
+  top: calc(48 * var(--profile-guide-px));
+  right: calc(-38 * var(--profile-guide-px));
+  width: calc(30 * var(--profile-guide-px));
+  height: calc(2 * var(--profile-guide-px));
+}
+
+.profile-learning-guide-overlay .learning-guide-steps li > span {
+  width: calc(100 * var(--profile-guide-px));
+  height: calc(100 * var(--profile-guide-px));
+  margin-bottom: calc(24 * var(--profile-guide-px));
+  border-width: calc(3 * var(--profile-guide-px));
+  font-size: calc(30 * var(--profile-guide-px));
+}
+
+.profile-learning-guide-overlay .learning-guide-steps strong {
+  margin-bottom: calc(16 * var(--profile-guide-px));
+  font-size: calc(27 * var(--profile-guide-px));
+}
+
+.profile-learning-guide-overlay .learning-guide-steps p {
+  font-size: calc(20 * var(--profile-guide-px));
+}
+
 /* 메인페이지의 1920×1200 출석 모달을 프로필 고정 캔버스에서도 같은 비율로 표시한다. */
 .profile-attendance-overlay {
   --profile-attendance-px: min(.052083vw, .083333vh);
@@ -924,4 +995,16 @@
 
 .profile-attendance-overlay .attendance-weekdays > li {
   font-size: calc(19 * var(--profile-attendance-px));
+}
+
+/* 두 안내 모달의 닫기 버튼은 브라우저 배율과 관계없이 같은 규격을 사용한다. */
+.profile-page .profile-learning-guide-overlay .profile-fixed-guide-close,
+.profile-page .profile-experience-guide-overlay .profile-fixed-guide-close {
+  top: calc(28 * min(.052083vw, .092593vh));
+  right: calc(34 * min(.052083vw, .092593vh));
+  width: calc(54 * min(.052083vw, .092593vh));
+  height: calc(54 * min(.052083vw, .092593vh));
+  padding: 0 0 calc(5 * min(.052083vw, .092593vh));
+  font-size: calc(44 * min(.052083vw, .092593vh));
+  line-height: 1;
 }

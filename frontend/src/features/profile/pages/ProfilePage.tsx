@@ -407,7 +407,7 @@ export function ProfilePage() {
 
       {isLearningGuideOpen && (
         <div
-          className="learning-guide-overlay"
+          className="learning-guide-overlay profile-learning-guide-overlay"
           role="dialog"
           aria-modal="true"
           aria-labelledby="learning-guide-title"
@@ -419,7 +419,7 @@ export function ProfilePage() {
         >
           <section className="learning-guide-modal">
             <button
-              className="learning-guide-close"
+              className="learning-guide-close profile-fixed-guide-close"
               type="button"
               aria-label="학습 방법 안내 닫기"
               onClick={() => setIsLearningGuideOpen(false)}
@@ -474,7 +474,7 @@ export function ProfilePage() {
         >
           <section className="profile-experience-guide">
             <button
-              className="profile-experience-guide-close"
+              className="profile-experience-guide-close profile-fixed-guide-close"
               type="button"
               aria-label="경험치 얻는 방법 닫기"
               onClick={() => setIsExperienceGuideOpen(false)}
