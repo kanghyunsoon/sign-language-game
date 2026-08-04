@@ -894,19 +894,23 @@
   font-size: calc(20 * var(--profile-guide-px));
 }
 
-/* 메인페이지의 1920×1200 출석 모달을 프로필 고정 캔버스에서도 같은 비율로 표시한다. */
-.profile-attendance-overlay {
+/*
+ * 출석 모달 규격. 메인페이지와 마이페이지가 함께 쓴다(두 화면 모두 이 클래스를 붙인다).
+ * 1920×1200 기준 px을 화면 크기에 비례한 값으로 바꿔, 고정 캔버스 안이든 밖이든
+ * 같은 비율로 보이게 한다.
+ *
+ * 배경은 창 전체를 덮어야 한다. 예전에는 캔버스와 같은 비율의 박스(width +
+ * aspect-ratio)를 써서 양옆·위아래에 어두워지지 않는 여백이 남았다.
+ * 바로 위 .profile-learning-guide-overlay와 같은 방식(inset: 0)으로 맞춘다.
+ */
+.attendance-overlay {
   --profile-attendance-px: min(.052083vw, .083333vh);
   position: fixed;
-  top: 50%;
-  left: 50%;
-  width: min(100vw, 162.6667vh);
-  aspect-ratio: 122 / 75;
+  inset: 0;
   padding: calc(70 * var(--profile-attendance-px));
-  transform: translate(-50%, -50%);
 }
 
-.profile-attendance-overlay .attendance-modal {
+.attendance-overlay .attendance-modal {
   width: calc(900 * var(--profile-attendance-px));
   min-height: 0;
   padding:
@@ -921,7 +925,7 @@
     rgba(44, 34, 27, .25);
 }
 
-.profile-attendance-overlay .learning-guide-close {
+.attendance-overlay .learning-guide-close {
   top: calc(18 * var(--profile-attendance-px));
   right: calc(22 * var(--profile-attendance-px));
   width: calc(42 * var(--profile-attendance-px));
@@ -930,45 +934,45 @@
   font-size: calc(34 * var(--profile-attendance-px));
 }
 
-.profile-attendance-overlay .learning-guide-modal h2 {
+.attendance-overlay .learning-guide-modal h2 {
   margin-bottom: calc(24 * var(--profile-attendance-px));
   font-size: calc(40 * var(--profile-attendance-px));
 }
 
-.profile-attendance-overlay .attendance-card {
+.attendance-overlay .attendance-card {
   gap: calc(18 * var(--profile-attendance-px));
 }
 
-.profile-attendance-overlay .attendance-heading {
+.attendance-overlay .attendance-heading {
   gap: calc(20 * var(--profile-attendance-px));
 }
 
-.profile-attendance-overlay .attendance-streak {
+.attendance-overlay .attendance-streak {
   font-size: calc(27 * var(--profile-attendance-px));
 }
 
-.profile-attendance-overlay .attendance-total {
+.attendance-overlay .attendance-total {
   font-size: calc(17 * var(--profile-attendance-px));
 }
 
-.profile-attendance-overlay .attendance-grid,
-.profile-attendance-overlay .attendance-weekdays {
+.attendance-overlay .attendance-grid,
+.attendance-overlay .attendance-weekdays {
   gap: calc(10 * var(--profile-attendance-px));
 }
 
-.profile-attendance-overlay .attendance-day {
+.attendance-overlay .attendance-day {
   padding: calc(8 * var(--profile-attendance-px));
   border-width: var(--profile-attendance-px);
   border-radius: calc(14 * var(--profile-attendance-px));
 }
 
-.profile-attendance-overlay .attendance-day-label {
+.attendance-overlay .attendance-day-label {
   top: calc(8 * var(--profile-attendance-px));
   left: calc(9 * var(--profile-attendance-px));
   font-size: calc(15 * var(--profile-attendance-px));
 }
 
-.profile-attendance-overlay .attendance-check-button {
+.attendance-overlay .attendance-check-button {
   padding:
     calc(8 * var(--profile-attendance-px))
     calc(13 * var(--profile-attendance-px));
@@ -976,16 +980,16 @@
   box-shadow: 0 calc(3 * var(--profile-attendance-px)) 0 #3f2f22;
 }
 
-.profile-attendance-overlay .attendance-month {
+.attendance-overlay .attendance-month {
   gap: calc(20 * var(--profile-attendance-px));
 }
 
-.profile-attendance-overlay .attendance-month-title {
+.attendance-overlay .attendance-month-title {
   min-width: calc(180 * var(--profile-attendance-px));
   font-size: calc(23 * var(--profile-attendance-px));
 }
 
-.profile-attendance-overlay .attendance-month-button {
+.attendance-overlay .attendance-month-button {
   width: calc(40 * var(--profile-attendance-px));
   height: calc(40 * var(--profile-attendance-px));
   padding-bottom: calc(4 * var(--profile-attendance-px));
@@ -993,7 +997,7 @@
   font-size: calc(25 * var(--profile-attendance-px));
 }
 
-.profile-attendance-overlay .attendance-weekdays > li {
+.attendance-overlay .attendance-weekdays > li {
   font-size: calc(16 * var(--profile-attendance-px));
 }
 

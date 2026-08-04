@@ -356,36 +356,42 @@ export function MainPage() {
           </section>
         </main>
 
-        {isAttendanceOpen && (
-          <div
-            className="learning-guide-overlay"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="attendance-title"
-            onMouseDown={(event) => {
-              if (event.currentTarget === event.target) {
-                setIsAttendanceOpen(false);
-              }
-            }}
-          >
-            <section className="learning-guide-modal attendance-modal">
-              <button
-                className="learning-guide-close"
-                type="button"
-                aria-label="출석체크 닫기"
-                onClick={() => setIsAttendanceOpen(false)}
-              >
-                ×
-              </button>
-
-              <h2 id="attendance-title">출석체크</h2>
-
-              <AttendanceCard accessToken={accessToken} userId={user?.userId} />
-            </section>
-          </div>
-        )}
-
       </div>
+
+      {/*
+        캔버스 밖에 둔다. .main-canvas는 transform으로 확대·축소되고 overflow가
+        hidden이라, 그 안에서는 어떤 방법으로도 배경이 캔버스 박스를 넘어 창 전체를
+        덮을 수 없다(transform이 걸린 조상은 position: fixed의 기준이 된다).
+        모달 크기는 .attendance-overlay가 화면 비례 값으로 다시 잡아 준다.
+      */}
+      {isAttendanceOpen && (
+        <div
+          className="learning-guide-overlay attendance-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="attendance-title"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target) {
+              setIsAttendanceOpen(false);
+            }
+          }}
+        >
+          <section className="learning-guide-modal attendance-modal">
+            <button
+              className="learning-guide-close"
+              type="button"
+              aria-label="출석체크 닫기"
+              onClick={() => setIsAttendanceOpen(false)}
+            >
+              ×
+            </button>
+
+            <h2 id="attendance-title">출석체크</h2>
+
+            <AttendanceCard accessToken={accessToken} userId={user?.userId} />
+          </section>
+        </div>
+      )}
     </div>
   );
 }

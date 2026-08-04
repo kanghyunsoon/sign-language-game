@@ -430,7 +430,7 @@ export function ProfilePage() {
 
       {isAttendanceOpen && (
         <div
-          className="learning-guide-overlay profile-attendance-overlay"
+          className="learning-guide-overlay attendance-overlay"
           role="dialog"
           aria-modal="true"
           aria-labelledby="profile-attendance-title"
