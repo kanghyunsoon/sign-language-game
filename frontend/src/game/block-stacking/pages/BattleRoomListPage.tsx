@@ -1,5 +1,6 @@
 import { ArrowLeft, Gamepad2, House, RefreshCw, Search, Trophy } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { fixedCanvasStyle, useFixedCanvasScale } from "../../../shared/layout/fixedCanvas";
 import { Link, useNavigate } from "react-router-dom";
 import { useGameModuleContext } from "../../app/GameModuleContext";
 import { createDevAuthHeaders } from "../../app/devAuthHeaders";
@@ -213,7 +214,7 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
           <OtterFollower />
           <section className={styles.quickTip}>
             <strong>초대 코드로 입장</strong>
-            <div className={styles.codeJoin}><div><input value={roomCode} onChange={(event) => setRoomCode(event.target.value)} placeholder="ABCD12" aria-label="초대 코드" /><button type="button" onClick={joinByCode} disabled={!roomCode.trim() || joiningRoomId !== null}>{"\uCF54\uB4DC \uC785\uC7A5"}</button></div></div>
+            <div className={styles.codeJoin}><div><input value={roomCode} onChange={(event) => setRoomCode(event.target.value)} placeholder="ABCD12" aria-label="초대 코드" /><button type="button" onClick={joinByCode} disabled={!roomCode.trim() || joiningRoomId !== null}>{"코드 입장"}</button></div></div>
           </section>
           <section className={styles.modeTip}><strong>{mode === "TURN" ? "수달 턴 대전" : "프링글수"}</strong><p>화면에 나타나는 지문자를 표현해 블록을 제거하는 1대1 게임이에요.</p></section>
         </aside>
