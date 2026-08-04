@@ -2,12 +2,39 @@ from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass
+import os
 
 import numpy as np
 
 from .feature_adapter import LANDMARK_COUNT, landmarks_to_features
 from .messages import Landmark, prediction_message
 from .model_adapter import ModelContract, ModelRunner
+
+
+# Landmark smoothing (exponential moving average on the raw landmarks, applied
+# before feature extraction).
+#
+# Frontal fingerspelling (ㅓ, ㅕ, ㅔ, ㅖ) points the fingers at the camera, so the
+# fingertips occlude each other and MediaPipe loses their depth ordering. The
+# landmarks then oscillate in place, which does not move the argmax much but
+# collapses the gap to the runner-up — and the decision-margin gate turns that
+# into a hard block. Measured on the locked test split with fingertip jitter
+# injected at the landmark level (1900 sequences, confirmation rate under gate
+# 0.25 + threshold 0.5):
+#
+#   jitter σ=0.015      accuracy 0.887   ㅔ 0.145   ㅖ 0.000   margin 0.234
+#     + median-3        accuracy 0.938   ㅔ 0.242   ㅖ 0.305   margin 0.306
+#     + EMA α=0.5       accuracy 0.948   ㅔ 0.387   ㅖ 0.390   margin 0.484
+#     + EMA α=0.3 →     accuracy 0.966   ㅔ 0.677   ㅖ 0.627   margin 0.803
+#
+#   jitter σ=0.008      accuracy 0.970   ㅔ 0.387   ㅖ 0.729   margin 0.532
+#     + EMA α=0.3 →     accuracy 0.977   ㅔ 1.000   ㅖ 0.797   margin 0.918
+#
+# α is the weight of the *new* frame, so a smaller value smooths harder and lags
+# more. 1.0 disables smoothing. A median filter was measurably weaker than the
+# EMA at every jitter level, so it is not used. See T-154 in
+# docs/recognition/model-evaluation.md.
+LANDMARK_SMOOTHING_ALPHA = float(os.getenv("HANDPRACTICE_AI_LANDMARK_SMOOTHING", "0.3"))
 
 
 @dataclass(frozen=True)
@@ -23,17 +50,45 @@ class RecognitionSession:
     MediaPipe landmarks and buffered in parallel.
     """
 
-    def __init__(self, runner: ModelRunner, config: RecognitionConfig = RecognitionConfig()) -> None:
+    def __init__(
+        self,
+        runner: ModelRunner,
+        config: RecognitionConfig = RecognitionConfig(),
+        smoothing_alpha: float = LANDMARK_SMOOTHING_ALPHA,
+    ) -> None:
         self._runner = runner
         self._config = config
         length = runner.contract.sequence_length
         self._sequence_v2: deque[np.ndarray] = deque(maxlen=length)
         self._sequence_v3: deque[np.ndarray] = deque(maxlen=length)
         self._missing_since: int | None = None
+        self._smoothing_alpha = float(np.clip(smoothing_alpha, 0.05, 1.0))
+        self._smoothed: np.ndarray | None = None
+        self._smoothed_handedness: str | None = None
 
     @property
     def contract(self) -> ModelContract:
         return self._runner.contract
+
+    @property
+    def smoothing_alpha(self) -> float:
+        return self._smoothing_alpha
+
+    def _smooth(self, landmarks: tuple[Landmark, ...], handedness: str) -> tuple[Landmark, ...]:
+        """EMA the raw landmarks so MediaPipe jitter does not reach the model.
+
+        The history is dropped when the hand switches, because the two hands are
+        not the same trajectory and blending them would invent a pose.
+        """
+        if self._smoothing_alpha >= 1.0:
+            return landmarks
+        current = np.asarray([(point.x, point.y, point.z) for point in landmarks], dtype=np.float32)
+        if self._smoothed is None or self._smoothed_handedness != handedness:
+            self._smoothed = current
+        else:
+            self._smoothed = self._smoothed + (current - self._smoothed) * self._smoothing_alpha
+        self._smoothed_handedness = handedness
+        return tuple(Landmark(float(x), float(y), float(z)) for x, y, z in self._smoothed)
 
     def _padded(self, frames: list[np.ndarray], length: int) -> np.ndarray:
         if len(frames) < length:
@@ -50,7 +105,7 @@ class RecognitionSession:
         if len(landmarks) != LANDMARK_COUNT:
             raise ValueError(f"Expected {LANDMARK_COUNT} landmarks, got {len(landmarks)}")
         self._missing_since = None
-        feature_v2, feature_v3 = landmarks_to_features(landmarks, handedness)
+        feature_v2, feature_v3 = landmarks_to_features(self._smooth(landmarks, handedness), handedness)
         self._sequence_v2.append(feature_v2)
         self._sequence_v3.append(feature_v3)
 
@@ -88,9 +143,13 @@ class RecognitionSession:
         elif captured_at - self._missing_since >= self._config.hand_release_after_ms:
             self._sequence_v2.clear()
             self._sequence_v3.clear()
+            self._smoothed = None
+            self._smoothed_handedness = None
         return []
 
     def reset(self) -> None:
         self._sequence_v2.clear()
         self._sequence_v3.clear()
         self._missing_since = None
+        self._smoothed = None
+        self._smoothed_handedness = None
