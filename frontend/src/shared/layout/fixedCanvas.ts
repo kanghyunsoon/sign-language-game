@@ -14,6 +14,10 @@ export const APP_CANVAS_HEIGHT = 1080;
 export interface FixedCanvasMetrics {
   /** 캔버스에 적용할 transform scale. */
   readonly scale: number;
+  /** 캔버스 상자의 설계 폭. */
+  readonly designWidth: number;
+  /** 캔버스 상자의 설계 높이. */
+  readonly designHeight: number;
   /**
    * 뒤로가기·홈·아이디 칩처럼 앱 공통 규격을 따라야 하는 요소의 보정 배율.
    *
@@ -58,17 +62,27 @@ export function useFixedCanvasScale(
     return () => window.removeEventListener("resize", update);
   }, [designHeight, designWidth]);
 
-  return { scale, chromeScale: designWidth / APP_CANVAS_WIDTH };
+  return {
+    scale,
+    designWidth,
+    designHeight,
+    chromeScale: designWidth / APP_CANVAS_WIDTH,
+  };
 }
 
 /**
  * 고정 캔버스 요소에 그대로 펼쳐 넣는 style 객체.
  *
- * `transform`은 캔버스를 화면 중앙에 놓고, `--app-chrome-scale`은 공통 규격 요소가
- * 참조한다.
+ * 상자 크기를 여기서 함께 내보내 설계 크기의 출처를 훅 인자 하나로 유지한다.
+ * CSS에도 같은 치수를 적어 두면 한쪽만 바뀌었을 때 조용히 어긋난다.
+ * `--app-chrome-scale`은 앱 공통 규격 요소가 참조한다.
  */
 export function fixedCanvasStyle(metrics: FixedCanvasMetrics): CSSProperties {
   return {
+    width: `${metrics.designWidth}px`,
+    height: `${metrics.designHeight}px`,
+    minWidth: `${metrics.designWidth}px`,
+    minHeight: `${metrics.designHeight}px`,
     transform: `translate(-50%, -50%) scale(${metrics.scale})`,
     "--app-chrome-scale": `${metrics.chromeScale}`,
   } as CSSProperties;
