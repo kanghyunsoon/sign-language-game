@@ -17,12 +17,21 @@ services:
       # OFF by default (T-155): 0.3 measured well against synthetic jitter but
       # made real use worse. See game-ai-dev-server/README.md.
       HANDPRACTICE_AI_LANDMARK_SMOOTHING: ${HANDPRACTICE_AI_LANDMARK_SMOOTHING:-1.0}
+      # Prediction diagnostics (T-156). Empty path disables it entirely.
+      # "blocked" records only the frames the browser cannot confirm, which is the
+      # frontal-jamo failure being chased. Landmark coordinates and probabilities
+      # only - never imagery. Bounded by DIAG_MAX_FRAMES per process.
+      HANDPRACTICE_AI_DIAG_PATH: ${HANDPRACTICE_AI_DIAG_PATH:-/app/diagnostics/predictions.jsonl}
+      HANDPRACTICE_AI_DIAG_MODE: ${HANDPRACTICE_AI_DIAG_MODE:-blocked}
+      HANDPRACTICE_AI_DIAG_MAX_FRAMES: ${HANDPRACTICE_AI_DIAG_MAX_FRAMES:-20000}
 
     ports:
       - "127.0.0.1:${AI_PORT:-8765}:${AI_PORT:-8765}"
 
     volumes:
       - ${AI_MODEL_DIR:-/opt/sudal/ai/models}:/app/models:ro
+      # Writable: the diagnostics capture lands here so it survives a restart.
+      - ${AI_DIAG_DIR:-/opt/sudal/ai/diagnostics}:/app/diagnostics
   number-ai:
     image: sudal-number-ai:latest
     container_name: sudal-number-ai
