@@ -56,7 +56,7 @@ export function DictionaryPage() {
   useEffect(() => {
     const updateDictionaryScale = () => {
       setDictionaryScale(
-        Math.min(window.innerWidth / 1920, window.innerHeight / 1200),
+        Math.min(window.innerWidth / 1920, window.innerHeight / 1080),
       );
     };
 
