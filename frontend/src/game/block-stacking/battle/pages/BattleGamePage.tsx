@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { fixedCanvasStyle, useFixedCanvasScale } from "../../../../shared/layout/fixedCanvas";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import type { GameRenderer } from "../../render/types";
@@ -57,6 +58,7 @@ const BATTLE_RECOGNITION_RATE_CONFIG = Object.freeze({
 });
 
 export function BattleGamePage() {
+  const canvas = useFixedCanvasScale(BATTLE_CANVAS_WIDTH, BATTLE_CANVAS_HEIGHT);
   const { roomId = "" } = useParams(); const navigate = useNavigate();
   const { user, accessToken, config, services, battleMediaSession, sharedCameraSession, activePlayerSession, battleRoomSession, setBattleRoomSession } = useGameModuleContext();
   const [refreshExitRequired] = useState(() => Boolean(roomId) && consumeBattleRefreshExit(roomId));
@@ -99,18 +101,6 @@ export function BattleGamePage() {
   const controllerRef = useRef<BattleController | null>(null); const localRuntimeRef = useRef<BattleLocalBoardRuntime | null>(null); const localViewportRef = useRef({ width: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, height: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight }); const remoteViewportRef = useRef({ width: DEFAULT_BATTLE_RUNTIME_CONFIG.boardWidth, height: DEFAULT_BATTLE_RUNTIME_CONFIG.boardHeight }); const remoteLoopRef = useRef<number | null>(null);
   const settledTowerHeightsRef = useRef({ local: 0, remote: 0 });
   const [towerHeights, setTowerHeights] = useState({ local: 0, remote: 0 });
-  const [pageScale, setPageScale] = useState(1);
-  useEffect(() => {
-    const updatePageScale = () => {
-      setPageScale(Math.min(
-        window.innerWidth / BATTLE_CANVAS_WIDTH,
-        window.innerHeight / BATTLE_CANVAS_HEIGHT,
-      ));
-    };
-    updatePageScale();
-    window.addEventListener("resize", updatePageScale);
-    return () => window.removeEventListener("resize", updatePageScale);
-  }, []);
   const localIsHost = battleRoomSession?.hostUserId === user.userId;
   const reportMatchResult = useCallback((result: MatchFinishedEvent): Promise<void> => {
     if (!Number.isSafeInteger(Number(roomId))) return Promise.resolve();
@@ -463,7 +453,7 @@ export function BattleGamePage() {
   return <main
     className={`${styles.page} ${styles.battleFixedPage}`}
     data-fixed-battle-game-canvas="true"
-    style={{ transform: `translate(-50%, -50%) scale(${pageScale})` }}
+    style={fixedCanvasStyle(canvas)}
   >
     <header className={styles.topbar}>
       <div className={styles.battleTitleGroup}>

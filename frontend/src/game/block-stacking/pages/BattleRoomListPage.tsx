@@ -18,6 +18,7 @@ const BATTLE_LOBBY_CANVAS_HEIGHT = 720;
 type RoomFilter = "ALL" | "WAITING" | "OPEN";
 export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK" | "TURN" }) {
   const navigate = useNavigate();
+  const canvas = useFixedCanvasScale(BATTLE_LOBBY_CANVAS_WIDTH, BATTLE_LOBBY_CANVAS_HEIGHT);
   const { user, accessToken, config, services, battleRoomSession, turnBattleRoomSession, setBattleRoomSession, setTurnBattleRoomSession } = useGameModuleContext();
   const gateway = mode === "TURN" ? services.turnBattleRoomGateway : services.battleRoomGateway;
   const rememberSession = mode === "TURN" ? setTurnBattleRoomSession : setBattleRoomSession;
@@ -34,7 +35,6 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<RoomFilter>("ALL");
   const [roomCode, setRoomCode] = useState("");
-  const [pageScale, setPageScale] = useState(1);
   const [ranking, setRanking] = useState<RankingResponse | null>(null);
   const [rankingLoading, setRankingLoading] = useState(true);
   const [rankingUnavailable, setRankingUnavailable] = useState(false);
@@ -44,17 +44,6 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
     gameType: mode === "TURN" ? "SIGN_DUEL" : "TETRIS_DUEL",
     headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : createDevAuthHeaders(user),
   }), [accessToken, config.roomApiBaseUrl, mode, user]);
-  useEffect(() => {
-    const updatePageScale = () => {
-      setPageScale(Math.min(
-        window.innerWidth / BATTLE_LOBBY_CANVAS_WIDTH,
-        window.innerHeight / BATTLE_LOBBY_CANVAS_HEIGHT,
-      ));
-    };
-    updatePageScale();
-    window.addEventListener("resize", updatePageScale);
-    return () => window.removeEventListener("resize", updatePageScale);
-  }, []);
   const loadRooms = useCallback(async (background = false) => { if (!background) setRefreshing(true); try { const result = !background && gateway.refreshRooms ? await gateway.refreshRooms() : await gateway.getRooms(); setRooms(result); setError(null); } catch (cause) { setError(errorMessage(cause, "방 목록을 불러오지 못했습니다.")); } finally { setLoading(false); if (!background) setRefreshing(false); } }, [gateway]);
   useEffect(() => { let active = true; void gateway.getRooms().then((result) => { if (active) { setRooms(result); setError(null); } }).catch((cause: unknown) => { if (active) setError(errorMessage(cause, "방 목록을 불러오지 못했습니다.")); }).finally(() => { if (active) setLoading(false); }); const timer = window.setInterval(() => { if (active) void loadRooms(true); }, config.battleRoomPollingIntervalMs ?? DEFAULT_POLLING_INTERVAL_MS); return () => { active = false; window.clearInterval(timer); }; }, [config.battleRoomPollingIntervalMs, loadRooms, gateway]);
   useEffect(() => {
@@ -159,11 +148,11 @@ export function BattleRoomListPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK"
     <main
       className={[styles.page, styles.lobbyPage, styles.fixedCanvasPage].join(" ")}
       data-fixed-battle-lobby-canvas="true"
-      style={{ transform: `translate(-50%, -50%) scale(${pageScale})` }}
+      style={fixedCanvasStyle(canvas)}
     >
       <button type="button" className={styles.lobbyBack} onClick={() => navigate(mode === "TURN" ? "/game" : "/game/block")} aria-label="게임 모드 선택으로 돌아가기"><ArrowLeft aria-hidden={true} size={23} /></button>
       <Link className={styles.lobbyHome} to="/main" aria-label="메인 화면으로 이동"><House aria-hidden={true} size={21} /></Link>
-      <button type="button" className={styles.lobbyProfile}>{user.displayName}</button>
+      <button type="button" className={`game-user-chip ${styles.lobbyProfile}`}>{user.displayName}</button>
 
       <header className={styles.lobbyHero}>
         <span>{mode === "TURN" ? "1:1 TURN BATTLE" : "1:1 BLOCK BATTLE"}</span>

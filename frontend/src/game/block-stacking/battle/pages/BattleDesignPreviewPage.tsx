@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { fixedCanvasStyle, useFixedCanvasScale } from "../../../../shared/layout/fixedCanvas";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
@@ -44,25 +44,14 @@ function PreviewCamera({ name, recognition }: { name: string; recognition?: stri
 
 /** Development-only visual review route. It deliberately has no room, camera, AI, or WebRTC side effects. */
 export function BattleDesignPreviewPage() {
+  const canvas = useFixedCanvasScale(BATTLE_PREVIEW_CANVAS_WIDTH, BATTLE_PREVIEW_CANVAS_HEIGHT);
   const { user } = useGameModuleContext();
-  const [pageScale, setPageScale] = useState(1);
 
-  useEffect(() => {
-    const updatePageScale = () => {
-      setPageScale(Math.min(
-        window.innerWidth / BATTLE_PREVIEW_CANVAS_WIDTH,
-        window.innerHeight / BATTLE_PREVIEW_CANVAS_HEIGHT,
-      ));
-    };
-    updatePageScale();
-    window.addEventListener("resize", updatePageScale);
-    return () => window.removeEventListener("resize", updatePageScale);
-  }, []);
 
   return <main
     className={`${styles.page} ${styles.battleFixedPage} ${styles.battlePreviewPage}`}
     data-fixed-battle-game-canvas="true"
-    style={{ transform: `translate(-50%, -50%) scale(${pageScale})` }}
+    style={fixedCanvasStyle(canvas)}
   >
     <header className={styles.topbar}>
       <div className={styles.battleTitleGroup}>

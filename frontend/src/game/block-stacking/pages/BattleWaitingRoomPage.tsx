@@ -1,4 +1,5 @@
 import { ArrowLeft, Camera, CameraOff, Check, Copy, Play } from "lucide-react";
+import { APP_CANVAS_HEIGHT, APP_CANVAS_WIDTH, fixedCanvasStyle, useFixedCanvasScale } from "../../../shared/layout/fixedCanvas";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -11,7 +12,15 @@ import { GameVideoTile } from "../../media/components/GameVideoTile";
 import { HandCamera, PythonWebSocketSignRecognizer, useGameRecognitionSession } from "../../recognition";
 import type { RoomRealtimeSocket } from "../../realtime";
 
+/*
+ * 대기실은 원래 반응형 CSS로 짜여 있어 좁은 상자에 넣으면 내용이 잘린다.
+ * 앱 표준 캔버스를 그대로 쓰면 잘리지 않고, 공통 규격 요소도 메인과 같은 크기가 된다.
+ */
+const WAITING_CANVAS_WIDTH = APP_CANVAS_WIDTH;
+const WAITING_CANVAS_HEIGHT = APP_CANVAS_HEIGHT;
+
 export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLOCK" | "TURN" }) {
+  const canvas = useFixedCanvasScale(WAITING_CANVAS_WIDTH, WAITING_CANVAS_HEIGHT);
   const { roomId } = useParams();
   const navigate = useNavigate();
   const {
@@ -542,11 +551,15 @@ export function BattleWaitingRoomPage({ mode = "BLOCK" }: { readonly mode?: "BLO
   };
 
   return (
-    <main className={[styles.page, styles.waitingLobby].join(" ")}>
+    <main
+      className={[styles.page, styles.waitingLobby, styles.fixedCanvasPage].join(" ")}
+      data-fixed-waiting-canvas="true"
+      style={fixedCanvasStyle(canvas)}
+    >
       <button type="button" className={styles.waitingBack} onClick={() => void leaveRoom()} disabled={leaving} aria-label="방 나가기">
         <ArrowLeft aria-hidden="true" size={18} />
       </button>
-      <span className={styles.waitingProfile}>{user.displayName}</span>
+      <span className={`game-user-chip ${styles.waitingProfile}`}>{user.displayName}</span>
       <header className={[styles.pageHeader, styles.waitingRoomHero].join(" ")}>
         <div>
           <div className={styles.waitingTitleLine}>

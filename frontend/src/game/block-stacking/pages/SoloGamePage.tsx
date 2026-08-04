@@ -1,4 +1,5 @@
 import { ArrowLeft, Play } from "lucide-react";
+import { fixedCanvasStyle, useFixedCanvasScale } from "../../../shared/layout/fixedCanvas";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -122,6 +123,7 @@ export function SoloGamePage({
   signRecognizerFactory,
 }: SoloGamePageProps = {}) {
   const navigate = useNavigate();
+  const canvas = useFixedCanvasScale(SOLO_CANVAS_WIDTH, SOLO_CANVAS_HEIGHT);
   const { accessToken, config, services, sharedCameraSession, user } = useGameModuleContext();
   const tetrisWeightApi = useMemo(() => new TetrisWeightApi({
     baseUrl: config.soloApiBaseUrl,
@@ -178,7 +180,6 @@ export function SoloGamePage({
     playDurationMs: null,
   });
   const [cameraStream,setCameraStream]=useState(()=>sharedCameraSession.getStream());
-  const [pageScale, setPageScale] = useState(1);
   const rendererConfig = useMemo(() => ({
     dangerLineY: 160,
     dangerLineRatio: 1 / 6,
@@ -188,18 +189,6 @@ export function SoloGamePage({
   }), []);
   useSharedCameraOwnerCleanup(sharedCameraSession);
 
-  useEffect(() => {
-    const updatePageScale = () => {
-      setPageScale(Math.min(
-        window.innerWidth / SOLO_CANVAS_WIDTH,
-        window.innerHeight / SOLO_CANVAS_HEIGHT,
-      ));
-    };
-
-    updatePageScale();
-    window.addEventListener("resize", updatePageScale);
-    return () => window.removeEventListener("resize", updatePageScale);
-  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -585,7 +574,7 @@ export function SoloGamePage({
     <div
       className="solo-game-page"
       data-fixed-solo-canvas="true"
-      style={{ transform: `translate(-50%, -50%) scale(${pageScale})` }}
+      style={fixedCanvasStyle(canvas)}
     >
       {import.meta.env.DEV && new URLSearchParams(window.location.search).has("collisionAudit") && (
         <GlyphCollisionAudit symbols={SOLO_GAME_SYMBOLS} />
