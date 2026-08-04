@@ -9,7 +9,7 @@ import type { CSSProperties } from "react";
  * 콘텐츠 폭과 좌우 여백이 흔들리지 않는다.
  */
 export const APP_CANVAS_WIDTH = 1920;
-export const APP_CANVAS_HEIGHT = 1200;
+export const APP_CANVAS_HEIGHT = 1080;
 
 export interface FixedCanvasMetrics {
   /** 캔버스에 적용할 transform scale. */
@@ -26,10 +26,11 @@ export interface FixedCanvasMetrics {
 /**
  * 설계 크기가 다른 화면도 앱 표준과 같은 화면 폭을 차지하도록 축소율을 계산한다.
  *
- * 앱 표준(1920 × 1200)을 그대로 쓰는 화면은 `min(vw / 1920, vh / 1200)`이 된다.
- * 16:9처럼 다른 비율의 게임 화면은 같은 배율에 `1920 / 설계폭`을 곱해,
- * 렌더된 폭이 앱 표준 캔버스의 폭과 일치하게 만든다. 세로가 부족한 뷰포트에서는
- * 넘치지 않도록 실제 뷰포트 기준으로 한 번 더 제한한다.
+ * 앱 표준(1920 × 1080)을 그대로 쓰는 화면은 `min(vw / 1920, vh / 1080)`이 된다.
+ * 설계 폭이 다른 게임 화면은 같은 배율에 `1920 / 설계폭`을 곱해, 렌더된 폭이
+ * 앱 표준 캔버스의 폭과 일치하게 만든다. 게임 화면(1280 × 720, 1680 × 945)은
+ * 앱 표준과 같은 16:9라 폭뿐 아니라 높이까지 정확히 일치한다.
+ * 세로가 부족한 뷰포트에서는 넘치지 않도록 실제 뷰포트 기준으로 한 번 더 제한한다.
  */
 export function useFixedCanvasScale(
   designWidth: number = APP_CANVAS_WIDTH,
