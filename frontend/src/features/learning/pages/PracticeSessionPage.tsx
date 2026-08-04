@@ -37,6 +37,11 @@ interface PracticeSessionPageProps {
   onExit?: () => void;
   /** 완료 안내창에서 다음 분류 연습으로 넘어갈 때 호출한다. */
   onNextCategory?: (categoryId: PracticeFlowCategoryId) => void;
+  /**
+   * 완료 안내창의 [테스트하기]로 넘길 범위. [다음 단계]로 이어서 연습했다면
+   * 지금 분류만이 아니라 이어온 분류 전체가 담겨 온다. 없으면 이번 세션 글자만 쓴다.
+   */
+  testSymbols?: readonly string[];
 }
 
 const isPracticeCategoryId = (
@@ -54,6 +59,7 @@ export function PracticeSessionPage({
   items,
   onExit,
   onNextCategory,
+  testSymbols,
 }: PracticeSessionPageProps = {}) {
   const { categoryId: routeCategoryId } = useParams();
   const categoryId = category ?? routeCategoryId;
@@ -541,14 +547,17 @@ export function PracticeSessionPage({
               <h2 id="practice-completion-title">
                 오늘의 연습 {currentPracticeItems.length}개를 모두 완료했어요.
               </h2>
-            </section>
 
-            <PracticeCompletionActions
-              categoryId={items ? undefined : categoryId}
-              symbols={currentPracticeItems.map((item) => item.symbol)}
-              onRetry={handleRetryClick}
-              onNextCategory={onNextCategory}
-            />
+              <PracticeCompletionActions
+                categoryId={items ? undefined : categoryId}
+                symbols={
+                  testSymbols ??
+                  currentPracticeItems.map((item) => item.symbol)
+                }
+                onRetry={handleRetryClick}
+                onNextCategory={onNextCategory}
+              />
+            </section>
           </div>
         )}
       </main>

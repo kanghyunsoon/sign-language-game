@@ -14,11 +14,17 @@ import { PracticeCompletionActions } from "../components/PracticeCompletionActio
 interface WordPracticeSessionPageProps {
   readonly onExit?: () => void;
   readonly words?: readonly WordSignItem[];
+  /**
+   * 완료 안내창의 [테스트하기]로 넘길 범위. [다음 단계]로 이어서 연습했다면
+   * 단어만이 아니라 이어온 분류 전체가 담겨 온다. 없으면 이번 세션 단어만 쓴다.
+   */
+  readonly testSymbols?: readonly string[];
 }
 
 export function WordPracticeSessionPage({
   onExit,
   words: selectedWords,
+  testSymbols,
 }: WordPracticeSessionPageProps) {
   const words = selectedWords ?? wordSigns;
   /* 오답노트에서 고른 단어만 연습하는 경우와 구분한다. 안내창 문구가 달라진다. */
@@ -356,12 +362,13 @@ export function WordPracticeSessionPage({
                 <h2 id="word-completion-title">
                   단어 연습 {words.length}개를 모두 완료했어요!
                 </h2>
+
+                <PracticeCompletionActions
+                  categoryId={isFullWordPractice ? "word" : undefined}
+                  symbols={testSymbols ?? words.map((word) => word.name)}
+                  onRetry={retry}
+                />
               </section>
-              <PracticeCompletionActions
-                categoryId={isFullWordPractice ? "word" : undefined}
-                symbols={words.map((word) => word.name)}
-                onRetry={retry}
-              />
             </div>
           )}
         </main>

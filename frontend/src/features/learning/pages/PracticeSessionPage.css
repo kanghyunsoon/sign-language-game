@@ -232,15 +232,17 @@
   font-size: min(1.041667vw, 1.666667vh);
 }
 
+/* 버튼 묶음은 완료 카드 안, 제목 아래에 둔다. */
 .practice-completion-actions {
+  margin-top: min(1.25vw, 2vh);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: min(0.833333vw, 1.333333vh);
 }
 
-/* 버튼 이름이 "자음 테스트하러 가기"처럼 길어져, 좌우 여백을 두고 글자 수에 따라
-   너비가 늘어나게 한다. 줄바꿈은 막아 세 버튼의 높이를 같게 유지한다. */
+/* 이름 길이가 버튼마다 달라, 좌우 여백을 두고 글자 수에 따라 너비가 늘어나게 한다.
+   줄바꿈은 막아 세 버튼의 높이를 같게 유지한다. */
 .practice-completion-actions button,
 .practice-completion-actions a {
   min-width: min(7.552083vw, 12.083333vh);
@@ -256,7 +258,7 @@
   font-size: min(0.989583vw, 1.583333vh);
   font-weight: 800;
   text-decoration: none;
-  background: #ffffff;
+  background: #e8e2d8;
   box-shadow: 0 min(0.416667vw, 0.666667vh) min(0.9375vw, 1.5vh) rgba(63, 43, 32, 0.12);
   cursor: pointer;
   transition:
