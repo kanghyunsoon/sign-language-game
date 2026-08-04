@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { fixedCanvasStyle, useFixedCanvasScale } from "../../../shared/layout/fixedCanvas";
 import { House, Sparkles, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -11,23 +12,11 @@ const CATEGORY_CANVAS_WIDTH = 1280;
 const CATEGORY_CANVAS_HEIGHT = 720;
 
 export function GameCategoryPage() {
+  const canvas = useFixedCanvasScale(CATEGORY_CANVAS_WIDTH, CATEGORY_CANVAS_HEIGHT);
   const { onExit, user } = useGameModuleContext();
   const navigate = useNavigate();
   const [showComingSoon, setShowComingSoon] = useState(false);
-  const [pageScale, setPageScale] = useState(1);
 
-  useEffect(() => {
-    const updatePageScale = () => {
-      setPageScale(Math.min(
-        window.innerWidth / CATEGORY_CANVAS_WIDTH,
-        window.innerHeight / CATEGORY_CANVAS_HEIGHT,
-      ));
-    };
-
-    updatePageScale();
-    window.addEventListener("resize", updatePageScale);
-    return () => window.removeEventListener("resize", updatePageScale);
-  }, []);
 
   const goBack = () => {
     if (onExit) onExit();
@@ -38,10 +27,10 @@ export function GameCategoryPage() {
     <main
       className={`${styles.categoryPage} ${styles.categoryReferencePage}`}
       data-fixed-game-canvas="true"
-      style={{ transform: `translate(-50%, -50%) scale(${pageScale})` }}
+      style={fixedCanvasStyle(canvas)}
     >
       <img className={styles.categoryReferenceImage} src={gameMenuReference} alt="" aria-hidden="true" />
-      <span className={styles.categoryReferenceUserBadge}>{user.displayName}</span>
+      <span className={`game-user-chip ${styles.categoryReferenceUserBadge}`}>{user.displayName}</span>
       <h1 className={styles.visuallyHidden}>수어의 달인 게임 선택</h1>
 
       <button

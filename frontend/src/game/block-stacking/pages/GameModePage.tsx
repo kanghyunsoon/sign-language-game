@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { fixedCanvasStyle, useFixedCanvasScale } from "../../../shared/layout/fixedCanvas";
 import { ArrowLeft, Hand, House, Radio, Sparkles, Swords, Trophy, UserRound, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -10,27 +10,15 @@ const MODE_CANVAS_WIDTH = 1280;
 const MODE_CANVAS_HEIGHT = 720;
 
 export function GameModePage() {
+  const canvas = useFixedCanvasScale(MODE_CANVAS_WIDTH, MODE_CANVAS_HEIGHT);
   const { user } = useGameModuleContext();
-  const [pageScale, setPageScale] = useState(1);
 
-  useEffect(() => {
-    const updatePageScale = () => {
-      setPageScale(Math.min(
-        window.innerWidth / MODE_CANVAS_WIDTH,
-        window.innerHeight / MODE_CANVAS_HEIGHT,
-      ));
-    };
-
-    updatePageScale();
-    window.addEventListener("resize", updatePageScale);
-    return () => window.removeEventListener("resize", updatePageScale);
-  }, []);
 
   return (
     <main
       className={`${styles.modePage} ${styles.tetrisModePage} ${styles.modePage2d}`}
       data-fixed-mode-canvas="true"
-      style={{ transform: `translate(-50%, -50%) scale(${pageScale})` }}
+      style={fixedCanvasStyle(canvas)}
     >
       <img className={styles.mode2dBackground} src={modeBackground} alt="" aria-hidden="true" />
       <div className={styles.mode2dDecor} aria-hidden="true">
@@ -48,7 +36,7 @@ export function GameModePage() {
           <h1>모드 선택</h1>
           <p>지문자를 맞혀 블록을 쌓고, 원하는 플레이 방식을 선택하세요!</p>
         </div>
-        <span className={styles.modeUserBadge}>{user.displayName}</span>
+        <span className={`game-user-chip ${styles.modeUserBadge}`}>{user.displayName}</span>
       </header>
 
       <section className={styles.modeArena} aria-label="블록 쌓기 모드 선택">
