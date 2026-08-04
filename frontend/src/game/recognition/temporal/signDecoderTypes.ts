@@ -34,6 +34,8 @@ export interface LandmarkMotionSnapshot {
   readonly fingerVelocity: number;
   readonly stableDurationMs: number;
   readonly moving: boolean;
+  /** Net displacement / path walked over the recent window. Near 0 means MediaPipe jitter. */
+  readonly jitterRatio?: number;
 }
 
 export type SignDecoderEvent =
