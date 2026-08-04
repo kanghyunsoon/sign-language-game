@@ -6,9 +6,9 @@ import { AppNav } from "../../../shared/nav/AppNav";
 import { useAuth } from "../../auth/AuthContext";
 import { AuthApiError, getProfile } from "../../auth/api/authApi";
 import { AttendanceCard } from "../../home/components/AttendanceCard";
-import { useAttendance } from "../../home/data/attendance";
 import {
   getAttendance,
+  getAttendanceCalendar,
   getPetGrowth,
   getRanking,
   type AttendanceStatus,
@@ -53,17 +53,37 @@ const learningGuideSteps = [
 const EMPTY_VALUE = "-";
 const SHOW_LEVEL_CARD = true;
 const SHOW_PROFILE_STATS = false;
+const ATTENDANCE_SERVICE_START = { year: 2026, month: 1 } as const;
+
+function attendanceYearMonthsUntil(today: Date): string[] {
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth() + 1;
+  const months: string[] = [];
+
+  for (let year = ATTENDANCE_SERVICE_START.year; year <= currentYear; year += 1) {
+    const firstMonth = year === ATTENDANCE_SERVICE_START.year
+      ? ATTENDANCE_SERVICE_START.month
+      : 1;
+    const lastMonth = year === currentYear ? currentMonth : 12;
+
+    for (let month = firstMonth; month <= lastMonth; month += 1) {
+      months.push(`${year}-${String(month).padStart(2, "0")}`);
+    }
+  }
+
+  return months;
+}
 
 export function ProfilePage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { accessToken, user, logout, updateDisplayName } = useAuth();
-  const attendedDates = useAttendance();
   const [nickname, setNickname] = useState(user?.displayName ?? "");
   const [profileError, setProfileError] = useState<string | null>(null);
   const [statsError, setStatsError] = useState<string | null>(null);
   const [growth, setGrowth] = useState<PetGrowth | null>(null);
   const [attendance, setAttendance] = useState<AttendanceStatus | null>(null);
+  const [totalAttendanceDays, setTotalAttendanceDays] = useState<number | null>(null);
   const [soloRanking, setSoloRanking] = useState<RankingEntry | null>(null);
   const [statsLoading, setStatsLoading] = useState(Boolean(accessToken));
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
@@ -175,6 +195,39 @@ export function ProfilePage() {
       cancelled = true;
     };
   }, [accessToken]);
+
+  useEffect(() => {
+    if (!accessToken || !user?.userId) {
+      setTotalAttendanceDays(null);
+      return;
+    }
+
+    let cancelled = false;
+    const yearMonths = attendanceYearMonthsUntil(new Date());
+
+    void Promise.all(
+      yearMonths.map((yearMonth) =>
+        getAttendanceCalendar(accessToken, user.userId, yearMonth),
+      ),
+    )
+      .then((calendars) => {
+        if (!cancelled) {
+          setTotalAttendanceDays(
+            calendars.reduce(
+              (total, calendar) => total + calendar.attendedDates.length,
+              0,
+            ),
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setTotalAttendanceDays(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, user?.userId]);
 
   const experienceTotal = growth
     ? growth.expToNextLevel === null
@@ -293,7 +346,7 @@ export function ProfilePage() {
             <div className="profile-name">
               <strong>{nickname || user?.displayName || "게스트"} 님</strong>
               <span className="profile-training-days">
-                함께한 지 {attendedDates.length}일째예요!
+                함께한 지 {totalAttendanceDays ?? 0}일째예요!
               </span>
             </div>
             {profileError && <p className="profile-user-error" role="alert">{profileError}</p>}
@@ -399,7 +452,14 @@ export function ProfilePage() {
             <h2 id="profile-attendance-title">출석체크</h2>
             <AttendanceCard
               accessToken={accessToken}
+              userId={user?.userId}
               onPetUpdated={setGrowth}
+              onAttendanceUpdated={(nextAttendance) => {
+                setAttendance(nextAttendance);
+                if (nextAttendance.newlyAttended) {
+                  setTotalAttendanceDays((current) => (current ?? 0) + 1);
+                }
+              }}
             />
           </section>
         </div>

@@ -20,6 +20,11 @@ export interface AttendanceCompletion extends AttendanceStatus {
   readonly pet: PetGrowth;
 }
 
+export interface AttendanceCalendar {
+  readonly yearMonth: string;
+  readonly attendedDates: readonly string[];
+}
+
 export type RankingGameType = "SIGN_DUEL" | "TETRIS_DUEL" | "TETRIS_SOLO";
 
 export interface RankingEntry {
@@ -105,6 +110,18 @@ export function getAttendance(accessToken: string): Promise<AttendanceStatus> {
 
 export function checkIn(accessToken: string): Promise<AttendanceCompletion> {
   return postJson<AttendanceCompletion>("/growth/attendance", accessToken);
+}
+
+export function getAttendanceCalendar(
+  accessToken: string,
+  userId: string,
+  yearMonth: string,
+): Promise<AttendanceCalendar> {
+  const query = new URLSearchParams({ userId, yearMonth });
+  return getJson<AttendanceCalendar>(
+    `/growth/attendance/calendar?${query.toString()}`,
+    accessToken,
+  );
 }
 
 export function getRanking(
