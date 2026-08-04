@@ -3,12 +3,15 @@ package backend.ssafy.suhwa.growth.service;
 import backend.ssafy.suhwa.growth.config.GrowthPolicyProperties;
 import backend.ssafy.suhwa.growth.domain.Attendance;
 import backend.ssafy.suhwa.growth.domain.UserPet;
+import backend.ssafy.suhwa.growth.dto.AttendanceCalendarResponse;
 import backend.ssafy.suhwa.growth.dto.AttendanceCompletionResponse;
 import backend.ssafy.suhwa.growth.dto.AttendanceResponse;
 import backend.ssafy.suhwa.growth.dto.PetStatusResponse;
 import backend.ssafy.suhwa.growth.repository.AttendanceRepository;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -67,6 +70,19 @@ public class AttendanceService {
         attendanceRepository.save(attendance);
         growthRewardService.rewardLocked(pet, policy.getAttendanceExp());
         return completion(attendance, true, policy.getAttendanceExp(), pet);
+    }
+
+    @Transactional(readOnly = true)
+    public AttendanceCalendarResponse getCalendar(Long userId, YearMonth yearMonth) {
+        YearMonth targetMonth = yearMonth != null ? yearMonth : YearMonth.now(growthClock);
+        List<LocalDate> attendedDates = attendanceRepository
+                .findAllByUserIdAndAttendanceDateBetween(
+                        userId, targetMonth.atDay(1), targetMonth.atEndOfMonth())
+                .stream()
+                .map(Attendance::getAttendanceDate)
+                .sorted()
+                .toList();
+        return new AttendanceCalendarResponse(targetMonth, attendedDates);
     }
 
     private AttendanceCompletionResponse completion(

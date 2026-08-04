@@ -2,18 +2,22 @@ package backend.ssafy.suhwa.growth.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import backend.ssafy.suhwa.growth.config.GrowthPolicyProperties;
 import backend.ssafy.suhwa.growth.domain.Attendance;
 import backend.ssafy.suhwa.growth.domain.UserPet;
+import backend.ssafy.suhwa.growth.dto.AttendanceCalendarResponse;
 import backend.ssafy.suhwa.growth.dto.AttendanceCompletionResponse;
 import backend.ssafy.suhwa.growth.repository.AttendanceRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,7 +45,7 @@ class AttendanceServiceTest {
         GrowthPolicyProperties policy = new GrowthPolicyProperties();
         attendanceService = new AttendanceService(attendanceRepository, growthRewardService, policy, clock);
         pet = UserPet.builder().userId(1L).build();
-        given(growthRewardService.lockPet(1L)).willReturn(pet);
+        lenient().when(growthRewardService.lockPet(1L)).thenReturn(pet);
     }
 
     @Test
@@ -91,5 +95,33 @@ class AttendanceServiceTest {
         assertThat(response.newlyAttended()).isFalse();
         assertThat(response.awardedExp()).isZero();
         verify(growthRewardService, never()).rewardLocked(pet, 3);
+    }
+
+    @Test
+    void calendarReturnsAttendedDatesSortedForRequestedMonth() {
+        YearMonth august = YearMonth.of(2026, 8);
+        given(attendanceRepository.findAllByUserIdAndAttendanceDateBetween(
+                1L, august.atDay(1), august.atEndOfMonth()))
+                .willReturn(List.of(
+                        new Attendance(1L, LocalDate.of(2026, 8, 15), 1),
+                        new Attendance(1L, LocalDate.of(2026, 8, 1), 1)));
+
+        AttendanceCalendarResponse response = attendanceService.getCalendar(1L, august);
+
+        assertThat(response.yearMonth()).isEqualTo(august);
+        assertThat(response.attendedDates())
+                .containsExactly(LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 15));
+    }
+
+    @Test
+    void calendarDefaultsToCurrentServiceMonthWhenYearMonthOmitted() {
+        given(attendanceRepository.findAllByUserIdAndAttendanceDateBetween(
+                1L, LocalDate.of(2026, 7, 1), LocalDate.of(2026, 7, 31)))
+                .willReturn(List.of());
+
+        AttendanceCalendarResponse response = attendanceService.getCalendar(1L, null);
+
+        assertThat(response.yearMonth()).isEqualTo(YearMonth.of(2026, 7));
+        assertThat(response.attendedDates()).isEmpty();
     }
 }
