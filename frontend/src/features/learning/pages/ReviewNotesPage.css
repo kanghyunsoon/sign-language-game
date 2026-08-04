@@ -434,18 +434,7 @@
  */
 .review-notes-detail {
   min-height: 0;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #979797 transparent;
-}
-
-.review-notes-detail::-webkit-scrollbar {
-  width: 8px;
-}
-
-.review-notes-detail::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: #979797;
+  overflow: hidden;
 }
 
 /*
@@ -453,13 +442,48 @@
  * 목록과 카드를 반씩 나눠 쓰므로 사전보다 좁게 잡는다.
  */
 .fingerspelling-detail.review-notes-detail {
-  --detail-image-size: 270px;
-  --detail-video-width: 400px;
+  --detail-symbol-row: 76px;
+  --detail-name-row: 30px;
+  --detail-image-size: 220px;
+  --detail-video-width: 350px;
+  --detail-description-height: 140px;
+  --detail-row-gap: 12px;
   /*
    * 단어 설명 중 가장 긴 줄(수영하다, 약 541px)이 줄바꿈되지 않는 폭.
    * 카드 폭은 그대로 두고 상자만 넓힌다. 카드 안쪽 폭이 627px이라 들어간다.
    */
   --detail-description-width: 600px;
+  padding: 24px 30px 26px;
+}
+
+.review-notes-detail .fingerspelling-detail-badge {
+  display: none;
+}
+
+.review-notes-detail .fingerspelling-detail-symbol {
+  font-size: 76px;
+}
+
+.review-notes-detail.word-sign-detail .fingerspelling-detail-symbol {
+  font-size: 52px;
+}
+
+.review-notes-detail .fingerspelling-detail-name {
+  margin-top: -24px;
+  font-size: 23px;
+}
+
+.review-notes-detail .fingerspelling-detail-description {
+  padding: 14px 18px;
+}
+
+.review-notes-detail .fingerspelling-detail-description h3 {
+  font-size: 18px;
+}
+
+.review-notes-detail .fingerspelling-detail-description p {
+  font-size: 16px;
+  line-height: 1.5;
 }
 
 .review-notes-card-word .review-notes-card-symbol {
@@ -478,18 +502,18 @@
 
 /* 설명 상자와 너무 붙어 보여 버튼을 조금 내린다. */
 .review-notes-detail .fingerspelling-detail-footer {
-  padding-top: 34px;
+  padding-top: 8px;
 }
 
 .review-notes-detail-delete {
-  min-height: 52px;
-  padding: 0 34px;
+  min-height: 44px;
+  padding: 0 28px;
   border: 1px solid #e8b8a4;
   border-radius: 999px;
   background: #fbeee8;
   color: #b4523a;
   font: inherit;
-  font-size: 21px;
+  font-size: 18px;
   font-weight: 800;
   cursor: pointer;
   box-shadow: 0 4px 0 #e8c4b6;

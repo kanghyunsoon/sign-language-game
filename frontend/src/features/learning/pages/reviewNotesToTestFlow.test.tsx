@@ -57,6 +57,6 @@ describe("오답노트 -> 테스트 -> 뒤로가기 실제 흐름", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "뒤로 가기" }));
 
-    expect(screen.getByText("REVIEW NOTES")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "테스트 시작" })).toBeTruthy();
   });
 });

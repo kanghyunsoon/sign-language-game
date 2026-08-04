@@ -47,7 +47,7 @@ export function WordPracticeSessionPage({
   const [recognitionMessage, setRecognitionMessage] =
     useState("단어 AI 연결을 준비하고 있습니다.");
   const [cameraMessage, setCameraMessage] =
-    useState("카메라 시작 버튼을 눌러주세요.");
+    useState("카메라 영역을 눌러주세요.");
   const [isCorrect, setIsCorrect] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
 
@@ -130,11 +130,51 @@ export function WordPracticeSessionPage({
     };
   }, [recognizer]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraMessage("현재 환경에서는 카메라를 사용할 수 없습니다.");
+      return;
+    }
+
+    setCameraMessage("");
+
+    void navigator.mediaDevices
+      .getUserMedia({
+        video: {
+          facingMode: "user",
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: false,
+      })
+      .then((stream) => {
+        if (cancelled) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+
+        streamRef.current = stream;
+        setCameraStream(stream);
+        recognizer.resetSequence();
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCameraMessage("카메라를 시작하지 못했습니다.");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [recognizer]);
+
   const stopCamera = () => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     setCameraStream(null);
-    setCameraMessage("카메라 시작 버튼을 눌러주세요.");
+    setCameraMessage("카메라 영역을 눌러주세요.");
     recognizer.resetSequence();
   };
 
@@ -271,6 +311,15 @@ export function WordPracticeSessionPage({
                 className={`practice-camera-placeholder ${
                   cameraStream ? "camera-active" : ""
                 }`}
+                role="button"
+                tabIndex={0}
+                onClick={() => void startCamera()}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    void startCamera();
+                  }
+                }}
               >
                 {cameraStream ? (
                   <WordHandCamera
@@ -306,13 +355,6 @@ export function WordPracticeSessionPage({
               onClick={() => moveTo(currentIndex - 1)}
             >
               ← 이전 문제
-            </button>
-            <button
-              className="practice-camera-button"
-              type="button"
-              onClick={() => void startCamera()}
-            >
-              {cameraStream ? "카메라 종료" : "카메라 시작"}
             </button>
             <button
               className="practice-next-button"

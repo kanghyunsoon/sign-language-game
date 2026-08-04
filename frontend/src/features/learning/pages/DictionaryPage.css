@@ -507,6 +507,10 @@
   --detail-video-width: 470px;
 }
 
+.dictionary-detail .fingerspelling-detail-badge {
+  display: none;
+}
+
 /*
  * 이 화면은 1920x1200 캔버스를 transform으로 축소해 보여준다.
  * 미디어 쿼리는 축소 전 뷰포트 너비로 판정되므로, 캔버스 안 배치를 창 크기에 따라

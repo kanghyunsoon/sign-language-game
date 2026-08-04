@@ -550,14 +550,14 @@
 /* 오른쪽 카메라 카드 */
 
 .practice-camera-panel {
-  padding-bottom: min(3.958333vw, 6.333333vh);
+  padding-bottom: 0;
 }
 
 .practice-camera-placeholder {
   position: relative;
   flex: 1;
   min-height: min(23.177083vw, 37.083333vh);
-  margin: min(0.9375vw, 1.5vh) min(1.041667vw, 1.666667vh) min(0.729167vw, 1.166667vh);
+  margin: min(1.145833vw, 1.833333vh) min(1.25vw, 2vh) min(0.729167vw, 1.166667vh);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -577,7 +577,7 @@
   position: relative;
   flex: 1;
   min-height: min(23.177083vw, 37.083333vh);
-  margin: min(0.9375vw, 1.5vh) min(1.041667vw, 1.666667vh) min(0.729167vw, 1.166667vh);
+  margin: min(1.145833vw, 1.833333vh) min(1.25vw, 2vh) min(0.729167vw, 1.166667vh);
   display: flex;
   align-items: center;
   justify-content: center;

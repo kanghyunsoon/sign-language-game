@@ -94,7 +94,7 @@ export function PracticeSessionPage({
   const [recognitionMessage, setRecognitionMessage] =
     useState("AI 연결을 준비하고 있습니다.");
   const [cameraMessage, setCameraMessage] =
-    useState("카메라 시작 버튼을 눌러주세요.");
+    useState("카메라 영역을 눌러주세요.");
   const targetSymbol = practiceItems[currentIndex]?.symbol ?? "";
 
   useEffect(() => {
@@ -185,6 +185,53 @@ export function PracticeSessionPage({
     };
   }, [recognizer]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    if (practiceItems.length === 0) return;
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraMessage("현재 환경에서는 카메라를 사용할 수 없습니다.");
+      return;
+    }
+
+    setCameraMessage("");
+
+    void navigator.mediaDevices
+      .getUserMedia({
+        video: {
+          facingMode: "user",
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: false,
+      })
+      .then((stream) => {
+        if (cancelled) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+
+        streamRef.current = stream;
+        setCameraStream(stream);
+        setIsCameraActive(true);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+
+        if (error instanceof DOMException && error.name === "NotAllowedError") {
+          setCameraMessage("브라우저 설정에서 카메라 권한을 허용해주세요.");
+          return;
+        }
+
+        setCameraMessage("카메라를 시작하지 못했습니다.");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [categoryId, practiceItems.length]);
+
   // 잘못된 분류로 들어왔거나 연습할 글자가 하나도 없으면 진행할 수 없다.
   if (practiceItems.length === 0) {
     return (
@@ -227,7 +274,7 @@ export function PracticeSessionPage({
 
     setCameraStream(null);
     setIsCameraActive(false);
-    setCameraMessage("카메라 시작 버튼을 눌러주세요.");
+    setCameraMessage("카메라 영역을 눌러주세요.");
   };
 
   const handlePreviousClick = () => {
@@ -457,6 +504,15 @@ export function PracticeSessionPage({
               className={`practice-camera-placeholder ${
                 isCameraActive ? "camera-active" : ""
               }`}
+              role="button"
+              tabIndex={0}
+              onClick={() => void handleCameraClick()}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  void handleCameraClick();
+                }
+              }}
             >
               {cameraStream && (
                 <HandCamera
@@ -504,14 +560,6 @@ export function PracticeSessionPage({
             disabled={isFirstItem}
           >
             ← 이전 문제
-          </button>
-
-          <button
-            className="practice-camera-button"
-            type="button"
-            onClick={handleCameraClick}
-          >
-            {isCameraActive ? "카메라 종료" : "카메라 시작"}
           </button>
 
           <button
