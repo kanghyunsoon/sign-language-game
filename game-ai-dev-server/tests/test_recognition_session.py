@@ -8,7 +8,7 @@ import numpy as np
 from app.feature_adapter import FEATURE_SIZE
 from app.messages import Landmark, capabilities_message, parse_request
 from app.model_adapter import LABELS, MODEL_VERSION, ModelContract, load_recognition_readiness
-from app.recognition_session import RecognitionConfig, RecognitionSession
+from app.recognition_session import LANDMARK_SMOOTHING_ALPHA, RecognitionConfig, RecognitionSession
 from tests.helpers import MockModelRunner, landmark_frame
 
 
@@ -78,6 +78,47 @@ class RecognitionSessionTests(unittest.TestCase):
         self.assertEqual(message["confidenceThresholds"], {
             item["symbol"]: item["threshold"] for item in readiness["classes"]
         })
+
+    def test_landmark_smoothing_suppresses_jitter_but_follows_real_movement(self) -> None:
+        """Frontal jamo fail because MediaPipe oscillates the fingertips in place.
+
+        The EMA must damp that oscillation while still tracking a sustained move,
+        otherwise a real handshape change would lag forever.
+        """
+        session = RecognitionSession(MockModelRunner([]), smoothing_alpha=0.3)
+        flat = tuple(Landmark(0.5, 0.5, 0.0) for _ in range(21))
+        # Alternating jitter on one fingertip.
+        for step in range(8):
+            jittered = list(flat)
+            jittered[8] = Landmark(0.5 + (0.02 if step % 2 == 0 else -0.02), 0.5, 0.0)
+            smoothed = session._smooth(tuple(jittered), "RIGHT")
+        # The oscillation is ±0.02 around 0.5; smoothing must land well inside it.
+        self.assertLess(abs(smoothed[8].x - 0.5), 0.02)
+        # A sustained one-way move must still be followed.
+        session.reset()
+        for step in range(20):
+            moved = list(flat)
+            moved[8] = Landmark(0.5 + 0.01 * step, 0.5, 0.0)
+            smoothed = session._smooth(tuple(moved), "RIGHT")
+        self.assertGreater(smoothed[8].x, 0.6)
+
+    def test_landmark_smoothing_resets_on_hand_switch_and_release(self) -> None:
+        session = RecognitionSession(MockModelRunner([]), RecognitionConfig(hand_release_after_ms=100), smoothing_alpha=0.3)
+        left = tuple(Landmark(0.1, 0.1, 0.0) for _ in range(21))
+        right = tuple(Landmark(0.9, 0.9, 0.0) for _ in range(21))
+        session._smooth(left, "LEFT")
+        # Switching hands must not blend the two trajectories.
+        switched = session._smooth(right, "RIGHT")
+        self.assertAlmostEqual(switched[0].x, 0.9, places=5)
+        session.process_hand_not_detected(1000)
+        session.process_hand_not_detected(1200)
+        self.assertIsNone(session._smoothed)
+
+    def test_smoothing_can_be_disabled_and_default_is_configured(self) -> None:
+        self.assertAlmostEqual(LANDMARK_SMOOTHING_ALPHA, 0.3)
+        session = RecognitionSession(MockModelRunner([]), smoothing_alpha=1.0)
+        raw = tuple(Landmark(0.1 * index, 0.2, 0.3) for index in range(21))
+        self.assertIs(session._smooth(raw, "RIGHT"), raw)
 
     def test_rejects_labels_and_output_size_mismatch(self) -> None:
         with self.assertRaises(ValueError):
