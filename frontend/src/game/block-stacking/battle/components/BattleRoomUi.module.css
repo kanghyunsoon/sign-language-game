@@ -396,8 +396,6 @@
 .lobbyPage.fixedCanvasPage .lobbyProfile {
   top: 25px;
   right: 32px;
-  color: #543823 !important;
-  font-size: 13px;
 }
 
 .lobbyPage.fixedCanvasPage .lobbyHero { align-content: start; padding: 7px 0 13px; }
