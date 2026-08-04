@@ -122,7 +122,7 @@ const otterHabitats: readonly OtterHabitat[] = [
 ];
 
 export function MainPage() {
-  const { accessToken } = useAuth();
+  const { accessToken, user } = useAuth();
   /** 트랙 왼쪽 끝에 놓인 카드가 띠에서 몇 번째인지. 가운데 벌에서 시작한다. */
   const [bandOffset, setBandOffset] = useState(MENU_BAND_ORIGIN);
   /** 지금 보고 있는 묶음. 이동 거리를 여기서 정한다. */
@@ -380,7 +380,7 @@ export function MainPage() {
 
               <h2 id="attendance-title">출석체크</h2>
 
-              <AttendanceCard accessToken={accessToken} />
+              <AttendanceCard accessToken={accessToken} userId={user?.userId} />
             </section>
           </div>
         )}

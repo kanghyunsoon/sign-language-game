@@ -3,8 +3,11 @@ import { useEffect, useState } from "react";
 import otterClapImage from "../../learning/assets/otter_clap.png";
 import {
   checkIn,
+  getAttendance,
+  getAttendanceCalendar,
   getPetGrowth,
   type AttendanceCompletion,
+  type AttendanceStatus,
   type PetGrowth,
 } from "../../profile/api/profileApi";
 import { HabitatUnlockModal } from "../../profile/components/HabitatUnlockModal";
@@ -37,25 +40,95 @@ interface AttendanceCardProps {
   /** 기준일. 테스트에서 시점을 고정하려고 주입할 수 있다. */
   readonly today?: Date;
   readonly accessToken?: string | null;
+  readonly userId?: string | null;
   readonly onPetUpdated?: (pet: PetGrowth) => void;
+  readonly onAttendanceUpdated?: (attendance: AttendanceCompletion) => void;
 }
 
 /** 한 달 출석 현황을 보여주고 오늘 출석을 남기는 카드. */
 export function AttendanceCard({
   today = new Date(),
   accessToken,
+  userId,
   onPetUpdated,
+  onAttendanceUpdated,
 }: AttendanceCardProps) {
-  const attendedDates = useAttendance();
+  const localAttendedDates = useAttendance();
   const markAttendance = useMarkAttendance();
 
   const [cursor, setCursor] = useState(() => toMonthCursor(today));
+  const [remoteAttendedDates, setRemoteAttendedDates] = useState<readonly string[]>([]);
+  const [attendanceStatus, setAttendanceStatus] = useState<AttendanceStatus | null>(null);
+  const [attendanceLoading, setAttendanceLoading] = useState(Boolean(accessToken && userId));
   const [checkingIn, setCheckingIn] = useState(false);
   const [checkInError, setCheckInError] = useState<string | null>(null);
   const [completion, setCompletion] =
     useState<AttendanceCompletion | null>(null);
   const [unlockedHabitatLevel, setUnlockedHabitatLevel] =
     useState<HabitatUnlockLevel | null>(null);
+
+  const usesAttendanceApi = Boolean(accessToken && userId);
+
+  useEffect(() => {
+    if (!accessToken || !userId) {
+      setAttendanceStatus(null);
+      return;
+    }
+
+    let cancelled = false;
+    void getAttendance(accessToken)
+      .then((status) => {
+        if (!cancelled) setAttendanceStatus(status);
+      })
+      .catch((caught) => {
+        if (!cancelled) {
+          setCheckInError(
+            caught instanceof Error
+              ? caught.message
+              : "출석 상태를 불러오지 못했습니다.",
+          );
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, userId]);
+
+  useEffect(() => {
+    if (!accessToken || !userId) {
+      setRemoteAttendedDates([]);
+      setAttendanceLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setAttendanceLoading(true);
+    setCheckInError(null);
+    const yearMonth = `${cursor.year}-${String(cursor.month).padStart(2, "0")}`;
+
+    void getAttendanceCalendar(accessToken, userId, yearMonth)
+      .then((calendar) => {
+        if (!cancelled) setRemoteAttendedDates(calendar.attendedDates);
+      })
+      .catch((caught) => {
+        if (!cancelled) {
+          setRemoteAttendedDates([]);
+          setCheckInError(
+            caught instanceof Error
+              ? caught.message
+              : "출석 달력을 불러오지 못했습니다.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setAttendanceLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, cursor.month, cursor.year, userId]);
 
   useEffect(() => {
     if (!completion) return;
@@ -68,8 +141,11 @@ export function AttendanceCard({
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [completion]);
 
+  const attendedDates = usesAttendanceApi ? remoteAttendedDates : localAttendedDates;
   const days = buildMonthCalendar(attendedDates, cursor, today);
-  const streak = currentStreak(attendedDates, today);
+  const streak = usesAttendanceApi
+    ? (attendanceStatus?.streakCount ?? 0)
+    : currentStreak(attendedDates, today);
 
   const handleCheckIn = async (date: Date) => {
     if (!accessToken) {
@@ -83,7 +159,13 @@ export function AttendanceCard({
     try {
       const previousGrowth = await getPetGrowth(accessToken).catch(() => null);
       const result = await checkIn(accessToken);
-      markAttendance(date);
+      setAttendanceStatus(result);
+      onAttendanceUpdated?.(result);
+      setRemoteAttendedDates((current) =>
+        current.includes(result.attendanceDate)
+          ? current
+          : [...current, result.attendanceDate].sort(),
+      );
       onPetUpdated?.(result.pet);
       if (result.newlyAttended && result.awardedExp > 0) {
         const unlockedLevel = previousGrowth
@@ -117,7 +199,9 @@ export function AttendanceCard({
           {streak}일째 연속 학습 중이에요!
         </strong>
 
-        <span className="attendance-total">총 {attendedDates.length}일 방문</span>
+        <span className="attendance-total">
+          {usesAttendanceApi ? "이번 달" : "총"} {attendedDates.length}일 방문
+        </span>
       </header>
 
       <div className="attendance-month">
@@ -189,7 +273,7 @@ export function AttendanceCard({
               <button
                 className="attendance-check-button"
                 type="button"
-                disabled={checkingIn}
+                disabled={checkingIn || attendanceLoading}
                 onClick={() => void handleCheckIn(fromDateKey(day.key))}
               >
                 출석하기

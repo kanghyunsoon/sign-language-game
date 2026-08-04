@@ -907,12 +907,12 @@
 }
 
 .profile-attendance-overlay .attendance-modal {
-  width: calc(1100 * var(--profile-attendance-px));
-  min-height: calc(780 * var(--profile-attendance-px));
+  width: calc(900 * var(--profile-attendance-px));
+  min-height: 0;
   padding:
-    calc(70 * var(--profile-attendance-px))
-    calc(72 * var(--profile-attendance-px))
-    calc(54 * var(--profile-attendance-px));
+    calc(42 * var(--profile-attendance-px))
+    calc(46 * var(--profile-attendance-px))
+    calc(36 * var(--profile-attendance-px));
   border-width: var(--profile-attendance-px);
   border-radius: calc(30 * var(--profile-attendance-px));
   box-shadow:
@@ -922,21 +922,21 @@
 }
 
 .profile-attendance-overlay .learning-guide-close {
-  top: calc(28 * var(--profile-attendance-px));
-  right: calc(34 * var(--profile-attendance-px));
-  width: calc(54 * var(--profile-attendance-px));
-  height: calc(54 * var(--profile-attendance-px));
-  padding-bottom: calc(5 * var(--profile-attendance-px));
-  font-size: calc(44 * var(--profile-attendance-px));
+  top: calc(18 * var(--profile-attendance-px));
+  right: calc(22 * var(--profile-attendance-px));
+  width: calc(42 * var(--profile-attendance-px));
+  height: calc(42 * var(--profile-attendance-px));
+  padding-bottom: calc(4 * var(--profile-attendance-px));
+  font-size: calc(34 * var(--profile-attendance-px));
 }
 
 .profile-attendance-overlay .learning-guide-modal h2 {
-  margin-bottom: calc(46 * var(--profile-attendance-px));
-  font-size: calc(54 * var(--profile-attendance-px));
+  margin-bottom: calc(24 * var(--profile-attendance-px));
+  font-size: calc(40 * var(--profile-attendance-px));
 }
 
 .profile-attendance-overlay .attendance-card {
-  gap: calc(26 * var(--profile-attendance-px));
+  gap: calc(18 * var(--profile-attendance-px));
 }
 
 .profile-attendance-overlay .attendance-heading {
@@ -944,57 +944,57 @@
 }
 
 .profile-attendance-overlay .attendance-streak {
-  font-size: calc(32 * var(--profile-attendance-px));
+  font-size: calc(27 * var(--profile-attendance-px));
 }
 
 .profile-attendance-overlay .attendance-total {
-  font-size: calc(20 * var(--profile-attendance-px));
+  font-size: calc(17 * var(--profile-attendance-px));
 }
 
 .profile-attendance-overlay .attendance-grid,
 .profile-attendance-overlay .attendance-weekdays {
-  gap: calc(14 * var(--profile-attendance-px));
+  gap: calc(10 * var(--profile-attendance-px));
 }
 
 .profile-attendance-overlay .attendance-day {
-  padding: calc(10 * var(--profile-attendance-px));
+  padding: calc(8 * var(--profile-attendance-px));
   border-width: var(--profile-attendance-px);
-  border-radius: calc(18 * var(--profile-attendance-px));
+  border-radius: calc(14 * var(--profile-attendance-px));
 }
 
 .profile-attendance-overlay .attendance-day-label {
-  top: calc(10 * var(--profile-attendance-px));
-  left: calc(12 * var(--profile-attendance-px));
-  font-size: calc(18 * var(--profile-attendance-px));
+  top: calc(8 * var(--profile-attendance-px));
+  left: calc(9 * var(--profile-attendance-px));
+  font-size: calc(15 * var(--profile-attendance-px));
 }
 
 .profile-attendance-overlay .attendance-check-button {
   padding:
-    calc(10 * var(--profile-attendance-px))
-    calc(16 * var(--profile-attendance-px));
-  font-size: calc(18 * var(--profile-attendance-px));
+    calc(8 * var(--profile-attendance-px))
+    calc(13 * var(--profile-attendance-px));
+  font-size: calc(15 * var(--profile-attendance-px));
   box-shadow: 0 calc(3 * var(--profile-attendance-px)) 0 #3f2f22;
 }
 
 .profile-attendance-overlay .attendance-month {
-  gap: calc(28 * var(--profile-attendance-px));
+  gap: calc(20 * var(--profile-attendance-px));
 }
 
 .profile-attendance-overlay .attendance-month-title {
-  min-width: calc(220 * var(--profile-attendance-px));
-  font-size: calc(28 * var(--profile-attendance-px));
+  min-width: calc(180 * var(--profile-attendance-px));
+  font-size: calc(23 * var(--profile-attendance-px));
 }
 
 .profile-attendance-overlay .attendance-month-button {
-  width: calc(48 * var(--profile-attendance-px));
-  height: calc(48 * var(--profile-attendance-px));
+  width: calc(40 * var(--profile-attendance-px));
+  height: calc(40 * var(--profile-attendance-px));
   padding-bottom: calc(4 * var(--profile-attendance-px));
   border-width: var(--profile-attendance-px);
-  font-size: calc(30 * var(--profile-attendance-px));
+  font-size: calc(25 * var(--profile-attendance-px));
 }
 
 .profile-attendance-overlay .attendance-weekdays > li {
-  font-size: calc(19 * var(--profile-attendance-px));
+  font-size: calc(16 * var(--profile-attendance-px));
 }
 
 /* 두 안내 모달의 닫기 버튼은 브라우저 배율과 관계없이 같은 규격을 사용한다. */

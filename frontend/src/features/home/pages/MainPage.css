@@ -802,7 +802,75 @@ a {
 
 /* 출석체크 모달은 학습 방법 모달보다 좁다. */
 .attendance-modal {
-  width: 1100px;
+  width: 900px;
+  min-height: 0;
+  padding: 42px 46px 36px;
+}
+
+.attendance-modal .learning-guide-close {
+  top: 18px;
+  right: 22px;
+  width: 42px;
+  height: 42px;
+  padding-bottom: 4px;
+  font-size: 34px;
+}
+
+.attendance-modal h2 {
+  margin-bottom: 24px;
+  font-size: 40px;
+}
+
+.attendance-modal .attendance-card {
+  gap: 18px;
+}
+
+.attendance-modal .attendance-streak {
+  font-size: 27px;
+}
+
+.attendance-modal .attendance-total {
+  font-size: 17px;
+}
+
+.attendance-modal .attendance-month {
+  gap: 20px;
+}
+
+.attendance-modal .attendance-month-title {
+  min-width: 180px;
+  font-size: 23px;
+}
+
+.attendance-modal .attendance-month-button {
+  width: 40px;
+  height: 40px;
+  font-size: 25px;
+}
+
+.attendance-modal .attendance-grid,
+.attendance-modal .attendance-weekdays {
+  gap: 10px;
+}
+
+.attendance-modal .attendance-weekdays > li {
+  font-size: 16px;
+}
+
+.attendance-modal .attendance-day {
+  padding: 8px;
+  border-radius: 14px;
+}
+
+.attendance-modal .attendance-day-label {
+  top: 8px;
+  left: 9px;
+  font-size: 15px;
+}
+
+.attendance-modal .attendance-check-button {
+  padding: 8px 13px;
+  font-size: 15px;
 }
 
 /* 달력 상단: 가운데 연·월, 양옆 이동 화살표 */
