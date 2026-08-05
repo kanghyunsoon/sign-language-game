@@ -254,9 +254,15 @@
 }
 
 .test-category-list {
+  width: max-content;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(
+    5,
+    calc((var(--test-setup-content-width) - 36px) / 4)
+  );
   gap: 12px;
+  justify-self: center;
+  transform: translateX(-82px);
 }
 
 .test-camera-placeholder .word-hand-camera,

@@ -500,6 +500,14 @@
   font-size: 30px;
 }
 
+.review-notes-card-sentence .review-notes-card-symbol,
+.review-notes-grid-all .review-notes-card-sentence .review-notes-card-symbol {
+  font-size: 24px;
+  line-height: 1.15;
+  letter-spacing: -0.06em;
+  word-break: keep-all;
+}
+
 /* 설명 상자와 너무 붙어 보여 버튼을 조금 내린다. */
 .review-notes-detail .fingerspelling-detail-footer {
   padding-top: 8px;

@@ -150,7 +150,9 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
                     <span className="test-category-count">
                       {isAvailable
                         ? `${maxQuestionCount([category.id])}${
-                            category.id === "word" ? "개" : "자"
+                            category.id === "word" || category.id === "sentence"
+                              ? "개"
+                              : "자"
                           }`
                         : "준비중"}
                     </span>
@@ -159,6 +161,7 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
               );
             })}
           </div>
+
         </section>
 
         <section className="test-setup-section">

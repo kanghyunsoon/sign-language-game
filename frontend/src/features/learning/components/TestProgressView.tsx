@@ -68,7 +68,9 @@ export function TestProgressView({
   const [isCorrectFeedbackOpen, setIsCorrectFeedbackOpen] = useState(false);
 
   const currentQuestion = questions[currentIndex];
-  const useWordEndpoint = currentQuestion?.categoryId === "word";
+  const useWordEndpoint =
+    currentQuestion?.categoryId === "word" ||
+    currentQuestion?.categoryId === "sentence";
   const useNumberEndpoint = currentQuestion?.categoryId === "number";
   const recognizer = useMemo(
     () => {
@@ -328,14 +330,16 @@ export function TestProgressView({
                 {currentQuestion.categoryLabel}
               </span>
 
-              {currentQuestion.categoryId !== "word" && (
+              {currentQuestion.categoryId !== "word" &&
+                currentQuestion.categoryId !== "sentence" && (
                 <span className="test-question-tag">{currentQuestion.name}</span>
               )}
             </div>
 
             <span
               className={`test-question-symbol ${
-                currentQuestion.categoryId === "word"
+                currentQuestion.categoryId === "word" ||
+                currentQuestion.categoryId === "sentence"
                   ? "test-question-symbol-word"
                   : ""
               }`}
