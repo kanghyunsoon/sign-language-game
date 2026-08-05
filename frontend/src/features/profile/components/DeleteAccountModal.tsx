@@ -1,6 +1,6 @@
 import "./DeleteAccountModal.css";
 import { useEffect, useRef, useState } from "react";
-import otterDeleteImage from "../assets/otter_delete.png";
+import otterDeleteImage from "../assets/otter_delete.webp";
 
 interface DeleteAccountModalProps {
   error?: string | null;

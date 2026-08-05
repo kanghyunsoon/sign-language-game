@@ -1050,7 +1050,7 @@
   grid-template-rows: 100px minmax(0, 1fr) !important;
   gap: 15px !important;
   padding: 18px 22px 22px !important;
-  background: #dff2ff url("../assets/game-mode-background-2d.png") center 48% / cover no-repeat !important;
+  background: #dff2ff url("../assets/game-mode-background-2d.webp") center 48% / cover no-repeat !important;
   font-family: Pretendard, "Noto Sans KR", "Malgun Gothic", sans-serif;
 }
 

@@ -1,8 +1,8 @@
 import { Assets, Container, Graphics, Sprite } from "pixi.js";
 import type { GlyphMoveRole } from "../duel/GlyphCombatRules";
 
-const PLAYER_OTTER_URL = new URL("../assets/turn-otter-player.png", import.meta.url).href;
-const RIVAL_OTTER_URL = new URL("../assets/turn-otter-rival.png", import.meta.url).href;
+const PLAYER_OTTER_URL = new URL("../assets/turn-otter-player.webp", import.meta.url).href;
+const RIVAL_OTTER_URL = new URL("../assets/turn-otter-rival.webp", import.meta.url).href;
 
 export type RunnerBattleMotion = "IDLE" | "LOCKED" | "HIT" | GlyphMoveRole;
 

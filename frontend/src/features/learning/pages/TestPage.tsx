@@ -14,7 +14,7 @@ import {
   completeTestSession,
   startTestSession,
 } from "../api/testSessionApi";
-import otterClapImage from "../assets/otter_clap.png";
+import otterClapImage from "../assets/otter_clap.webp";
 import { TestProgressView } from "../components/TestProgressView";
 import { TestResultView } from "../components/TestResultView";
 import { TestSetupView } from "../components/TestSetupView";

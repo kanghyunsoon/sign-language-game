@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, Lock, X } from "lucide-react";
 import { useMemo, useState } from "react";
-import otterThinking from "../assets/habitats/otter_thinking.png";
+import otterThinking from "../assets/habitats/otter_thinking.webp";
 import {
   habitatOptions,
   type HabitatId,

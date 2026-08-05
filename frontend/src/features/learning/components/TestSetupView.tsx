@@ -13,7 +13,7 @@ import {
   resolveQuestionCount,
   testCategories,
 } from "../data/testSession";
-import otterImage from "../assets/otter.png";
+import otterImage from "../assets/otter.webp";
 
 interface TestSetupViewProps {
   readonly onStart: (settings: TestSettings) => void;

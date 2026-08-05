@@ -1,5 +1,5 @@
 import type { HammerAttackEvent } from "../transport/battleTransportTypes";
-import hammerOtterStrip from "../../assets/battle-hammer-otter-strip.png";
+import hammerOtterStrip from "../../assets/battle-hammer-otter-strip.webp";
 import styles from "../battle.module.css";
 
 interface HammerAttackOverlayProps {

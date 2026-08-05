@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { useGameModuleContext } from "../../app/GameModuleContext";
-import waitingOtter from "../assets/battle-otter-shell-play.png";
+import waitingOtter from "../assets/battle-otter-shell-play.webp";
 import { symbolRangeLabel } from "../battle/components/BattleRoomCard";
 import styles from "../battle/components/BattleRoomUi.module.css";
 import type { BattleRoomDetail } from "../battle/room";

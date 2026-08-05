@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import otterImage from "../../assets/battle-otter-shell-play.png";
+import otterImage from "../../assets/battle-otter-shell-play.webp";
 import styles from "./OtterFollower.module.css";
 
 const REACTION_DURATION_MS = 1_450;

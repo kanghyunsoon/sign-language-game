@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import otterClapImage from "../../learning/assets/otter_clap.png";
+import otterClapImage from "../../learning/assets/otter_clap.webp";
 import {
   checkIn,
   getAttendance,

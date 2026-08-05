@@ -2,7 +2,7 @@ import { fixedCanvasStyle, useFixedCanvasScale } from "../../../shared/layout/fi
 import { ArrowLeft, Hand, House, Radio, Sparkles, Swords, Trophy, UserRound, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import modeBackground from "../assets/game-mode-background-2d.png";
+import modeBackground from "../assets/game-mode-background-2d.webp";
 import { useGameModuleContext } from "../../app/GameModuleContext";
 import styles from "../../shared/GameModule.module.css";
 

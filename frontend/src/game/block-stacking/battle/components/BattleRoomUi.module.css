@@ -139,7 +139,7 @@
 
 /* Live waiting room: keep the current socket/WebRTC workflow, fit the visual shell in one desktop viewport. */
 .waitingLobby { width:100%; height:100dvh; min-height:0; max-width:none; box-sizing:border-box; display:grid; grid-template-rows:auto minmax(0,1fr); gap:16px; padding:clamp(18px,3vw,38px) clamp(28px,6vw,92px) clamp(24px,4vw,48px); overflow:hidden; }
-.waitingLobby { background:linear-gradient(rgba(226,246,255,.12),rgba(244,250,221,.12)),url("../../assets/game-mode-background-2d.png") center 48% / cover no-repeat; }
+.waitingLobby { background:linear-gradient(rgba(226,246,255,.12),rgba(244,250,221,.12)),url("../../assets/game-mode-background-2d.webp") center 48% / cover no-repeat; }
 .waitingLobby::before { inset:0; background:linear-gradient(180deg,rgba(231,248,255,.06),rgba(255,255,255,.03) 48%,rgba(179,207,105,.08)); pointer-events:none; }
 .waitingLobby::after { display:none; }
 .waitingLobby .waitingBack { top:clamp(20px,3vw,40px); left:clamp(20px,4vw,64px); width:44px; min-height:44px; color:#6d583f; }
@@ -345,7 +345,7 @@
   padding: 24px 42px 26px;
   background:
     linear-gradient(rgba(226,246,255,.08), rgba(244,250,221,.1)),
-    url("../../assets/game-mode-background-2d.png") center 48% / cover no-repeat;
+    url("../../assets/game-mode-background-2d.webp") center 48% / cover no-repeat;
   color: #4b392c;
   font-family: Pretendard, "Noto Sans KR", "Malgun Gothic", sans-serif;
 }

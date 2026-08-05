@@ -1,44 +1,44 @@
-import number1Url from "../../assets/guides/number-1.png";
-import number2Url from "../../assets/guides/number-2.png";
-import number3Url from "../../assets/guides/number-3.png";
-import number4Url from "../../assets/guides/number-4.png";
-import number5Url from "../../assets/guides/number-5.png";
-import number6Url from "../../assets/guides/number-6.png";
-import number7Url from "../../assets/guides/number-7.png";
-import number8Url from "../../assets/guides/number-8.png";
-import number9Url from "../../assets/guides/number-9.png";
-import fingerspellingSheetUrl from "../../media/korean-fingerspelling-sheet.png";
-import consonantGiyeokUrl from "../../../features/learning/assets/consonant/consonant-giyeok.png";
-import consonantNieunUrl from "../../../features/learning/assets/consonant/consonant-nieun.png";
-import consonantDigeutUrl from "../../../features/learning/assets/consonant/consonant-digeut.png";
-import consonantRieulUrl from "../../../features/learning/assets/consonant/consonant-rieul.png";
-import consonantMieumUrl from "../../../features/learning/assets/consonant/consonant-mieum.png";
-import consonantBieupUrl from "../../../features/learning/assets/consonant/consonant-bieup.png";
-import consonantSiotUrl from "../../../features/learning/assets/consonant/consonant-siot.png";
-import consonantIeungUrl from "../../../features/learning/assets/consonant/consonant-ieung.png";
-import consonantJieutUrl from "../../../features/learning/assets/consonant/consonant-jieut.png";
-import consonantChieutUrl from "../../../features/learning/assets/consonant/consonant-chieut.png";
-import consonantKieukUrl from "../../../features/learning/assets/consonant/consonant-kieuk.png";
-import consonantTieutUrl from "../../../features/learning/assets/consonant/consonant-tieut.png";
-import consonantPieupUrl from "../../../features/learning/assets/consonant/consonant-pieup.png";
-import consonantHieutUrl from "../../../features/learning/assets/consonant/consonant-hieut.png";
-import vowelAUrl from "../../../features/learning/assets/vowel/vowel-a.png";
-import vowelAeUrl from "../../../features/learning/assets/vowel/vowel-ae.png";
-import vowelYaUrl from "../../../features/learning/assets/vowel/vowel-ya.png";
-import vowelYaeUrl from "../../../features/learning/assets/vowel/vowel-yae.png";
-import vowelEoUrl from "../../../features/learning/assets/vowel/vowel-eo.png";
-import vowelEUrl from "../../../features/learning/assets/vowel/vowel-e.png";
-import vowelYeoUrl from "../../../features/learning/assets/vowel/vowel-yeo.png";
-import vowelYeUrl from "../../../features/learning/assets/vowel/vowel-ye.png";
-import vowelOUrl from "../../../features/learning/assets/vowel/vowel-o.png";
-import vowelYoUrl from "../../../features/learning/assets/vowel/vowel-yo.png";
-import vowelUUrl from "../../../features/learning/assets/vowel/vowel-u.png";
-import vowelYuUrl from "../../../features/learning/assets/vowel/vowel-yu.png";
-import vowelEuUrl from "../../../features/learning/assets/vowel/vowel-eu.png";
-import vowelUiUrl from "../../../features/learning/assets/vowel/vowel-ui.png";
-import vowelIUrl from "../../../features/learning/assets/vowel/vowel-i.png";
-import vowelOeUrl from "../../../features/learning/assets/vowel/vowel-oe.png";
-import vowelWiUrl from "../../../features/learning/assets/vowel/vowel-wi.png";
+import number1Url from "../../assets/guides/number-1.webp";
+import number2Url from "../../assets/guides/number-2.webp";
+import number3Url from "../../assets/guides/number-3.webp";
+import number4Url from "../../assets/guides/number-4.webp";
+import number5Url from "../../assets/guides/number-5.webp";
+import number6Url from "../../assets/guides/number-6.webp";
+import number7Url from "../../assets/guides/number-7.webp";
+import number8Url from "../../assets/guides/number-8.webp";
+import number9Url from "../../assets/guides/number-9.webp";
+import fingerspellingSheetUrl from "../../media/korean-fingerspelling-sheet.webp";
+import consonantGiyeokUrl from "../../../features/learning/assets/consonant/consonant-giyeok.webp";
+import consonantNieunUrl from "../../../features/learning/assets/consonant/consonant-nieun.webp";
+import consonantDigeutUrl from "../../../features/learning/assets/consonant/consonant-digeut.webp";
+import consonantRieulUrl from "../../../features/learning/assets/consonant/consonant-rieul.webp";
+import consonantMieumUrl from "../../../features/learning/assets/consonant/consonant-mieum.webp";
+import consonantBieupUrl from "../../../features/learning/assets/consonant/consonant-bieup.webp";
+import consonantSiotUrl from "../../../features/learning/assets/consonant/consonant-siot.webp";
+import consonantIeungUrl from "../../../features/learning/assets/consonant/consonant-ieung.webp";
+import consonantJieutUrl from "../../../features/learning/assets/consonant/consonant-jieut.webp";
+import consonantChieutUrl from "../../../features/learning/assets/consonant/consonant-chieut.webp";
+import consonantKieukUrl from "../../../features/learning/assets/consonant/consonant-kieuk.webp";
+import consonantTieutUrl from "../../../features/learning/assets/consonant/consonant-tieut.webp";
+import consonantPieupUrl from "../../../features/learning/assets/consonant/consonant-pieup.webp";
+import consonantHieutUrl from "../../../features/learning/assets/consonant/consonant-hieut.webp";
+import vowelAUrl from "../../../features/learning/assets/vowel/vowel-a.webp";
+import vowelAeUrl from "../../../features/learning/assets/vowel/vowel-ae.webp";
+import vowelYaUrl from "../../../features/learning/assets/vowel/vowel-ya.webp";
+import vowelYaeUrl from "../../../features/learning/assets/vowel/vowel-yae.webp";
+import vowelEoUrl from "../../../features/learning/assets/vowel/vowel-eo.webp";
+import vowelEUrl from "../../../features/learning/assets/vowel/vowel-e.webp";
+import vowelYeoUrl from "../../../features/learning/assets/vowel/vowel-yeo.webp";
+import vowelYeUrl from "../../../features/learning/assets/vowel/vowel-ye.webp";
+import vowelOUrl from "../../../features/learning/assets/vowel/vowel-o.webp";
+import vowelYoUrl from "../../../features/learning/assets/vowel/vowel-yo.webp";
+import vowelUUrl from "../../../features/learning/assets/vowel/vowel-u.webp";
+import vowelYuUrl from "../../../features/learning/assets/vowel/vowel-yu.webp";
+import vowelEuUrl from "../../../features/learning/assets/vowel/vowel-eu.webp";
+import vowelUiUrl from "../../../features/learning/assets/vowel/vowel-ui.webp";
+import vowelIUrl from "../../../features/learning/assets/vowel/vowel-i.webp";
+import vowelOeUrl from "../../../features/learning/assets/vowel/vowel-oe.webp";
+import vowelWiUrl from "../../../features/learning/assets/vowel/vowel-wi.webp";
 
 interface CropPosition {
   readonly x: number;
@@ -46,7 +46,7 @@ interface CropPosition {
 }
 
 /**
- * Verified against korean-fingerspelling-sheet.png.  Keep this table keyed by
+ * Verified against korean-fingerspelling-sheet.webp.  Keep this table keyed by
  * the actual game symbol; target text and the displayed hand image therefore
  * cannot use two different aliases for the same sign.
  */
