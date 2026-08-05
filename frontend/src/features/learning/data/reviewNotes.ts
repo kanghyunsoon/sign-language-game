@@ -7,6 +7,7 @@ import {
 import type { LearningEntry } from "./learningEntries";
 import { findLearningEntry } from "./learningEntries";
 import { wordSignEntries } from "./wordSigns";
+import { sentenceSignEntries } from "./sentenceSigns";
 
 /**
  * 오답노트 저장소.
@@ -107,12 +108,16 @@ const dictionaryOrderBySymbol = new Map<
     ...wordSignEntries.map(
       (item, index) => [item.symbol, { category: "word", index }] as const,
     ),
+    ...sentenceSignEntries.map(
+      (item, index) => [item.symbol, { category: "sentence", index }] as const,
+    ),
   ],
 );
 
 const categoryOrder = [
   ...fingerspellingCategories.map((category) => category.id),
   "word",
+  "sentence",
 ];
 
 /** 사전과 같은 순서로 비교한다. 목록이 담은 순서에 흔들리지 않게 한다. */

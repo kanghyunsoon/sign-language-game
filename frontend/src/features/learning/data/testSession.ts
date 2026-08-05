@@ -4,9 +4,10 @@ import type {
 } from "./fingerspelling";
 import { fingerspellingCategories, fingerspellingItems } from "./fingerspelling";
 import { wordSigns } from "./wordSigns";
+import { sentenceSigns } from "./sentenceSigns";
 
 /** 테스트에서 출제 대상이 되는 분류. 지문자 분류를 그대로 사용한다. */
-export type TestCategoryId = FingerspellingCategoryId | "word";
+export type TestCategoryId = FingerspellingCategoryId | "word" | "sentence";
 
 /** 한 문항. 지문자 항목에 분류 정보를 붙인 형태다. */
 export interface TestQuestion
@@ -61,6 +62,7 @@ export const testCategories: readonly {
 }[] = [
   ...fingerspellingCategories,
   { id: "word", label: "단어", symbol: "가" },
+  { id: "sentence", label: "문장", symbol: "문" },
 ];
 
 /** AI 인식 모델이 아직 지원하지 않아 테스트를 막아 둔 분류. */
@@ -113,6 +115,19 @@ export function testQuestionPool(
           categoryId: category.id,
           categoryLabel: category.label,
           recognitionSymbol: word.id,
+        }));
+      }
+
+      if (category.id === "sentence") {
+        return sentenceSigns.map((sentence) => ({
+          symbol: sentence.name,
+          name: sentence.name,
+          image: "",
+          video: sentence.video,
+          description: [...sentence.description],
+          categoryId: category.id,
+          categoryLabel: category.label,
+          recognitionSymbol: sentence.id,
         }));
       }
 

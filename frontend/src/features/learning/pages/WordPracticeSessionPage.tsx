@@ -10,10 +10,14 @@ import { WordSignVideo } from "../components/WordSignVideo";
 import otterClapImage from "../assets/otter_clap.webp";
 import { CORRECT_AUTO_ADVANCE_SECONDS } from "../components/CorrectFeedbackModal";
 import { PracticeCompletionActions } from "../components/PracticeCompletionActions";
+import type { SentenceSignItem } from "../data/sentenceSigns";
+
+type WordPracticeItem = WordSignItem | SentenceSignItem;
 
 interface WordPracticeSessionPageProps {
   readonly onExit?: () => void;
-  readonly words?: readonly WordSignItem[];
+  readonly words?: readonly WordPracticeItem[];
+  readonly categoryId?: "word" | "sentence";
   /**
    * 완료 안내창의 [테스트하기]로 넘길 범위. [다음 단계]로 이어서 연습했다면
    * 단어만이 아니라 이어온 분류 전체가 담겨 온다. 없으면 이번 세션 단어만 쓴다.
@@ -24,11 +28,12 @@ interface WordPracticeSessionPageProps {
 export function WordPracticeSessionPage({
   onExit,
   words: selectedWords,
+  categoryId = "word",
   testSymbols,
 }: WordPracticeSessionPageProps) {
   const words = selectedWords ?? wordSigns;
   /* 오답노트에서 고른 단어만 연습하는 경우와 구분한다. 안내창 문구가 달라진다. */
-  const isFullWordPractice = !selectedWords;
+  const isFullWordPractice = !selectedWords && categoryId === "word";
   const streamRef = useRef<MediaStream | null>(null);
   const targetWordIdRef = useRef("");
   const answeredRef = useRef(false);
@@ -55,7 +60,7 @@ export function WordPracticeSessionPage({
   /* 사전·오답노트와 같이 "단어 · 탈것"처럼 소분류까지 보여준다. */
   const currentWordGroupLabel = wordSignGroups.find(
     (group) => group.id === currentWord?.groupId,
-  )?.label;
+  )?.label ?? (categoryId === "sentence" ? "문장" : undefined);
   const isFirst = currentIndex === 0;
   const isLast = currentIndex === words.length - 1;
   currentIndexRef.current = currentIndex;
@@ -276,20 +281,28 @@ export function WordPracticeSessionPage({
               <span className="practice-panel-label">
                 정답 동작
                 <span className="practice-panel-tag">
-                  {currentWordGroupLabel
+                  {categoryId === "sentence"
+                    ? "문장"
+                    : currentWordGroupLabel
                     ? `단어 · ${currentWordGroupLabel}`
                     : "단어"}
                 </span>
               </span>
               <div className="practice-answer-content">
                 <div className="practice-answer-guide word-answer-guide">
-                  <div className="word-guide-video">
-                    <WordSignVideo
-                      src={currentWord.video}
-                      label={`${currentWord.name} 수어 동작 영상`}
-                      autoPlay
-                    />
-                  </div>
+                  {currentWord.video ? (
+                    <div className="word-guide-video">
+                      <WordSignVideo
+                        src={currentWord.video}
+                        label={`${currentWord.name} 수어 동작 영상`}
+                        autoPlay
+                      />
+                    </div>
+                  ) : (
+                    <div className="word-guide-placeholder">
+                      <p>수어 영상을 준비하고 있어요.</p>
+                    </div>
+                  )}
                   <div className="practice-item-navigation">
                     <strong>{currentWord.name}</strong>
                   </div>
@@ -406,7 +419,7 @@ export function WordPracticeSessionPage({
                 </h2>
 
                 <PracticeCompletionActions
-                  categoryId={isFullWordPractice ? "word" : undefined}
+                  categoryId={categoryId}
                   symbols={testSymbols ?? words.map((word) => word.name)}
                   onRetry={retry}
                 />
