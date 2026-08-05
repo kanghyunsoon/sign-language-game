@@ -407,7 +407,7 @@ describe("TestPage 결과 화면", () => {
     ) as HTMLImageElement;
 
     expect(image).toBeTruthy();
-    expect(image.getAttribute("src")).toMatch(/\.png$/);
+    expect(image.getAttribute("src")).toMatch(/\.webp$/);
     expect(image.getAttribute("alt")).toContain("지문자 동작");
   });
 

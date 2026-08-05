@@ -269,7 +269,7 @@
 .module :global(.solo-board::after) { position: absolute; z-index: 3; top: 16.66%; right: 0; left: 0; height: 7px; pointer-events: none; background: repeating-linear-gradient(90deg, #ef5685 0 14px, transparent 14px 23px); box-shadow: 0 -4px 12px rgba(239,86,133,.12), 0 4px 12px rgba(239,86,133,.12); content: ""; }
 .module :global(.solo-board canvas) { position: relative; z-index: 1; }
 .module :global(.game-over-overlay) { z-index: 200; }
-.module :global(.solo-start-overlay) { position: absolute; z-index: 11; inset: 31px 8px 8px; display: grid; place-items: center; overflow: hidden; background: linear-gradient(145deg, rgba(25,48,63,.9), rgba(41,78,94,.76)), url("../block-stacking/assets/game-menu-otter.png") center 64% / min(48%, 360px) auto no-repeat; color: #fff; text-align: center; }
+.module :global(.solo-start-overlay) { position: absolute; z-index: 11; inset: 31px 8px 8px; display: grid; place-items: center; overflow: hidden; background: linear-gradient(145deg, rgba(25,48,63,.9), rgba(41,78,94,.76)), url("../block-stacking/assets/game-menu-otter.webp") center 64% / min(48%, 360px) auto no-repeat; color: #fff; text-align: center; }
 .module :global(.solo-start-overlay::before) { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(13,38,54,.48), transparent 45%, rgba(13,38,54,.36)); content: ""; }
 .module :global(.solo-start-overlay > div) { position: relative; z-index: 1; width: 100%; height: 100%; }
 .module :global(.solo-start-overlay strong) { position: absolute; top: 11%; left: 50%; width: max-content; transform: translateX(-50%); font-family: "Arial Rounded MT Bold", sans-serif; font-size: 84px; line-height: 1; text-shadow: 4px 5px 0 rgba(17,34,43,.45); }
@@ -574,7 +574,7 @@
 .module :global(.otter-walk-frame-2) { animation: solo-otter-frame-2 1.04s linear infinite; }
 .module :global(.otter-walk-frame-3) { animation: solo-otter-frame-3 1.04s linear infinite; }
 .module :global(.otter-walk-frame-4) { animation: solo-otter-frame-4 1.04s linear infinite; }
-.module :global(.otter-front-pose) { background: url("../block-stacking/assets/solo-otter-front.png") center / contain no-repeat; animation: solo-front-visibility 12s linear 1 both; }
+.module :global(.otter-front-pose) { background: url("../block-stacking/assets/solo-otter-front.webp") center / contain no-repeat; animation: solo-front-visibility 12s linear 1 both; }
 @keyframes solo-otter-crossing { 0% { opacity: 0; transform: translate3d(0,0,0); } 2% { opacity: 1; } 25% { transform: translate3d(calc(28cqw + 150px),0,0); } 38% { transform: translate3d(calc(28cqw + 150px),0,0); } 62% { transform: translate3d(calc(62cqw + 150px),0,0); } 75% { transform: translate3d(calc(62cqw + 150px),0,0); } 96% { opacity: 1; transform: translate3d(calc(100cqw + 174px),0,0); } 100% { opacity: 0; transform: translate3d(calc(100cqw + 174px),0,0); } }
 @keyframes solo-otter-bob { 0%, 25%, 50%, 75%, 100% { transform: scaleX(-1) translateY(0); } 12.5%, 87.5% { transform: scaleX(-1) translateY(-2px); } 37.5%, 62.5% { transform: scaleX(-1) translateY(1px); } }
 @keyframes solo-otter-frame-0 { 0%, 12.49% { opacity: 1; } 12.5%, 100% { opacity: 0; } }
@@ -1206,7 +1206,7 @@
   padding: 18px 22px 22px !important;
   border: 0 !important;
   border-radius: 0 !important;
-  background: linear-gradient(rgba(234,248,255,.18), rgba(237,247,214,.16)), url("../block-stacking/assets/game-mode-background-2d.png") center 48% / cover no-repeat !important;
+  background: linear-gradient(rgba(234,248,255,.18), rgba(237,247,214,.16)), url("../block-stacking/assets/game-mode-background-2d.webp") center 48% / cover no-repeat !important;
   box-shadow: none !important;
 }
 .module:has(> :global(.solo-game-page)) > :global(.solo-game-page)::before {

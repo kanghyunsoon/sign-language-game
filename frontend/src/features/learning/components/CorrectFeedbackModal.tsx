@@ -1,7 +1,7 @@
 import { useId } from "react";
 import { createPortal } from "react-dom";
 
-import otterClapImage from "../assets/otter_clap.png";
+import otterClapImage from "../assets/otter_clap.webp";
 
 /**
  * 정답 안내창이 머문 뒤 다음 문제로 넘어가기까지의 시간.

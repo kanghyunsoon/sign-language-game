@@ -10,7 +10,7 @@ import flowerIcon from "../assets/game-menu-flower.webp";
 import blockStack from "../assets/game-menu-block-stack.webp";
 import blockLogo from "../assets/game-menu-block-logo.webp";
 import blockOtter from "../assets/game-menu-block-otter.webp";
-import gameMenuOtter from "../assets/game-menu-otter.png";
+import gameMenuOtter from "../assets/game-menu-otter.webp";
 import { useGameModuleContext } from "../../app/GameModuleContext";
 import styles from "../../shared/GameModule.module.css";
 

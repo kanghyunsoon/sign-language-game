@@ -1,8 +1,8 @@
-import otterInBed from "../assets/habitats/otter_in_bed.png";
-import otterInCave from "../assets/habitats/otter_in_cave.png";
-import otterInRock from "../assets/habitats/otter_in_rock.png";
-import otterWithLog from "../assets/habitats/otter_with_log.png";
-import otterWithLogTwo from "../assets/habitats/otter_with_log_2.png";
+import otterInBed from "../assets/habitats/otter_in_bed.webp";
+import otterInCave from "../assets/habitats/otter_in_cave.webp";
+import otterInRock from "../assets/habitats/otter_in_rock.webp";
+import otterWithLog from "../assets/habitats/otter_with_log.webp";
+import otterWithLogTwo from "../assets/habitats/otter_with_log_2.webp";
 
 export const habitatOptions = [
   {

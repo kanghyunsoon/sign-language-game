@@ -3,9 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../AuthContext";
 import { AuthApiError } from "../api/authApi";
-import backgroundLeft from "../assets/background_left.png";
-import backgroundRight from "../assets/background_right.png";
-import otterBook from "../assets/otter_book.png";
+import backgroundLeft from "../assets/background_left.webp";
+import backgroundRight from "../assets/background_right.webp";
+import otterBook from "../assets/otter_book.webp";
 import { PasswordVisibilityIcon } from "../components/PasswordVisibilityIcon";
 import "./LoginPage.css";
 

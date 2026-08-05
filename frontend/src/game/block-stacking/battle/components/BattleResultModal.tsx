@@ -1,6 +1,6 @@
 import type { MatchFinishedEvent } from "../transport/battleTransportTypes";
-import winnerOtter from "../../assets/battle-result-winner-otter.png";
-import loserOtter from "../../assets/battle-result-loser-otter.png";
+import winnerOtter from "../../assets/battle-result-winner-otter.webp";
+import loserOtter from "../../assets/battle-result-loser-otter.webp";
 import styles from "../battle.module.css";
 import resultStyles from "./BattleResultModal.module.css";
 

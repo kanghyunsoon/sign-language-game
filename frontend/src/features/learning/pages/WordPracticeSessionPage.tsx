@@ -7,7 +7,7 @@ import { getWordAiWebSocketUrl } from "../data/aiRecognition";
 import { wordSignGroups, wordSigns, type WordSignItem } from "../data/wordSigns";
 import { WordWebSocketSignRecognizer } from "../recognition/WordWebSocketSignRecognizer";
 import { WordSignVideo } from "../components/WordSignVideo";
-import otterClapImage from "../assets/otter_clap.png";
+import otterClapImage from "../assets/otter_clap.webp";
 import { CORRECT_AUTO_ADVANCE_SECONDS } from "../components/CorrectFeedbackModal";
 import { PracticeCompletionActions } from "../components/PracticeCompletionActions";
 

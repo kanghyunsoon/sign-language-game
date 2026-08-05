@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { AppNav } from "../../../shared/nav/AppNav";
-import otterClapImage from "../assets/otter_clap.png";
+import otterClapImage from "../assets/otter_clap.webp";
 import {
   CORRECT_AUTO_ADVANCE_SECONDS,
   CorrectFeedbackModal,

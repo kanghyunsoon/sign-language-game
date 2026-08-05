@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 import { useAuth } from "../../auth/AuthContext";
 import { getSelectedHabitatId } from "../../profile/data/selectedHabitat";
-import otterInBed from "../../profile/assets/habitats/otter_in_bed.png";
+import otterInBed from "../../profile/assets/habitats/otter_in_bed.webp";
 import { AttendanceCard } from "../components/AttendanceCard";
 import {
   findHabitatIndex,

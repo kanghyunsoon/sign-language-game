@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
 import { useGameModuleContext } from "../../../app/GameModuleContext";
-import letterOtter from "../../assets/solo-letter-otter.png";
-import startTitle from "../../assets/solo-start-title.png";
+import letterOtter from "../../assets/solo-letter-otter.webp";
+import startTitle from "../../assets/solo-start-title.webp";
 import { BATTLE_DANGER_LINE_RATIO } from "../core/BattleRuntimeConfig";
 import { BattleComboMeter } from "../components/BattleComboMeter";
 import styles from "../battle.module.css";

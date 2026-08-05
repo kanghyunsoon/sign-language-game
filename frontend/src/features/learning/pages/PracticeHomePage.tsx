@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { AppNav } from "../../../shared/nav/AppNav";
-import otterImage from "../assets/otter.png";
+import otterImage from "../assets/otter.webp";
 import type { FingerspellingCategoryId } from "../data/fingerspelling";
 import {
   getPracticeCategorySymbols,

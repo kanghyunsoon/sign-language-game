@@ -1,7 +1,7 @@
 import { X } from "lucide-react";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import otterLevelUp from "../assets/habitats/otter_level_up.png";
+import otterLevelUp from "../assets/habitats/otter_level_up.webp";
 import type { HabitatUnlockLevel } from "../data/habitatUnlock";
 import "./HabitatUnlockModal.css";
 

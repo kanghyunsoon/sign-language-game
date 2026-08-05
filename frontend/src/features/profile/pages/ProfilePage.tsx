@@ -16,14 +16,14 @@ import {
   type RankingEntry,
 } from "../api/profileApi";
 import { HabitatSelectionView } from "../components/HabitatSelectionView";
-import homeIcon from "../assets/home.png";
-import learningRecordIcon from "../assets/learning-record-icon.png";
-import otterProfile from "../assets/otter_profile.png";
-import profileRingLeft from "../assets/profile-ring-left.png";
-import profileRingRight from "../assets/profile-ring-right.png";
-import profileRingTop from "../assets/profile-ring-top.png";
-import sproutIcon from "../assets/sprout.png";
-import starIcon from "../assets/star.png";
+import homeIcon from "../assets/home.webp";
+import learningRecordIcon from "../assets/learning-record-icon.webp";
+import otterProfile from "../assets/otter_profile.webp";
+import profileRingLeft from "../assets/profile-ring-left.webp";
+import profileRingRight from "../assets/profile-ring-right.webp";
+import profileRingTop from "../assets/profile-ring-top.webp";
+import sproutIcon from "../assets/sprout.webp";
+import starIcon from "../assets/star.webp";
 import "./ProfilePage.css";
 
 /* 메인페이지에 있던 [학습 방법 보기] 안내를 그대로 옮겨왔다. */
