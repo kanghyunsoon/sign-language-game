@@ -12,6 +12,7 @@
 }
 
 .attendance-reward-overlay {
+  --attendance-reward-px: min(0.052083vw, 0.092593vh);
   position: fixed;
   z-index: 100;
   inset: 0;
@@ -23,50 +24,55 @@
 
 .attendance-reward-card {
   position: relative;
-  width: min(480px, calc(100vw - 40px));
+  width: calc(480 * var(--attendance-reward-px));
+  max-width: calc(100vw - 40 * var(--attendance-reward-px));
   display: flex;
   align-items: center;
   flex-direction: column;
-  padding: 52px 30px 16px;
-  border: 3px solid #d8c8a9;
-  border-radius: 24px;
+  padding: calc(52 * var(--attendance-reward-px))
+    calc(30 * var(--attendance-reward-px))
+    calc(16 * var(--attendance-reward-px));
+  border: calc(3 * var(--attendance-reward-px)) solid #d8c8a9;
+  border-radius: calc(24 * var(--attendance-reward-px));
   text-align: center;
   background: #fffdf7;
-  box-shadow: 0 20px 42px rgba(59, 42, 35, 0.25);
+  box-shadow: 0 calc(20 * var(--attendance-reward-px))
+    calc(42 * var(--attendance-reward-px)) rgba(59, 42, 35, 0.25);
 }
 
 .attendance-reward-card img {
-  width: 180px;
-  height: 180px;
+  width: calc(180 * var(--attendance-reward-px));
+  height: calc(180 * var(--attendance-reward-px));
   object-fit: contain;
 }
 
 .attendance-reward-card #attendance-reward-title {
-  margin: 8px 0 10px;
+  margin: calc(8 * var(--attendance-reward-px)) 0
+    calc(10 * var(--attendance-reward-px));
   color: #5f402b;
-  font-size: 28px;
+  font-size: calc(28 * var(--attendance-reward-px));
 }
 
 .attendance-reward-card p {
   margin: 0;
   color: #827368;
-  font-size: 17px;
+  font-size: calc(17 * var(--attendance-reward-px));
   font-weight: 400;
 }
 
 .attendance-reward-close {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 40px;
-  height: 40px;
+  top: calc(16 * var(--attendance-reward-px));
+  right: calc(16 * var(--attendance-reward-px));
+  width: calc(40 * var(--attendance-reward-px));
+  height: calc(40 * var(--attendance-reward-px));
   display: grid;
   place-items: center;
   padding: 0;
   border: 0;
   border-radius: 50%;
   color: #74675e;
-  font-size: 28px;
+  font-size: calc(28 * var(--attendance-reward-px));
   font-weight: 500;
   line-height: 1;
   background: #f1ede8;
