@@ -5,15 +5,22 @@ so a frontend can point at either server without changing a line. Request types,
 field names, error codes, and response shapes all match.
 
 Copied from : game-ai-dev-server/app/messages.py
-Source commit: 42aced2
+Source commit: 7b90cfc
 
-Only two things differ, and both follow from this model classifying one frame
-instead of a ten-frame window:
+Two things differ because this model classifies one frame instead of a ten-frame
+window:
 
   * `CAPABILITIES` reports `sequenceLength: 1` and adds `frameInput` and
     `featureVersion`, so a client can tell the two servers apart if it wants to.
   * There is no sequence to accumulate, so `RESET_SEQUENCE` only clears the
     hand-missing timer.
+
+One field is intentionally not copied. The jamo server's `PREDICTION` can carry an
+optional `handshapeHint`, set when its geometric handshape gate vetoes a frame
+(see game-ai-dev-server/app/handshape_gate.py). That gate only ever inspects `ㅎ`
+and `ㅂ`, and this model's labels are `1`-`10` and `none`, so the field could
+never be populated here. Adding the parameter would be dead code, and a frontend
+reading `PREDICTION` is unaffected either way because the field is optional.
 
 `tests/test_server_messages.py` pins the wire format, and the source hash below
 is checked so the shared protocol cannot change without this copy noticing.
@@ -30,7 +37,7 @@ from typing import TypeAlias
 import numpy as np
 
 SOURCE_FILE = Path(__file__).resolve().parents[2] / "game-ai-dev-server" / "app" / "messages.py"
-SOURCE_SHA256 = "3dc8f77ecba346b3dfaa1db41bea5af7ff9a06878344c2e895241f6e8f5b1d0d"
+SOURCE_SHA256 = "e0c4b597f6041a04147114896e64a98fdb3a7869aa0248f947c21169f491f798"
 
 class ProtocolError(ValueError):
     def __init__(self, code: str, message: str) -> None:
