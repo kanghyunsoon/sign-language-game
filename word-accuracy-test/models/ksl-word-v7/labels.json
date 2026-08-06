@@ -1,0 +1,49 @@
+{
+  "labels": [
+    "airplane",
+    "bad",
+    "bicycle",
+    "bus",
+    "car",
+    "good",
+    "helicopter",
+    "hello",
+    "moon",
+    "motorcycle",
+    "rain",
+    "run",
+    "ship",
+    "star",
+    "subway",
+    "sun",
+    "swim",
+    "thankyou",
+    "train",
+    "walk",
+    "wind",
+    "wrong"
+  ],
+  "seq_len": 48,
+  "feat_dim": 300,
+  "feature_version": "handword-feature-v3",
+  "direction_words": [
+    "airplane",
+    "bad",
+    "moon",
+    "subway",
+    "sun",
+    "swim",
+    "walk"
+  ],
+  "contact_words": [
+    "ship"
+  ],
+  "shape_words": [
+    "bus",
+    "car",
+    "moon"
+  ],
+  "finger_words": [
+    "bad"
+  ]
+}

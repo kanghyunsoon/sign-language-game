@@ -1,0 +1,156 @@
+{
+  "_설명": "단어별 수형 규칙 (최종 검토 레이어). metric: curl(굽힘도)|bend(관절각합,도)|spread(손가락사이각,도)|pinch(손끝거리), agg: med|min|max|range. 임계값 보정: python inference/hand_rules.py --calibrate <word>",
+  "bad": [
+    {
+      "metric": "curl",
+      "finger": "index",
+      "agg": "med",
+      "min": 1.6,
+      "msg": "검지를 쭉 펴세요"
+    },
+    {
+      "metric": "bend",
+      "finger": "index",
+      "agg": "med",
+      "max": 55,
+      "msg": "검지를 굽히지 말고 펴세요"
+    }
+  ],
+  "bus": [
+    {
+      "metric": "curl",
+      "finger": "index",
+      "agg": "med",
+      "min": 1.2,
+      "msg": "검지를 끝까지 말지 말고 갈고리 모양으로"
+    },
+    {
+      "metric": "curl",
+      "finger": "middle",
+      "agg": "med",
+      "min": 1.15,
+      "msg": "중지를 끝까지 말지 말고 갈고리 모양으로"
+    }
+  ],
+  "car": [
+    {
+      "metric": "bend",
+      "finger": "index",
+      "agg": "med",
+      "max": 100,
+      "msg": "주먹처럼 말지 말고 ㅅ모양으로 굽히세요 (검지)"
+    },
+    {
+      "metric": "bend",
+      "finger": "middle",
+      "agg": "med",
+      "max": 100,
+      "msg": "주먹처럼 말지 말고 ㅅ모양으로 굽히세요 (중지)"
+    },
+    {
+      "metric": "curl",
+      "finger": "index",
+      "agg": "med",
+      "min": 0.85,
+      "msg": "주먹을 쥐지 말고 손가락을 ㅅ모양으로 (검지)"
+    },
+    {
+      "metric": "curl",
+      "finger": "middle",
+      "agg": "med",
+      "min": 0.85,
+      "msg": "주먹을 쥐지 말고 손가락을 ㅅ모양으로 (중지)"
+    }
+  ],
+  "moon": [
+    {
+      "metric": "pinch",
+      "fingers": [
+        "thumb",
+        "index"
+      ],
+      "agg": "range",
+      "min": 0.35,
+      "msg": "엄지와 검지를 붙였다 벌리는 동작이 필요해요"
+    }
+  ],
+  "helicopter": [
+    {
+      "metric": "curl",
+      "finger": "index",
+      "agg": "med",
+      "min": 1.6,
+      "msg": "검지를 쭉 펴세요"
+    },
+    {
+      "metric": "curl",
+      "finger": "middle",
+      "agg": "med",
+      "max": 1.85,
+      "msg": "검지 하나만 펴야 해요 (중지는 접기)"
+    },
+    {
+      "metric": "curl",
+      "finger": "ring",
+      "agg": "med",
+      "max": 1.8,
+      "msg": "검지 하나만 펴야 해요 (약지는 접기)"
+    },
+    {
+      "metric": "curl",
+      "finger": "pinky",
+      "agg": "med",
+      "max": 1.55,
+      "msg": "검지 하나만 펴야 해요 (새끼는 접기)"
+    }
+  ],
+  "airplane": [
+    {
+      "metric": "curl",
+      "finger": "thumb",
+      "agg": "med",
+      "min": 1.0,
+      "msg": "엄지를 펴세요"
+    },
+    {
+      "metric": "curl",
+      "finger": "pinky",
+      "agg": "med",
+      "min": 0.85,
+      "msg": "새끼손가락을 펴세요"
+    },
+    {
+      "metric": "curl",
+      "finger": "index",
+      "agg": "med",
+      "max": 1.85,
+      "msg": "검지는 접어야 해요"
+    },
+    {
+      "metric": "curl",
+      "finger": "middle",
+      "agg": "med",
+      "max": 1.7,
+      "msg": "중지는 접어야 해요"
+    },
+    {
+      "metric": "curl",
+      "finger": "ring",
+      "agg": "med",
+      "max": 1.65,
+      "msg": "약지는 접어야 해요"
+    }
+  ],
+  "motorcycle": [
+    {
+      "metric": "hands",
+      "min": 2,
+      "msg": "양손이 모두 보여야 해요 (한 손은 핸들 고정)"
+    },
+    {
+      "metric": "rot_ratio",
+      "max": 0.95,
+      "msg": "한 손은 고정하고 한 손만 비틀어야 해요"
+    }
+  ]
+}
