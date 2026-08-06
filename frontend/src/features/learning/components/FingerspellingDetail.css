@@ -145,6 +145,12 @@
   object-fit: contain;
 }
 
+.word-sign-detail-video.word-sign-detail-video-sentence
+  .word-sign-video-player
+  video {
+  object-fit: cover;
+}
+
 .word-sign-detail-video-empty {
   margin: 0;
   padding: 24px;

@@ -61,7 +61,7 @@ const practiceCategories: PracticeCategory[] = [
     id: "sentence",
     symbol: "문",
     title: "문장 연습",
-    description: "기본 문장 2개를 연습합니다.",
+    description: "기본 문장 3개를 연습합니다.",
     count: sentenceSigns.length,
   },
 ];

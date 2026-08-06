@@ -35,7 +35,8 @@ export function WordPracticeSessionPage({
   /* 오답노트에서 고른 단어만 연습하는 경우와 구분한다. 안내창 문구가 달라진다. */
   const isFullWordPractice = !selectedWords && categoryId === "word";
   const streamRef = useRef<MediaStream | null>(null);
-  const targetWordIdRef = useRef("");
+  const targetSequenceRef = useRef<readonly string[]>([]);
+  const sequenceIndexRef = useRef(0);
   const answeredRef = useRef(false);
   const currentIndexRef = useRef(0);
   const correctIndexesRef = useRef(new Set<number>());
@@ -66,7 +67,11 @@ export function WordPracticeSessionPage({
   currentIndexRef.current = currentIndex;
 
   useEffect(() => {
-    targetWordIdRef.current = currentWord.id;
+    targetSequenceRef.current =
+      "recognitionSequence" in currentWord && currentWord.recognitionSequence
+        ? currentWord.recognitionSequence
+        : [currentWord.id];
+    sequenceIndexRef.current = 0;
     answeredRef.current = false;
     setIsCorrect(false);
     recognizer.resetSequence();
@@ -98,22 +103,49 @@ export function WordPracticeSessionPage({
       }
 
       if (event.type === "SIGN_CONFIRMED" && !answeredRef.current) {
-        if (event.symbol === targetWordIdRef.current) {
+        const sequence = targetSequenceRef.current;
+        const sequenceIndex = sequenceIndexRef.current;
+        const expectedSymbol = sequence[sequenceIndex];
+
+        if (event.symbol === expectedSymbol) {
+          if (sequenceIndex < sequence.length - 1) {
+            sequenceIndexRef.current = sequenceIndex + 1;
+            recognizer.resetSequence();
+            setRecognitionMessage(
+              "'비'를 인식했어요. 이어서 '좋다' 동작을 보여주세요.",
+            );
+            return;
+          }
+
           answeredRef.current = true;
           correctIndexesRef.current.add(currentIndexRef.current);
           setIsCorrect(true);
           setRecognitionMessage("맞췄습니다!");
+        } else if (
+          sequence.length > 1 &&
+          sequenceIndex > 0 &&
+          event.symbol === sequence[sequenceIndex - 1]
+        ) {
+          recognizer.resetSequence();
+          setRecognitionMessage("이어서 '좋다' 동작을 보여주세요.");
         } else {
+          sequenceIndexRef.current = 0;
+          if (sequence.length > 1) recognizer.resetSequence();
           setRecognitionMessage(
-            `${event.symbol}(으)로 인식했어요. 손을 내린 뒤 다시 시도해 주세요.`,
+            sequence.length > 1
+              ? `${event.symbol}(으)로 인식했어요. 처음부터 다시 시도해 주세요.`
+              : `${event.symbol}(으)로 인식했어요. 손을 내린 뒤 다시 시도해 주세요.`,
           );
         }
         return;
       }
 
       if (event.type === "HAND_RELEASED" && !answeredRef.current) {
+        const nextSymbol = targetSequenceRef.current[sequenceIndexRef.current];
         setRecognitionMessage(
-          "카메라에 한 명만 들어와 수어 동작을 보여주세요.",
+          nextSymbol === "good"
+            ? "'좋다' 동작을 보여주세요."
+            : "카메라에 한 명만 들어와 수어 동작을 보여주세요.",
         );
         return;
       }
@@ -281,7 +313,13 @@ export function WordPracticeSessionPage({
               <div className="practice-answer-content">
                 <div className="practice-answer-guide word-answer-guide">
                   {currentWord.video ? (
-                    <div className="word-guide-video">
+                    <div
+                      className={`word-guide-video${
+                        categoryId === "sentence"
+                          ? " word-guide-video-sentence"
+                          : ""
+                      }`}
+                    >
                       <WordSignVideo
                         src={currentWord.video}
                         label={`${currentWord.name} 수어 동작 영상`}
