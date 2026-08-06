@@ -253,16 +253,54 @@
   font-weight: 700;
 }
 
-.test-category-list {
-  width: max-content;
+.test-category-carousel {
+  width: calc(100% + 120px);
+  margin-left: -60px;
   display: grid;
-  grid-template-columns: repeat(
-    5,
-    calc((var(--test-setup-content-width) - 36px) / 4)
-  );
+  grid-template-columns: 48px minmax(0, 1fr) 48px;
+  align-items: center;
   gap: 12px;
-  justify-self: center;
-  transform: translateX(-82px);
+}
+
+.test-category-carousel-button {
+  width: 48px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  color: #3f2b20;
+  font-family: inherit;
+  font-size: 58px;
+  font-weight: 300;
+  line-height: 1;
+  background: transparent;
+  cursor: pointer;
+}
+
+.test-category-carousel-button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.test-category-viewport {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.test-category-list {
+  width: 100%;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 36px) / 4);
+  gap: 12px;
+  transform: translateX(0);
+  transition: transform 0.32s ease-in-out;
+  will-change: transform;
+}
+
+.test-category-list-shifted {
+  transform: translateX(calc(-1 * (((100% - 36px) / 4) + 12px)));
 }
 
 .test-camera-placeholder .word-hand-camera,
