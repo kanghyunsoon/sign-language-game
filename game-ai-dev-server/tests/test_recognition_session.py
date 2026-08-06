@@ -9,9 +9,16 @@ import numpy as np
 from app.diagnostics import PredictionDiagnostics
 from app.feature_adapter import FEATURE_SIZE
 from app.messages import Landmark, capabilities_message, parse_request
-from app.model_adapter import LABELS, MODEL_VERSION, ModelContract, load_recognition_readiness
+from app.model_adapter import (
+    LABELS,
+    MODEL_VERSION,
+    SUPPRESSED_CONFIDENCE,
+    ModelContract,
+    load_recognition_readiness,
+)
 from app.recognition_session import LANDMARK_SMOOTHING_ALPHA, RecognitionConfig, RecognitionSession
 from tests.helpers import MockModelRunner, landmark_frame
+from tests.test_handshape_gate import bieup, hieut, open_hand, plain_fist
 
 
 def parsed_landmarks(frame_id: int, captured_at: int) -> tuple[Landmark, ...]:
@@ -158,6 +165,58 @@ class RecognitionSessionTests(unittest.TestCase):
     def test_rejects_labels_and_output_size_mismatch(self) -> None:
         with self.assertRaises(ValueError):
             ModelContract(labels=("ㄱ", "ㄴ"), sequence_length=10, feature_size=55, output_size=3)
+
+
+class HandshapeGateWiringTests(unittest.TestCase):
+    """The gate belongs here rather than in model_adapter: it needs the landmarks.
+
+    ``model_adapter`` only ever sees feature vectors, and the thumb information the
+    gate depends on is exactly what those features lose. The session is the last
+    place the raw landmarks and the prediction exist together.
+    """
+
+    def _session_event(self, labels: tuple[str, ...], probabilities: list[float], pose) -> dict[str, object]:
+        runner = MockModelRunner([np.asarray(probabilities, dtype=np.float32)], labels=labels)
+        session = RecognitionSession(runner)
+        return session.process_landmark_frame(1, 1000, pose, "RIGHT")[0]
+
+    def test_a_plain_fist_predicted_as_hieut_is_suppressed_below_every_threshold(self) -> None:
+        event = self._session_event(("ㅎ", "ㄴ"), [0.99, 0.01], plain_fist())
+        # The label survives for top-candidate feedback; the confidence does not.
+        self.assertEqual(event["symbol"], "ㅎ")
+        self.assertAlmostEqual(event["confidence"], SUPPRESSED_CONFIDENCE)
+        self.assertLess(event["confidence"], 0.5)  # lowest readiness threshold
+        self.assertAlmostEqual(event["topCandidates"][0]["confidence"], SUPPRESSED_CONFIDENCE)
+        self.assertIn("엄지", event["handshapeHint"])
+
+    def test_an_open_hand_predicted_as_bieup_is_suppressed(self) -> None:
+        event = self._session_event(("ㅂ", "ㄴ"), [0.99, 0.01], open_hand())
+        self.assertEqual(event["symbol"], "ㅂ")
+        self.assertAlmostEqual(event["confidence"], SUPPRESSED_CONFIDENCE)
+        self.assertIn("엄지", event["handshapeHint"])
+
+    def test_correct_shapes_keep_their_confidence_and_carry_no_hint(self) -> None:
+        for labels, pose in ((("ㅎ", "ㄴ"), hieut()), (("ㅂ", "ㄴ"), bieup())):
+            event = self._session_event(labels, [0.99, 0.01], pose)
+            self.assertAlmostEqual(event["confidence"], 0.99, places=5)
+            self.assertNotIn("handshapeHint", event)
+
+    def test_other_symbols_are_untouched_even_on_a_fist(self) -> None:
+        event = self._session_event(("ㅁ", "ㄴ"), [0.99, 0.01], plain_fist())
+        self.assertAlmostEqual(event["confidence"], 0.99, places=5)
+        self.assertNotIn("handshapeHint", event)
+
+    def test_the_gate_reads_raw_landmarks_not_the_smoothed_copy(self) -> None:
+        """Smoothing lags, so a smoothed thumb would trail the real hand.
+
+        With smoothing on and a single frame, the smoothed copy equals the input,
+        so the observable check is that the verdict still fires — the gate is not
+        reading some half-initialised smoothing buffer.
+        """
+        runner = MockModelRunner([np.array([0.99, 0.01], dtype=np.float32)], labels=("ㅎ", "ㄴ"))
+        session = RecognitionSession(runner, smoothing_alpha=0.3)
+        event = session.process_landmark_frame(1, 1000, plain_fist(), "RIGHT")[0]
+        self.assertAlmostEqual(event["confidence"], SUPPRESSED_CONFIDENCE)
 
 
 if __name__ == "__main__":

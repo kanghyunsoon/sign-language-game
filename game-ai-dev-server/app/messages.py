@@ -111,7 +111,16 @@ def prediction_message(
     is_stable: bool,
     predicted_at: int,
     top_candidates: list[dict[str, object]] | None = None,
+    handshape_hint: str | None = None,
 ) -> dict[str, JsonValue]:
+    """``handshape_hint`` is an additive, optional coaching string.
+
+    It is set when the geometric handshape gate suppressed the frame, so the
+    frontend can tell the player *why* a shape that looks close is not being
+    accepted (see app/handshape_gate.py). Clients that ignore the field keep the
+    previous behaviour: the suppressed confidence alone already prevents
+    confirmation.
+    """
     message: dict[str, JsonValue] = {
         "type": "PREDICTION",
         "frameId": frame_id,
@@ -122,6 +131,8 @@ def prediction_message(
     }
     if top_candidates is not None:
         message["topCandidates"] = top_candidates
+    if handshape_hint is not None:
+        message["handshapeHint"] = handshape_hint
     return message
 
 
