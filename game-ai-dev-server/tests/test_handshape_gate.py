@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import unittest
+
 import numpy as np
-import pytest
 
 from app import handshape_gate
 from app.handshape_gate import THUMB_NOT_EXTENDED, THUMB_NOT_FOLDED, measure, verify
@@ -95,76 +96,84 @@ def bieup_with_straight_thumb() -> tuple[Landmark, ...]:
     return _pose(fingers_folded=False, thumb_ip=(0.42, -0.90, 0.00), thumb_tip=(0.38, -1.28, 0.00))
 
 
-class TestMetrics:
+class HandshapeMetricTests(unittest.TestCase):
     def test_folded_and_extended_fingers_land_outside_the_dead_band(self) -> None:
-        assert measure(plain_fist(), "RIGHT").four_fingers_folded
-        assert not measure(plain_fist(), "RIGHT").four_fingers_extended
-        assert measure(open_hand(), "RIGHT").four_fingers_extended
-        assert not measure(open_hand(), "RIGHT").four_fingers_folded
+        self.assertTrue(measure(plain_fist(), "RIGHT").four_fingers_folded)
+        self.assertFalse(measure(plain_fist(), "RIGHT").four_fingers_extended)
+        self.assertTrue(measure(open_hand(), "RIGHT").four_fingers_extended)
+        self.assertFalse(measure(open_hand(), "RIGHT").four_fingers_folded)
 
     def test_a_straight_thumb_scores_near_one_and_a_bent_one_much_lower(self) -> None:
         straight = measure(hieut(), "RIGHT").thumb_straightness
         bent = measure(bieup(), "RIGHT").thumb_straightness
-        assert straight > 0.95
-        assert bent < 0.80
+        self.assertGreater(straight, 0.95)
+        self.assertLess(bent, 0.80)
         # The margin is what makes a single threshold defensible.
-        assert straight - bent > 0.15
+        self.assertGreater(straight - bent, 0.15)
 
     def test_clearance_separates_a_free_thumb_from_one_against_the_fingers(self) -> None:
-        assert measure(hieut(), "RIGHT").thumb_clearance > handshape_gate.HIEUT_MIN_THUMB_CLEARANCE
-        assert measure(fist_with_straight_thumb(), "RIGHT").thumb_clearance < handshape_gate.HIEUT_MIN_THUMB_CLEARANCE
+        self.assertGreater(measure(hieut(), "RIGHT").thumb_clearance, handshape_gate.HIEUT_MIN_THUMB_CLEARANCE)
+        self.assertLess(
+            measure(fist_with_straight_thumb(), "RIGHT").thumb_clearance,
+            handshape_gate.HIEUT_MIN_THUMB_CLEARANCE,
+        )
 
     def test_metrics_are_invariant_to_scale_and_translation(self) -> None:
         pose = hieut()
         moved = tuple(Landmark(point.x * 3.0 + 5.0, point.y * 3.0 - 2.0, point.z * 3.0) for point in pose)
         original, transformed = measure(pose, "RIGHT"), measure(moved, "RIGHT")
-        assert transformed.thumb_straightness == pytest.approx(original.thumb_straightness, abs=1e-9)
-        assert transformed.thumb_clearance == pytest.approx(original.thumb_clearance, abs=1e-9)
-        assert transformed.finger_curl_degrees == pytest.approx(original.finger_curl_degrees, abs=1e-6)
+        self.assertAlmostEqual(transformed.thumb_straightness, original.thumb_straightness, places=9)
+        self.assertAlmostEqual(transformed.thumb_clearance, original.thumb_clearance, places=9)
+        for actual, expected in zip(transformed.finger_curl_degrees, original.finger_curl_degrees):
+            self.assertAlmostEqual(actual, expected, places=6)
 
     def test_a_mirrored_left_hand_measures_the_same_as_the_right(self) -> None:
         right = hieut()
         left = tuple(Landmark(1.0 - point.x, point.y, point.z) for point in right)
-        assert measure(left, "LEFT").thumb_straightness == pytest.approx(
+        self.assertAlmostEqual(
+            measure(left, "LEFT").thumb_straightness,
             measure(right, "RIGHT").thumb_straightness,
-            abs=1e-9,
+            places=9,
         )
 
     def test_wrong_landmark_count_and_handedness_are_rejected(self) -> None:
-        with pytest.raises(ValueError):
+        with self.assertRaises(ValueError):
             measure(hieut()[:20], "RIGHT")
-        with pytest.raises(ValueError):
+        with self.assertRaises(ValueError):
             measure(hieut(), "EITHER")
 
 
-class TestVerify:
+class HandshapeVerifyTests(unittest.TestCase):
     def test_the_reported_false_positives_are_vetoed(self) -> None:
         fist = verify("ㅎ", plain_fist(), "RIGHT")
-        assert fist.rejected and fist.reason == THUMB_NOT_EXTENDED
-        assert fist.feedback is not None
+        self.assertTrue(fist.rejected)
+        self.assertEqual(fist.reason, THUMB_NOT_EXTENDED)
+        self.assertIsNotNone(fist.feedback)
 
         flat = verify("ㅂ", open_hand(), "RIGHT")
-        assert flat.rejected and flat.reason == THUMB_NOT_FOLDED
-        assert flat.feedback is not None
+        self.assertTrue(flat.rejected)
+        self.assertEqual(flat.reason, THUMB_NOT_FOLDED)
+        self.assertIsNotNone(flat.feedback)
 
     def test_a_straight_but_tucked_thumb_is_still_not_hieut(self) -> None:
         verdict = verify("ㅎ", fist_with_straight_thumb(), "RIGHT")
-        assert verdict.rejected and verdict.reason == THUMB_NOT_EXTENDED
+        self.assertTrue(verdict.rejected)
+        self.assertEqual(verdict.reason, THUMB_NOT_EXTENDED)
 
     def test_the_correct_shapes_pass(self) -> None:
-        assert verify("ㅎ", hieut(), "RIGHT").accepted
-        assert verify("ㅂ", bieup(), "RIGHT").accepted
-        assert verify("ㅂ", bieup_with_straight_thumb(), "RIGHT").accepted
+        self.assertTrue(verify("ㅎ", hieut(), "RIGHT").accepted)
+        self.assertTrue(verify("ㅂ", bieup(), "RIGHT").accepted)
+        self.assertTrue(verify("ㅂ", bieup_with_straight_thumb(), "RIGHT").accepted)
 
     def test_a_left_hand_is_judged_the_same_as_a_right_hand(self) -> None:
         mirrored = tuple(Landmark(1.0 - point.x, point.y, point.z) for point in plain_fist())
-        assert verify("ㅎ", mirrored, "LEFT").rejected
-        assert verify("ㅎ", tuple(Landmark(1.0 - p.x, p.y, p.z) for p in hieut()), "LEFT").accepted
+        self.assertTrue(verify("ㅎ", mirrored, "LEFT").rejected)
+        self.assertTrue(verify("ㅎ", tuple(Landmark(1.0 - p.x, p.y, p.z) for p in hieut()), "LEFT").accepted)
 
     def test_other_symbols_are_never_touched(self) -> None:
         for symbol in ("ㄱ", "ㅁ", "ㅅ", "ㅏ", "ㅣ"):
-            assert verify(symbol, plain_fist(), "RIGHT").accepted
-            assert verify(symbol, open_hand(), "RIGHT").accepted
+            self.assertTrue(verify(symbol, plain_fist(), "RIGHT").accepted)
+            self.assertTrue(verify(symbol, open_hand(), "RIGHT").accepted)
 
     def test_the_veto_needs_the_four_finger_precondition(self) -> None:
         """A fist thumb on a flat hand, or the reverse, is left alone.
@@ -172,30 +181,42 @@ class TestVerify:
         The gate only claims the thumb is wrong when the rest of the hand already
         matches the lazy shape it is guarding against.
         """
-        assert verify("ㅎ", plain_fist()[:5] + open_hand()[5:], "RIGHT").accepted
-        assert verify("ㅂ", open_hand()[:5] + plain_fist()[5:], "RIGHT").accepted
+        self.assertTrue(verify("ㅎ", plain_fist()[:5] + open_hand()[5:], "RIGHT").accepted)
+        self.assertTrue(verify("ㅂ", open_hand()[:5] + plain_fist()[5:], "RIGHT").accepted)
 
     def test_a_malformed_frame_is_accepted_rather_than_raising(self) -> None:
         collapsed = tuple(Landmark(0.5, 0.5, 0.0) for _ in range(21))
-        assert verify("ㅎ", collapsed, "RIGHT").accepted
-        assert verify("ㅎ", hieut()[:10], "RIGHT").accepted
+        self.assertTrue(verify("ㅎ", collapsed, "RIGHT").accepted)
+        self.assertTrue(verify("ㅎ", hieut()[:10], "RIGHT").accepted)
 
-    def test_the_gate_can_be_switched_off(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setattr(handshape_gate, "GATE_ENABLED", False)
-        assert verify("ㅎ", plain_fist(), "RIGHT").accepted
+    def test_the_gate_can_be_switched_off(self) -> None:
+        original = handshape_gate.GATE_ENABLED
+        handshape_gate.GATE_ENABLED = False
+        try:
+            self.assertTrue(verify("ㅎ", plain_fist(), "RIGHT").accepted)
+        finally:
+            handshape_gate.GATE_ENABLED = original
 
 
-def test_finger_thresholds_leave_a_dead_band() -> None:
-    """Nothing between the two angles counts as either folded or extended."""
-    assert handshape_gate.FINGER_EXTENDED_MAX_DEGREES < handshape_gate.FINGER_FOLDED_MIN_DEGREES
-    midpoint = float(
-        np.mean([handshape_gate.FINGER_EXTENDED_MAX_DEGREES, handshape_gate.FINGER_FOLDED_MIN_DEGREES]),
-    )
-    metrics = handshape_gate.HandshapeMetrics(
-        thumb_straightness=0.5,
-        thumb_clearance=0.1,
-        thumb_abduction_degrees=60.0,
-        finger_curl_degrees=(midpoint, midpoint, midpoint, midpoint),
-    )
-    assert not metrics.four_fingers_folded
-    assert not metrics.four_fingers_extended
+class FingerThresholdTests(unittest.TestCase):
+    def test_finger_thresholds_leave_a_dead_band(self) -> None:
+        """Nothing between the two angles counts as either folded or extended."""
+        self.assertLess(
+            handshape_gate.FINGER_EXTENDED_MAX_DEGREES,
+            handshape_gate.FINGER_FOLDED_MIN_DEGREES,
+        )
+        midpoint = float(
+            np.mean([handshape_gate.FINGER_EXTENDED_MAX_DEGREES, handshape_gate.FINGER_FOLDED_MIN_DEGREES]),
+        )
+        metrics = handshape_gate.HandshapeMetrics(
+            thumb_straightness=0.5,
+            thumb_clearance=0.1,
+            thumb_abduction_degrees=60.0,
+            finger_curl_degrees=(midpoint, midpoint, midpoint, midpoint),
+        )
+        self.assertFalse(metrics.four_fingers_folded)
+        self.assertFalse(metrics.four_fingers_extended)
+
+
+if __name__ == "__main__":
+    unittest.main()
