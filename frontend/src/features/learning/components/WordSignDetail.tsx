@@ -47,7 +47,13 @@ export function WordSignDetail({
             : "단어"}
       </span>
       <h2 className="fingerspelling-detail-symbol">{entry.name}</h2>
-      <div className="fingerspelling-detail-image word-sign-detail-video">
+      <div
+        className={`fingerspelling-detail-image word-sign-detail-video${
+          entry.categoryLabel === "문장"
+            ? " word-sign-detail-video-sentence"
+            : ""
+        }`}
+      >
         {entry.video ? (
           <WordSignVideo src={entry.video} label={`${entry.name} 수어 동작 영상`} />
         ) : (
