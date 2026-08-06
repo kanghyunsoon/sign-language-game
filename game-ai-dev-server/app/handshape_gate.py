@@ -33,13 +33,45 @@ from .messages import Landmark
 # The worst case is therefore a suppressed frame, the same failure mode the
 # decision-margin gate in model_adapter.py already has.
 #
-# THE THRESHOLDS ARE NOT CALIBRATED AGAINST CAPTURED DATA. There is no landmark
-# dataset in this repository (`ai/data` holds an empty collection template), so the
-# defaults come from hand proportions, not from a measured distribution. Every
-# veto is therefore written as a conjunction with a wide dead band: the lazy
-# handshape has to be unmistakable before the thumb is called wrong. Run
-# `scripts/calibrate_handshape_gate.py` over a diagnostics capture to replace the
-# numbers with real percentiles before tightening any of them.
+# DISABLED BY DEFAULT (T-158). The gate shipped enabled with thresholds derived
+# from hand proportions rather than measured data, and the first real capture
+# showed the ㅂ branch is built on a metric that does not measure what the comment
+# below claims.
+#
+# Landmarks recovered from a screen capture of the deployed app (MediaPipe re-run
+# over the recorded webcam panel, 5 frames of a *correct* ㅂ — four fingers
+# extended, thumb folded in over the palm):
+#
+#   frame   finger curl (4)        four_fingers_extended   straightness  abduction
+#   0.2s    [54, 66, 52, 23]       False                   0.93          16°
+#   0.8s    [ 9,  0,  6, 16]       True                    0.98          10°
+#   1.0s    [12,  0,  6, 16]       True                    0.98          10°
+#   1.2s    [ 5,  4,  6, 16]       True                    0.99          11°
+#   1.3s    [10, 14,  1, 17]       True                    1.00          36°
+#
+# Two things follow, and both are fatal to the current design:
+#
+#   * `thumb_straightness` does not separate the classes. The comment below
+#     predicts ~0.6-0.75 for a folded thumb; the measured range for a *correctly*
+#     folded ㅂ thumb is 0.93-1.00. Folding the thumb for ㅂ is adduction at the
+#     saddle joint, so the phalanges stay straight and the chord/chain ratio barely
+#     moves. That is stated a few lines further down as the reason the thumb is
+#     handled separately from the fingers, and then ignored when picking the
+#     discriminator.
+#   * The ㅂ veto fires on a correct ㅂ. It requires straightness > 0.93 AND
+#     abduction > 35°; straightness is always above 0.93 in real frames, and
+#     measured abduction on a correct ㅂ ranges 9°-36°. The 1.3s frame above is
+#     vetoed. The gate cannot block the lazy shape without also blocking the real
+#     one, so enabling it trades a false accept for a false reject.
+#
+# The `all()` preconditions are also fragile mid-gesture: the 0.2s frame fails
+# `four_fingers_extended` outright, so no veto is even reachable on it.
+#
+# Kept in the code because the measurement harness and the veto plumbing are
+# useful, and because abduction alone may yet separate the classes — but that
+# needs a capture containing the *lazy* poses too, which the one above does not
+# have. Do not re-enable without calibrating both classes; see T-158 in
+# docs/recognition/model-evaluation.md and scripts/calibrate_handshape_gate.py.
 
 LANDMARK_COUNT = 21
 
@@ -86,7 +118,10 @@ HIEUT_MIN_THUMB_CLEARANCE = float(os.getenv("HANDPRACTICE_AI_HIEUT_MIN_THUMB_CLE
 BIEUP_MIN_THUMB_ABDUCTION_DEGREES = float(os.getenv("HANDPRACTICE_AI_BIEUP_MIN_THUMB_ABDUCTION_DEG", "35"))
 
 # Set to 0/false/off to disable the gate without touching the call site.
-GATE_ENABLED = os.getenv("HANDPRACTICE_AI_HANDSHAPE_GATE", "1").strip().lower() not in {"0", "false", "off"}
+# Off unless explicitly switched on (T-158 — see the top of this module). Note that
+# docker-compose.yml does not forward this variable to the container, so on the
+# deployed server this default is the only thing in effect.
+GATE_ENABLED = os.getenv("HANDPRACTICE_AI_HANDSHAPE_GATE", "0").strip().lower() in {"1", "true", "on"}
 
 GATED_SYMBOLS = ("ㅎ", "ㅂ")
 
