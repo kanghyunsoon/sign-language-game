@@ -135,6 +135,13 @@
       "msg": "새끼손가락을 펴세요"
     },
     {
+      "metric": "bend",
+      "finger": "pinky",
+      "agg": "med",
+      "max": 60,
+      "msg": "새끼손가락을 펴세요 (접으면 안 돼요)"
+    },
+    {
       "metric": "curl",
       "finger": "index",
       "agg": "med",
