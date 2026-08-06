@@ -6,10 +6,11 @@ import os
 
 import numpy as np
 
+from . import handshape_gate
 from .diagnostics import PredictionDiagnostics
 from .feature_adapter import LANDMARK_COUNT, landmarks_to_features
 from .messages import Landmark, prediction_message
-from .model_adapter import ModelContract, ModelRunner
+from .model_adapter import SUPPRESSED_CONFIDENCE, ModelContract, ModelRunner
 
 
 # Landmark smoothing (exponential moving average on the raw landmarks, applied
@@ -160,9 +161,38 @@ class RecognitionSession:
             {"symbol": self._runner.contract.labels[int(index)], "confidence": float(prediction[int(index)])}
             for index in candidate_indexes
         ]
+        # Geometric veto for ㅎ and ㅂ, which the model confuses with a plain fist
+        # and a fully open hand respectively — the difference is the thumb alone,
+        # and the thumb is a small part of the feature vector. Measured on the raw
+        # landmarks, *not* the smoothed ones: smoothing is off by default and when
+        # it is on it lags, which would make the thumb check trail the real hand.
+        #
+        # Suppression matches the decision-margin gate: keep the label so
+        # top-candidate feedback still shows what the handshape leaned towards, but
+        # drop the confidence under every readiness threshold so the browser's
+        # decoder can never confirm it. Only ㅎ/ㅂ frames are ever touched.
+        verdict = handshape_gate.verify(symbol, landmarks, handedness)
+        handshape_hint: str | None = None
+        if verdict.rejected:
+            confidence = SUPPRESSED_CONFIDENCE
+            handshape_hint = verdict.feedback
+            for candidate in top_candidates:
+                if candidate["symbol"] == symbol:
+                    candidate["confidence"] = SUPPRESSED_CONFIDENCE
+
         # The frontend temporal decoder applies calibrated confidence, stability,
         # duplicate-lock, and neutral-release rules. The server never confirms.
-        return [prediction_message(frame_id, symbol, confidence, False, captured_at, top_candidates)]
+        return [
+            prediction_message(
+                frame_id,
+                symbol,
+                confidence,
+                False,
+                captured_at,
+                top_candidates,
+                handshape_hint,
+            ),
+        ]
 
     def process_hand_not_detected(self, captured_at: int) -> list[dict[str, object]]:
         if self._missing_since is None:
