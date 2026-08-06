@@ -22,41 +22,57 @@
 
 /* 메인페이지와 동일한 네비게이션바 */
 
+.practice-session-header-canvas {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+  transform-origin: center center;
+}
+
 .practice-session-header {
   position: relative;
   z-index: 5;
-  height: min(4.479167vw, 7.962963vh);
-  flex: 0 0 min(4.479167vw, 7.962963vh);
+  height: 86px;
+  flex: 0 0 86px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-bottom: min(0.052083vw, 0.092593vh) solid #e7d9c7;
+  border-bottom: 1px solid #e7d9c7;
   background: rgba(255, 250, 242, 0.94);
-  box-shadow: 0 min(0.208333vw, 0.37037vh) min(0.9375vw, 1.666667vh) rgba(85, 57, 37, 0.05);
+  box-shadow: 0 4px 18px rgba(85, 57, 37, 0.05);
+  pointer-events: auto;
+}
+
+.practice-session-header-spacer {
+  height: min(4.479167vw, 7.962963vh);
+  flex: 0 0 min(4.479167vw, 7.962963vh);
 }
 
 .practice-page-back-button {
   position: absolute;
   top: 50%;
-  left: min(1.666667vw, 2.962963vh);
+  left: 32px;
   z-index: 1;
-  width: min(3.072917vw, 5.462963vh);
-  height: min(3.072917vw, 5.462963vh);
+  width: 59px;
+  height: 59px;
   display: grid;
   place-items: center;
   border: 0;
   color: #3f2b20;
-  font-size: min(2.135417vw, 3.796296vh);
+  font-size: 41px;
   line-height: 1;
   text-decoration: none;
   background: transparent;
   cursor: pointer;
   transform: translateY(-50%);
-  transition: transform 0.2s ease;
 }
 
 .practice-page-back-button:hover {
-  transform: translate(max(-0.15625vw, -0.25vh), -50%);
+  transform: translateY(-50%);
 }
 
 .practice-session-nav {
@@ -64,7 +80,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: min(3.020833vw, 5.37037vh);
+  gap: 58px;
 }
 
 .practice-session-nav a,
@@ -78,7 +94,7 @@
   background: transparent;
   color: #7d746b;
   font-family: inherit;
-  font-size: min(1.25vw, 2.222222vh);
+  font-size: 24px;
   font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
@@ -93,26 +109,26 @@
 .practice-session-nav a.active::after {
   position: absolute;
   right: 0;
-  bottom: min(0.885417vw, 1.574074vh);
+  bottom: 17px;
   left: 0;
-  height: min(0.208333vw, 0.37037vh);
-  border-radius: min(52.03125vw, 83.25vh);
+  height: 4px;
+  border-radius: 999px;
   background: #9B6B43;
   content: "";
 }
 
 .practice-session-mypage-button {
   position: absolute;
-  top: min(1.041667vw, 1.851852vh);
-  right: min(3.020833vw, 5.37037vh);
-  width: min(8.072917vw, 14.351852vh);
-  height: min(2.291667vw, 4.074074vh);
+  top: 20px;
+  right: 58px;
+  width: 155px;
+  height: 44px;
   display: grid;
   place-items: center;
-  border: min(0.052083vw, 0.092593vh) solid #dbc8b1;
-  border-radius: min(52.03125vw, 83.25vh);
+  border: 1px solid #dbc8b1;
+  border-radius: 999px;
   color: #5f402b;
-  font-size: min(1.09375vw, 1.944444vh);
+  font-size: 21px;
   font-weight: 800;
   text-decoration: none;
   background: #fffaf2;
@@ -122,18 +138,18 @@
 /* 연습 진행 화면 전체 */
 
 .practice-session-header .app-bgm-toggle-viewport {
-  left: min(2.395833vw, 4.259259vh);
-  width: min(3.072917vw, 5.462963vh);
-  height: min(3.072917vw, 5.462963vh);
+  left: min(2.395833vw, 3.833333vh);
+  width: min(3.072917vw, 4.916667vh);
+  height: min(3.072917vw, 4.916667vh);
 }
 
 .practice-session-header .app-bgm-toggle-viewport.app-bgm-toggle-offset {
-  left: min(5.208333vw, 9.259259vh);
+  left: min(5.208333vw, 8.333333vh);
 }
 
 .practice-session-header .app-bgm-toggle-viewport svg {
-  width: min(2.192708vw, 3.898148vh);
-  height: min(2.192708vw, 3.898148vh);
+  width: min(2.192708vw, 3.508333vh);
+  height: min(2.192708vw, 3.508333vh);
 }
 
 .practice-session-main {

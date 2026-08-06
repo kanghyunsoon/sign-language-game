@@ -2,7 +2,6 @@ import "./PracticeSessionPage.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
-import { AppNav } from "../../../shared/nav/AppNav";
 import otterClapImage from "../assets/otter_clap.webp";
 import {
   CORRECT_AUTO_ADVANCE_SECONDS,
@@ -22,6 +21,7 @@ import {
   fingerspellingItems,
 } from "../data/fingerspelling";
 import { PracticeCompletionActions } from "../components/PracticeCompletionActions";
+import { PracticeSessionHeader } from "../components/PracticeSessionHeader";
 import type { PracticeFlowCategoryId } from "../data/practiceFlow";
 import { PracticeWebSocketSignRecognizer } from "../recognition/PracticeWebSocketSignRecognizer";
 
@@ -395,29 +395,9 @@ export function PracticeSessionPage({
 
   return (
     <div className="practice-session-page">
+      <PracticeSessionHeader onBack={onExit} />
       <div className="practice-session-canvas">
-      <header className="practice-session-header">
-        {onExit ? (
-          <button
-            className="practice-page-back-button"
-            type="button"
-            onClick={onExit}
-            aria-label="뒤로 가기"
-          >
-            ←
-          </button>
-        ) : (
-          <Link
-            className="practice-page-back-button"
-            to="/practice"
-            aria-label="뒤로 가기"
-          >
-            ←
-          </Link>
-        )}
-
-        <AppNav prefix="practice-session" hasBackButton />
-      </header>
+      <div className="practice-session-header-spacer" aria-hidden="true" />
 
       <main className="practice-session-main">
         <div className="practice-progress-area">

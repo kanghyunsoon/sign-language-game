@@ -1,7 +1,6 @@
 import "./PracticeSessionPage.css";
 import "./WordPracticeSessionPage.css";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AppNav } from "../../../shared/nav/AppNav";
 import { WordHandCamera } from "../components/WordHandCamera";
 import { getWordAiWebSocketUrl } from "../data/aiRecognition";
 import { wordSignGroups, wordSigns, type WordSignItem } from "../data/wordSigns";
@@ -11,6 +10,7 @@ import otterClapImage from "../assets/otter_clap.webp";
 import { CORRECT_AUTO_ADVANCE_SECONDS } from "../components/CorrectFeedbackModal";
 import { PracticeCompletionActions } from "../components/PracticeCompletionActions";
 import type { SentenceSignItem } from "../data/sentenceSigns";
+import { PracticeSessionHeader } from "../components/PracticeSessionHeader";
 
 type WordPracticeItem = WordSignItem | SentenceSignItem;
 
@@ -247,19 +247,9 @@ export function WordPracticeSessionPage({
 
   return (
     <div className="practice-session-page word-practice-session-page">
+      <PracticeSessionHeader onBack={onExit} />
       <div className="practice-session-canvas">
-        <header className="practice-session-header">
-          <button
-            className="practice-page-back-button"
-            type="button"
-            onClick={onExit}
-            aria-label="뒤로 가기"
-          >
-            ←
-          </button>
-
-          <AppNav prefix="practice-session" hasBackButton />
-        </header>
+        <div className="practice-session-header-spacer" aria-hidden="true" />
 
         <main className="practice-session-main">
           <div className="practice-progress-area">
