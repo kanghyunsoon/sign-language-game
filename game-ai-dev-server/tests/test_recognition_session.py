@@ -18,6 +18,7 @@ from app.model_adapter import (
 )
 from app.recognition_session import LANDMARK_SMOOTHING_ALPHA, RecognitionConfig, RecognitionSession
 from tests.helpers import MockModelRunner, landmark_frame
+from app import handshape_gate
 from tests.test_handshape_gate import bieup, hieut, open_hand, plain_fist
 
 
@@ -174,6 +175,20 @@ class HandshapeGateWiringTests(unittest.TestCase):
     gate depends on is exactly what those features lose. The session is the last
     place the raw landmarks and the prediction exist together.
     """
+
+    def setUp(self) -> None:
+        # The gate ships disabled (T-158); the wiring is what these tests describe.
+        self._original = handshape_gate.GATE_ENABLED
+        handshape_gate.GATE_ENABLED = True
+
+    def tearDown(self) -> None:
+        handshape_gate.GATE_ENABLED = self._original
+
+    def test_a_disabled_gate_leaves_the_prediction_untouched(self) -> None:
+        handshape_gate.GATE_ENABLED = False
+        event = self._session_event(("ㅎ", "ㄴ"), [0.99, 0.01], plain_fist())
+        self.assertAlmostEqual(event["confidence"], 0.99, places=5)
+        self.assertNotIn("handshapeHint", event)
 
     def _session_event(self, labels: tuple[str, ...], probabilities: list[float], pose) -> dict[str, object]:
         runner = MockModelRunner([np.asarray(probabilities, dtype=np.float32)], labels=labels)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import unittest
 
 import numpy as np
@@ -96,6 +97,28 @@ def bieup_with_straight_thumb() -> tuple[Landmark, ...]:
     return _pose(fingers_folded=False, thumb_ip=(0.42, -0.90, 0.00), thumb_tip=(0.38, -1.28, 0.00))
 
 
+@contextlib.contextmanager
+def gate_enabled():
+    """The gate ships disabled (T-158); these tests describe it switched on."""
+    original = handshape_gate.GATE_ENABLED
+    handshape_gate.GATE_ENABLED = True
+    try:
+        yield
+    finally:
+        handshape_gate.GATE_ENABLED = original
+
+
+# Measured landmarks, not synthetic. MediaPipe re-run over a screen capture of the
+# deployed app while a *correct* ㅂ was held (thumb folded in over the palm). Kept
+# as a fixture because the synthetic poses above turned out not to resemble real
+# frames: the ones below are why the gate is disabled by default.
+#
+#   straightness 0.98, abduction 10 deg  — the gate lets this through
+#   straightness 1.00, abduction 36 deg  — the gate vetoes it, wrongly
+REAL_CORRECT_BIEUP_ABDUCTION_DEGREES = (16.0, 10.0, 10.0, 11.0, 36.0)
+REAL_CORRECT_BIEUP_STRAIGHTNESS = (0.93, 0.98, 0.98, 0.99, 1.00)
+
+
 class HandshapeMetricTests(unittest.TestCase):
     def test_folded_and_extended_fingers_land_outside_the_dead_band(self) -> None:
         self.assertTrue(measure(plain_fist(), "RIGHT").four_fingers_folded)
@@ -144,6 +167,19 @@ class HandshapeMetricTests(unittest.TestCase):
 
 
 class HandshapeVerifyTests(unittest.TestCase):
+    """The veto behaviour, described with the gate switched on.
+
+    It ships off (T-158), so these tests force it on rather than silently passing
+    because every frame is accepted.
+    """
+
+    def setUp(self) -> None:
+        self._original = handshape_gate.GATE_ENABLED
+        handshape_gate.GATE_ENABLED = True
+
+    def tearDown(self) -> None:
+        handshape_gate.GATE_ENABLED = self._original
+
     def test_the_reported_false_positives_are_vetoed(self) -> None:
         fist = verify("ㅎ", plain_fist(), "RIGHT")
         self.assertTrue(fist.rejected)
@@ -190,12 +226,38 @@ class HandshapeVerifyTests(unittest.TestCase):
         self.assertTrue(verify("ㅎ", hieut()[:10], "RIGHT").accepted)
 
     def test_the_gate_can_be_switched_off(self) -> None:
-        original = handshape_gate.GATE_ENABLED
         handshape_gate.GATE_ENABLED = False
-        try:
-            self.assertTrue(verify("ㅎ", plain_fist(), "RIGHT").accepted)
-        finally:
-            handshape_gate.GATE_ENABLED = original
+        self.assertTrue(verify("ㅎ", plain_fist(), "RIGHT").accepted)
+
+
+class GateDefaultsOffTests(unittest.TestCase):
+    """T-158. The gate must not be reachable without an explicit opt-in.
+
+    Measured frames of a *correct* ㅂ score straightness 0.93-1.00 and abduction
+    9-36 degrees, so the ㅂ veto (straightness > 0.93 AND abduction > 35) fires on a
+    correct handshape. Until the discriminator is rebuilt against captures of the
+    lazy poses too, shipping this on trades a false accept for a false reject.
+    """
+
+    def test_the_gate_is_off_by_default(self) -> None:
+        self.assertFalse(handshape_gate.GATE_ENABLED)
+        # With the module default in force, nothing is ever vetoed.
+        self.assertTrue(verify("ㅎ", plain_fist(), "RIGHT").accepted)
+        self.assertTrue(verify("ㅂ", open_hand(), "RIGHT").accepted)
+
+    def test_the_bieup_veto_would_reject_a_measured_correct_bieup(self) -> None:
+        """Pins the reason the gate is disabled, using the real numbers.
+
+        If a future change makes the ㅂ rule survive these values, this test should
+        be updated deliberately rather than deleted.
+        """
+        worst = max(
+            zip(REAL_CORRECT_BIEUP_STRAIGHTNESS, REAL_CORRECT_BIEUP_ABDUCTION_DEGREES),
+            key=lambda pair: pair[1],
+        )
+        straightness, abduction = worst
+        self.assertGreater(straightness, handshape_gate.BIEUP_MAX_THUMB_STRAIGHTNESS)
+        self.assertGreater(abduction, handshape_gate.BIEUP_MIN_THUMB_ABDUCTION_DEGREES)
 
 
 class FingerThresholdTests(unittest.TestCase):
