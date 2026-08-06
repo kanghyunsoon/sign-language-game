@@ -51,6 +51,22 @@ python inference/run_webcam.py
    / moon을 손가락 붙인 채로 → 각각 WRONG·OUT OF RANGE 계열이 떠야 정상
 4. **억울한 판정**(정상 수행인데 거절)이 나오면 터미널 로그 그대로 복사해서 공유
 
+## 2차 업데이트 규칙 (이번 라운드 중점 테스트)
+
+아래 오류 수행 시 **WRONG DETAIL + 한국어 피드백 문구**가 떠야 정상입니다:
+
+| 단어 | 오류 수행 (일부러 해보기) |
+|---|---|
+| hello helicopter rain wind bicycle run + star thankyou motorcycle car bus | 동작을 **1회만** 수행 (2회 이상 반복해야 인정) |
+| train | 양손 다 편 채로 돌리기 (한 손은 검지·중지만 펴야 함) |
+| swim | 수영하는 손 손가락 3개 이상 펴기 (검지·중지만 허용) |
+| rain | 양손 **번갈아** 위아래 / **좌우로** 흔들기 (같이 위아래여야 함) |
+| hello, run | 양손 **동시에** 위아래 (번갈아 움직여야 함) |
+| motorcycle | 양손 다 까닥이기 (한 손 고정) — ※ 부분만 차단됨, 새는 정도 기록 요망 |
+
+반대로 **정상 수행이 위 문구로 거절되면** 그것도 중요한 결과입니다 — 단어와
+터미널 로그를 공유해주세요 (임계값 보정 근거가 됩니다).
+
 ## 참고
 
 - 21단어: airplane bad bicycle bus car good helicopter hello moon motorcycle rain

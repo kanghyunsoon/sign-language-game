@@ -12,9 +12,23 @@
 
 집계: med(중앙값) | min | max | range(시간 변화폭 = p95-p5)
 
+구간 단위 메트릭 (min/max로 판정):
+  hands                 검출된 손 수 (양손 필수 단어)
+  rot_ratio             양손 회전량 비율 min/max (한손 고정+한손 회전 단어)
+  rot_min               덜 회전하는 손의 회전량(도) — 고정 손이 크게 비틀리면 위반
+  cycles                반복 횟수(왕복 수) — 두 번 이상 반복 단어
+  y_corr                양손 손목 높이(어깨 기준) 상관계수. 함께 위아래 +1, 번갈아 -1
+  vert_frac             손목 이동량 중 상하 성분 비율. 상하 1.0 ↔ 좌우 0.0
+  alt_frac              양손 교대 지표(높이차 변동 비중). 번갈아 ~0.4+ ↔ 동시 ~0.3 미만
+  anyhand               "conditions"(curl/bend/spread/pinch 목록)를 어느 한 손이라도
+                        전부 만족하면 통과 — 양손 모양이 다른 단어(기차·수영)용
+
 규칙 예 (hand_rules.json):
   "bus": [{"metric": "bend", "finger": "index", "agg": "med", "min": 40, "max": 150,
            "msg": "검지를 갈고리 모양으로 살짝 굽히세요"}]
+  "train": [{"metric": "anyhand", "conditions": [
+              {"metric": "curl", "finger": "index", "min": 1.5},
+              {"metric": "curl", "finger": "ring", "max": 1.55}], "msg": "..."}]
 
 보정: python inference/hand_rules.py --calibrate bus   (학습 클립 분포 출력)
 """
@@ -94,6 +108,64 @@ def _agg(series, agg):
     raise ValueError(f"unknown agg {agg}")
 
 
+def _count_reversals(series, prominence_ratio=0.25):
+    """유의미한 방향 전환 횟수 (히스테리시스로 노이즈 무시). 왕복 1회 = 전환 2회."""
+    s = np.asarray(series, float)
+    if len(s) < 8:
+        return 0
+    rng = float(s.max() - s.min())
+    if rng < EPS:
+        return 0
+    prom = rng * prominence_ratio
+    reversals, direction, last_ext = 0, 0, s[0]
+    for v in s[1:]:
+        if direction >= 0 and v < last_ext - prom:
+            reversals += 1
+            direction, last_ext = -1, v
+        elif direction <= 0 and v > last_ext + prom:
+            reversals += 1
+            direction, last_ext = 1, v
+        else:
+            last_ext = max(last_ext, v) if direction >= 0 else min(last_ext, v)
+    return reversals
+
+
+def cycles_metric(arr):
+    """활성 손의 반복 횟수(왕복 수). 다음 신호들의 왕복 중 최대:
+    위치 주성분 투영 / 손 방향각 / 손바닥 법선 z(비틀기) / 양손 높이 차(교대 동작).
+    1회 수행 ~1.0, 2회 반복 ~2.0+."""
+    best = None
+    for hk, vk in (("lh", "lh_valid"), ("rh", "rh_valid")):
+        v = np.asarray(arr[vk], bool)
+        if v.sum() < 8:
+            continue
+        h = arr[hk][v]
+        scale = float(np.median(np.linalg.norm(h[:, 9] - h[:, 0], axis=1))) + EPS
+        xy = h[:, 0, :2] / scale
+        xy = xy - xy.mean(0)
+        _, _, vt = np.linalg.svd(xy, full_matrices=False)
+        proj = xy @ vt[0]                       # 위치 왕복
+        d = h[:, 9, :2] - h[:, 0, :2]
+        ang = np.unwrap(np.arctan2(d[:, 1], d[:, 0]))  # 방향각 왕복
+        n = np.cross(h[:, 5] - h[:, 0], h[:, 17] - h[:, 0])
+        n = n / (np.linalg.norm(n, axis=1, keepdims=True) + EPS)
+        cyc = max(_count_reversals(proj), _count_reversals(ang),
+                  _count_reversals(n[:, 2]))    # 법선 z 왕복 (손목 비틀기)
+        amp = float(np.linalg.norm(xy, axis=1).std())
+        if best is None or amp > best[0]:
+            best = (amp, cyc)
+    if best is None:
+        return None
+    cyc = best[1]
+    # 양손 교대 동작 (별 등): 두 손 높이 차의 왕복
+    lv, rv = np.asarray(arr["lh_valid"], bool), np.asarray(arr["rh_valid"], bool)
+    both = lv & rv
+    if both.sum() >= 8:
+        dy = arr["lh"][both][:, 0, 1] - arr["rh"][both][:, 0, 1]
+        cyc = max(cyc, _count_reversals(dy))
+    return cyc / 2.0
+
+
 def _rot_amp(hand):
     """손 방향/법선의 각 변화량(도) — 비틀기 같은 회전 동작 크기."""
     d1 = hand[:, 9] - hand[:, 0]
@@ -109,14 +181,83 @@ def _rot_amp(hand):
 
 
 def two_hand_metrics(arr):
-    """양손 규칙용: (검출된 손 수, 회전량 비율 min/max 또는 None)"""
+    """양손 규칙용: (검출된 손 수, 회전량 비율 min/max, 작은쪽 회전량(도)). 한손이면 None."""
     rots = []
     for hk, vk in (("lh", "lh_valid"), ("rh", "rh_valid")):
         v = np.asarray(arr[vk], bool)
         if v.sum() >= 5:
             rots.append(_rot_amp(arr[hk][v]))
-    ratio = min(rots) / (max(rots) + EPS) if len(rots) == 2 else None
-    return len(rots), ratio
+    if len(rots) == 2:
+        return 2, min(rots) / (max(rots) + EPS), min(rots)
+    return len(rots), None, None
+
+
+def valid_hands(arr, min_frames=5):
+    """검출 프레임이 충분한 손들의 유효 프레임 배열 목록."""
+    out = []
+    for hk, vk in (("lh", "lh_valid"), ("rh", "rh_valid")):
+        v = np.asarray(arr[vk], bool)
+        if v.sum() >= min_frames:
+            out.append(arr[hk][v])
+    return out
+
+
+def vert_frac_metric(arr, min_path=0.5):
+    """활성 손 손목 이동량 중 상하 성분 비율 sum|dy|/(sum|dx|+sum|dy|).
+    순수 상하 1.0, 순수 좌우 0.0. 이동량이 너무 작으면 None(판정 불가).
+    속도 기반이라 반복 사이 좌우 드리프트(느림)의 영향이 작다."""
+    best = None
+    for hk, vk in (("lh", "lh_valid"), ("rh", "rh_valid")):
+        v = np.asarray(arr[vk], bool)
+        if v.sum() < 8:
+            continue
+        h = arr[hk][v]
+        scale = float(np.median(np.linalg.norm(h[:, 9] - h[:, 0], axis=1))) + EPS
+        xy = h[:, 0, :2] / scale
+        d = np.abs(np.diff(xy, axis=0))
+        path = float(d.sum())
+        amp = float(np.linalg.norm(xy - xy.mean(0), axis=1).std())
+        if best is None or amp > best[0]:
+            best = (amp, path, float(d[:, 1].sum()) / (path + EPS))
+    if best is None or best[1] < min_path:
+        return None
+    return best[2]
+
+
+def y_sync(arr):
+    """양손 손목 높이(어깨 기준)의 상관계수. 함께 오르내리면 +1, 번갈아 움직이면 -1.
+    양손 동시 검출이 부족하거나 상하 움직임이 없으면 None(판정 불가)."""
+    lv, rv = np.asarray(arr["lh_valid"], bool), np.asarray(arr["rh_valid"], bool)
+    both = lv & rv
+    if both.sum() < 8:
+        return None
+    ly = arr["lh"][both, 0, 1].astype(float)
+    ry = arr["rh"][both, 0, 1].astype(float)
+    pose = arr.get("pose") if hasattr(arr, "get") else None
+    if pose is not None:  # 몸 전체가 흔들려도 어깨 기준 상대 높이로 판정
+        pv = np.asarray(arr.get("pose_valid", np.zeros(len(lv), bool)), bool)
+        if pv.any():
+            sho = (pose[:, 11, 1] + pose[:, 12, 1]) / 2
+            sho = np.where(pv, sho, np.median(sho[pv]))
+            ly, ry = ly - sho[both], ry - sho[both]
+    if ly.std() < 0.005 or ry.std() < 0.005:
+        return None
+    return float(np.corrcoef(ly, ry)[0, 1])
+
+
+def alt_frac_metric(arr):
+    """양손 높이차 변동 / (높이차 변동 + 공통 이동) — 진폭 가중 교대 지표.
+    번갈아 움직임 ~0.4-0.8, 동시 움직임 ~0.3 미만. y_corr보다 잔떨림에 강함."""
+    lv, rv = np.asarray(arr["lh_valid"], bool), np.asarray(arr["rh_valid"], bool)
+    both = lv & rv
+    if both.sum() < 8:
+        return None
+    ly = arr["lh"][both, 0, 1].astype(float)
+    ry = arr["rh"][both, 0, 1].astype(float)
+    d, s = ly - ry, (ly + ry) / 2
+    if d.std() + s.std() < 0.01:
+        return None
+    return float(d.std() / (d.std() + 2 * s.std() + EPS))
 
 
 def active_hand(arr):
@@ -149,19 +290,56 @@ class HandRules:
         hand = active_hand(arr)
         if hand is None:
             return True, []
-        n_hands, rot_ratio = None, None
+        n_hands, rot_ratio, rot_min = None, None, None
         fails = []
         for r in rules:
             m = r["metric"]
-            if m in ("hands", "rot_ratio"):  # 양손 규칙
+            if m in ("hands", "rot_ratio", "rot_min"):  # 양손 규칙
                 if n_hands is None:
-                    n_hands, rot_ratio = two_hand_metrics(arr)
+                    n_hands, rot_ratio, rot_min = two_hand_metrics(arr)
                 if m == "hands":
                     val = n_hands
                 else:
-                    if rot_ratio is None:
+                    val = rot_ratio if m == "rot_ratio" else rot_min
+                    if val is None:
                         continue  # 한 손만 검출 -> hands 규칙이 담당
-                    val = rot_ratio
+            elif m == "cycles":  # 반복 횟수 규칙
+                val = cycles_metric(arr)
+                if val is None:
+                    continue
+            elif m == "y_corr":  # 양손 상하 동기 규칙
+                val = y_sync(arr)
+                if val is None:
+                    continue
+            elif m == "vert_frac":  # 이동 방향(상하 비율) 규칙
+                val = vert_frac_metric(arr)
+                if val is None:
+                    continue
+            elif m == "alt_frac":  # 양손 교대(진폭 가중) 규칙
+                val = alt_frac_metric(arr)
+                if val is None:
+                    continue
+            elif m == "anyhand":  # 어느 한 손이라도 조건 전부 만족하면 통과
+                best = None  # (위반량 합, 최다 위반 조건의 (값, 조건))
+                for h in valid_hands(arr):
+                    viol, worst = 0.0, None
+                    for c in r["conditions"]:
+                        v = _agg(_series(h, c), c.get("agg", "med"))
+                        over = max(0.0, c.get("min", -1e9) - v, v - c.get("max", 1e9))
+                        viol += over
+                        if over > 0 and (worst is None or over > worst[0]):
+                            worst = (over, v, c)
+                    if worst is None:  # 이 손이 전부 만족 -> 규칙 통과
+                        best = None
+                        break
+                    if best is None or viol < best[0]:
+                        best = (viol, worst)
+                if best is None:
+                    continue  # 통과 (만족하는 손 있음 / 손 미검출)
+                _, (_, v, c) = best
+                name = r.get("msg") or f"anyhand({c['metric']} {c.get('finger', '')})"
+                fails.append((name, round(float(v), 2), c.get("min"), c.get("max")))
+                continue
             else:
                 val = _agg(_series(hand, r), r.get("agg", "med"))
             lo, hi = r.get("min", -1e9), r.get("max", 1e9)
@@ -180,7 +358,7 @@ def calibrate(word):
         d = np.load(p, allow_pickle=True)
         if str(d["word"]) != word:
             continue
-        arr = {k: d[k] for k in ("lh", "rh", "lh_valid", "rh_valid")}
+        arr = {k: d[k] for k in ("lh", "rh", "lh_valid", "rh_valid", "pose", "pose_valid")}
         hand = active_hand(arr)
         if hand is None:
             continue
@@ -192,13 +370,30 @@ def calibrate(word):
         row["pinch_ti_range"] = float(np.percentile(pinch(hand, "thumb", "index"), 95)
                                       - np.percentile(pinch(hand, "thumb", "index"), 5))
         row["spread_im"] = float(np.median(spread(hand, "index", "middle")))
+        yc = y_sync(arr)
+        if yc is not None:
+            row["y_corr"] = yc
+        vf = vert_frac_metric(arr)
+        if vf is not None:
+            row["vert_frac"] = vf
+        af = alt_frac_metric(arr)
+        if af is not None:
+            row["alt_frac"] = af
+        # anyhand 보정용: 두손가락다움(검지+중지-약지-새끼)이 큰 손의 손가락별 굽힘
+        hs = valid_hands(arr)
+        if hs:
+            tf = max(hs, key=lambda h: float(np.median(curl(h, "index")) + np.median(curl(h, "middle"))
+                                             - np.median(curl(h, "ring")) - np.median(curl(h, "pinky"))))
+            for f in FINGERS:
+                row[f"2f_curl_{f}"] = float(np.median(curl(tf, f)))
         rows.append(row)
     if not rows:
         print(f"'{word}' 클립 없음")
         return
     print(f"{word}: {len(rows)}클립")
-    for k in rows[0]:
-        vals = np.array([r[k] for r in rows])
+    keys = list(rows[0]) + sorted({k for r in rows for k in r} - set(rows[0]))
+    for k in keys:
+        vals = np.array([r[k] for r in rows if k in r])
         print(f"  {k:<16} p5={np.percentile(vals,5):7.2f}  p50={np.percentile(vals,50):7.2f}  "
               f"p95={np.percentile(vals,95):7.2f}")
 
