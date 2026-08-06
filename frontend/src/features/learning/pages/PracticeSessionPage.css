@@ -608,9 +608,19 @@
     );
 }
 
-.practice-camera-placeholder > .camera-workspace {
+.practice-camera-scale-layer {
   position: absolute;
+  inset: 0;
   z-index: 1;
+  width: calc(100% / var(--practice-camera-scale));
+  height: calc(100% / var(--practice-camera-scale));
+  overflow: hidden;
+  transform: scale(var(--practice-camera-scale));
+  transform-origin: top left;
+}
+
+.practice-camera-scale-layer > .camera-workspace {
+  position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;

@@ -1,5 +1,6 @@
 import "./PracticeSessionPage.css";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import otterClapImage from "../assets/otter_clap.webp";
@@ -24,6 +25,7 @@ import { PracticeCompletionActions } from "../components/PracticeCompletionActio
 import { PracticeSessionHeader } from "../components/PracticeSessionHeader";
 import type { PracticeFlowCategoryId } from "../data/practiceFlow";
 import { PracticeWebSocketSignRecognizer } from "../recognition/PracticeWebSocketSignRecognizer";
+import { useFixedCanvasScale } from "../../../shared/layout/fixedCanvas";
 
 type PracticeCategoryId = FingerspellingCategoryId;
 
@@ -61,6 +63,7 @@ export function PracticeSessionPage({
   onNextCategory,
   testSymbols,
 }: PracticeSessionPageProps = {}) {
+  const { scale: practiceCanvasScale } = useFixedCanvasScale();
   const { categoryId: routeCategoryId } = useParams();
   const categoryId = category ?? routeCategoryId;
   // 넘겨받은 글자 목록이 있으면 그것을, 없으면 분류 전체를 연습한다.
@@ -495,23 +498,32 @@ export function PracticeSessionPage({
               }}
             >
               {cameraStream && (
-                <HandCamera
-                  sharedStream={cameraStream}
-                  autoStart
-                  compact
-                  targetSymbol={currentPracticeItem.symbol}
-                  prediction={prediction}
-                  connectionState={connectionState}
-                  performanceMonitor={recognizer.getPerformanceMonitor()}
-                  temporalDecoder={recognizer.getTemporalDecoder()}
-                  awaitingHandRelease={isCorrect}
-                  onLandmarkFrame={(frame) =>
-                    recognizer.sendLandmarkFrame(frame)
+                <div
+                  className="practice-camera-scale-layer"
+                  style={
+                    {
+                      "--practice-camera-scale": practiceCanvasScale,
+                    } as CSSProperties
                   }
-                  onHandNotDetected={(capturedAt) =>
-                    recognizer.notifyHandNotDetected(capturedAt)
-                  }
-                />
+                >
+                  <HandCamera
+                    sharedStream={cameraStream}
+                    autoStart
+                    compact
+                    targetSymbol={currentPracticeItem.symbol}
+                    prediction={prediction}
+                    connectionState={connectionState}
+                    performanceMonitor={recognizer.getPerformanceMonitor()}
+                    temporalDecoder={recognizer.getTemporalDecoder()}
+                    awaitingHandRelease={isCorrect}
+                    onLandmarkFrame={(frame) =>
+                      recognizer.sendLandmarkFrame(frame)
+                    }
+                    onHandNotDetected={(capturedAt) =>
+                      recognizer.notifyHandNotDetected(capturedAt)
+                    }
+                  />
+                </div>
               )}
 
               {isCameraActive && (
