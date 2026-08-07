@@ -100,17 +100,25 @@ class WordV7RecognitionSession:
         responses = []
         for event in events:
             stage = event["stage"]
+            top3 = list(event.get("top3", []))
             top_candidates = [
                 {"symbol": word, "confidence": confidence}
-                for word, confidence in event.get("top3", [])
+                for word, confidence in top3
             ] or None
+            # rolling.py rounds top3 probabilities to 2 decimals but leaves
+            # event["confidence"] (probs.max()) at full precision. The frontend
+            # requires topCandidates[0] to exactly equal the top-level
+            # symbol/confidence, so when top3 exists it is the source of truth
+            # for both (rather than trying to reconcile two roundings).
+            symbol = top3[0][0] if top3 else event["word"]
+            confidence = top3[0][1] if top3 else event["confidence"]
             verdict = None if stage == "live" else _verdict_for(event)
             feedback = _feedback_for(event) if stage == "final" else None
             responses.append(
                 prediction_message(
                     frame_id=request.frame_id,
-                    symbol=event["word"],
-                    confidence=event["confidence"],
+                    symbol=symbol,
+                    confidence=confidence,
                     predicted_at=request.captured_at,
                     stage=stage,
                     is_stable=stage == "final",
