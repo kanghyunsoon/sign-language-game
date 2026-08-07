@@ -175,10 +175,43 @@
 }
 
 .practice-category-list {
-  width: 90%;
+  width: calc(90% + min(0.833333vw, 1.333333vh));
+  max-height: min(20.625vw, 33vh);
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   row-gap: min(0.625vw, 1vh);
+  padding-right: min(0.625vw, 1vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #8f8274 transparent;
+}
+
+.practice-category-list::-webkit-scrollbar {
+  width: min(0.208333vw, 0.333333vh);
+}
+
+.practice-category-list::-webkit-scrollbar-button,
+.practice-category-list::-webkit-scrollbar-button:single-button,
+.practice-category-list::-webkit-scrollbar-button:vertical:decrement,
+.practice-category-list::-webkit-scrollbar-button:vertical:increment {
+  width: 0;
+  height: 0;
+  min-height: 0;
+  display: none;
+  border: 0;
+  background: transparent;
+  -webkit-appearance: none;
+}
+
+.practice-category-list::-webkit-scrollbar-track {
+  border-radius: min(52.03125vw, 83.25vh);
+  background: transparent;
+}
+
+.practice-category-list::-webkit-scrollbar-thumb {
+  border-radius: min(52.03125vw, 83.25vh);
+  background: #aaa095;
 }
 
 .practice-category {

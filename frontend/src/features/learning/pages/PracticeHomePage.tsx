@@ -12,11 +12,12 @@ import {
 } from "../data/practiceFlow";
 import { SYMBOLS_PARAM, parseSymbolSelection } from "../data/symbolSelection";
 import { wordSigns } from "../data/wordSigns";
+import { sentenceSigns } from "../data/sentenceSigns";
 import { PracticeSessionPage } from "./PracticeSessionPage";
 import { WordPracticeSessionPage } from "./WordPracticeSessionPage";
 
 type PracticeCategoryId = FingerspellingCategoryId;
-type PracticeHomeCategoryId = PracticeCategoryId | "word";
+type PracticeHomeCategoryId = PracticeCategoryId | "word" | "sentence";
 
 interface PracticeCategory {
   id: PracticeHomeCategoryId;
@@ -55,6 +56,13 @@ const practiceCategories: PracticeCategory[] = [
     title: "단어 연습",
     description: `기본 단어 ${wordSigns.length}개를 연습합니다.`,
     count: wordSigns.length,
+  },
+  {
+    id: "sentence",
+    symbol: "문",
+    title: "문장 연습",
+    description: "기본 문장 3개를 연습합니다.",
+    count: sentenceSigns.length,
   },
 ];
 
@@ -160,6 +168,17 @@ export function PracticeHomePage() {
       );
     }
 
+    if (activeCategory === "sentence") {
+      return (
+        <WordPracticeSessionPage
+          words={sentenceSigns}
+          categoryId="sentence"
+          onExit={handlePracticeExit}
+          testSymbols={testSymbols}
+        />
+      );
+    }
+
     return (
       /* 분류가 바뀌면 진행 상태를 처음부터 다시 잡도록 새로 마운트한다. */
       <PracticeSessionPage
@@ -218,7 +237,11 @@ export function PracticeHomePage() {
 
                     {category.count !== undefined && (
                       <span className="practice-category-count">
-                        {category.count}{category.id === "word" ? "개" : "자"}
+                        {category.count}{
+                          category.id === "word" || category.id === "sentence"
+                            ? "개"
+                            : "자"
+                        }
                       </span>
                     )}
                   </button>

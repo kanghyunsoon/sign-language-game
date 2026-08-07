@@ -1,7 +1,6 @@
 import "./PracticeSessionPage.css";
 import "./WordPracticeSessionPage.css";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AppNav } from "../../../shared/nav/AppNav";
 import { WordHandCamera } from "../components/WordHandCamera";
 import { getWordAiWebSocketUrl } from "../data/aiRecognition";
 import { wordSignGroups, wordSigns, type WordSignItem } from "../data/wordSigns";
@@ -10,10 +9,15 @@ import { WordSignVideo } from "../components/WordSignVideo";
 import otterClapImage from "../assets/otter_clap.webp";
 import { CORRECT_AUTO_ADVANCE_SECONDS } from "../components/CorrectFeedbackModal";
 import { PracticeCompletionActions } from "../components/PracticeCompletionActions";
+import type { SentenceSignItem } from "../data/sentenceSigns";
+import { PracticeSessionHeader } from "../components/PracticeSessionHeader";
+
+type WordPracticeItem = WordSignItem | SentenceSignItem;
 
 interface WordPracticeSessionPageProps {
   readonly onExit?: () => void;
-  readonly words?: readonly WordSignItem[];
+  readonly words?: readonly WordPracticeItem[];
+  readonly categoryId?: "word" | "sentence";
   /**
    * 완료 안내창의 [테스트하기]로 넘길 범위. [다음 단계]로 이어서 연습했다면
    * 단어만이 아니라 이어온 분류 전체가 담겨 온다. 없으면 이번 세션 단어만 쓴다.
@@ -24,13 +28,15 @@ interface WordPracticeSessionPageProps {
 export function WordPracticeSessionPage({
   onExit,
   words: selectedWords,
+  categoryId = "word",
   testSymbols,
 }: WordPracticeSessionPageProps) {
   const words = selectedWords ?? wordSigns;
   /* 오답노트에서 고른 단어만 연습하는 경우와 구분한다. 안내창 문구가 달라진다. */
-  const isFullWordPractice = !selectedWords;
+  const isFullWordPractice = !selectedWords && categoryId === "word";
   const streamRef = useRef<MediaStream | null>(null);
-  const targetWordIdRef = useRef("");
+  const targetSequenceRef = useRef<readonly string[]>([]);
+  const sequenceIndexRef = useRef(0);
   const answeredRef = useRef(false);
   const currentIndexRef = useRef(0);
   const correctIndexesRef = useRef(new Set<number>());
@@ -55,13 +61,17 @@ export function WordPracticeSessionPage({
   /* 사전·오답노트와 같이 "단어 · 탈것"처럼 소분류까지 보여준다. */
   const currentWordGroupLabel = wordSignGroups.find(
     (group) => group.id === currentWord?.groupId,
-  )?.label;
+  )?.label ?? (categoryId === "sentence" ? "문장" : undefined);
   const isFirst = currentIndex === 0;
   const isLast = currentIndex === words.length - 1;
   currentIndexRef.current = currentIndex;
 
   useEffect(() => {
-    targetWordIdRef.current = currentWord.id;
+    targetSequenceRef.current =
+      "recognitionSequence" in currentWord && currentWord.recognitionSequence
+        ? currentWord.recognitionSequence
+        : [currentWord.id];
+    sequenceIndexRef.current = 0;
     answeredRef.current = false;
     setIsCorrect(false);
     recognizer.resetSequence();
@@ -105,22 +115,49 @@ export function WordPracticeSessionPage({
       }
 
       if (event.type === "SIGN_CONFIRMED" && !answeredRef.current) {
-        if (event.symbol === targetWordIdRef.current) {
+        const sequence = targetSequenceRef.current;
+        const sequenceIndex = sequenceIndexRef.current;
+        const expectedSymbol = sequence[sequenceIndex];
+
+        if (event.symbol === expectedSymbol) {
+          if (sequenceIndex < sequence.length - 1) {
+            sequenceIndexRef.current = sequenceIndex + 1;
+            recognizer.resetSequence();
+            setRecognitionMessage(
+              "'비'를 인식했어요. 이어서 '좋다' 동작을 보여주세요.",
+            );
+            return;
+          }
+
           answeredRef.current = true;
           correctIndexesRef.current.add(currentIndexRef.current);
           setIsCorrect(true);
           setRecognitionMessage("맞췄습니다!");
+        } else if (
+          sequence.length > 1 &&
+          sequenceIndex > 0 &&
+          event.symbol === sequence[sequenceIndex - 1]
+        ) {
+          recognizer.resetSequence();
+          setRecognitionMessage("이어서 '좋다' 동작을 보여주세요.");
         } else {
+          sequenceIndexRef.current = 0;
+          if (sequence.length > 1) recognizer.resetSequence();
           setRecognitionMessage(
-            `${event.symbol}(으)로 인식했어요. 손을 내린 뒤 다시 시도해 주세요.`,
+            sequence.length > 1
+              ? `${event.symbol}(으)로 인식했어요. 처음부터 다시 시도해 주세요.`
+              : `${event.symbol}(으)로 인식했어요. 손을 내린 뒤 다시 시도해 주세요.`,
           );
         }
         return;
       }
 
       if (event.type === "HAND_RELEASED" && !answeredRef.current) {
+        const nextSymbol = targetSequenceRef.current[sequenceIndexRef.current];
         setRecognitionMessage(
-          "카메라에 한 명만 들어와 수어 동작을 보여주세요.",
+          nextSymbol === "good"
+            ? "'좋다' 동작을 보여주세요."
+            : "카메라에 한 명만 들어와 수어 동작을 보여주세요.",
         );
         return;
       }
@@ -254,19 +291,9 @@ export function WordPracticeSessionPage({
 
   return (
     <div className="practice-session-page word-practice-session-page">
+      <PracticeSessionHeader onBack={onExit} />
       <div className="practice-session-canvas">
-        <header className="practice-session-header">
-          <button
-            className="practice-page-back-button"
-            type="button"
-            onClick={onExit}
-            aria-label="뒤로 가기"
-          >
-            ←
-          </button>
-
-          <AppNav prefix="practice-session" hasBackButton />
-        </header>
+        <div className="practice-session-header-spacer" aria-hidden="true" />
 
         <main className="practice-session-main">
           <div className="practice-progress-area">
@@ -288,20 +315,34 @@ export function WordPracticeSessionPage({
               <span className="practice-panel-label">
                 정답 동작
                 <span className="practice-panel-tag">
-                  {currentWordGroupLabel
+                  {categoryId === "sentence"
+                    ? "문장"
+                    : currentWordGroupLabel
                     ? `단어 · ${currentWordGroupLabel}`
                     : "단어"}
                 </span>
               </span>
               <div className="practice-answer-content">
                 <div className="practice-answer-guide word-answer-guide">
-                  <div className="word-guide-video">
-                    <WordSignVideo
-                      src={currentWord.video}
-                      label={`${currentWord.name} 수어 동작 영상`}
-                      autoPlay
-                    />
-                  </div>
+                  {currentWord.video ? (
+                    <div
+                      className={`word-guide-video${
+                        categoryId === "sentence"
+                          ? " word-guide-video-sentence"
+                          : ""
+                      }`}
+                    >
+                      <WordSignVideo
+                        src={currentWord.video}
+                        label={`${currentWord.name} 수어 동작 영상`}
+                        autoPlay
+                      />
+                    </div>
+                  ) : (
+                    <div className="word-guide-placeholder">
+                      <p>수어 영상을 준비하고 있어요.</p>
+                    </div>
+                  )}
                   <div className="practice-item-navigation">
                     <strong>{currentWord.name}</strong>
                   </div>
@@ -418,7 +459,7 @@ export function WordPracticeSessionPage({
                 </h2>
 
                 <PracticeCompletionActions
-                  categoryId={isFullWordPractice ? "word" : undefined}
+                  categoryId={categoryId}
                   symbols={testSymbols ?? words.map((word) => word.name)}
                   onRetry={retry}
                 />

@@ -1,5 +1,6 @@
 import { fingerspellingItems } from "./fingerspelling";
 import { wordSigns } from "./wordSigns";
+import { sentenceSigns } from "./sentenceSigns";
 
 /**
  * 연습 분류의 학습 순서. 연습 선택 페이지의 카드 순서이자, 완료 안내창의
@@ -10,6 +11,7 @@ export const practiceFlowOrder = [
   "vowel",
   "number",
   "word",
+  "sentence",
 ] as const;
 
 export type PracticeFlowCategoryId = (typeof practiceFlowOrder)[number];
@@ -20,6 +22,7 @@ export const practiceFlowLabels: Record<PracticeFlowCategoryId, string> = {
   vowel: "모음",
   number: "숫자",
   word: "단어",
+  sentence: "문장",
 };
 
 /** 한 분류에 속한 글자(단어는 이름) 전체. 테스트로 넘길 범위를 만들 때 쓴다. */
@@ -28,6 +31,10 @@ export function getPracticeCategorySymbols(
 ): string[] {
   if (categoryId === "word") {
     return wordSigns.map((word) => word.name);
+  }
+
+  if (categoryId === "sentence") {
+    return sentenceSigns.map((sentence) => sentence.name);
   }
 
   return fingerspellingItems[categoryId].map((item) => item.symbol);

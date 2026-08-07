@@ -9,6 +9,7 @@ import { wrongResults } from "../data/testSession";
 import { addReviewNote, removeReviewNotes } from "../data/reviewNotes";
 import type { FingerspellingEntry } from "../data/fingerspelling";
 import { findWordSignEntry } from "../data/wordSigns";
+import { findSentenceSign } from "../data/sentenceSigns";
 
 interface TestResultViewProps {
   readonly results: readonly TestQuestionResult[];
@@ -27,7 +28,7 @@ const TOAST_DURATION_MS = 2200;
 const isFingerspellingQuestion = (
   question: TestQuestionResult["question"],
 ): question is TestQuestionResult["question"] & FingerspellingEntry =>
-  question.categoryId !== "word";
+  question.categoryId !== "word" && question.categoryId !== "sentence";
 
 /** 테스트가 끝난 뒤 문항별 정오답과 지문자 상세를 보여주는 결과 화면. */
 export function TestResultView({ results, onRetry }: TestResultViewProps) {
@@ -109,9 +110,17 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
    * 이 화면은 카드가 좁아 설명 상자도 좁다. 기본 줄 나눔이 넘치는 단어는
    * narrowDescription에 더 잘게 나눠 둔 값을 쓴다.
    */
-  const wordEntry = findWordSignEntry(selectedResult.question.symbol);
+  const wordEntry =
+    findWordSignEntry(selectedResult.question.symbol) ??
+    findSentenceSign(selectedResult.question.symbol);
   const selectedWordEntry: WordSignDetailEntry = wordEntry
-    ? { ...wordEntry, description: wordEntry.narrowDescription ?? wordEntry.description }
+    ? {
+        ...wordEntry,
+        description:
+          "narrowDescription" in wordEntry && wordEntry.narrowDescription
+            ? wordEntry.narrowDescription
+            : wordEntry.description,
+      }
     : {
         name: selectedResult.question.symbol,
         video: selectedResult.question.video ?? "",
@@ -179,7 +188,8 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
 
                     <span
                       className={`test-result-symbol ${
-                        result.question.categoryId === "word"
+                        result.question.categoryId === "word" ||
+                        result.question.categoryId === "sentence"
                           ? "test-result-symbol-word"
                           : ""
                       }`}
@@ -187,7 +197,8 @@ export function TestResultView({ results, onRetry }: TestResultViewProps) {
                       {result.question.symbol}
                     </span>
 
-                    {result.question.categoryId !== "word" && (
+                    {result.question.categoryId !== "word" &&
+                      result.question.categoryId !== "sentence" && (
                       <span className="test-result-name">
                         {result.question.name}
                       </span>

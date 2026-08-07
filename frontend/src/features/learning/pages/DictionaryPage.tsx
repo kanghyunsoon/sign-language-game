@@ -18,6 +18,7 @@ import {
 } from "../data/learningEntries";
 import type { WordSignGroupId } from "../data/wordSigns";
 import { wordSignEntries, wordSignEntriesByGroup } from "../data/wordSigns";
+import { sentenceSignEntries } from "../data/sentenceSigns";
 
 /** 분류별 펼침 상태. 사전 진입 시 자음만 펼쳐 둔다. */
 const initialOpenCategoryMap: Record<LearningCategoryId, boolean> = {
@@ -25,6 +26,7 @@ const initialOpenCategoryMap: Record<LearningCategoryId, boolean> = {
   vowel: false,
   number: false,
   word: false,
+  sentence: false,
 };
 
 /** 단어 소분류 펼침 상태. 진입 시에는 모두 접어 둔다. */
@@ -44,6 +46,7 @@ export function DictionaryPage() {
   const [isFingerspellingOpen, setIsFingerspellingOpen] = useState(true);
   const [isNumberOpen, setIsNumberOpen] = useState(false);
   const [isWordOpen, setIsWordOpen] = useState(false);
+  const [isSentenceOpen, setIsSentenceOpen] = useState(false);
   const [openCategoryMap, setOpenCategoryMap] = useState(
     initialOpenCategoryMap,
   );
@@ -112,6 +115,8 @@ export function DictionaryPage() {
       if (groupId) {
         setOpenWordGroupMap((previous) => ({ ...previous, [groupId]: true }));
       }
+    } else if (categoryId === "sentence") {
+      setIsSentenceOpen(true);
     } else {
       setIsFingerspellingOpen(true);
       setOpenCategoryMap((previous) => ({ ...previous, [categoryId]: true }));
@@ -211,7 +216,8 @@ export function DictionaryPage() {
                             }
                           >
                             {/* 단어는 큰 글자와 이름이 같은 값이라 이름만 크게 보여준다. */}
-                            {entry.categoryId !== "word" && (
+                            {entry.categoryId !== "word" &&
+                              entry.categoryId !== "sentence" && (
                               <span className="dictionary-result-symbol">
                                 {entry.symbol}
                               </span>
@@ -219,7 +225,8 @@ export function DictionaryPage() {
 
                             <span
                               className={`dictionary-result-name ${
-                                entry.categoryId === "word"
+                                entry.categoryId === "word" ||
+                                entry.categoryId === "sentence"
                                   ? "dictionary-result-name-word"
                                   : ""
                               }`}
@@ -477,11 +484,60 @@ export function DictionaryPage() {
                     })}
                   </div>
                 )}
+
+                <button
+                  className="dictionary-tree-root"
+                  type="button"
+                  aria-expanded={isSentenceOpen}
+                  aria-controls="dictionary-sentence-branch"
+                  onClick={() => setIsSentenceOpen((previous) => !previous)}
+                >
+                  <span>문장</span>
+                  <span className="dictionary-tree-count">
+                    {sentenceSignEntries.length}
+                  </span>
+                  <ChevronDown
+                    className={`dictionary-tree-chevron ${
+                      isSentenceOpen ? "is-open" : ""
+                    }`}
+                    size={18}
+                    aria-hidden="true"
+                  />
+                </button>
+
+                {isSentenceOpen && (
+                  <ul
+                    className="dictionary-chip-grid dictionary-root-chip-grid"
+                    id="dictionary-sentence-branch"
+                  >
+                    {sentenceSignEntries.map((item) => {
+                      const isSelected = item.symbol === selectedEntry.symbol;
+
+                      return (
+                        <li key={item.id}>
+                          <button
+                            className={`dictionary-chip dictionary-chip-word ${
+                              isSelected ? "dictionary-chip-selected" : ""
+                            }`}
+                            type="button"
+                            aria-pressed={isSelected}
+                            onClick={() =>
+                              handleEntrySelect(item.symbol, "sentence")
+                            }
+                          >
+                            {item.name}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
             )}
           </aside>
 
-          {selectedEntry.categoryId === "word" ? (
+          {selectedEntry.categoryId === "word" ||
+          selectedEntry.categoryId === "sentence" ? (
             <WordSignDetail
               className="dictionary-detail"
               entry={selectedEntry}

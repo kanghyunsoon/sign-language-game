@@ -26,6 +26,7 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
   >([]);
   const [presetId, setPresetId] = useState<TestCountPresetId | null>(null);
   const [customCount, setCustomCount] = useState(5);
+  const [categoryStartIndex, setCategoryStartIndex] = useState(0);
 
   const availableCount = maxQuestionCount(selectedCategories);
   const requestedCount = presetId
@@ -115,7 +116,25 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
             <span className="test-setup-section-hint">중복 선택 가능</span>
           </h2>
 
-          <div className="test-category-list">
+          <div className="test-category-carousel">
+            <button
+              className="test-category-carousel-button"
+              type="button"
+              aria-label="이전 분류 보기"
+              disabled={categoryStartIndex === 0}
+              onClick={() =>
+                setCategoryStartIndex((previous) => Math.max(0, previous - 1))
+              }
+            >
+              ‹
+            </button>
+
+            <div className="test-category-viewport">
+            <div
+              className={`test-category-list ${
+                categoryStartIndex > 0 ? "test-category-list-shifted" : ""
+              }`}
+            >
             {testCategories.map((category) => {
               const isAvailable = isTestCategoryAvailable(category.id);
               const isSelected =
@@ -150,7 +169,9 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
                     <span className="test-category-count">
                       {isAvailable
                         ? `${maxQuestionCount([category.id])}${
-                            category.id === "word" ? "개" : "자"
+                            category.id === "word" || category.id === "sentence"
+                              ? "개"
+                              : "자"
                           }`
                         : "준비중"}
                     </span>
@@ -158,7 +179,24 @@ export function TestSetupView({ onStart }: TestSetupViewProps) {
                 </button>
               );
             })}
+            </div>
+            </div>
+
+            <button
+              className="test-category-carousel-button"
+              type="button"
+              aria-label="다음 분류 보기"
+              disabled={categoryStartIndex >= testCategories.length - 4}
+              onClick={() =>
+                setCategoryStartIndex((previous) =>
+                  Math.min(testCategories.length - 4, previous + 1),
+                )
+              }
+            >
+              ›
+            </button>
           </div>
+
         </section>
 
         <section className="test-setup-section">

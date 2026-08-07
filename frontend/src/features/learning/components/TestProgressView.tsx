@@ -15,6 +15,7 @@ import {
 } from "../data/aiRecognition";
 import { PracticeWebSocketSignRecognizer } from "../recognition/PracticeWebSocketSignRecognizer";
 import { WordWebSocketSignRecognizer } from "../recognition/WordWebSocketSignRecognizer";
+import { findSentenceSign } from "../data/sentenceSigns";
 import type {
   TestAnswerState,
   TestQuestion,
@@ -38,6 +39,8 @@ export function TestProgressView({
 }: TestProgressViewProps) {
   const streamRef = useRef<MediaStream | null>(null);
   const targetSymbolRef = useRef("");
+  const targetSequenceRef = useRef<readonly string[]>([]);
+  const sequenceIndexRef = useRef(0);
   const answeredRef = useRef(false);
   const advanceRef = useRef<(state: TestAnswerState) => void>(() => {});
   const isCorrectFeedbackOpenRef = useRef(false);
@@ -68,7 +71,9 @@ export function TestProgressView({
   const [isCorrectFeedbackOpen, setIsCorrectFeedbackOpen] = useState(false);
 
   const currentQuestion = questions[currentIndex];
-  const useWordEndpoint = currentQuestion?.categoryId === "word";
+  const useWordEndpoint =
+    currentQuestion?.categoryId === "word" ||
+    currentQuestion?.categoryId === "sentence";
   const useNumberEndpoint = currentQuestion?.categoryId === "number";
   const recognizer = useMemo(
     () => {
@@ -232,11 +237,45 @@ export function TestProgressView({
       }
 
       if (event.type === "SIGN_CONFIRMED") {
-        if (event.symbol === targetSymbolRef.current) {
+        const sequence = targetSequenceRef.current;
+        const sequenceIndex = sequenceIndexRef.current;
+        const expectedSymbol = sequence[sequenceIndex];
+
+        if (event.symbol === expectedSymbol) {
+          if (sequenceIndex < sequence.length - 1) {
+            sequenceIndexRef.current = sequenceIndex + 1;
+            if (recognizer instanceof WordWebSocketSignRecognizer) {
+              recognizer.resetSequence();
+            }
+            setPrediction(null);
+            setRecognitionMessage(
+              "'비'를 인식했어요. 이어서 '좋다' 동작을 보여주세요.",
+            );
+            return;
+          }
+
           showCorrectFeedback();
+        } else if (
+          sequence.length > 1 &&
+          sequenceIndex > 0 &&
+          event.symbol === sequence[sequenceIndex - 1]
+        ) {
+          if (recognizer instanceof WordWebSocketSignRecognizer) {
+            recognizer.resetSequence();
+          }
+          setRecognitionMessage("이어서 '좋다' 동작을 보여주세요.");
         } else {
+          sequenceIndexRef.current = 0;
+          if (
+            sequence.length > 1 &&
+            recognizer instanceof WordWebSocketSignRecognizer
+          ) {
+            recognizer.resetSequence();
+          }
           setRecognitionMessage(
-            `${event.symbol}(으)로 인식했어요. 손을 내린 뒤 다시 시도해주세요.`,
+            sequence.length > 1
+              ? `${event.symbol}(으)로 인식했어요. 처음부터 다시 시도해주세요.`
+              : `${event.symbol}(으)로 인식했어요. 손을 내린 뒤 다시 시도해주세요.`,
           );
         }
 
@@ -245,6 +284,10 @@ export function TestProgressView({
 
       if (event.type === "HAND_RELEASED") {
         setPrediction(null);
+        const nextSymbol = targetSequenceRef.current[sequenceIndexRef.current];
+        if (nextSymbol === "good") {
+          setRecognitionMessage("'좋다' 동작을 보여주세요.");
+        }
 
         return;
       }
@@ -274,6 +317,13 @@ export function TestProgressView({
     answeredRef.current = false;
     targetSymbolRef.current =
       currentQuestion?.recognitionSymbol ?? currentQuestion?.symbol ?? "";
+    const sentence =
+      currentQuestion?.categoryId === "sentence"
+        ? findSentenceSign(targetSymbolRef.current)
+        : undefined;
+    targetSequenceRef.current =
+      sentence?.recognitionSequence ?? [targetSymbolRef.current];
+    sequenceIndexRef.current = 0;
     setPrediction(null);
     setRemainingMs(TIME_LIMIT_MS);
 
@@ -328,14 +378,16 @@ export function TestProgressView({
                 {currentQuestion.categoryLabel}
               </span>
 
-              {currentQuestion.categoryId !== "word" && (
+              {currentQuestion.categoryId !== "word" &&
+                currentQuestion.categoryId !== "sentence" && (
                 <span className="test-question-tag">{currentQuestion.name}</span>
               )}
             </div>
 
             <span
               className={`test-question-symbol ${
-                currentQuestion.categoryId === "word"
+                currentQuestion.categoryId === "word" ||
+                currentQuestion.categoryId === "sentence"
                   ? "test-question-symbol-word"
                   : ""
               }`}

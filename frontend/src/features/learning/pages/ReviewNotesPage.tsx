@@ -22,6 +22,7 @@ const noteFilters: readonly { id: NoteFilterId; label: string }[] = [
     label: category.label,
   })),
   { id: "word", label: "단어" },
+  { id: "sentence", label: "문장" },
 ];
 
 /** 알림이 화면에 머무는 시간(ms). 테스트 결과 화면과 동일하게 맞춘다. */
@@ -94,7 +95,11 @@ export function ReviewNotesPage() {
   );
   const canPracticeSelection =
     checkedEntries.every((entry) => entry.categoryId === "word") ||
-    checkedEntries.every((entry) => entry.categoryId !== "word");
+    checkedEntries.every((entry) => entry.categoryId === "sentence") ||
+    checkedEntries.every(
+      (entry) =>
+        entry.categoryId !== "word" && entry.categoryId !== "sentence",
+    );
 
   const handleFilterChange = (filterId: NoteFilterId) => {
     setActiveFilter(filterId);
@@ -258,12 +263,20 @@ export function ReviewNotesPage() {
                       <li key={entry.symbol}>
                         <button
                           className={`review-notes-card ${
-                            entry.categoryId === "word" ? "review-notes-card-word" : ""
+                            entry.categoryId === "word" ||
+                            entry.categoryId === "sentence"
+                              ? "review-notes-card-word"
+                              : ""
+                          } ${
+                            entry.categoryId === "sentence"
+                              ? "review-notes-card-sentence"
+                              : ""
                           } ${isHighlighted ? "review-notes-card-active" : ""}`}
                           type="button"
                           aria-pressed={isHighlighted}
                           aria-label={
-                            entry.categoryId === "word"
+                            entry.categoryId === "word" ||
+                            entry.categoryId === "sentence"
                               ? entry.symbol
                               : `${entry.symbol} ${entry.name}`
                           }
@@ -273,7 +286,8 @@ export function ReviewNotesPage() {
                             {noteTagLabel(entry)}
                           </span>
                           <span className="review-notes-card-symbol">{entry.symbol}</span>
-                          {entry.categoryId !== "word" && (
+                          {entry.categoryId !== "word" &&
+                            entry.categoryId !== "sentence" && (
                             <span className="review-notes-card-name">{entry.name}</span>
                           )}
                         </button>
@@ -322,7 +336,8 @@ export function ReviewNotesPage() {
               )}
             </section>
 
-            {selectedEntry?.categoryId === "word" ? (
+            {selectedEntry?.categoryId === "word" ||
+            selectedEntry?.categoryId === "sentence" ? (
               <WordSignDetail
                 className="review-notes-detail"
                 entry={selectedEntry}

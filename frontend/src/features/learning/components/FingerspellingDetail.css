@@ -145,6 +145,21 @@
   object-fit: contain;
 }
 
+.word-sign-detail-video.word-sign-detail-video-sentence
+  .word-sign-video-player
+  video {
+  object-fit: cover;
+}
+
+.word-sign-detail-video-empty {
+  margin: 0;
+  padding: 24px;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
 /* 연습 화면 정답 이미지와 동일한 원형 컨테이너. 크기는 페이지가 변수로 정한다. */
 .fingerspelling-detail-image {
   grid-row: 4;

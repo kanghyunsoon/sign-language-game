@@ -11,6 +11,7 @@ export interface WordSignDetailEntry {
   readonly name: string;
   readonly video: string;
   readonly description: readonly string[];
+  readonly categoryLabel?: string;
   /** 소분류 표시 이름. 없으면 배지에 "단어"만 보여준다. */
   readonly groupLabel?: string;
 }
@@ -39,11 +40,27 @@ export function WordSignDetail({
       <DetailStepper onPrevious={onPrevious} onNext={onNext} unitLabel={unitLabel} />
 
       <span className="fingerspelling-detail-badge">
-        {entry.groupLabel ? `단어 · ${entry.groupLabel}` : "단어"}
+        {entry.categoryLabel === "문장"
+          ? "문장"
+          : entry.groupLabel
+            ? `단어 · ${entry.groupLabel}`
+            : "단어"}
       </span>
       <h2 className="fingerspelling-detail-symbol">{entry.name}</h2>
-      <div className="fingerspelling-detail-image word-sign-detail-video">
-        <WordSignVideo src={entry.video} label={`${entry.name} 수어 동작 영상`} />
+      <div
+        className={`fingerspelling-detail-image word-sign-detail-video${
+          entry.categoryLabel === "문장"
+            ? " word-sign-detail-video-sentence"
+            : ""
+        }`}
+      >
+        {entry.video ? (
+          <WordSignVideo src={entry.video} label={`${entry.name} 수어 동작 영상`} />
+        ) : (
+          <p className="word-sign-detail-video-empty">
+            수어 영상을 준비하고 있어요.
+          </p>
+        )}
       </div>
 
       {entry.description.length > 0 && (
