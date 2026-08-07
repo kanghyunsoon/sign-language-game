@@ -84,54 +84,83 @@ def _feedback_for(event: dict[str, object]) -> list[str]:
     return feedback
 
 
+def _empty_landmark_dict() -> dict[str, object]:
+    return {
+        "pose": np.zeros((33, 3), np.float32),
+        "lh": np.zeros((21, 3), np.float32),
+        "rh": np.zeros((21, 3), np.float32),
+        "pose_valid": False,
+        "lh_valid": False,
+        "rh_valid": False,
+    }
+
+
+def _events_to_messages(
+    events: list[dict[str, object]],
+    frame_id: int,
+    predicted_at: int,
+) -> list[dict[str, object]]:
+    responses = []
+    for event in events:
+        stage = event["stage"]
+        top3 = list(event.get("top3", []))
+        top_candidates = [
+            {"symbol": word, "confidence": confidence}
+            for word, confidence in top3
+        ] or None
+        # rolling.py rounds top3 probabilities to 2 decimals but leaves
+        # event["confidence"] (probs.max()) at full precision. The frontend
+        # requires topCandidates[0] to exactly equal the top-level
+        # symbol/confidence, so when top3 exists it is the source of truth
+        # for both (rather than trying to reconcile two roundings).
+        symbol = top3[0][0] if top3 else event["word"]
+        confidence = top3[0][1] if top3 else event["confidence"]
+        verdict = None if stage == "live" else _verdict_for(event)
+        feedback = _feedback_for(event) if stage == "final" else None
+        responses.append(
+            prediction_message(
+                frame_id=frame_id,
+                symbol=symbol,
+                confidence=confidence,
+                predicted_at=predicted_at,
+                stage=stage,
+                is_stable=stage == "final",
+                verdict=verdict,
+                feedback=feedback,
+                top_candidates=top_candidates,
+            ),
+        )
+    return responses
+
+
 class WordV7RecognitionSession:
     def __init__(self, grader) -> None:
         self._grader = grader
+        self._last_frame_id = 0
 
     def process_landmark_frame(
         self,
         request: WordLandmarkFrameRequest,
     ) -> list[dict[str, object]]:
+        self._last_frame_id = request.frame_id
         lm = request_to_landmark_dict(request)
         events = self._grader.push(lm, request.captured_at)
         if not events:
             return [none_prediction(request.frame_id, request.captured_at)]
-
-        responses = []
-        for event in events:
-            stage = event["stage"]
-            top3 = list(event.get("top3", []))
-            top_candidates = [
-                {"symbol": word, "confidence": confidence}
-                for word, confidence in top3
-            ] or None
-            # rolling.py rounds top3 probabilities to 2 decimals but leaves
-            # event["confidence"] (probs.max()) at full precision. The frontend
-            # requires topCandidates[0] to exactly equal the top-level
-            # symbol/confidence, so when top3 exists it is the source of truth
-            # for both (rather than trying to reconcile two roundings).
-            symbol = top3[0][0] if top3 else event["word"]
-            confidence = top3[0][1] if top3 else event["confidence"]
-            verdict = None if stage == "live" else _verdict_for(event)
-            feedback = _feedback_for(event) if stage == "final" else None
-            responses.append(
-                prediction_message(
-                    frame_id=request.frame_id,
-                    symbol=symbol,
-                    confidence=confidence,
-                    predicted_at=request.captured_at,
-                    stage=stage,
-                    is_stable=stage == "final",
-                    verdict=verdict,
-                    feedback=feedback,
-                    top_candidates=top_candidates,
-                ),
-            )
-        return responses
+        return _events_to_messages(events, request.frame_id, request.captured_at)
 
     def process_hand_not_detected(self, captured_at: int) -> list[dict[str, object]]:
-        del captured_at
-        return []
+        # RollingGrader의 온셋/오프셋 판정은 push()가 계속 호출돼야 진행된다.
+        # 손이 안 보이는 동안 LANDMARK_FRAME이 안 오면(양손 미검출 -> 이 메서드만
+        # 호출됨) 직전 동작 구간의 quiet_s 경과를 감지할 기회가 없어, 이미 끝난
+        # 수행이 다음 LANDMARK_FRAME이 올 때까지(=사용자가 손을 다시 보여줄 때)
+        # 확정되지 않고 미뤄진다. 그래서 손 미검출 프레임도 빈 landmark로 계속
+        # push해 grader 내부 시계를 흘려보낸다.
+        events = self._grader.push(_empty_landmark_dict(), captured_at)
+        if not events:
+            return []
+        return _events_to_messages(events, self._last_frame_id, captured_at)
 
     def reset(self) -> None:
         self._grader.reset()
+        self._last_frame_id = 0

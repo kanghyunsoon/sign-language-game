@@ -114,8 +114,13 @@ async def websocket_handler(
                 if not isinstance(raw_message, str):
                     raise ProtocolError("INVALID_MESSAGE", "Binary messages are not supported")
                 request = parse_request(raw_message)
-                if isinstance(request, WordLandmarkFrameRequest):
-                    frame_count += 1
+                if isinstance(request, (WordLandmarkFrameRequest, HandNotDetectedRequest)):
+                    # HAND_NOT_DETECTED도 grader.push()를 거쳐 온셋/오프셋 판정을
+                    # 진행시키고, quiet_s가 지나면 그 자리에서 ONNX 추론
+                    # (predict_window)까지 할 수 있어 LANDMARK_FRAME과 동일하게
+                    # 스레드풀로 뺀다.
+                    if isinstance(request, WordLandmarkFrameRequest):
+                        frame_count += 1
                     async with inference_slots:
                         responses = await asyncio.to_thread(
                             process_parsed_request,
