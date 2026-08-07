@@ -47,11 +47,22 @@ export function WordHandCamera({
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+    // StrictMode 개발 모드에서 이 effect가 mount->cleanup->mount로 두 번 실행된다.
+    // 첫 play()가 아직 pending일 때 cleanup의 pause()가 그 promise를 AbortError로
+    // reject시키는데, cancelled 가드 없이 처리하면 재마운트로 재생이 실제로는
+    // 성공했는데도 첫 시도의 실패만 남아 에러 메시지가 영구히 표시된다.
+    let cancelled = false;
     video.srcObject = sharedStream;
-    void video.play().catch(() => {
-      setErrorMessage("카메라 영상을 재생하지 못했습니다.");
-    });
+    video
+      .play()
+      .then(() => {
+        if (!cancelled) setErrorMessage("");
+      })
+      .catch(() => {
+        if (!cancelled) setErrorMessage("카메라 영상을 재생하지 못했습니다.");
+      });
     return () => {
+      cancelled = true;
       video.pause();
       video.srcObject = null;
     };
