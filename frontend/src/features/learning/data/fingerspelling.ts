@@ -263,6 +263,7 @@ export const fingerspellingItems: Record<
       description: [
         "주먹을 쥔 상태에서 엄지를 옆으로 곧게 펴주세요.",
         "손가락이 앞을 향하도록 합니다.",
+        "손이 옆을 향하도록 손목을 살짝 돌려주세요.",
       ],
     },
     {
@@ -273,6 +274,7 @@ export const fingerspellingItems: Record<
       description: [
         "주먹을 쥔 상태에서 엄지와 검지를 옆으로 펴주세요.",
         "손가락이 앞을 향하도록 합니다.",
+        "손이 옆을 향하도록 손목을 살짝 돌려주세요.",
       ],
     },
     {
@@ -358,6 +360,7 @@ export const fingerspellingItems: Record<
       description: [
         "검지와 새끼손가락을 펴고, 나머지 손가락은 접어주세요.",
         "손가락이 앞을 향하도록 합니다.",
+        "손이 옆을 향하도록 손목을 살짝 돌려주세요.",
       ],
     },
     {
@@ -368,6 +371,7 @@ export const fingerspellingItems: Record<
       description: [
         "엄지와 약지를 접고, 나머지 손가락은 펴주세요.",
         "손가락이 앞을 향하도록 합니다.",
+        "손이 옆을 향하도록 손목을 살짝 돌려주세요.",
       ],
     },
     {
