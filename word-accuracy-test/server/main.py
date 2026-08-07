@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 from functools import partial
+import hashlib
 from http import HTTPStatus
 import json
 import os
@@ -16,7 +17,13 @@ import sys
 SERVER_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(SERVER_DIR)
 INFERENCE_DIR = os.path.join(ROOT_DIR, "inference")
-MODEL_DIR = os.path.join(ROOT_DIR, "models", "ksl-word-v7")
+# 배포판은 HANDPRACTICE_WORD_MODEL_DIR로 /opt/sudal/ai/models/ksl-word-v7를
+# (docker-compose의 기존 word-ai 볼륨 마운트 관례 그대로) 가리키게 한다.
+# 값이 없으면 이미지에 구워 넣은 모델을 그대로 쓴다(로컬 실행용).
+MODEL_DIR = os.getenv(
+    "HANDPRACTICE_WORD_MODEL_DIR",
+    os.path.join(ROOT_DIR, "models", "ksl-word-v7"),
+)
 if INFERENCE_DIR not in sys.path:
     sys.path.insert(0, INFERENCE_DIR)
 
@@ -43,15 +50,16 @@ from .messages import (  # noqa: E402
 )
 from .recognition_session import WordV7RecognitionSession  # noqa: E402
 
-HOST = os.getenv("HANDPRACTICE_WORDV7_HOST", "localhost")
-PORT = int(os.getenv("HANDPRACTICE_WORDV7_PORT", "8768"))
-PATH = os.getenv("HANDPRACTICE_WORDV7_PATH", "/word-v7")
-MODEL_VERSION = os.getenv("HANDPRACTICE_WORDV7_MODEL_VERSION", "ksl-word-v7")
-RECOMMENDED_FPS = int(os.getenv("HANDPRACTICE_WORDV7_RECOMMENDED_FPS", "18"))
+HOST = os.getenv("HANDPRACTICE_WORD_HOST", "localhost")
+PORT = int(os.getenv("HANDPRACTICE_WORD_PORT", "8767"))
+PATH = os.getenv("HANDPRACTICE_WORD_PATH", "/word")
+MODEL_VERSION = os.getenv("HANDPRACTICE_WORD_MODEL_VERSION", "ksl-word-v7")
+RECOMMENDED_FPS = int(os.getenv("HANDPRACTICE_WORD_RECOMMENDED_FPS", "18"))
 CONFIDENCE_THRESHOLD = float(
-    os.getenv("HANDPRACTICE_WORDV7_CONFIDENCE_THRESHOLD", "0.6"),
+    os.getenv("HANDPRACTICE_WORD_CONFIDENCE_THRESHOLD", "0.6"),
 )
-MINIMUM_FRAMES = int(os.getenv("HANDPRACTICE_WORDV7_MINIMUM_FRAMES", "16"))
+MINIMUM_FRAMES = int(os.getenv("HANDPRACTICE_WORD_MINIMUM_FRAMES", "16"))
+MODEL_SHA256 = os.getenv("HANDPRACTICE_WORD_MODEL_SHA256", "").strip().lower()
 
 
 def normalise_path(raw_path: str) -> str:
@@ -151,6 +159,7 @@ async def websocket_handler(
 async def run_server(host: str | None = None, port: int | None = None) -> None:
     model_path = os.path.join(MODEL_DIR, "model.int8.onnx")
     labels_path = os.path.join(MODEL_DIR, "labels.json")
+    _verify_model_checksum(model_path)
 
     def grader_factory() -> RollingGrader:
         return RollingGrader(model_path, labels_path)
@@ -172,6 +181,22 @@ async def run_server(host: str | None = None, port: int | None = None) -> None:
     async with serve(handler, selected_host, selected_port, process_request=check_path):
         print(f"ksl-word-v7 WebSocket server listening on ws://{selected_host}:{selected_port}{PATH}")
         await asyncio.get_running_loop().create_future()
+
+
+def _verify_model_checksum(model_path: str) -> None:
+    """HANDPRACTICE_WORD_MODEL_SHA256이 비어 있으면 검사를 건너뛴다(로컬 실행용).
+    word-model/wordmodel/adapter.py의 체크포인트 체크섬 검증과 같은 패턴이다."""
+    if not MODEL_SHA256:
+        return
+    digest = hashlib.sha256()
+    with open(model_path, "rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    actual = digest.hexdigest()
+    if actual != MODEL_SHA256:
+        raise ValueError(
+            "Word v7 model SHA256 does not match HANDPRACTICE_WORD_MODEL_SHA256",
+        )
 
 
 def main() -> None:

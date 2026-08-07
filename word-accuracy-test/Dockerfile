@@ -21,13 +21,13 @@ RUN groupadd --gid 10004 word-v7-ai \
 
 USER word-v7-ai:word-v7-ai
 
-ENV HANDPRACTICE_WORDV7_HOST=0.0.0.0 \
-    HANDPRACTICE_WORDV7_PORT=8768 \
-    HANDPRACTICE_WORDV7_PATH=/word-v7
+ENV HANDPRACTICE_WORD_HOST=0.0.0.0 \
+    HANDPRACTICE_WORD_PORT=8767 \
+    HANDPRACTICE_WORD_PATH=/word
 
-EXPOSE 8768
+EXPOSE 8767
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=5 \
-    CMD ["python", "-c", "from websockets.sync.client import connect; ws=connect('ws://127.0.0.1:8768/word-v7', open_timeout=3); ws.close()"]
+    CMD ["python", "-c", "from websockets.sync.client import connect; ws=connect('ws://127.0.0.1:8767/word', open_timeout=3); ws.close()"]
 
 CMD ["python", "-m", "server.main"]
