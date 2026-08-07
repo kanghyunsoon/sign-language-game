@@ -23,3 +23,34 @@ describe("PREDICTION topCandidates contract", () => {
     expect(() => parseServerMessage(prediction({ topCandidates }))).toThrow();
   });
 });
+
+describe("PREDICTION stage/verdict/feedback (word model v7)", () => {
+  it("parses stage, verdict and feedback when present", () => {
+    expect(parseServerMessage(prediction({
+      symbol: "wrong", stage: "final", verdict: "wrong-form",
+      feedback: ["역방향으로 수행했어요"],
+      topCandidates: [{ symbol: "wrong", confidence: .8 }, { symbol: "ㄴ", confidence: .6 }],
+    }))).toMatchObject({
+      symbol: "wrong", stage: "final", verdict: "wrong-form",
+      feedback: ["역방향으로 수행했어요"],
+    });
+  });
+
+  it("omits stage/verdict/feedback for legacy messages without them", () => {
+    const message = parseServerMessage(JSON.stringify({
+      type: "PREDICTION", frameId: 3, symbol: "moon", confidence: .9, isStable: true, predictedAt: 102,
+    }));
+    expect(message).toMatchObject({ symbol: "moon" });
+    expect((message as { stage?: unknown }).stage).toBeUndefined();
+    expect((message as { verdict?: unknown }).verdict).toBeUndefined();
+    expect((message as { feedback?: unknown }).feedback).toBeUndefined();
+  });
+
+  it.each([
+    ["stage", { stage: "in-progress" }],
+    ["verdict", { verdict: "unknown" }],
+    ["feedback", { feedback: [""] }],
+  ])("rejects an invalid %s", (_name, patch) => {
+    expect(() => parseServerMessage(prediction(patch))).toThrow();
+  });
+});

@@ -30,7 +30,8 @@ function parsePrediction(value: Record<string, unknown>): Extract<ServerMessage,
   const frameId = requiredNonNegativeInteger(value, "frameId"), symbol = requiredString(value, "symbol");
   const confidence = requiredProbability(value, "confidence"), isStable = requiredBoolean(value, "isStable");
   const predictedAt = requiredNonNegativeInteger(value, "predictedAt"), rawCandidates = value.topCandidates;
-  if (rawCandidates === undefined) return { type: "PREDICTION", frameId, symbol, confidence, isStable, predictedAt };
+  const stage = optionalStage(value), verdict = optionalVerdict(value), feedback = optionalStrings(value, "feedback");
+  if (rawCandidates === undefined) return { type: "PREDICTION", frameId, symbol, confidence, isStable, predictedAt, stage, verdict, feedback };
   if (!Array.isArray(rawCandidates) || rawCandidates.length === 0) throw new ServerMessageError("topCandidates must be a non-empty array");
   const topCandidates = rawCandidates.map((candidate, index) => {
     if (!isRecord(candidate)) throw new ServerMessageError(`topCandidates[${index}] must be an object`);
@@ -39,7 +40,7 @@ function parsePrediction(value: Record<string, unknown>): Extract<ServerMessage,
   if (new Set(topCandidates.map((candidate) => candidate.symbol)).size !== topCandidates.length) throw new ServerMessageError("topCandidates symbols must be unique");
   if (topCandidates.some((candidate, index) => index > 0 && candidate.confidence > topCandidates[index - 1]!.confidence)) throw new ServerMessageError("topCandidates must be sorted by confidence descending");
   if (topCandidates[0]!.symbol !== symbol || topCandidates[0]!.confidence !== confidence) throw new ServerMessageError("PREDICTION top-1 must match topCandidates[0]");
-  return { type: "PREDICTION", frameId, symbol, confidence, isStable, predictedAt, topCandidates };
+  return { type: "PREDICTION", frameId, symbol, confidence, isStable, predictedAt, topCandidates, stage, verdict, feedback };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null; }
@@ -52,3 +53,10 @@ function requiredBoolean(value: Record<string, unknown>, field: string): boolean
 function optionalStrings(value: Record<string, unknown>, field: string): readonly string[] | undefined { return value[field] === undefined ? undefined : requiredStrings(value, field); }
 function optionalNumberRecord(value: Record<string, unknown>, field: string): Readonly<Record<string, number>> | undefined { const item = value[field]; if (item === undefined) return undefined; if (!isRecord(item) || Object.values(item).some((entry) => typeof entry !== "number" || !Number.isFinite(entry) || entry < 0 || entry > 1)) throw new ServerMessageError(`${field} must map symbols to thresholds between 0 and 1`); return item as Record<string, number>; }
 function optionalConfirmationAuthority(value: Record<string, unknown>): "FRONTEND_TEMPORAL_DECODER" | undefined { const item = value.confirmationAuthority; if (item === undefined) return undefined; if (item !== "FRONTEND_TEMPORAL_DECODER") throw new ServerMessageError("Unsupported confirmation authority"); return item; }
+function optionalStage(value: Record<string, unknown>): "live" | "final" | undefined { const item = value.stage; if (item === undefined) return undefined; if (item !== "live" && item !== "final") throw new ServerMessageError("stage must be live or final"); return item; }
+function optionalVerdict(value: Record<string, unknown>): "correct" | "wrong-form" | "out-of-range" | "detail" | undefined {
+  const item = value.verdict;
+  if (item === undefined) return undefined;
+  if (item !== "correct" && item !== "wrong-form" && item !== "out-of-range" && item !== "detail") throw new ServerMessageError("Unsupported verdict");
+  return item;
+}
