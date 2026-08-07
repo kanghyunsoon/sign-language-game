@@ -50,7 +50,7 @@ export class WordWebSocketSignRecognizer {
   private connectPromise: Promise<void> | null = null;
   private rejectPendingConnect: ((reason?: unknown) => void) | null = null;
   private connectionState: RecognitionConnectionState = "DISCONNECTED";
-  private modelVersion = "word-13-v1";
+  private modelVersion = "ksl-word-v7";
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectEnabled = true;
   private reconnectAttempt = 0;
