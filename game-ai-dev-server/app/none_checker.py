@@ -24,12 +24,10 @@ from .project_paths import REPOSITORY_ROOT
 # held-out people, not chosen by hand.
 #
 # The checker is a veto, never a promoter, and it is scoped twice:
-#   * It only runs when the ensemble's argmax is one of the letters the checker
-#     was trained on (covered_symbols). For any other letter the checker has
-#     never seen the correct pose, so its opinion would be noise.
-#   * It only suppresses when P(none) clears a calibrated threshold. At the
-#     shipped threshold the measured false-veto rate on correct letter frames of
-#     the two held-out people is <= 2%.
+#   * It only runs when the ensemble's argmax is one of the letters in
+#     _ID_TO_SYMBOL below. For any other letter the checker has never seen the
+#     correct pose, so its opinion would be noise.
+#   * It only suppresses when P(none) clears a calibrated threshold.
 #
 # Suppression is identical to the decision-margin gate: the label survives so
 # top-candidate feedback still shows what the pose leaned towards, but the
@@ -53,18 +51,25 @@ _SCALE_INDICES = (5, 9, 13, 17)
 _LANDMARK_COUNT = 21
 
 # labels.json id -> the symbol the jamo server emits. This mapping is also the
-# veto scope. ㅕ (vowel_yeo) is deliberately absent: at the calibrated threshold
-# its false-veto rate on correct frames of the held-out people was 10.6%, ten
-# times the budget, and it is already the weakest frontal vowel — suppressing a
-# tenth of its correct frames would hurt more than the veto helps. Re-add it
-# when more people are collected and the rate drops under 2%.
+# veto scope, and it is deliberately narrower than what the checker was trained
+# on (8 classes):
+#
+#   * ㅕ (vowel_yeo) was excluded at calibration time — false-veto 10.6% on the
+#     held-out people, five times the 2% budget.
+#   * ㅓ ㅔ ㅖ ㅡ were excluded after live feedback. Frontal vowels occlude their
+#     own fingertips, so real-time frames are far noisier than the calibration
+#     captures (steady, held poses): P(none) crossed the threshold frame by
+#     frame and the on-screen confidence flapped between 5% and normal. The
+#     calibration false-veto rates (0-1.6%) were real but measured on the wrong
+#     distribution for these letters.
+#
+# ㅂ and ㅎ keep the veto: their poses are stable on camera (measured false-veto
+# 0% / 1.7%), and they are the letters the confidently-wrong-accept bug was
+# reported against. Re-admit a vowel only after measuring its live false-veto
+# rate, not the held-capture rate.
 _ID_TO_SYMBOL = {
     "consonant_bieup": "ㅂ",
     "consonant_hieut": "ㅎ",
-    "vowel_eo": "ㅓ",
-    "vowel_e": "ㅔ",
-    "vowel_ye": "ㅖ",
-    "vowel_eu": "ㅡ",
 }
 
 VETO_FEEDBACK = "손 모양이 지문자와 조금 달라요. 자세를 다시 만들어 주세요."
