@@ -86,6 +86,24 @@ class NoneCheckerWiringTests(unittest.TestCase):
         self.assertAlmostEqual(event["confidence"], 0.99, places=5)
         self.assertNotIn("handshapeHint", event)
 
+    def test_vetoed_message_keeps_the_frontend_wire_invariants(self) -> None:
+        """The browser parser rejects unsorted topCandidates or a top-1 mismatch.
+
+        The first shipped veto overwrote only the top entry, so candidate #2
+        outranked #1 and every vetoed frame surfaced as a client-side parse
+        error. This pins the two invariants the parser enforces.
+        """
+        event = self._event(
+            StubChecker(frozenset({"ㅂ"})), ("ㅂ", "ㄴ", "ㄷ"), [0.6, 0.3, 0.1],
+        )
+        candidates = event["topCandidates"]
+        confidences = [item["confidence"] for item in candidates]
+        self.assertEqual(confidences, sorted(confidences, reverse=True))
+        self.assertEqual(candidates[0]["symbol"], event["symbol"])
+        self.assertEqual(candidates[0]["confidence"], event["confidence"])
+        for item in candidates:
+            self.assertLessEqual(item["confidence"], event["confidence"])
+
     def test_disabled_checker_changes_nothing(self) -> None:
         event = self._event(None, ("ㅂ", "ㄴ"), [0.99, 0.01])
         self.assertAlmostEqual(event["confidence"], 0.99, places=5)
