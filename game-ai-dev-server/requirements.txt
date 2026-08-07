@@ -3,3 +3,4 @@ tensorflow>=2.4,<2.20
 joblib==1.5.2
 scikit-learn==1.9.0
 websockets==15.0.1
+onnxruntime>=1.17,<2

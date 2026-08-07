@@ -8,6 +8,7 @@ import numpy as np
 
 from . import handshape_gate
 from .diagnostics import PredictionDiagnostics
+from .none_checker import VETO_FEEDBACK, NoneChecker, load_none_checker
 from .feature_adapter import LANDMARK_COUNT, landmarks_to_features
 from .messages import Landmark, prediction_message
 from .model_adapter import SUPPRESSED_CONFIDENCE, ModelContract, ModelRunner
@@ -63,16 +64,26 @@ class RecognitionSession:
     MediaPipe landmarks and buffered in parallel.
     """
 
+    _SHARED_NONE_CHECKER: NoneChecker | None | bool = False  # False = not loaded yet
+
     def __init__(
         self,
         runner: ModelRunner,
         config: RecognitionConfig = RecognitionConfig(),
         smoothing_alpha: float = LANDMARK_SMOOTHING_ALPHA,
         diagnostics: PredictionDiagnostics | None = None,
+        none_checker: NoneChecker | None = None,
     ) -> None:
         self._runner = runner
         self._config = config
         self._diagnostics = diagnostics if diagnostics is not None else PredictionDiagnostics()
+        if none_checker is not None:
+            self._none_checker = none_checker
+        else:
+            # Loaded once per process; every connection shares the session.
+            if RecognitionSession._SHARED_NONE_CHECKER is False:
+                RecognitionSession._SHARED_NONE_CHECKER = load_none_checker()
+            self._none_checker = RecognitionSession._SHARED_NONE_CHECKER
         length = runner.contract.sequence_length
         self._sequence_v2: deque[np.ndarray] = deque(maxlen=length)
         self._sequence_v3: deque[np.ndarray] = deque(maxlen=length)
@@ -176,6 +187,21 @@ class RecognitionSession:
         if verdict.rejected:
             confidence = SUPPRESSED_CONFIDENCE
             handshape_hint = verdict.feedback
+            for candidate in top_candidates:
+                if candidate["symbol"] == symbol:
+                    candidate["confidence"] = SUPPRESSED_CONFIDENCE
+
+        # Learned none-veto (T-161). Runs on the raw landmarks, only for letters
+        # the checker was trained on, and only rejects — see app/none_checker.py.
+        # Replaces the withdrawn geometric gate with performer-labelled data and a
+        # threshold calibrated on held-out people.
+        if (
+            self._none_checker is not None
+            and handshape_hint is None
+            and self._none_checker.vetoes(symbol, landmarks, handedness)
+        ):
+            confidence = SUPPRESSED_CONFIDENCE
+            handshape_hint = VETO_FEEDBACK
             for candidate in top_candidates:
                 if candidate["symbol"] == symbol:
                     candidate["confidence"] = SUPPRESSED_CONFIDENCE
