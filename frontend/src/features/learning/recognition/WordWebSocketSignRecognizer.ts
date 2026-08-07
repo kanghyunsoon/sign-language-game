@@ -275,11 +275,27 @@ export class WordWebSocketSignRecognizer {
           );
           if (message.symbol !== NONE_SYMBOL) {
             this.emit(message);
-            this.decoder.pushPrediction({
-              symbol: message.symbol,
-              confidence: message.confidence,
-              predictedAt: message.predictedAt,
-            });
+            if (message.stage === "final" && message.verdict === "correct") {
+              // 단어 모델 v7 서버는 물리량 가드·수형규칙까지 통과한 수행만
+              // stage:"final"+verdict:"correct"로 확정해서 보낸다. 이 판정은
+              // raw confidence가 낮아도 유효하므로, confidence 임계값 기반
+              // 프레임투표 decoder(레거시 프로토콜 전용)를 거치지 않고 바로
+              // 확정 처리한다 — 안 그러면 낮은 confidence의 정상 수행이
+              // decoder에서 조용히 버려져 "맞췄습니다"가 뜨지 않는다.
+              this.emit({
+                type: "SIGN_CONFIRMED",
+                symbol: message.symbol,
+                confidence: message.confidence,
+                confirmedAt: message.predictedAt,
+                modelVersion: this.modelVersion,
+              });
+            } else if (message.stage === undefined) {
+              this.decoder.pushPrediction({
+                symbol: message.symbol,
+                confidence: message.confidence,
+                predictedAt: message.predictedAt,
+              });
+            }
           }
         }
         this.dispatchPendingFrame();

@@ -74,3 +74,59 @@ describe("WordWebSocketSignRecognizer wire format", () => {
     expect(sent.pose).toBeNull();
   });
 });
+
+describe("WordWebSocketSignRecognizer v7 stage/verdict confirmation", () => {
+  it("confirms immediately on stage:final + verdict:correct, bypassing the frame-vote decoder's confidence gate", () => {
+    const socket = new FakeSocket();
+    const recognizer = new WordWebSocketSignRecognizer({
+      url: "ws://test",
+      createWebSocket: () => socket,
+    });
+    const events: Array<{ type: string }> = [];
+    recognizer.subscribe((event) => events.push(event));
+
+    void recognizer.connect();
+    socket.onopen?.(new Event("open"));
+    recognizer.sendLandmarkFrame(frame({ frameId: 7 }));
+
+    // Low confidence — would never accumulate enough legacy-decoder votes to
+    // confirm on its own, yet the server already validated it via guards.
+    socket.onmessage?.(
+      new MessageEvent("message", {
+        data: JSON.stringify({
+          type: "PREDICTION", frameId: 7, symbol: "ship", confidence: 0.09,
+          isStable: true, predictedAt: 1000, stage: "final", verdict: "correct",
+        }),
+      }),
+    );
+
+    const confirmed = events.find((event) => event.type === "SIGN_CONFIRMED");
+    expect(confirmed).toMatchObject({ symbol: "ship", confidence: 0.09 });
+  });
+
+  it("does not confirm on stage:final + verdict:wrong-form", () => {
+    const socket = new FakeSocket();
+    const recognizer = new WordWebSocketSignRecognizer({
+      url: "ws://test",
+      createWebSocket: () => socket,
+    });
+    const events: Array<{ type: string }> = [];
+    recognizer.subscribe((event) => events.push(event));
+
+    void recognizer.connect();
+    socket.onopen?.(new Event("open"));
+    recognizer.sendLandmarkFrame(frame({ frameId: 8 }));
+
+    socket.onmessage?.(
+      new MessageEvent("message", {
+        data: JSON.stringify({
+          type: "PREDICTION", frameId: 8, symbol: "wrong", confidence: 0.7,
+          isStable: true, predictedAt: 1000, stage: "final", verdict: "wrong-form",
+          feedback: ["역방향으로 수행했어요"],
+        }),
+      }),
+    );
+
+    expect(events.some((event) => event.type === "SIGN_CONFIRMED")).toBe(false);
+  });
+});
