@@ -129,4 +129,45 @@ describe("WordWebSocketSignRecognizer v7 stage/verdict confirmation", () => {
 
     expect(events.some((event) => event.type === "SIGN_CONFIRMED")).toBe(false);
   });
+
+  it("still confirms a late final result that reuses an already-answered frameId", () => {
+    // v7 서버는 손이 화면에서 사라진 뒤(HAND_NOT_DETECTED만 오가는 동안)에도
+    // 온셋/오프셋 판정을 계속 진행해, 이미 응답을 보낸 frameId를 재사용해
+    // 뒤늦게 final 이벤트를 보낼 수 있다. 이 케이스는 sentFrames에 더 이상
+    // 해당 frameId의 메타데이터가 없다.
+    const socket = new FakeSocket();
+    const recognizer = new WordWebSocketSignRecognizer({
+      url: "ws://test",
+      createWebSocket: () => socket,
+    });
+    const events: Array<{ type: string }> = [];
+    recognizer.subscribe((event) => events.push(event));
+
+    void recognizer.connect();
+    socket.onopen?.(new Event("open"));
+    recognizer.sendLandmarkFrame(frame({ frameId: 9 }));
+
+    // First response for frameId 9 consumes its sentFrames metadata.
+    socket.onmessage?.(
+      new MessageEvent("message", {
+        data: JSON.stringify({
+          type: "PREDICTION", frameId: 9, symbol: "none", confidence: 1,
+          isStable: false, predictedAt: 1000, stage: "live",
+        }),
+      }),
+    );
+
+    // A later HAND_NOT_DETECTED-driven finalize reuses frameId 9.
+    socket.onmessage?.(
+      new MessageEvent("message", {
+        data: JSON.stringify({
+          type: "PREDICTION", frameId: 9, symbol: "moon", confidence: 0.09,
+          isStable: true, predictedAt: 1500, stage: "final", verdict: "correct",
+        }),
+      }),
+    );
+
+    const confirmed = events.find((event) => event.type === "SIGN_CONFIRMED");
+    expect(confirmed).toMatchObject({ symbol: "moon", confidence: 0.09 });
+  });
 });
