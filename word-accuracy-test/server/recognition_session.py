@@ -8,6 +8,8 @@ RollingGrader는 자체 타이밍(모션 온셋/오프셋)으로 live/final 이�
 """
 from __future__ import annotations
 
+import math
+
 import numpy as np
 
 from .messages import (
@@ -75,13 +77,50 @@ def _verdict_for(event: dict[str, object]) -> str:
     return "correct"
 
 
+def _guard_message(name: str, value: float, low: float, high: float) -> tuple[str, str]:
+    """가드 항목·값 -> (카테고리, 사용자 노출용 한국어 문구).
+
+    guards.py의 원시 항목명·측정치·허용범위를 그대로 보여주지 않는다 — 그건
+    내부 파라미터이지 사용자에게 의미 있는 피드백이 아니다. 카테고리는
+    같은 종류 실패가 여러 개일 때 중복 문구를 걸러내는 데 쓴다.
+    """
+    base = name.split("(", 1)[0]
+    if base == "duration":
+        if value > high:
+            # round()는 은행가 반올림(4.5 -> 4)이라 안내 문구가 실제 상한보다
+            # 작게 보일 수 있어, 절사 대신 올림 방향으로 반올림한다.
+            rounded_high = math.floor(high + 0.5)
+            return "duration", f"동작이 너무 길었어요 — 약 {rounded_high}초 안에 한 번에 이어서 해보세요"
+        return "duration", "동작을 끊지 말고 한 번에 이어서 해보세요"
+    if base == "amp":
+        return "amp", "동작을 조금 더 크게 해주세요"
+    if base == "speed":
+        return "speed", "조금 더 빠르게 해주세요"
+    if base in ("mean_y", "mean_x"):
+        return "position", "가슴 앞, 화면 중앙에서 동작해 주세요"
+    if base == "art" or base.startswith("curl"):
+        return "finger", "손가락 모양을 정확하게 해주세요"
+    return base, "동작을 다시 한번 정확하게 해주세요"
+
+
 def _feedback_for(event: dict[str, object]) -> list[str]:
-    feedback: list[str] = []
+    rule_messages = [message for message, *_ in event.get("rule_fails", [])]
+    has_rule_feedback = bool(rule_messages)
+
+    guard_messages: list[str] = []
+    seen_categories: set[str] = set()
     for name, value, low, high in event.get("guard_fails", []):
-        feedback.append(f"{name} 값이 정상 범위({low}~{high})를 벗어났어요 (측정 {value})")
-    for message, *_ in event.get("rule_fails", []):
-        feedback.append(message)
-    return feedback
+        category, message = _guard_message(name, value, low, high)
+        # 규칙 레이어(hand_rules.py)가 이미 더 구체적인 손가락 문구를 준다면
+        # 가드의 일반적인 "손가락 모양을 정확하게 해주세요"는 중복이라 뺀다.
+        if category == "finger" and has_rule_feedback:
+            continue
+        if category in seen_categories:
+            continue
+        seen_categories.add(category)
+        guard_messages.append(message)
+
+    return rule_messages + guard_messages
 
 
 def _empty_landmark_dict() -> dict[str, object]:
