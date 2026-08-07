@@ -51,6 +51,32 @@ from .model_adapter import SUPPRESSED_CONFIDENCE, ModelContract, ModelRunner
 LANDMARK_SMOOTHING_ALPHA = float(os.getenv("HANDPRACTICE_AI_LANDMARK_SMOOTHING", "1.0"))
 
 
+def _suppress(
+    confidence: float,
+    top_candidates: list[dict[str, object]],
+) -> tuple[float, list[dict[str, object]]]:
+    """Suppress a prediction without breaking the wire-format invariants.
+
+    The frontend parser rejects a PREDICTION whose topCandidates are not sorted
+    by confidence descending, or whose top-1 does not equal (symbol, confidence).
+    Overwriting only the top entry — what the first veto shipped — made the
+    second candidate outrank the first and every vetoed frame surfaced as
+    "AI 인식 중 오류가 발생했습니다" in the app. Scaling *all* candidates by the
+    same factor keeps the ordering and the top-1 identity, while still dropping
+    everything below every readiness threshold.
+    """
+    if confidence <= 0.0:
+        return SUPPRESSED_CONFIDENCE, top_candidates
+    factor = SUPPRESSED_CONFIDENCE / confidence
+    scaled = [
+        {"symbol": candidate["symbol"], "confidence": float(candidate["confidence"]) * factor}
+        for candidate in top_candidates
+    ]
+    if scaled:
+        scaled[0]["confidence"] = SUPPRESSED_CONFIDENCE  # 부동소수 오차 없이 top-1 일치
+    return SUPPRESSED_CONFIDENCE, scaled
+
+
 @dataclass(frozen=True)
 class RecognitionConfig:
     hand_release_after_ms: int = 160
@@ -185,11 +211,8 @@ class RecognitionSession:
         verdict = handshape_gate.verify(symbol, landmarks, handedness)
         handshape_hint: str | None = None
         if verdict.rejected:
-            confidence = SUPPRESSED_CONFIDENCE
             handshape_hint = verdict.feedback
-            for candidate in top_candidates:
-                if candidate["symbol"] == symbol:
-                    candidate["confidence"] = SUPPRESSED_CONFIDENCE
+            confidence, top_candidates = _suppress(confidence, top_candidates)
 
         # Learned none-veto (T-161). Runs on the raw landmarks, only for letters
         # the checker was trained on, and only rejects — see app/none_checker.py.
@@ -200,11 +223,8 @@ class RecognitionSession:
             and handshape_hint is None
             and self._none_checker.vetoes(symbol, landmarks, handedness)
         ):
-            confidence = SUPPRESSED_CONFIDENCE
             handshape_hint = VETO_FEEDBACK
-            for candidate in top_candidates:
-                if candidate["symbol"] == symbol:
-                    candidate["confidence"] = SUPPRESSED_CONFIDENCE
+            confidence, top_candidates = _suppress(confidence, top_candidates)
 
         # The frontend temporal decoder applies calibrated confidence, stability,
         # duplicate-lock, and neutral-release rules. The server never confirms.
