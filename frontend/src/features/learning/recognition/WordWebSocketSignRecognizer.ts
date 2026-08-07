@@ -340,6 +340,7 @@ export class WordWebSocketSignRecognizer {
       frameWidth: frame.frameWidth,
       frameHeight: frame.frameHeight,
       hands: frame.hands,
+      pose: frame.pose,
     });
   }
 

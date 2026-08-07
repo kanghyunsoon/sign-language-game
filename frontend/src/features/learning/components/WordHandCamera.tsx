@@ -3,7 +3,12 @@ import {
   useRecognitionVisionAdapterFactory,
   type TrackedHand,
 } from "../../../game/recognition/vision";
-import type { WordLandmarkFrame } from "../recognition/wordRecognitionTypes";
+import type { PoseDetection } from "../../../game/recognition/active-player";
+import type {
+  WordLandmarkFrame,
+  WordPoseKeypoints,
+  WordPoseLandmark,
+} from "../recognition/wordRecognitionTypes";
 
 interface WordHandCameraProps {
   readonly sharedStream: MediaStream;
@@ -63,7 +68,7 @@ export function WordHandCamera({
         minimumTrackingConfidence: 0.5,
       },
       maximumTrackedPeople: 1,
-      enablePoseTracking: false,
+      enablePoseTracking: true,
       preferWorker: true,
     });
 
@@ -87,11 +92,10 @@ export function WordHandCamera({
       const frameId = ++frameIdRef.current;
 
       try {
-        const hands = await adapter.detectHands({
-          video,
-          timestamp,
-          frameId,
-        });
+        const [hands, poses] = await Promise.all([
+          adapter.detectHands({ video, timestamp, frameId }),
+          adapter.detectPoses({ video, timestamp, frameId }),
+        ]);
         if (cancelled) return;
         drawHands(canvasRef.current, video, hands);
         const slots = toHandSlots(hands);
@@ -107,6 +111,7 @@ export function WordHandCamera({
           frameWidth: video.videoWidth,
           frameHeight: video.videoHeight,
           hands: slots,
+          pose: toPoseKeypoints(poses),
           activeHandSessionId: `word-camera-${frameIdRef.current > 0 ? "active" : "idle"}`,
         });
       } catch {
@@ -151,6 +156,49 @@ export function WordHandCamera({
       {errorMessage && <p className="word-camera-error">{errorMessage}</p>}
     </div>
   );
+}
+
+// MediaPipe PoseLandmarker(33점) 인덱스 중 서버가 요구하는 9개 상체 포인트.
+const POSE_KEYPOINT_INDEX: Readonly<Record<keyof WordPoseKeypoints, number>> = {
+  nose: 0,
+  leftEar: 7,
+  rightEar: 8,
+  leftShoulder: 11,
+  rightShoulder: 12,
+  leftElbow: 13,
+  rightElbow: 14,
+  leftWrist: 15,
+  rightWrist: 16,
+};
+
+function toPoseKeypoints(
+  poses: readonly PoseDetection[],
+): WordPoseKeypoints | null {
+  const landmarks = poses[0]?.poseLandmarks;
+  if (!landmarks || landmarks.length < 33) return null;
+
+  const point = (index: number): WordPoseLandmark => {
+    const landmark = landmarks[index]!;
+    return {
+      x: landmark.x,
+      y: landmark.y,
+      z: landmark.z,
+      visibility: landmark.visibility,
+      presence: landmark.presence,
+    };
+  };
+
+  return {
+    nose: point(POSE_KEYPOINT_INDEX.nose),
+    leftEar: point(POSE_KEYPOINT_INDEX.leftEar),
+    rightEar: point(POSE_KEYPOINT_INDEX.rightEar),
+    leftShoulder: point(POSE_KEYPOINT_INDEX.leftShoulder),
+    rightShoulder: point(POSE_KEYPOINT_INDEX.rightShoulder),
+    leftElbow: point(POSE_KEYPOINT_INDEX.leftElbow),
+    rightElbow: point(POSE_KEYPOINT_INDEX.rightElbow),
+    leftWrist: point(POSE_KEYPOINT_INDEX.leftWrist),
+    rightWrist: point(POSE_KEYPOINT_INDEX.rightWrist),
+  };
 }
 
 function toHandSlots(hands: readonly TrackedHand[]): WordLandmarkFrame["hands"] {
