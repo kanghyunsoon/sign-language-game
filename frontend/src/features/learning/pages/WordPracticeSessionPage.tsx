@@ -88,6 +88,18 @@ export function WordPracticeSessionPage({
       }
 
       if (event.type === "PREDICTION") {
+        if (event.stage === "live") {
+          setRecognitionMessage(`AI 인식 중: ${event.symbol}`);
+          return;
+        }
+        if (event.verdict && event.verdict !== "correct") {
+          setRecognitionMessage(
+            event.feedback && event.feedback.length > 0
+              ? event.feedback.join(" ")
+              : "동작이 정확하지 않아요. 다시 시도해 주세요.",
+          );
+          return;
+        }
         setRecognitionMessage(`AI 인식 중: ${event.symbol}`);
         return;
       }
