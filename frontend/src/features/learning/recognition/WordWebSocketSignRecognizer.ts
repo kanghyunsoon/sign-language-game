@@ -50,7 +50,7 @@ export class WordWebSocketSignRecognizer {
   private connectPromise: Promise<void> | null = null;
   private rejectPendingConnect: ((reason?: unknown) => void) | null = null;
   private connectionState: RecognitionConnectionState = "DISCONNECTED";
-  private modelVersion = "word-13-v1";
+  private modelVersion = "ksl-word-v7";
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectEnabled = true;
   private reconnectAttempt = 0;
@@ -273,8 +273,29 @@ export class WordWebSocketSignRecognizer {
           this.performanceMonitor.recordAiLatency(
             Math.max(0, Date.now() - metadata.sentAt),
           );
-          if (message.symbol !== NONE_SYMBOL) {
-            this.emit(message);
+        }
+        // v7 서버는 온셋/오프셋 기반으로 동작 구간을 스스로 잘라 확정하므로,
+        // 손이 화면에서 사라진 뒤(HAND_NOT_DETECTED만 보내는 동안) 뒤늦게
+        // "final" 판정이 도착할 수 있다 — 그 frameId는 이미 앞선 LANDMARK_FRAME
+        // 응답으로 sentFrames에서 지워진 뒤라 metadata가 없다. stage가 있는
+        // (=v7) 메시지는 이 프레임 상관관계 확인 없이도 그대로 반영한다.
+        if ((metadata || message.stage !== undefined) && message.symbol !== NONE_SYMBOL) {
+          this.emit(message);
+          if (message.stage === "final" && message.verdict === "correct") {
+            // 단어 모델 v7 서버는 물리량 가드·수형규칙까지 통과한 수행만
+            // stage:"final"+verdict:"correct"로 확정해서 보낸다. 이 판정은
+            // raw confidence가 낮아도 유효하므로, confidence 임계값 기반
+            // 프레임투표 decoder(레거시 프로토콜 전용)를 거치지 않고 바로
+            // 확정 처리한다 — 안 그러면 낮은 confidence의 정상 수행이
+            // decoder에서 조용히 버려져 "맞췄습니다"가 뜨지 않는다.
+            this.emit({
+              type: "SIGN_CONFIRMED",
+              symbol: message.symbol,
+              confidence: message.confidence,
+              confirmedAt: message.predictedAt,
+              modelVersion: this.modelVersion,
+            });
+          } else if (message.stage === undefined) {
             this.decoder.pushPrediction({
               symbol: message.symbol,
               confidence: message.confidence,
@@ -340,6 +361,9 @@ export class WordWebSocketSignRecognizer {
       frameWidth: frame.frameWidth,
       frameHeight: frame.frameHeight,
       hands: frame.hands,
+      // 전송 규격은 pose.landmarks.{name}으로 한 번 더 감싼다(word-ai-protocol.md).
+      // WordPoseKeypoints 자체는 프론트 내부에서 평평하게 쓴다.
+      pose: frame.pose ? { landmarks: frame.pose } : null,
     });
   }
 

@@ -32,6 +32,11 @@ export type SignRecognitionEvent =
       readonly isStable: boolean;
       readonly predictedAt: number;
       readonly topCandidates?: readonly SignPredictionCandidate[];
+      /** "live" = 수행 중 실시간 후보, "final" = 확정. word 모델 v7부터 존재. */
+      readonly stage?: "live" | "final";
+      /** symbol이 "wrong"이거나 물리량/손가락 규칙을 어겼을 때의 판정 사유. */
+      readonly verdict?: "correct" | "wrong-form" | "out-of-range" | "detail";
+      readonly feedback?: readonly string[];
     }
   | {
       readonly type: "CONTEXTUAL_SELECTION";

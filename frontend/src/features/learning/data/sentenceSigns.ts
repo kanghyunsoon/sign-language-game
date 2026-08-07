@@ -24,6 +24,7 @@ export const sentenceSigns: readonly SentenceSignItem[] = [
     id: "nice-to-meet-you",
     name: "반갑습니다",
     groupId: "sentence",
+    recognitionSequence: ["hello"],
     description: [
       "두 손을 약간 구부려 손끝을 양쪽 가슴에 대고 상하로 움직입니다.",
     ],
@@ -33,6 +34,7 @@ export const sentenceSigns: readonly SentenceSignItem[] = [
     id: "thank-you",
     name: "감사합니다",
     groupId: "sentence",
+    recognitionSequence: ["thankyou"],
     description: [
       "한 손을 가슴 앞에 두고, 다른 손으로 손등을 두드려 줍니다.",
     ],
