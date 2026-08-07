@@ -340,7 +340,9 @@ export class WordWebSocketSignRecognizer {
       frameWidth: frame.frameWidth,
       frameHeight: frame.frameHeight,
       hands: frame.hands,
-      pose: frame.pose,
+      // 전송 규격은 pose.landmarks.{name}으로 한 번 더 감싼다(word-ai-protocol.md).
+      // WordPoseKeypoints 자체는 프론트 내부에서 평평하게 쓴다.
+      pose: frame.pose ? { landmarks: frame.pose } : null,
     });
   }
 
