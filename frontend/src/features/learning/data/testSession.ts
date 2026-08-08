@@ -182,8 +182,14 @@ export function shuffle<T>(
 }
 
 /**
- * 선택한 분류의 글자를 섞어 문항을 만든다.
- * 중복 출제를 하지 않으므로 보유 글자 수보다 많이 요청하면 가능한 만큼만 돌려준다.
+ * 선택한 분류에서 균등하게 문항을 뽑는다.
+ *
+ * 전체 풀을 합쳐 섞으면 출제 확률이 보유 글자 수에 비례해서, 자음(14)·모음(17)·
+ * 단어(19)가 문항을 독식하고 문장(3)은 거의 나오지 않는다. 그래서 분류별로 섞은
+ * 뒤 라운드로빈으로 하나씩 뽑는다 — 분류 간 문항 수 차이는 최대 1이고, 보유
+ * 글자가 적은 분류가 먼저 바닥나면 남은 분류가 이어받으므로 총 문항 수는
+ * 요청대로 유지된다. 마지막에 전체를 다시 섞어 출제 순서에 분류 패턴이 남지
+ * 않게 한다. 중복 출제는 없다.
  */
 export function buildTestQuestions(
   settings: TestSettings,
@@ -194,7 +200,35 @@ export function buildTestQuestions(
     settings.questionCount,
   );
 
-  return shuffle(testQuestionPool(settings.categories), random).slice(0, count);
+  const pools = new Map<TestCategoryId, TestQuestion[]>();
+  for (const question of testQuestionPool(settings.categories)) {
+    const pool = pools.get(question.categoryId);
+    if (pool) pool.push(question);
+    else pools.set(question.categoryId, [question]);
+  }
+
+  // 각 분류 안에서 글자를 섞고, 분류 순회 순서도 섞어 특정 분류가 항상
+  // 남는 한 문항을 가져가는 편향을 없앤다.
+  const buckets = shuffle(
+    [...pools.values()].map((pool) => shuffle(pool, random)),
+    random,
+  );
+
+  const picked: TestQuestion[] = [];
+  while (picked.length < count) {
+    let drewAny = false;
+    for (const bucket of buckets) {
+      if (picked.length >= count) break;
+      const question = bucket.pop();
+      if (question) {
+        picked.push(question);
+        drewAny = true;
+      }
+    }
+    if (!drewAny) break;
+  }
+
+  return shuffle(picked, random);
 }
 
 /**

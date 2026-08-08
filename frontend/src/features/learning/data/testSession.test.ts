@@ -14,7 +14,7 @@ import {
   testQuestionPool,
   wrongResults,
 } from "./testSession";
-import type { TestQuestionResult } from "./testSession";
+import type { TestCategoryId, TestQuestionResult } from "./testSession";
 
 /** 항상 0을 돌려주는 난수. Fisher-Yates에서 순서가 결정적으로 바뀐다. */
 const zeroRandom = () => 0;
@@ -124,6 +124,51 @@ describe("buildTestQuestions", () => {
       expect(question.categoryLabel).toBeTruthy();
       // 문장 수는 설명 길이에 따라 다르므로 개수는 고정하지 않는다.
       expect(question.description.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("buildTestQuestions 분류 균형", () => {
+  /** 분류별 출제 수를 센다. */
+  const countByCategory = (
+    categories: readonly TestCategoryId[],
+    questionCount: number,
+    random: () => number,
+  ) => {
+    const counts = new Map<TestCategoryId, number>();
+    for (const question of buildTestQuestions({ categories, questionCount }, random)) {
+      counts.set(question.categoryId, (counts.get(question.categoryId) ?? 0) + 1);
+    }
+    return counts;
+  };
+
+  it("다섯 분류에서 10문항이면 분류당 2문항씩 나온다", () => {
+    // 합쳐 섞으면 보유 글자 수(자음14·모음17·숫자10·단어19·문장3)에 비례해
+    // 문장이 거의 안 나오던 문제의 회귀 방지. 난수와 무관한 성질이므로
+    // 실제 Math.random으로 여러 번 검사한다.
+    const all: readonly TestCategoryId[] = ["consonant", "vowel", "number", "word", "sentence"];
+    for (let run = 0; run < 20; run += 1) {
+      const counts = countByCategory(all, 10, Math.random);
+      for (const category of all) {
+        expect(counts.get(category)).toBe(2);
+      }
+    }
+  });
+
+  it("분류 간 문항 수 차이는 최대 1이다", () => {
+    for (let run = 0; run < 20; run += 1) {
+      const counts = countByCategory(["consonant", "vowel"], 5, Math.random);
+      const values = [...counts.values()].sort((a, b) => a - b);
+      expect(values).toEqual([2, 3]);
+    }
+  });
+
+  it("보유 글자가 바닥난 분류는 남은 분류가 이어받는다", () => {
+    // 문장은 3개뿐: 3개를 다 쓰고 나머지 7개는 자음이 채워 총 10문항 유지.
+    for (let run = 0; run < 20; run += 1) {
+      const counts = countByCategory(["consonant", "sentence"], 10, Math.random);
+      expect(counts.get("sentence")).toBe(3);
+      expect(counts.get("consonant")).toBe(7);
     }
   });
 });
