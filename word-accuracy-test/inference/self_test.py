@@ -45,7 +45,8 @@ WORD_KO = {"airplane": "비행기", "bad": "나쁘다", "bicycle": "자전거", 
 def append_result(row):
     exists = os.path.exists(RESULT_CSV)
     with open(RESULT_CSV, "a", newline="", encoding="utf-8-sig") as f:
-        w = csv.DictWriter(f, fieldnames=["time", "target", "pred", "conf", "verdict", "frames", "top3"])
+        w = csv.DictWriter(f, fieldnames=["time", "target", "pred", "conf", "verdict",
+                                          "frames", "top3", "detail"])
         if not exists:
             w.writeheader()
         w.writerow(row)
@@ -141,17 +142,18 @@ def rolling_main(args):
                 verdict = rolling_judge(target, ev, args.conf)
                 stats[target][0] += 1
                 stats[target][1] += (verdict == "correct")
-                row = {"time": time.strftime("%H:%M:%S"), "target": target,
-                       "pred": ev["word"], "conf": round(ev["confidence"], 3),
-                       "verdict": verdict, "frames": ev["duration_s"], "top3": str(ev["top3"])}
-                append_result(row)
-                session.append(row)
                 gtxt = ", ".join(f"{METRIC_KO.get(n, n)} {v} (허용 {lo}~{hi})"
                                  for n, v, lo, hi in ev["guard_fails"])
                 rtxt = "; ".join(f"{msg} (측정 {v}, 기준 {lo}~{hi})"
                                  for msg, v, lo, hi in ev.get("rule_fails", []))
                 if rtxt:
                     gtxt = (gtxt + " | " if gtxt else "") + rtxt
+                row = {"time": time.strftime("%H:%M:%S"), "target": target,
+                       "pred": ev["word"], "conf": round(ev["confidence"], 3),
+                       "verdict": verdict, "frames": ev["duration_s"],
+                       "top3": str(ev["top3"]), "detail": gtxt}
+                append_result(row)
+                session.append(row)
                 last_result = {"verdict": verdict, "pred": ev["word"],
                                "conf": ev["confidence"], "top3": ev["top3"], "guard": gtxt,
                                "early": bool(ev.get("early"))}
@@ -348,7 +350,7 @@ def main():
                 stats[target][1] += (verdict == "correct")
                 row = {"time": time.strftime("%H:%M:%S"), "target": target, "pred": pred,
                        "conf": round(conf, 3), "verdict": verdict, "frames": len(seg),
-                       "top3": str(top3)}
+                       "top3": str(top3), "detail": guard_info}
                 append_result(row)
                 session.append(row)
                 last_result = {"verdict": verdict, "pred": pred, "conf": conf, "top3": top3,

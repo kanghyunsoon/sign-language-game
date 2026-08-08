@@ -37,12 +37,12 @@ from hand_rules import HandRules
 class RollingGrader:
     IDLE, ACTIVE = "idle", "active"
 
-    # 윈도우 기반 검사(Stage A 후보/조기 인정, 강제 마감 꼬리)용 가드 하한 완화.
-    # 학습 클립에는 손 올리기/내리기 전이가 포함돼 진폭·손가락 동작량 하한이
-    # 높게 잡히는데, 연속 반복 수행의 정속 구간은 그 전이가 없어 같은 동작도
-    # 15~20% 낮게 측정된다 (예: helicopter 정속 회전 amp 0.044~0.055 vs
-    # 클립 기준 하한 0.0617). 위치(mean_x/y)·손모양(curl)은 완화하지 않으므로
-    # 축소 흉내(진폭 절반 이하)는 여전히 차단된다.
+    # 롤링 경로 가드 하한 완화 (진폭·손가락 동작량) — 모든 판정 경로에 적용.
+    # 학습 클립에는 손 올리기/내리기 전이가 포함돼 amp/art 하한이 높게 잡히는데,
+    # 실사용자는 손을 이미 올린 채 시작·반복하므로 같은 동작도 15~20% 낮게
+    # 측정된다 (예: helicopter 정속 회전 amp 0.044~0.055 vs 클립 하한 0.0617,
+    # motorcycle 손목 까닥은 전 단어 최고 하한 0.093). 위치(mean_x/y)·
+    # 손모양(curl)은 완화하지 않으므로 축소 흉내는 여전히 차단된다.
     WINDOW_LO_RELAX = {"amp": 0.7, "art": 0.7}
 
     def __init__(self, model_path, labels_path,
@@ -223,9 +223,8 @@ class RollingGrader:
                 m = clip_metrics(arr["pose"], arr["lh"], arr["rh"], arr["pose_valid"],
                                  arr["lh_valid"], arr["rh_valid"],
                                  duration_s=guard_duration)
-                # 강제 마감 꼬리는 전이 없는 정속 구간 -> 윈도우용 완화 하한 적용
                 _, guard_fails = self.guard.check(
-                    pred, m, lo_relax=self.WINDOW_LO_RELAX if forced else None)
+                    pred, m, lo_relax=self.WINDOW_LO_RELAX)
             _, rule_fails = self.hand_rules.check(pred, arr)  # 수형 규칙 (사람 정의)
         return {"stage": "final", "word": pred, "confidence": conf, "top3": top3,
                 "guard_fails": guard_fails, "rule_fails": rule_fails,

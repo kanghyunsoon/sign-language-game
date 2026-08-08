@@ -21,14 +21,14 @@
       "metric": "curl",
       "finger": "index",
       "agg": "med",
-      "min": 1.2,
+      "min": 0.9,
       "msg": "검지를 끝까지 말지 말고 갈고리 모양으로"
     },
     {
       "metric": "curl",
       "finger": "middle",
       "agg": "med",
-      "min": 1.15,
+      "min": 0.85,
       "msg": "중지를 끝까지 말지 말고 갈고리 모양으로"
     },
     {
