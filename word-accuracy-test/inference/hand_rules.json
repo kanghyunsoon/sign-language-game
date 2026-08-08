@@ -1,18 +1,19 @@
 {
   "_설명": "단어별 수형 규칙 (최종 검토 레이어). metric: curl(굽힘도)|bend(관절각합,도)|spread(손가락사이각,도)|pinch(손끝거리)|hands(손수)|rot_ratio(회전비)|rot_min(고정손회전량,도)|cycles(반복수)|y_corr(양손상하동기)|vert_frac(상하성분비)|alt_frac(양손교대지표)|anyhand(한손이 conditions 전부 만족), agg: med|min|max|range. 임계값 보정: python inference/hand_rules.py --calibrate <word>",
+  "_방침": "블랙리스트 (2026-08-08) — '이렇게 해야 맞다'가 아니라 '이렇게 하면 명백히 틀렸다'만 거절. 임계값은 학습 클립(정답) 분포 p1~p99 + 버퍼 바깥에 배치. 기준: 펴야 하는 손가락 curl min 1.3(접힘 1.0/펴짐 1.6의 중간), 접어야 하는 손가락 curl max = 정답 p95+0.15, 반복 cycles min 1.5(2회 요구 단어).",
   "bad": [
     {
       "metric": "curl",
       "finger": "index",
       "agg": "med",
-      "min": 1.6,
+      "min": 1.3,
       "msg": "검지를 쭉 펴세요"
     },
     {
       "metric": "bend",
       "finger": "index",
       "agg": "med",
-      "max": 55,
+      "max": 100,
       "msg": "검지를 굽히지 말고 펴세요"
     }
   ],
@@ -42,28 +43,28 @@
       "metric": "bend",
       "finger": "index",
       "agg": "med",
-      "max": 100,
+      "max": 130,
       "msg": "주먹처럼 말지 말고 ㅅ모양으로 굽히세요 (검지)"
     },
     {
       "metric": "bend",
       "finger": "middle",
       "agg": "med",
-      "max": 100,
+      "max": 130,
       "msg": "주먹처럼 말지 말고 ㅅ모양으로 굽히세요 (중지)"
     },
     {
       "metric": "curl",
       "finger": "index",
       "agg": "med",
-      "min": 0.85,
+      "min": 0.7,
       "msg": "주먹을 쥐지 말고 손가락을 ㅅ모양으로 (검지)"
     },
     {
       "metric": "curl",
       "finger": "middle",
       "agg": "med",
-      "min": 0.85,
+      "min": 0.7,
       "msg": "주먹을 쥐지 말고 손가락을 ㅅ모양으로 (중지)"
     },
     {
@@ -80,7 +81,7 @@
         "index"
       ],
       "agg": "range",
-      "min": 0.35,
+      "min": 0.2,
       "msg": "엄지와 검지를 붙였다 벌리는 동작이 필요해요"
     }
   ],
@@ -89,33 +90,33 @@
       "metric": "curl",
       "finger": "index",
       "agg": "med",
-      "min": 1.6,
+      "min": 1.3,
       "msg": "검지를 쭉 펴세요"
     },
     {
       "metric": "curl",
       "finger": "middle",
       "agg": "med",
-      "max": 1.85,
+      "max": 2.1,
       "msg": "검지 하나만 펴야 해요 (중지는 접기)"
     },
     {
       "metric": "curl",
       "finger": "ring",
       "agg": "med",
-      "max": 1.8,
+      "max": 1.95,
       "msg": "검지 하나만 펴야 해요 (약지는 접기)"
     },
     {
       "metric": "curl",
       "finger": "pinky",
       "agg": "med",
-      "max": 1.55,
+      "max": 1.7,
       "msg": "검지 하나만 펴야 해요 (새끼는 접기)"
     },
     {
       "metric": "cycles",
-      "min": 2.0,
+      "min": 1.5,
       "msg": "동작을 두 번 이상 반복해야 해요"
     }
   ],
@@ -138,28 +139,28 @@
       "metric": "bend",
       "finger": "pinky",
       "agg": "med",
-      "max": 60,
+      "max": 120,
       "msg": "새끼손가락을 펴세요 (접으면 안 돼요)"
     },
     {
       "metric": "curl",
       "finger": "index",
       "agg": "med",
-      "max": 1.85,
+      "max": 1.95,
       "msg": "검지는 접어야 해요"
     },
     {
       "metric": "curl",
       "finger": "middle",
       "agg": "med",
-      "max": 1.7,
+      "max": 1.8,
       "msg": "중지는 접어야 해요"
     },
     {
       "metric": "curl",
       "finger": "ring",
       "agg": "med",
-      "max": 1.65,
+      "max": 1.75,
       "msg": "약지는 접어야 해요"
     }
   ],
@@ -171,12 +172,12 @@
     },
     {
       "metric": "rot_ratio",
-      "max": 0.95,
+      "max": 0.98,
       "msg": "한 손은 고정하고 한 손만 비틀어야 해요"
     },
     {
       "metric": "rot_min",
-      "max": 25,
+      "max": 40,
       "msg": "한 손은 핸들을 잡듯 고정해야 해요"
     },
     {
@@ -188,34 +189,34 @@
   "hello": [
     {
       "metric": "cycles",
-      "min": 2.0,
+      "min": 1.5,
       "msg": "동작을 두 번 이상 반복해야 해요"
     },
     {
       "metric": "y_corr",
-      "max": 0.8,
+      "max": 0.9,
       "msg": "양손을 번갈아 위아래로 움직여야 해요 (동시에 움직이면 안 돼요)"
     },
     {
       "metric": "alt_frac",
-      "min": 0.3,
+      "min": 0.2,
       "msg": "양손을 번갈아 위아래로 움직여야 해요 (동시에 움직이면 안 돼요)"
     }
   ],
   "rain": [
     {
       "metric": "cycles",
-      "min": 2.0,
+      "min": 1.5,
       "msg": "동작을 두 번 이상 반복해야 해요"
     },
     {
       "metric": "y_corr",
-      "min": 0.3,
+      "min": 0.0,
       "msg": "양손을 함께 아래위로 움직여야 해요 (번갈아 움직이면 안 돼요)"
     },
     {
       "metric": "vert_frac",
-      "min": 0.45,
+      "min": 0.25,
       "msg": "손을 위아래로 움직여야 해요 (좌우로 흔들면 안 돼요)"
     }
   ],
@@ -228,10 +229,10 @@
     {
       "metric": "anyhand",
       "conditions": [
-        {"metric": "curl", "finger": "index", "agg": "med", "min": 1.5},
-        {"metric": "curl", "finger": "middle", "agg": "med", "min": 1.4},
-        {"metric": "curl", "finger": "ring", "agg": "med", "max": 1.55},
-        {"metric": "curl", "finger": "pinky", "agg": "med", "max": 1.6}
+        {"metric": "curl", "finger": "index", "agg": "med", "min": 1.3},
+        {"metric": "curl", "finger": "middle", "agg": "med", "min": 1.25},
+        {"metric": "curl", "finger": "ring", "agg": "med", "max": 1.7},
+        {"metric": "curl", "finger": "pinky", "agg": "med", "max": 1.75}
       ],
       "msg": "한 손은 검지·중지만 펴고 약지·새끼는 접어야 해요"
     }
@@ -240,10 +241,10 @@
     {
       "metric": "anyhand",
       "conditions": [
-        {"metric": "curl", "finger": "index", "agg": "med", "min": 1.5},
-        {"metric": "curl", "finger": "middle", "agg": "med", "min": 1.4},
-        {"metric": "curl", "finger": "ring", "agg": "med", "max": 1.4},
-        {"metric": "curl", "finger": "pinky", "agg": "med", "max": 1.4}
+        {"metric": "curl", "finger": "index", "agg": "med", "min": 1.3},
+        {"metric": "curl", "finger": "middle", "agg": "med", "min": 1.2},
+        {"metric": "curl", "finger": "ring", "agg": "med", "max": 1.55},
+        {"metric": "curl", "finger": "pinky", "agg": "med", "max": 1.5}
       ],
       "msg": "수영하는 손은 검지·중지 두 손가락만 펴야 해요"
     }
@@ -251,31 +252,31 @@
   "wind": [
     {
       "metric": "cycles",
-      "min": 2.0,
+      "min": 1.5,
       "msg": "동작을 두 번 이상 반복해야 해요"
     }
   ],
   "bicycle": [
     {
       "metric": "cycles",
-      "min": 2.0,
+      "min": 1.5,
       "msg": "동작을 두 번 이상 반복해야 해요"
     }
   ],
   "run": [
     {
       "metric": "cycles",
-      "min": 1.75,
+      "min": 1.5,
       "msg": "동작을 두 번 이상 반복해야 해요"
     },
     {
       "metric": "y_corr",
-      "max": 0.5,
+      "max": 0.9,
       "msg": "양손을 번갈아 움직여야 해요 (동시에 움직이면 안 돼요)"
     },
     {
       "metric": "alt_frac",
-      "min": 0.3,
+      "min": 0.2,
       "msg": "양손을 번갈아 움직여야 해요 (동시에 움직이면 안 돼요)"
     }
   ],
