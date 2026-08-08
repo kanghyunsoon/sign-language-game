@@ -60,6 +60,10 @@ CONFIDENCE_THRESHOLD = float(
 )
 MINIMUM_FRAMES = int(os.getenv("HANDPRACTICE_WORD_MINIMUM_FRAMES", "16"))
 MODEL_SHA256 = os.getenv("HANDPRACTICE_WORD_MODEL_SHA256", "").strip().lower()
+# 조기 인정(동작 중 가드·규칙 전부 통과 시 즉시 확정) — 문제가 생기면 이미지
+# 재빌드 없이 compose 환경변수만 0으로 바꿔 기존 구간-확정 방식으로 되돌린다.
+EARLY_ACCEPT = os.getenv("HANDPRACTICE_WORD_EARLY_ACCEPT", "1").strip().lower() \
+    not in ("0", "false", "no")
 
 
 def normalise_path(raw_path: str) -> str:
@@ -162,7 +166,7 @@ async def run_server(host: str | None = None, port: int | None = None) -> None:
     _verify_model_checksum(model_path)
 
     def grader_factory() -> RollingGrader:
-        return RollingGrader(model_path, labels_path)
+        return RollingGrader(model_path, labels_path, early_accept=EARLY_ACCEPT)
 
     bootstrap = grader_factory()
     labels = tuple(bootstrap.rec.labels)

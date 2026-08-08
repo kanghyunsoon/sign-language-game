@@ -7,7 +7,14 @@ Stage A (롤링 후보, 기본 초당 5회):
 
 Stage B (구간 확정, 최종 판정):
   모션 온셋(움직임 시작)~오프셋(quiet_s간 잠잠)을 추적해 시도 구간을 잘라
-  전체 구간 판정 + 가드 풀세트(진폭·높이·속도·시간) 실행. 최종 판정은 여기서만.
+  전체 구간 판정 + 가드 풀세트(진폭·높이·속도·시간) 실행.
+
+조기 인정 (early_accept, 기본 켜짐):
+  동작이 진행 중이라도 Stage A 후보가 confirm_s를 채우고 가드 + 수형 규칙까지
+  전부 통과하면 그 자리에서 final을 방출한다. 사용자는 인식될 때까지 동작을
+  반복하면 되고, 손을 내리거나 멈춰서 구간을 끊을 필요가 없다. 통과하지
+  못하면 기존 Stage B 경로로 폴백되므로 보수적 방향으로만 실패한다.
+  조기 인정된 구간의 Stage B 확정은 조용히 버려진다(이중 판정 방지).
 
 사용:
     grader = RollingGrader("models/ksl-word-v6/model.int8.onnx",
@@ -44,7 +51,9 @@ class RollingGrader:
                  conf_threshold=0.6, wrong_conf_threshold=0.45,
                  min_hand_rate=0.3,
                  onset_motion=0.004,        # 구간 시작: 의도적 움직임 수준
-                 offset_motion=0.0025):     # 구간 유지: 이 미만이면 '멈춤'(손 떨림 허용)
+                 offset_motion=0.0025,      # 구간 유지: 이 미만이면 '멈춤'(손 떨림 허용)
+                 early_accept=True,         # 동작 중 가드·규칙 전부 통과 시 즉시 확정
+                 forced_tail_s=2.7):        # 강제 마감 시 판정에 쓸 꼬리 길이
         self.rec = SignRecognizer(model_path, labels_path,
                                   conf_threshold=conf_threshold,
                                   wrong_conf_threshold=wrong_conf_threshold)
@@ -67,6 +76,8 @@ class RollingGrader:
         self.min_hand_rate = min_hand_rate
         self.onset_motion = onset_motion
         self.offset_motion = offset_motion
+        self.early_accept = early_accept
+        self.forced_tail_s = forced_tail_s
 
         self.buf = deque()  # (ts_s, landmark dict)
         self.state = self.IDLE
@@ -76,6 +87,7 @@ class RollingGrader:
         self._cand_label = None
         self._cand_since = None
         self._cand_emitted = False
+        self._early_accepted = False
         self._refractory_until = -1e9
         # UI용 진단 정보
         self.debug = {"state": self.IDLE, "live": None, "motion": 0.0, "hand_rate": 0.0}
@@ -142,9 +154,23 @@ class RollingGrader:
         need = self._confirm_need(label)
         self.debug["live"] = {"label": label, "conf": conf, "top3": top3,
                               "sustained": round(sustained, 2), "need": need}
-        if sustained >= need and not self._cand_emitted:
-            self._cand_emitted = True
-            return {"stage": "live", "word": label, "confidence": conf, "top3": top3}
+        if sustained >= need:
+            # 조기 인정: 후보가 유지되는 동안 매 틱 수형 규칙까지 검사해, 전부
+            # 통과하면 구간 종료를 기다리지 않고 그 자리에서 확정한다. 규칙은
+            # 윈도우 자체에 대해 검사되므로 윈도우 안에 완결된 수행(필요한
+            # 사이클 수 등)이 담겨야만 통과한다 — 실패 시 Stage B로 폴백.
+            if self.early_accept and label != "wrong":
+                arr = seg_to_arrays(frames)
+                rule_ok, _ = self.hand_rules.check(label, arr)
+                if rule_ok:
+                    self._early_accepted = True
+                    return {"stage": "final", "word": label, "confidence": conf,
+                            "top3": top3, "guard_fails": [], "rule_fails": [],
+                            "duration_s": round(max(0.0, ts - self._onset_ts - 0.4), 2),
+                            "early": True}
+            if not self._cand_emitted:
+                self._cand_emitted = True
+                return {"stage": "live", "word": label, "confidence": conf, "top3": top3}
         return None
 
     # ---------- Stage B: 구간 확정 ----------
@@ -155,12 +181,27 @@ class RollingGrader:
         self._onset_ts = self._last_motion_ts = None
         self._cand_label, self._cand_since, self._cand_emitted = None, None, False
         self._refractory_until = ts + self.refractory_s
+        early = self._early_accepted
+        self._early_accepted = False
+        if early:  # 이미 조기 인정된 구간 — 이중 판정 방지
+            return None
 
         active_s = offset - onset
         if active_s < self.min_active_s:
             return None
-        seg = [f for (t, f) in self.buf
-               if onset - self.pre_roll_s <= t <= offset + self.post_roll_s]
+        if forced:
+            # 강제 마감(max_segment_s)은 대부분 판정이 나올 때까지 동작을 계속
+            # 반복한 경우다. 여러 사이클이 섞인 구간 통째 대신 마지막 사이클
+            # 분량만 판정하고, 반복 수행에 의미 없는 duration/speed 가드는
+            # 생략한다 — "너무 길었어요" 대신 뭐가 틀렸는지를 피드백한다.
+            seg = [f for (t, f) in self.buf if t >= ts - self.forced_tail_s]
+            guard_duration = None
+        else:
+            seg = [f for (t, f) in self.buf
+                   if onset - self.pre_roll_s <= t <= offset + self.post_roll_s]
+            # 온셋의 상승 검출 지연 보정(-0.4s)이 duration을 상수만큼 부풀리므로
+            # 가드 측정치에서는 걷어낸다 (학습 클립은 동작만 잘려 있음)
+            guard_duration = max(0.0, active_s - 0.4)
         if len(seg) < 10:
             return None
         probs, pred = self.rec.predict_window(seg)
@@ -172,12 +213,14 @@ class RollingGrader:
             arr = seg_to_arrays(seg)
             if self.guard:
                 m = clip_metrics(arr["pose"], arr["lh"], arr["rh"], arr["pose_valid"],
-                                 arr["lh_valid"], arr["rh_valid"], duration_s=active_s)
+                                 arr["lh_valid"], arr["rh_valid"],
+                                 duration_s=guard_duration)
                 _, guard_fails = self.guard.check(pred, m)
             _, rule_fails = self.hand_rules.check(pred, arr)  # 수형 규칙 (사람 정의)
         return {"stage": "final", "word": pred, "confidence": conf, "top3": top3,
                 "guard_fails": guard_fails, "rule_fails": rule_fails,
-                "duration_s": round(active_s, 2), "forced": forced}
+                "duration_s": round(guard_duration if guard_duration is not None
+                                    else active_s, 2), "forced": forced}
 
     # ---------- 메인 ----------
 
@@ -186,6 +229,7 @@ class RollingGrader:
         self.state = self.IDLE
         self._onset_ts = self._last_motion_ts = None
         self._cand_label, self._cand_since, self._cand_emitted = None, None, False
+        self._early_accepted = False
         self._last_infer_ts = -1e9
         self._refractory_until = -1e9
 
@@ -220,7 +264,9 @@ class RollingGrader:
                 ev = self._finalize(ts, forced=True)
                 if ev:
                     events.append(ev)
-            elif ts - self._last_infer_ts >= self.infer_interval_s:
+            elif (ts - self._last_infer_ts >= self.infer_interval_s
+                    and not self._early_accepted):
+                # 조기 인정 후에는 구간이 끝날 때까지 추론을 쉰다 (연산 절약)
                 self._last_infer_ts = ts
                 ev = self._stage_a(ts)
                 if ev:
