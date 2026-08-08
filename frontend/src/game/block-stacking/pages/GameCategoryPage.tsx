@@ -57,6 +57,24 @@ export function GameCategoryPage() {
       <img className={styles.categoryMenuHeroOtter} src={heroOtter} alt="" aria-hidden="true" />
 
       <section className={styles.categoryMenuChoices} aria-label="게임 카테고리">
+        <Link
+          className={`${styles.categoryMenuCard} ${styles.categoryMenuBlockCard}`}
+          to="block"
+          aria-label="프링글수 선택"
+        >
+          <span className={`${styles.categoryMenuBadge} ${styles.categoryMenuBlockBadge}`}>SOLO · 1 VS 1</span>
+          <img className={styles.categoryMenuBlockStack} src={blockStack} alt="" aria-hidden="true" />
+          <span className={styles.categoryMenuCardBody}>
+            <img className={styles.categoryMenuBlockLogo} src={blockLogo} alt="프링글수" />
+            <span>
+              화면의 지문자를 맞혀 블록을 쌓고,
+              <br />
+              솔로 기록과 1:1 승부에 도전하세요!
+            </span>
+          </span>
+          <img className={styles.categoryMenuBlockOtter} src={blockOtter} alt="" aria-hidden="true" />
+        </Link>
+
         <button
           type="button"
           className={`${styles.categoryMenuCard} ${styles.categoryMenuFlowerCard}`}
@@ -75,24 +93,6 @@ export function GameCategoryPage() {
             </span>
           </span>
         </button>
-
-        <Link
-          className={`${styles.categoryMenuCard} ${styles.categoryMenuBlockCard}`}
-          to="block"
-          aria-label="프링글수 선택"
-        >
-          <span className={`${styles.categoryMenuBadge} ${styles.categoryMenuBlockBadge}`}>SOLO · 1 VS 1</span>
-          <img className={styles.categoryMenuBlockStack} src={blockStack} alt="" aria-hidden="true" />
-          <span className={styles.categoryMenuCardBody}>
-            <img className={styles.categoryMenuBlockLogo} src={blockLogo} alt="프링글수" />
-            <span>
-              화면의 지문자를 맞혀 블록을 쌓고,
-              <br />
-              솔로 기록과 1:1 승부에 도전하세요!
-            </span>
-          </span>
-          <img className={styles.categoryMenuBlockOtter} src={blockOtter} alt="" aria-hidden="true" />
-        </Link>
       </section>
 
       {showComingSoon ? (
