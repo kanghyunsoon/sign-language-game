@@ -16,6 +16,8 @@
   hands                 검출된 손 수 (양손 필수 단어)
   rot_ratio             양손 회전량 비율 min/max (한손 고정+한손 회전 단어)
   rot_min               덜 회전하는 손의 회전량(도) — 고정 손이 크게 비틀리면 위반
+  bob_min               양손의 유의미한 상하 요동 전환 수 중 작은 값 — 고정
+                        손이 위아래로 까닥이면 위반 (저주파 드리프트·지터 무시)
   cycles                반복 횟수(왕복 수) — 두 번 이상 반복 단어
   y_corr                양손 손목 높이(어깨 기준) 상관계수. 함께 위아래 +1, 번갈아 -1
   vert_frac             손목 이동량 중 상하 성분 비율. 상하 1.0 ↔ 좌우 0.0
@@ -192,6 +194,47 @@ def two_hand_metrics(arr):
     return len(rots), None, None
 
 
+def _highpass(y, k=9):
+    """저주파(팔 드리프트) 제거 — 가장자리 정규화된 이동평균 차감."""
+    kernel = np.ones(k)
+    smooth = np.convolve(y, kernel, mode="same") \
+        / np.convolve(np.ones_like(y), kernel, mode="same")
+    return y - smooth
+
+
+def _abs_reversals(y, prom):
+    """절대 프로미넌스(prom) 이상 스윙만 세는 방향 전환 수 — 지터에 강함."""
+    reversals, direction, last_ext = 0, 0, y[0]
+    for v in y[1:]:
+        if direction >= 0 and v < last_ext - prom:
+            reversals += 1
+            direction, last_ext = -1, v
+        elif direction <= 0 and v > last_ext + prom:
+            reversals += 1
+            direction, last_ext = 1, v
+        else:
+            last_ext = max(last_ext, v) if direction >= 0 else min(last_ext, v)
+    return reversals
+
+
+def bob_min_metric(arr, prom=0.15):
+    """양손 각각의 '유의미한 상하 요동 전환 수' 중 작은 값.
+    중지 관절(9번, 주먹 까닥 시 호를 그리는 점) y를 손 크기로 정규화하고
+    저주파를 제거한 뒤, prom(손단위) 이상 스윙의 방향 전환만 센다.
+    한손 고정 단어에서 고정손까지 까닥이면 커진다 — 회전비(rot_ratio)가
+    놓치는 비대칭·비동기 양손 까닥도 잡는다. 한손 검출이면 None(판정 불가).
+    보정(2026-08-08, 학습 76클립+합성 까닥): 임계 4에서 정답 오거절 6.6%,
+    양손 까닥 차단 81.6%(80% 강도 합성 기준 — 실제 까닥은 더 잘 잡힘)."""
+    counts = []
+    for h in valid_hands(arr, min_frames=8):
+        scale = float(np.median(np.linalg.norm(h[:, 9] - h[:, 0], axis=1))) + EPS
+        y = h[:, 9, 1] / scale
+        counts.append(_abs_reversals(_highpass(y), prom))
+    if len(counts) < 2:
+        return None
+    return min(counts)
+
+
 def valid_hands(arr, min_frames=5):
     """검출 프레임이 충분한 손들의 유효 프레임 배열 목록."""
     out = []
@@ -319,6 +362,10 @@ class HandRules:
                 val = alt_frac_metric(arr)
                 if val is None:
                     continue
+            elif m == "bob_min":  # 고정손 상하 요동 규칙 (양손 까닥 차단)
+                val = bob_min_metric(arr)
+                if val is None:
+                    continue
             elif m == "anyhand":  # 어느 한 손이라도 조건 전부 만족하면 통과
                 best = None  # (위반량 합, 최다 위반 조건의 (값, 조건))
                 for h in valid_hands(arr):
@@ -379,6 +426,9 @@ def calibrate(word):
         af = alt_frac_metric(arr)
         if af is not None:
             row["alt_frac"] = af
+        bm = bob_min_metric(arr)
+        if bm is not None:
+            row["bob_min"] = bm
         # anyhand 보정용: 두손가락다움(검지+중지-약지-새끼)이 큰 손의 손가락별 굽힘
         hs = valid_hands(arr)
         if hs:
