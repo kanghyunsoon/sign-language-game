@@ -8,6 +8,7 @@ from app.messages import Landmark
 from app.rieul_tieut_gate import (
     DECIDED_CONFIDENCE,
     RieulTieutResolver,
+    classify,
     reassign_candidates,
     resolve,
     restore_confidence,
@@ -21,11 +22,10 @@ def hand(
 ) -> tuple[Landmark, ...]:
     """A sideways hand: index/middle/ring extended leftward.
 
-    ``mr_degrees`` is the middle–ring angle — the ONLY thing the gate may
-    measure. ``index_degrees`` fans the index arbitrarily (default 20°) so the
-    tests prove index abduction cannot influence the verdict. ``finger_length``
-    in screen units controls the extension guard (palm scale is ~0.054 here,
-    so 0.10 is clearly extended and 0.03 is clearly folded).
+    ``mr_degrees`` sets the middle–ring angle and ``index_degrees`` the
+    index–middle angle. ``finger_length`` in screen units controls the
+    extension guard (palm scale is ~0.054 here, so 0.10 is clearly extended
+    and 0.03 is clearly folded).
     """
     points = np.zeros((21, 3), dtype=np.float64)
     points[0] = (0.60, 0.50, 0.0)  # wrist
@@ -52,32 +52,56 @@ def hand(
     return tuple(Landmark(*p) for p in points)
 
 
+def tieut_pose(mr: float = 7.0, im: float = 40.0) -> tuple[Landmark, ...]:
+    """검지 벌리고 중지·약지 붙인 올바른 ㅌ."""
+    return hand(mr, index_degrees=im)
+
+
+def rieul_pose(mr: float = 16.0, im: float = 20.0) -> tuple[Landmark, ...]:
+    """세 손가락을 고르게 벌린 올바른 ㄹ."""
+    return hand(mr, index_degrees=im)
+
+
+class ClassifyTests(unittest.TestCase):
+    def test_calibrated_reference_poses(self) -> None:
+        # 사용자 참조 영상 중앙값 근처.
+        self.assertEqual(classify(44.0, 7.6), "ㅌ")
+        self.assertEqual(classify(20.0, 16.1), "ㄹ")
+
+    def test_middle_ring_apart_is_never_tieut(self) -> None:
+        """검지가 아무리 벌어져도 중지-약지가 떨어져 있으면 ㅌ이 아니다."""
+        self.assertEqual(classify(45.0, 13.5), "ㄹ")
+
+    def test_evenly_together_fingers_are_not_tieut(self) -> None:
+        """검지까지 다 붙인 손은 ㅌ이 아니다 — ㅌ은 검지를 벌려야 한다."""
+        self.assertEqual(classify(8.0, 5.0), "ㄹ")
+
+    def test_narrow_ambiguous_zone_returns_none(self) -> None:
+        # d=28.5 ≥ 20 이지만 mr가 10.5~13 사이: 어느 쪽도 확정하지 않는다.
+        self.assertIsNone(classify(40.0, 11.5))
+
+
 class ResolveTests(unittest.TestCase):
-    def test_together_pose_resolves_to_tieut(self) -> None:
-        self.assertEqual(resolve("ㄹ", hand(7.0), "RIGHT"), "ㅌ")
-        self.assertEqual(resolve("ㅌ", hand(7.0), "RIGHT"), "ㅌ")
+    def test_tieut_pose_resolves_to_tieut(self) -> None:
+        self.assertEqual(resolve("ㄹ", tieut_pose(), "RIGHT"), "ㅌ")
+        self.assertEqual(resolve("ㅌ", tieut_pose(), "RIGHT"), "ㅌ")
 
-    def test_spread_pose_resolves_to_rieul(self) -> None:
-        self.assertEqual(resolve("ㅌ", hand(16.0), "RIGHT"), "ㄹ")
-        self.assertEqual(resolve("ㄹ", hand(16.0), "RIGHT"), "ㄹ")
+    def test_rieul_pose_resolves_to_rieul(self) -> None:
+        self.assertEqual(resolve("ㅌ", rieul_pose(), "RIGHT"), "ㄹ")
+        self.assertEqual(resolve("ㄹ", rieul_pose(), "RIGHT"), "ㄹ")
 
-    def test_index_abduction_cannot_influence_the_verdict(self) -> None:
-        """검지가 아무리 벌어져도(45°) 중지-약지가 붙어 있으면 ㅌ."""
-        self.assertEqual(resolve("ㄹ", hand(7.0, index_degrees=45.0), "RIGHT"), "ㅌ")
-        self.assertEqual(resolve("ㅌ", hand(16.0, index_degrees=2.0), "RIGHT"), "ㄹ")
-
-    def test_ambiguous_band_leaves_the_model_alone(self) -> None:
-        self.assertIsNone(resolve("ㄹ", hand(10.0), "RIGHT"))
-        self.assertIsNone(resolve("ㅌ", hand(10.0), "RIGHT"))
+    def test_slightly_apart_middle_ring_is_not_tieut(self) -> None:
+        self.assertIsNone(resolve("ㅌ", hand(11.5, index_degrees=40.0), "RIGHT"))
+        self.assertEqual(resolve("ㅌ", hand(13.5, index_degrees=40.0), "RIGHT"), "ㄹ")
 
     def test_symbols_outside_the_pair_are_never_touched(self) -> None:
-        self.assertIsNone(resolve("ㄷ", hand(7.0), "RIGHT"))
+        self.assertIsNone(resolve("ㄷ", tieut_pose(), "RIGHT"))
 
     def test_folded_fingers_disable_the_judgement(self) -> None:
-        self.assertIsNone(resolve("ㄹ", hand(7.0, finger_length=0.03), "RIGHT"))
+        self.assertIsNone(resolve("ㄹ", hand(7.0, finger_length=0.03, index_degrees=40.0), "RIGHT"))
 
     def test_left_hand_matches_the_right(self) -> None:
-        self.assertEqual(resolve("ㄹ", hand(7.0), "LEFT"), "ㅌ")
+        self.assertEqual(resolve("ㄹ", tieut_pose(), "LEFT"), "ㅌ")
 
     def test_malformed_frame_is_left_alone(self) -> None:
         flat = tuple(Landmark(0.5, 0.5, 0.0) for _ in range(21))
@@ -112,54 +136,50 @@ class ReassignCandidatesTests(unittest.TestCase):
 
 
 class ResolverTests(unittest.TestCase):
-    """EMA + hysteresis: the decision must not flicker near a band edge."""
+    """EMA + sticky decision: no flicker, strict about ㅌ."""
 
-    def test_decision_sticks_through_the_ambiguous_band(self) -> None:
+    def test_tieut_then_jitter_keeps_tieut(self) -> None:
         resolver = RieulTieutResolver()
-        self.assertEqual(resolver.resolve("ㄹ", hand(7.0), "RIGHT"), "ㅌ")
-        # Jittered frames around the band keep the ㅌ decision
-        # instead of falling back to the model's ㄹ (the flicker bug).
-        for mr in (9.8, 10.2, 9.7, 10.4):
-            self.assertEqual(resolver.resolve("ㄹ", hand(mr), "RIGHT"), "ㅌ")
+        self.assertEqual(resolver.resolve("ㄹ", tieut_pose(), "RIGHT"), "ㅌ")
+        for mr in (9.5, 10.2, 9.8, 10.4):
+            self.assertEqual(resolver.resolve("ㄹ", hand(mr, index_degrees=40.0), "RIGHT"), "ㅌ")
 
-    def test_slightly_apart_fingers_flip_to_rieul(self) -> None:
-        """중지-약지가 조금이라도 떨어진 채 유지되면 ㅌ 결정을 붙들지 않는다."""
+    def test_sustained_separation_flips_to_rieul(self) -> None:
+        """중지-약지가 떨어진 채 유지되면 ㅌ 결정을 붙들지 않는다."""
         resolver = RieulTieutResolver()
-        self.assertEqual(resolver.resolve("ㅌ", hand(7.0), "RIGHT"), "ㅌ")
-        decisions = [resolver.resolve("ㅌ", hand(11.5), "RIGHT") for _ in range(8)]
+        self.assertEqual(resolver.resolve("ㅌ", tieut_pose(), "RIGHT"), "ㅌ")
+        decisions = [resolver.resolve("ㅌ", rieul_pose(), "RIGHT") for _ in range(8)]
         self.assertEqual(decisions[-1], "ㄹ")
 
-    def test_sustained_opposite_pose_flips_the_decision(self) -> None:
+    def test_sustained_tieut_pose_flips_to_tieut(self) -> None:
         resolver = RieulTieutResolver()
-        self.assertEqual(resolver.resolve("ㄹ", hand(7.0), "RIGHT"), "ㅌ")
-        decisions = [resolver.resolve("ㄹ", hand(16.0), "RIGHT") for _ in range(6)]
-        self.assertEqual(decisions[-1], "ㄹ")  # EMA가 따라온 뒤에는 전환된다
+        self.assertEqual(resolver.resolve("ㄹ", rieul_pose(), "RIGHT"), "ㄹ")
+        decisions = [resolver.resolve("ㄹ", tieut_pose(), "RIGHT") for _ in range(10)]
+        self.assertEqual(decisions[-1], "ㅌ")
 
     def test_single_outlier_frame_does_not_flip(self) -> None:
         resolver = RieulTieutResolver()
         for _ in range(4):
-            resolver.resolve("ㄹ", hand(7.0), "RIGHT")
-        # 한 프레임 지터(16°)로는 스무딩 값이 10.5°를 못 넘는다.
-        self.assertEqual(resolver.resolve("ㄹ", hand(16.0), "RIGHT"), "ㅌ")
+            resolver.resolve("ㄹ", tieut_pose(), "RIGHT")
+        # 한 프레임 지터(mr 16°)로는 스무딩 값이 밴드를 못 넘는다.
+        self.assertEqual(resolver.resolve("ㄹ", rieul_pose(), "RIGHT"), "ㅌ")
 
     def test_unmeasurable_frame_defers_without_dropping_state(self) -> None:
         resolver = RieulTieutResolver()
-        self.assertEqual(resolver.resolve("ㄹ", hand(7.0), "RIGHT"), "ㅌ")
-        folded = hand(7.0, finger_length=0.03)
+        self.assertEqual(resolver.resolve("ㄹ", tieut_pose(), "RIGHT"), "ㅌ")
+        folded = hand(7.0, finger_length=0.03, index_degrees=40.0)
         self.assertIsNone(resolver.resolve("ㄹ", folded, "RIGHT"))
-        self.assertEqual(resolver.resolve("ㄹ", hand(7.0), "RIGHT"), "ㅌ")
+        self.assertEqual(resolver.resolve("ㄹ", tieut_pose(), "RIGHT"), "ㅌ")
 
     def test_reset_clears_the_decision(self) -> None:
         resolver = RieulTieutResolver()
-        self.assertEqual(resolver.resolve("ㄹ", hand(7.0), "RIGHT"), "ㅌ")
+        self.assertEqual(resolver.resolve("ㄹ", tieut_pose(), "RIGHT"), "ㅌ")
         resolver.reset()
-        # 리셋 후 애매한 벌림에서 새로 시작하면 이전 ㅌ가 아니라 엄격 기본값 ㄹ.
-        self.assertEqual(resolver.resolve("ㄹ", hand(10.0), "RIGHT"), "ㄹ")
+        # 리셋 후 애매한 자세로 새로 시작하면 이전 ㅌ가 아니라 엄격 기본값 ㄹ.
+        self.assertEqual(resolver.resolve("ㄹ", hand(11.5, index_degrees=40.0), "RIGHT"), "ㄹ")
 
-    def test_first_midband_frame_is_strict_about_tieut(self) -> None:
-        """명백히 붙어 있지 않으면 ㅌ이 아니다 — 애매한 첫 프레임은 ㄹ."""
-        self.assertEqual(RieulTieutResolver().resolve("ㅌ", hand(10.0), "RIGHT"), "ㄹ")
-        self.assertEqual(RieulTieutResolver().resolve("ㄹ", hand(10.0), "RIGHT"), "ㄹ")
+    def test_first_ambiguous_frame_is_strict_about_tieut(self) -> None:
+        self.assertEqual(RieulTieutResolver().resolve("ㅌ", hand(11.5, index_degrees=40.0), "RIGHT"), "ㄹ")
 
 
 class RestoreConfidenceTests(unittest.TestCase):
