@@ -60,7 +60,7 @@ export interface FingerspellingItem {
    * 정면 그림만으로는 손의 방향을 알기 어려운 글자에만 있다.
    */
   sideImage?: string;
-  /** 수형 설명 문장. */
+  /** 수형 설명 문장. 설명 칸이 3줄 고정 높이라 3줄을 넘기지 않는다. */
   description: string[];
 }
 
@@ -131,9 +131,8 @@ export const fingerspellingItems: Record<
       name: "리을",
       image: rieulImage,
       description: [
-        "검지·중지·약지를 나란히 펴고,", 
-        "나머지 손가락은 접어주세요.",
-        "손등이 보이도록 손가락 끝을 옆으로 향하게 합니다.",
+        "검지·중지·약지를 옆으로 나란히 펴고,",
+        "나머지 손가락은 접고 손등이 보이게 합니다.",
         "ㅌ과 구분되도록 세 손가락 사이를 살짝 벌려주세요.",
       ],
     },
@@ -161,8 +160,7 @@ export const fingerspellingItems: Record<
       image: siotImage,
       description: [
         "검지와 중지를 아래로 나란히 펴고,",
-        "나머지 손가락은 접어주세요.",
-        "손등이 보이도록 손끝을 아래로 향하게 합니다.",
+        "나머지 손가락은 접고 손등이 보이게 합니다.",
         "ㅠ와 구분되도록 손목을 살짝 꺾어 손끝을 비스듬히 내려주세요.",
       ],
     },
@@ -210,9 +208,8 @@ export const fingerspellingItems: Record<
       name: "티읕",
       image: tieutImage,
       description: [
-        "검지·중지·약지를 옆으로 펴고,", 
-        "나머지 손가락은 접어주세요.",
-        "손등이 보이도록 손을 옆으로 향하게 합니다.",
+        "검지·중지·약지를 옆으로 나란히 펴고,",
+        "나머지 손가락은 접고 손등이 보이게 합니다.",
         "ㄹ과 구분되도록 세 손가락을 서로 붙여주세요.",
       ],
     },
