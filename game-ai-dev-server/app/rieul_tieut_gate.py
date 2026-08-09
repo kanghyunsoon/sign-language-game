@@ -23,8 +23,7 @@ from .messages import Landmark
 #
 # Because the model cannot be trusted on this axis, the gate REASSIGNS between
 # the two letters (a controlled promotion inside a closed 2-symbol pair, unlike
-# the veto-only gates) when the geometry is unambiguous, and leaves the model's
-# answer alone in the ambiguous middle band.
+# the veto-only gates) when the geometry is unambiguous.
 #
 # THE MEASURE IS THE MIDDLE–RING ANGLE ALONE (full-finger MCP→TIP directions).
 #
@@ -56,11 +55,15 @@ from .messages import Landmark
 # server the defaults are what runs.
 GATE_ENABLED = os.getenv("HANDPRACTICE_AI_RIEUL_TIEUT_GATE", "1").strip().lower() in {"1", "true", "on"}
 
-# Hysteresis thresholds on the middle–ring angle. Calibrated reference poses
-# measure ㅌ ≤ 9.7° (p99) and ㄹ ≥ 12.4° (p1); 10°/13° keep the switch points
-# just outside both distributions with the EMA absorbing frame jitter.
-TOGETHER_MAX_DEGREES = float(os.getenv("HANDPRACTICE_AI_LT_TOGETHER_MAX_DEG", "10"))
-SPREAD_MIN_DEGREES = float(os.getenv("HANDPRACTICE_AI_LT_SPREAD_MIN_DEG", "13"))
+# Hysteresis thresholds on the middle–ring angle — deliberately ASYMMETRIC
+# toward ㄹ. ㅌ is the letter with the strict requirement (middle and ring
+# fully together), so anything not clearly together must NOT score as ㅌ: a
+# wider band with a sticky ㅌ decision let slightly-apart hands keep passing
+# as ㅌ (live report). Calibrated reference poses measure ㅌ ≤ 9.0° (p95,
+# p99 = 9.7°) and ㄹ ≥ 12.4° (p1); the 9.5°/10.5° switch points keep a true
+# ㅌ (smoothed ~7-8°) safely inside while a hand at 10.5°+ is already ㄹ.
+TOGETHER_MAX_DEGREES = float(os.getenv("HANDPRACTICE_AI_LT_TOGETHER_MAX_DEG", "9.5"))
+SPREAD_MIN_DEGREES = float(os.getenv("HANDPRACTICE_AI_LT_SPREAD_MIN_DEG", "10.5"))
 
 # Guard: only judge the spread when index/middle/ring are actually extended.
 # MCP→TIP length in palm-scale units: extended fingers in the calibration
@@ -132,10 +135,10 @@ def measure_spread(landmarks: Sequence[Landmark]) -> float | None:
 
 # Smoothing weight of the NEW frame in the resolver's EMA. The sideways ㄹ/ㅌ
 # hand stacks the three fingers vertically toward the camera, so MediaPipe
-# jitters the per-frame spread by several degrees; 0.4 damps a single outlier
-# frame to under half its excursion while following a real pose change within
-# ~3 frames.
-SPREAD_SMOOTHING_ALPHA = float(os.getenv("HANDPRACTICE_AI_LT_SMOOTHING_ALPHA", "0.4"))
+# jitters the per-frame spread by several degrees. 0.25 keeps a single outlier
+# frame from crossing the (narrow, asymmetric) 1° hysteresis band while still
+# following a real pose change within ~4 frames.
+SPREAD_SMOOTHING_ALPHA = float(os.getenv("HANDPRACTICE_AI_LT_SMOOTHING_ALPHA", "0.25"))
 
 # Confidence assigned when the resolver has decided the pair but the model's
 # own confidence is lower. Measured end-to-end on the calibration recordings:
@@ -179,8 +182,10 @@ class RieulTieutResolver:
     band edge that alternated ㅌ(geometry) → ㄹ(model) → ㅌ… frame to frame,
     which the user saw as worse flicker than before the gate. This resolver is
     a Schmitt trigger instead: once the pair decision is made it STAYS through
-    the ambiguous band, and only crossing the opposite threshold (10°/13°,
-    calibrated in this module's header) can change it.
+    the (narrow) ambiguous band, and only crossing the opposite threshold
+    (9.5°/10.5°, calibrated in this module's header) can change it. The band
+    is asymmetric on purpose: ㅌ requires fully-together fingers, so the ㅌ
+    zone is tight and everything else resolves to ㄹ.
 
     State resets when the hand leaves the frame (RecognitionSession wires this
     to its release handling), so a fresh attempt starts unbiased.
@@ -215,15 +220,15 @@ class RieulTieutResolver:
         elif self._smoothed >= SPREAD_MIN_DEGREES:
             self._decision = "ㄹ"
         elif self._decision is None:
-            # No decision yet and the first frames land mid-band: pick the
-            # nearest side rather than deferring to the model. The model was
-            # trained with ㄹ/ㅌ reversed, so inside this pair its answer is
-            # anti-correlated with the pose — deferring to it is what showed ㅌ
-            # on a spread hand. The hysteresis then refines this initial pick
-            # as soon as the smoothed spread reaches either threshold.
-            midpoint = (TOGETHER_MAX_DEGREES + SPREAD_MIN_DEGREES) / 2.0
-            self._decision = "ㄹ" if self._smoothed >= midpoint else "ㅌ"
-        # Otherwise: ambiguous band with an existing decision — keep it.
+            # No decision yet and the first frames land mid-band: strict rule —
+            # a hand that is not clearly together is NOT ㅌ, so start as ㄹ.
+            # (Deferring to the model is not an option: it was trained with
+            # ㄹ/ㅌ reversed, so its answer is anti-correlated with the pose.)
+            # If the user then closes the fingers the smoothed spread drops
+            # under TOGETHER_MAX and the decision flips to ㅌ.
+            self._decision = "ㄹ"
+        # Otherwise: inside the narrow anti-flicker band with an existing
+        # decision — keep it.
         return self._decision
 
 
