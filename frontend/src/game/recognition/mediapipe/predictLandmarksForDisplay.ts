@@ -7,11 +7,17 @@ export interface DisplayLandmarkSample {
 
 const MAX_LEAD_MS = 150;
 const MAX_SAMPLE_LEAD_MULTIPLIER = 4;
-const MAX_GLOBAL_XY_OFFSET = 0.065;
-const MAX_GLOBAL_Z_OFFSET = 0.075;
-const MAX_ARTICULATION_XY_OFFSET = 0.018;
-const MAX_ARTICULATION_Z_OFFSET = 0.024;
+// 클램프는 외삽이 튀는 것을 막는 안전벨트다. 이전 값(0.065/0.018)은 빠른 손
+// 이동에서 보상량 자체를 잘라내 스켈레톤이 항상 뒤처졌다. 화면 폭의 14%면
+// 24-30Hz 추적에서 실제 손이 한 샘플 사이에 움직일 수 있는 상한에 가깝다.
+const MAX_GLOBAL_XY_OFFSET = 0.14;
+const MAX_GLOBAL_Z_OFFSET = 0.15;
+const MAX_ARTICULATION_XY_OFFSET = 0.04;
+const MAX_ARTICULATION_Z_OFFSET = 0.05;
 const MOTION_DEAD_ZONE = 0.0015;
+// 관절(손가락) 움직임 반영 비율. 0.45는 손가락 변화가 절반 이하로만 보상돼
+// 손모양 전환이 눈에 띄게 늦었다.
+const ARTICULATION_LEAD_SCALE = 0.7;
 const PALM_ANCHOR_INDICES = [0, 5, 9, 13, 17] as const;
 
 /**
@@ -48,7 +54,7 @@ export function predictLandmarksForDisplay(
     const articulationX = dx - globalMotion.x;
     const articulationY = dy - globalMotion.y;
     const articulationZ = dz - globalMotion.z;
-    const articulationScale = Math.hypot(articulationX, articulationY) < MOTION_DEAD_ZONE ? 0 : 0.45;
+    const articulationScale = Math.hypot(articulationX, articulationY) < MOTION_DEAD_ZONE ? 0 : ARTICULATION_LEAD_SCALE;
     return {
       x: clamp01(
         point.x
@@ -72,6 +78,13 @@ export function predictLandmarksForDisplay(
  * Treats the hand as one articulated object: palm translation follows quickly,
  * while finger motion is smoothed relative to that palm. This prevents the 21
  * landmarks from visibly vibrating in different directions.
+ *
+ * The base alphas trade jitter for lag. The original 0.32/0.24 held slow and
+ * medium motion to a third of its real speed — the reported "skeleton drags
+ * behind the hand". 0.55/0.5 still damps sub-pixel vibration (the dead zones
+ * below keep the minimum alpha only for near-still hands) while following any
+ * deliberate motion almost immediately, and the full-speed distances are
+ * shortened so real movement reaches alpha 1 sooner.
  */
 export function stabilizeLandmarksForDisplay(
   previous: readonly HandLandmark[] | undefined,
@@ -84,7 +97,7 @@ export function stabilizeLandmarksForDisplay(
   const palmDy = currentPalm.y - previousPalm.y;
   const palmDz = currentPalm.z - previousPalm.z;
   const palmDistance = Math.hypot(palmDx, palmDy);
-  const palmAlpha = adaptiveAlpha(palmDistance, 0.32, 0.002, 0.025);
+  const palmAlpha = adaptiveAlpha(palmDistance, 0.55, 0.002, 0.018);
 
   return current.map((point, index) => {
     const before = previous[index];
@@ -95,7 +108,7 @@ export function stabilizeLandmarksForDisplay(
       z: before.z + palmDz,
     };
     const articulationDistance = Math.hypot(point.x - translated.x, point.y - translated.y);
-    const articulationAlpha = adaptiveAlpha(articulationDistance, 0.24, 0.0015, 0.022);
+    const articulationAlpha = adaptiveAlpha(articulationDistance, 0.5, 0.0015, 0.016);
     return {
       x:
         before.x
