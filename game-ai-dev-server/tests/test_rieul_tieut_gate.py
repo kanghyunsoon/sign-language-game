@@ -67,8 +67,8 @@ class ResolveTests(unittest.TestCase):
         self.assertEqual(resolve("ㅌ", hand(16.0, index_degrees=2.0), "RIGHT"), "ㄹ")
 
     def test_ambiguous_band_leaves_the_model_alone(self) -> None:
-        self.assertIsNone(resolve("ㄹ", hand(11.5), "RIGHT"))
-        self.assertIsNone(resolve("ㅌ", hand(11.5), "RIGHT"))
+        self.assertIsNone(resolve("ㄹ", hand(10.0), "RIGHT"))
+        self.assertIsNone(resolve("ㅌ", hand(10.0), "RIGHT"))
 
     def test_symbols_outside_the_pair_are_never_touched(self) -> None:
         self.assertIsNone(resolve("ㄷ", hand(7.0), "RIGHT"))
@@ -117,10 +117,17 @@ class ResolverTests(unittest.TestCase):
     def test_decision_sticks_through_the_ambiguous_band(self) -> None:
         resolver = RieulTieutResolver()
         self.assertEqual(resolver.resolve("ㄹ", hand(7.0), "RIGHT"), "ㅌ")
-        # Jittered frames inside the ambiguous band keep the ㅌ decision
+        # Jittered frames around the band keep the ㅌ decision
         # instead of falling back to the model's ㄹ (the flicker bug).
-        for mr in (11.0, 12.0, 11.5, 12.5):
+        for mr in (9.8, 10.2, 9.7, 10.4):
             self.assertEqual(resolver.resolve("ㄹ", hand(mr), "RIGHT"), "ㅌ")
+
+    def test_slightly_apart_fingers_flip_to_rieul(self) -> None:
+        """중지-약지가 조금이라도 떨어진 채 유지되면 ㅌ 결정을 붙들지 않는다."""
+        resolver = RieulTieutResolver()
+        self.assertEqual(resolver.resolve("ㅌ", hand(7.0), "RIGHT"), "ㅌ")
+        decisions = [resolver.resolve("ㅌ", hand(11.5), "RIGHT") for _ in range(8)]
+        self.assertEqual(decisions[-1], "ㄹ")
 
     def test_sustained_opposite_pose_flips_the_decision(self) -> None:
         resolver = RieulTieutResolver()
@@ -132,7 +139,7 @@ class ResolverTests(unittest.TestCase):
         resolver = RieulTieutResolver()
         for _ in range(4):
             resolver.resolve("ㄹ", hand(7.0), "RIGHT")
-        # 한 프레임 지터(16°)로는 스무딩 값이 13°를 못 넘는다.
+        # 한 프레임 지터(16°)로는 스무딩 값이 10.5°를 못 넘는다.
         self.assertEqual(resolver.resolve("ㄹ", hand(16.0), "RIGHT"), "ㅌ")
 
     def test_unmeasurable_frame_defers_without_dropping_state(self) -> None:
@@ -146,13 +153,13 @@ class ResolverTests(unittest.TestCase):
         resolver = RieulTieutResolver()
         self.assertEqual(resolver.resolve("ㄹ", hand(7.0), "RIGHT"), "ㅌ")
         resolver.reset()
-        # 리셋 후 중간 벌림에서 새로 시작하면 이전 ㅌ가 아니라 가까운 쪽(ㄹ).
-        self.assertEqual(resolver.resolve("ㄹ", hand(12.0), "RIGHT"), "ㄹ")
+        # 리셋 후 애매한 벌림에서 새로 시작하면 이전 ㅌ가 아니라 엄격 기본값 ㄹ.
+        self.assertEqual(resolver.resolve("ㄹ", hand(10.0), "RIGHT"), "ㄹ")
 
-    def test_first_midband_frame_picks_the_nearest_side_not_the_model(self) -> None:
-        """모델은 이 쌍에서 반대로 학습돼 있어 애매해도 모델에 맡기지 않는다."""
-        self.assertEqual(RieulTieutResolver().resolve("ㅌ", hand(12.0), "RIGHT"), "ㄹ")
-        self.assertEqual(RieulTieutResolver().resolve("ㄹ", hand(11.0), "RIGHT"), "ㅌ")
+    def test_first_midband_frame_is_strict_about_tieut(self) -> None:
+        """명백히 붙어 있지 않으면 ㅌ이 아니다 — 애매한 첫 프레임은 ㄹ."""
+        self.assertEqual(RieulTieutResolver().resolve("ㅌ", hand(10.0), "RIGHT"), "ㄹ")
+        self.assertEqual(RieulTieutResolver().resolve("ㄹ", hand(10.0), "RIGHT"), "ㄹ")
 
 
 class RestoreConfidenceTests(unittest.TestCase):
