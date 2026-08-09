@@ -6,7 +6,6 @@ from typing import Sequence
 
 import numpy as np
 
-from . import handshape_gate
 from .messages import Landmark
 
 
@@ -30,8 +29,8 @@ from .messages import Landmark
 #
 # Coordinates: raw screen landmarks as the frontend sends them, y grows
 # DOWNWARD. Handedness mirroring only flips x, so the vertical test needs no
-# mirroring, and the ㅋ thumb clearance is a distance, which mirroring cannot
-# change either.
+# mirroring, and the ㅋ thumb angle is between two directions, which mirroring
+# cannot change either.
 
 # Set to 0/false/off to disable without touching the call site. Note that
 # docker-compose.yml does not forward these variables, so on the deployed
@@ -44,13 +43,25 @@ GATE_ENABLED = os.getenv("HANDPRACTICE_AI_ORIENTATION_GATE", "1").strip().lower(
 # about 15° above horizontal. Downward and horizontal poses are never touched.
 UPWARD_VETO_RATIO = float(os.getenv("HANDPRACTICE_AI_UPWARD_VETO_RATIO", "-0.25"))
 
-# ㅋ only: the thumb must stand clear of the folded fingers. Distance from the
-# thumb tip to the nearest fingertip in palm-scale units (handshape_gate
-# metrics). A thumb tucked against the folded fingers measures well under 0.15;
-# an extended ㅋ thumb measures upwards of 0.6. 0.25 is deliberately
-# conservative — T-158 showed what uncalibrated thumb thresholds do — so it
-# only catches the unmistakably tucked thumb.
-KIEUK_MIN_THUMB_CLEARANCE = float(os.getenv("HANDPRACTICE_AI_KIEUK_MIN_THUMB_CLEARANCE", "0.25"))
+# ㅋ only: the thumb must point AWAY from the fingers, not lie along them.
+# Measured as the angle between the thumb direction (landmark 2→4) and the
+# middle-finger proximal direction (9→12 proximal bone, 9→10).
+#
+# The first shipped check used thumb-to-nearest-fingertip distance ("clearance")
+# with an uncalibrated 0.25 threshold and never fired: measured on real data a
+# tucked-thumb fist has clearance 0.40+ (MediaPipe keeps the folded fingertips
+# away from the thumb tip), so a middle-finger-only pose passed as ㅋ live.
+# Recalibrated on MediaPipe raw landmarks (2026-08): legacy ㅋ_1.avi frames with
+# the middle finger extended (186 frames) versus our collected none-set fists
+# (426 frames, tracking-collapse frames excluded):
+#
+#   correct ㅋ thumb angle   p1=52.7  p5=56.4  p50=67.5  p95=76.1
+#   tucked-thumb fist        p5=27.6  p50=50.4  p95=55.6  p99=58.3
+#
+# 56° catches ~95% of tucked-thumb frames and falsely suppresses ~5% of correct
+# ㅋ frames — harmless, because the browser decoder confirms from the other 95%
+# while the tucked pose can no longer accumulate stable votes.
+KIEUK_MIN_THUMB_ANGLE_DEGREES = float(os.getenv("HANDPRACTICE_AI_KIEUK_MIN_THUMB_ANGLE_DEG", "56"))
 
 # The letters whose extended fingers must point downward, with the (mcp, tip)
 # chains that define "the extended fingers" for each. Sources: the practice
@@ -131,11 +142,41 @@ def verify(symbol: str, landmarks: Sequence[Landmark], handedness: str) -> Orien
         return OrientationVerdict(symbol, False, POINTING_UP)
 
     if symbol == "ㅋ":
-        try:
-            metrics = handshape_gate.measure(landmarks, handedness)
-        except (ValueError, IndexError, TypeError):
-            return OrientationVerdict(symbol, True)
-        if metrics.thumb_clearance < KIEUK_MIN_THUMB_CLEARANCE:
+        angle = _thumb_angle_degrees(landmarks)
+        if angle is not None and angle < KIEUK_MIN_THUMB_ANGLE_DEGREES:
             return OrientationVerdict(symbol, False, KIEUK_THUMB_FOLDED)
 
     return OrientationVerdict(symbol, True)
+
+
+def _thumb_angle_degrees(landmarks: Sequence[Landmark]) -> float | None:
+    """Angle between the thumb (2→4) and the middle proximal bone (9→10).
+
+    Mirror-invariant, so LEFT hands need no special-casing. Returns None on a
+    degenerate frame — the caller must accept those.
+    """
+    try:
+        thumb = np.asarray(
+            (
+                landmarks[4].x - landmarks[2].x,
+                landmarks[4].y - landmarks[2].y,
+                landmarks[4].z - landmarks[2].z,
+            ),
+            dtype=np.float64,
+        )
+        middle = np.asarray(
+            (
+                landmarks[10].x - landmarks[9].x,
+                landmarks[10].y - landmarks[9].y,
+                landmarks[10].z - landmarks[9].z,
+            ),
+            dtype=np.float64,
+        )
+    except (IndexError, TypeError, AttributeError):
+        return None
+    thumb_norm = float(np.linalg.norm(thumb))
+    middle_norm = float(np.linalg.norm(middle))
+    if thumb_norm <= 1e-9 or middle_norm <= 1e-9:
+        return None
+    cosine = float(np.dot(thumb, middle)) / (thumb_norm * middle_norm)
+    return float(np.degrees(np.arccos(np.clip(cosine, -1.0, 1.0))))
