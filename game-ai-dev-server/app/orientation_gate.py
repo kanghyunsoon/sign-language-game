@@ -29,8 +29,8 @@ from .messages import Landmark
 #
 # Coordinates: raw screen landmarks as the frontend sends them, y grows
 # DOWNWARD. Handedness mirroring only flips x, so the vertical test needs no
-# mirroring, and the ㅋ thumb angle is between two directions, which mirroring
-# cannot change either.
+# mirroring, and the ㅋ thumb clearance is a distance, which mirroring cannot
+# change either.
 
 # Set to 0/false/off to disable without touching the call site. Note that
 # docker-compose.yml does not forward these variables, so on the deployed
@@ -63,6 +63,32 @@ UPWARD_VETO_RATIO = float(os.getenv("HANDPRACTICE_AI_UPWARD_VETO_RATIO", "-0.25"
 # while the tucked pose can no longer accumulate stable votes.
 KIEUK_MIN_THUMB_ANGLE_DEGREES = float(os.getenv("HANDPRACTICE_AI_KIEUK_MIN_THUMB_ANGLE_DEG", "56"))
 
+# ㅎ only: the thumb must be FULLY extended, not just poking out of the fist.
+# Measured as REACH: distance from the thumb CMC joint (landmark 1) to the tip
+# (4), normalized by the CMC→MCP segment length (1→2). Normalizing within the
+# thumb itself makes the measure independent of hand size, camera distance,
+# and — unlike palm-scale metrics, whose foreshortening moved correct-ㅎ
+# between 1.6 and 2.8 across performers — of fist orientation.
+#
+# Calibrated on user-recorded reference videos of the correct pose and of the
+# failing "thumb slightly poking" pose (2026-08-10), cross-checked against the
+# team-collected correct-ㅎ videos (different performers):
+#
+#   correct ㅎ (user,  n=144)  p5=2.61  p50=2.77  p95=2.83
+#   correct ㅎ (team,  n=595)  p5=2.54  p50=2.62  p95=2.95
+#   poking ㅎ  (user,  n=141)  p5=1.93  p50=2.02  p95=2.13
+#
+# The classes separate at ~2.2: poking stays ≤2.13 while every correct-ㅎ
+# performer measured ≥2.22 (two team performers sit at p5=2.22/2.29, the rest
+# ≥2.54). Thumb joint angles and palm-scale distances were measured too and
+# overlap across performers — not used.
+HIEUT_MIN_THUMB_REACH = float(os.getenv("HANDPRACTICE_AI_HIEUT_MIN_THUMB_REACH", "2.2"))
+
+# Fist guard for the ㅎ check: every non-thumb finger's MCP→TIP length in
+# palm-scale units must be under this. Real loose fists measure up to ~0.9
+# (measured); extended fingers ~1.0-1.2.
+_FOLDED_MAX_LENGTH = 0.95
+
 # The letters whose extended fingers must point downward, with the (mcp, tip)
 # chains that define "the extended fingers" for each. Sources: the practice
 # guide texts in frontend fingerspelling.ts ("아래로 …").
@@ -78,10 +104,12 @@ _DOWNWARD_CHAINS: dict[str, tuple[tuple[int, int], ...]] = {
 
 POINTING_UP = "POINTING_UP"
 KIEUK_THUMB_FOLDED = "KIEUK_THUMB_FOLDED"
+HIEUT_THUMB_NOT_EXTENDED = "HIEUT_THUMB_NOT_EXTENDED"
 
 FEEDBACK: dict[str, str] = {
     POINTING_UP: "손끝이 아래를 향하도록 손을 돌려주세요.",
     KIEUK_THUMB_FOLDED: "엄지를 옆으로 곧게 펴주세요.",
+    HIEUT_THUMB_NOT_EXTENDED: "엄지를 끝까지 곧게 세워주세요.",
 }
 
 
@@ -130,8 +158,17 @@ def verify(symbol: str, landmarks: Sequence[Landmark], handedness: str) -> Orien
     Letters outside the gated set are accepted untouched, and so is any
     malformed frame — the gate must never be the thing that breaks recognition.
     """
+    if not GATE_ENABLED:
+        return OrientationVerdict(symbol, True)
+
+    if symbol == "ㅎ":
+        reach = _hieut_thumb_reach(landmarks)
+        if reach is not None and reach < HIEUT_MIN_THUMB_REACH:
+            return OrientationVerdict(symbol, False, HIEUT_THUMB_NOT_EXTENDED)
+        return OrientationVerdict(symbol, True)
+
     chains = _DOWNWARD_CHAINS.get(symbol)
-    if not GATE_ENABLED or chains is None:
+    if chains is None:
         return OrientationVerdict(symbol, True)
 
     try:
@@ -147,6 +184,38 @@ def verify(symbol: str, landmarks: Sequence[Landmark], handedness: str) -> Orien
             return OrientationVerdict(symbol, False, KIEUK_THUMB_FOLDED)
 
     return OrientationVerdict(symbol, True)
+
+
+def _hieut_thumb_reach(landmarks: Sequence[Landmark]) -> float | None:
+    """Thumb CMC→tip distance over CMC→MCP length, fist frames only.
+
+    Returns None when the frame cannot be judged: invalid palm scale, garbage
+    tracking (out-of-range distances), or any non-thumb finger not folded —
+    the gate must never be the thing that breaks recognition.
+    """
+    try:
+        points = np.asarray([(item.x, item.y, item.z) for item in landmarks], dtype=np.float64)
+        if points.shape != (21, 3):
+            return None
+    except (ValueError, TypeError, AttributeError):
+        return None
+    wrist = points[0]
+    palm_scale = float(np.mean(np.linalg.norm(points[[5, 9, 13, 17]] - wrist, axis=1)))
+    if palm_scale <= 1e-6:
+        return None
+    for mcp, tip in ((5, 8), (9, 12), (13, 16), (17, 20)):
+        length = float(np.linalg.norm(points[tip] - points[mcp])) / palm_scale
+        if length > 2.0:  # tracking collapse
+            return None
+        if length >= _FOLDED_MAX_LENGTH:  # not a fist — leave the model alone
+            return None
+    segment = float(np.linalg.norm(points[2] - points[1]))
+    if segment <= 1e-9:
+        return None
+    reach = float(np.linalg.norm(points[4] - points[1])) / segment
+    if reach > 6.0:  # tracking collapse
+        return None
+    return reach
 
 
 def _thumb_angle_degrees(landmarks: Sequence[Landmark]) -> float | None:
