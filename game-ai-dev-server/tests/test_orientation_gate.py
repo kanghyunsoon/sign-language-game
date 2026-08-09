@@ -8,6 +8,7 @@ import numpy as np
 from app.messages import Landmark
 from app.orientation_gate import (
     _DOWNWARD_CHAINS,
+    HIEUT_THUMB_NOT_EXTENDED,
     KIEUK_THUMB_FOLDED,
     POINTING_UP,
     downward_ratio,
@@ -116,6 +117,61 @@ class VerifyTests(unittest.TestCase):
 
         for symbol in _DOWNWARD_CHAINS:
             self.assertIn(symbol, LABELS)
+
+
+def fist(thumb_reach: float, open_index: bool = False) -> tuple[Landmark, ...]:
+    """A fist with the thumb reach (CMC→tip over CMC→MCP) set to ``thumb_reach``.
+
+    Calibrated reference values: fully extended ㅎ thumb ≈ 2.5-2.9, the
+    "slightly poking" thumb ≈ 1.9-2.1. ``open_index`` extends the index finger
+    so tests can pin that a non-fist frame is never judged.
+    """
+    points = np.zeros((21, 3), dtype=np.float64)
+    points[0] = (0.50, 0.55, 0.0)  # wrist
+    knuckles = {5: (0.44, 0.47), 9: (0.48, 0.465), 13: (0.52, 0.465), 17: (0.56, 0.47)}
+    for base, (x, y) in knuckles.items():
+        points[base] = (x, y, 0.0)
+        # Folded: tip curls back next to the knuckle.
+        points[base + 1] = (x, y - 0.02, 0.0)
+        points[base + 2] = (x, y - 0.005, 0.01)
+        points[base + 3] = (x, y + 0.005, 0.01)
+    if open_index:
+        points[6] = (0.42, 0.42, 0.0)
+        points[7] = (0.40, 0.37, 0.0)
+        points[8] = (0.38, 0.32, 0.0)
+    # Thumb rises straight up: CMC→MCP segment is 0.03, tip at the given reach.
+    points[1] = (0.46, 0.52, 0.0)
+    points[2] = (0.46, 0.49, 0.0)
+    points[3] = (0.46, 0.52 - thumb_reach * 0.03 * 0.7, 0.0)
+    points[4] = (0.46, 0.52 - thumb_reach * 0.03, 0.0)
+    return tuple(Landmark(*p) for p in points)
+
+
+class HieutThumbTests(unittest.TestCase):
+    """ㅎ requires a FULLY extended thumb — a half-poking thumb is a fist."""
+
+    def test_fully_extended_thumb_is_accepted(self) -> None:
+        self.assertTrue(verify("ㅎ", fist(2.7), "RIGHT").accepted)
+
+    def test_half_poking_thumb_is_rejected(self) -> None:
+        verdict = verify("ㅎ", fist(2.0), "RIGHT")
+        self.assertTrue(verdict.rejected)
+        self.assertEqual(verdict.reason, HIEUT_THUMB_NOT_EXTENDED)
+        self.assertTrue(verdict.feedback)
+
+    def test_tucked_thumb_is_rejected(self) -> None:
+        self.assertTrue(verify("ㅎ", fist(1.2), "RIGHT").rejected)
+
+    def test_non_fist_frame_is_left_alone(self) -> None:
+        """검지가 펴져 있으면(주먹이 아니면) 판단하지 않는다."""
+        self.assertTrue(verify("ㅎ", fist(2.0, open_index=True), "RIGHT").accepted)
+
+    def test_malformed_frame_is_accepted(self) -> None:
+        flat = tuple(Landmark(0.5, 0.5, 0.0) for _ in range(21))
+        self.assertTrue(verify("ㅎ", flat, "RIGHT").accepted)
+
+    def test_other_symbols_do_not_run_the_hieut_check(self) -> None:
+        self.assertTrue(verify("ㅏ", fist(0.9), "RIGHT").accepted)
 
 
 class WiringTests(unittest.TestCase):
