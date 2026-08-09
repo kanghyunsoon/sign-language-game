@@ -19,6 +19,11 @@ export class AdaptiveHandLandmarker {
   ) {}
 
   async initialize(): Promise<void> {
+    // Re-initializing a live instance must not spawn a second worker — the
+    // vision-adapter pool reuses instances across camera sessions.
+    if (this.worker || this.main) {
+      return;
+    }
     if (this.preferWorker && canUseHandLandmarkerWorker()) {
       const worker = this.createWorker?.() ?? new HandLandmarkerWorkerClient(undefined, this.config);
       try {
