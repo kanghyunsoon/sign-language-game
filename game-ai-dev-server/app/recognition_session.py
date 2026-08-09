@@ -212,9 +212,19 @@ class RecognitionSession:
         # stateless per-frame swap flickered ㅌ↔ㄹ near the band edges. See
         # app/rieul_tieut_gate.py for the calibration numbers.
         corrected = self._rieul_tieut_resolver.resolve(symbol, landmarks, handedness)
-        if corrected is not None and corrected != symbol:
-            rieul_tieut_gate.reassign_candidates(symbol, corrected, top_candidates)
-            symbol = corrected
+        if corrected is not None:
+            if corrected != symbol:
+                rieul_tieut_gate.reassign_candidates(symbol, corrected, top_candidates)
+                symbol = corrected
+            # The runner's decision-margin gate suppresses frames where the
+            # model is torn — which for this pair is every guide-correct pose,
+            # because the model was trained with ㄹ/ㅌ reversed. The geometry
+            # has resolved that ambiguity, so restore a confirmable confidence
+            # (measured: correct-ㄹ frames arrived at 0.05 and could never
+            # confirm; see app/rieul_tieut_gate.py).
+            confidence, top_candidates = rieul_tieut_gate.restore_confidence(
+                confidence, top_candidates,
+            )
 
         # Geometric veto for ㅎ and ㅂ, which the model confuses with a plain fist
         # and a fully open hand respectively — the difference is the thumb alone,
