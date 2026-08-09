@@ -26,16 +26,27 @@ from .messages import Landmark
 # the veto-only gates) when the geometry is unambiguous, and leaves the model's
 # answer alone in the ambiguous middle band.
 #
-# Thresholds were calibrated on MediaPipe raw landmarks extracted from those
-# training videos (240 together / 224 spread frames). The measure is the sum of
-# the angles between the full-finger directions (MCP→TIP) of index–middle and
-# middle–ring:
+# THE MEASURE IS THE MIDDLE–RING ANGLE ALONE (full-finger MCP→TIP directions).
 #
-#   together  p5=7.6   p50=15.4   p95=29.0
-#   spread    p5=32.3  p50=40.8   p95=51.8
+# Two earlier metrics failed live and the failures were measured, not guessed:
+# the sum of index–middle and middle–ring angles was dominated by the index
+# finger (the legacy "spread" video only splays the index: index–middle
+# 24-41° while middle–ring stays 3-13°), so the app tracked incidental index
+# abduction instead of the actual ㄹ/ㅌ distinction, which is whether the
+# middle and ring fingers are apart.
 #
-# The classes separate at ~30°; the bands below keep a no-touch gap between
-# them. Fingertip-gap/palm was measured too and overlaps — not used.
+# Thresholds are calibrated on user-recorded reference videos of the correct
+# poses (2026-08-09, ~10s each, per-frame MediaPipe raw landmarks):
+#
+#   middle–ring angle    ㄹ(벌림, n=125)  p1=12.4  p50=15.6  p99=19.0
+#                        ㅌ(붙임, n=144)  p1=5.6   p50=7.4   p99=9.7
+#
+# The classes separate with a clean gap (9.7 vs 12.4). Index–middle measured
+# 18-22° for ㄹ but 36-47° for ㅌ on the same recordings — anti-correlated —
+# which is why the index is excluded entirely.
+#
+# End-to-end verification (real TFLite ensemble + all gates over the same
+# recordings): ㄹ video 55/55 frames → ㄹ at ≥0.75, ㅌ video 55/55 → ㅌ ≥0.75.
 #
 # Coordinates: raw screen landmarks. Angles between 3-D directions are
 # invariant to the left-hand x-mirror, so handedness needs no special-casing.
@@ -45,13 +56,11 @@ from .messages import Landmark
 # server the defaults are what runs.
 GATE_ENABLED = os.getenv("HANDPRACTICE_AI_RIEUL_TIEUT_GATE", "1").strip().lower() in {"1", "true", "on"}
 
-# At or below this spread the fingers are unmistakably together → ㅌ.
-# (together p75 = 21°, spread p5 = 32.3° — 24° keeps an 8° margin.)
-TOGETHER_MAX_DEGREES = float(os.getenv("HANDPRACTICE_AI_LT_TOGETHER_MAX_DEG", "24"))
-
-# At or above this spread the fingers are unmistakably spread → ㄹ.
-# (spread p25 = 36.2°, together p95 = 29.0° — 35° keeps a 6° margin.)
-SPREAD_MIN_DEGREES = float(os.getenv("HANDPRACTICE_AI_LT_SPREAD_MIN_DEG", "35"))
+# Hysteresis thresholds on the middle–ring angle. Calibrated reference poses
+# measure ㅌ ≤ 9.7° (p99) and ㄹ ≥ 12.4° (p1); 10°/13° keep the switch points
+# just outside both distributions with the EMA absorbing frame jitter.
+TOGETHER_MAX_DEGREES = float(os.getenv("HANDPRACTICE_AI_LT_TOGETHER_MAX_DEG", "10"))
+SPREAD_MIN_DEGREES = float(os.getenv("HANDPRACTICE_AI_LT_SPREAD_MIN_DEG", "13"))
 
 # Guard: only judge the spread when index/middle/ring are actually extended.
 # MCP→TIP length in palm-scale units: extended fingers in the calibration
@@ -65,7 +74,11 @@ _FINGERS = ((5, 8), (9, 12), (13, 16))  # index, middle, ring as (mcp, tip)
 
 
 def _spread_degrees(points: np.ndarray) -> float | None:
-    """Sum of index–middle and middle–ring full-finger direction angles.
+    """Middle–ring full-finger direction angle (the ㄹ/ㅌ discriminator).
+
+    The index finger still participates in the extension guard — ㄹ/ㅌ both
+    extend all three fingers — but NOT in the angle: measured on reference
+    recordings its abduction is anti-correlated with the distinction.
 
     Returns None when the pose cannot be judged: invalid palm scale, a
     degenerate finger direction, or any of the three fingers not extended.
@@ -81,9 +94,9 @@ def _spread_degrees(points: np.ndarray) -> float | None:
         if length <= 1e-9 or length / palm_scale < EXTENDED_MIN_LENGTH:
             return None
         directions.append(vector / length)
-    def angle(a: np.ndarray, b: np.ndarray) -> float:
-        return float(np.degrees(np.arccos(np.clip(float(np.dot(a, b)), -1.0, 1.0))))
-    return angle(directions[0], directions[1]) + angle(directions[1], directions[2])
+    middle, ring = directions[1], directions[2]
+    cosine = float(np.clip(float(np.dot(middle, ring)), -1.0, 1.0))
+    return float(np.degrees(np.arccos(cosine)))
 
 
 def resolve(symbol: str, landmarks: Sequence[Landmark], handedness: str) -> str | None:
@@ -124,6 +137,39 @@ def measure_spread(landmarks: Sequence[Landmark]) -> float | None:
 # ~3 frames.
 SPREAD_SMOOTHING_ALPHA = float(os.getenv("HANDPRACTICE_AI_LT_SMOOTHING_ALPHA", "0.4"))
 
+# Confidence assigned when the resolver has decided the pair but the model's
+# own confidence is lower. Measured end-to-end on the calibration recordings:
+# the model is torn between ㄹ and ㅌ on a guide-correct ㄹ, so the
+# decision-margin gate inside the runner suppressed every frame to 0.05 and
+# the browser decoder could never confirm the (correctly relabelled) ㄹ. The
+# margin gate exists to block ambiguous frames — but for this pair the
+# geometry has already resolved the ambiguity, so the frame is not ambiguous.
+# 0.85 clears the decoder threshold the way the model's own confident ㅌ
+# frames (0.84-0.95 measured) do.
+DECIDED_CONFIDENCE = float(os.getenv("HANDPRACTICE_AI_LT_DECIDED_CONFIDENCE", "0.85"))
+
+
+def restore_confidence(
+    confidence: float,
+    top_candidates: list[dict[str, object]],
+) -> tuple[float, list[dict[str, object]]]:
+    """Raise a pair-decided frame to DECIDED_CONFIDENCE, keeping wire invariants.
+
+    All candidates scale by the same factor (ordering and relative gaps are
+    preserved) and the top entry is pinned exactly, mirroring the _suppress
+    helper in recognition_session. No-op when the model is already confident.
+    """
+    if confidence >= DECIDED_CONFIDENCE or confidence <= 0.0:
+        return confidence, top_candidates
+    factor = DECIDED_CONFIDENCE / confidence
+    scaled = [
+        {"symbol": candidate["symbol"], "confidence": float(candidate["confidence"]) * factor}
+        for candidate in top_candidates
+    ]
+    if scaled:
+        scaled[0]["confidence"] = DECIDED_CONFIDENCE
+    return DECIDED_CONFIDENCE, scaled
+
 
 class RieulTieutResolver:
     """Per-connection stateful resolver: EMA smoothing plus hysteresis.
@@ -133,7 +179,7 @@ class RieulTieutResolver:
     band edge that alternated ㅌ(geometry) → ㄹ(model) → ㅌ… frame to frame,
     which the user saw as worse flicker than before the gate. This resolver is
     a Schmitt trigger instead: once the pair decision is made it STAYS through
-    the ambiguous band, and only crossing the opposite threshold (24°/35°,
+    the ambiguous band, and only crossing the opposite threshold (10°/13°,
     calibrated in this module's header) can change it.
 
     State resets when the hand leaves the frame (RecognitionSession wires this
@@ -168,8 +214,16 @@ class RieulTieutResolver:
             self._decision = "ㅌ"
         elif self._smoothed >= SPREAD_MIN_DEGREES:
             self._decision = "ㄹ"
-        # Ambiguous band: keep the previous decision (hysteresis). None until
-        # the geometry has been unambiguous at least once.
+        elif self._decision is None:
+            # No decision yet and the first frames land mid-band: pick the
+            # nearest side rather than deferring to the model. The model was
+            # trained with ㄹ/ㅌ reversed, so inside this pair its answer is
+            # anti-correlated with the pose — deferring to it is what showed ㅌ
+            # on a spread hand. The hysteresis then refines this initial pick
+            # as soon as the smoothed spread reaches either threshold.
+            midpoint = (TOGETHER_MAX_DEGREES + SPREAD_MIN_DEGREES) / 2.0
+            self._decision = "ㄹ" if self._smoothed >= midpoint else "ㅌ"
+        # Otherwise: ambiguous band with an existing decision — keep it.
         return self._decision
 
 
