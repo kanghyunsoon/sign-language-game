@@ -96,6 +96,7 @@ class RollingGrader:
         self._cand_since = None
         self._cand_emitted = False
         self._early_accepted = False
+        self._rule_violated = False  # 이번 구간에서 래치 규칙 위반 관측됨
         self._refractory_until = -1e9
         # UI용 진단 정보
         self.debug = {"state": self.IDLE, "live": None, "motion": 0.0, "hand_rate": 0.0}
@@ -162,23 +163,40 @@ class RollingGrader:
         need = self._confirm_need(label)
         self.debug["live"] = {"label": label, "conf": conf, "top3": top3,
                               "sustained": round(sustained, 2), "need": need}
-        if sustained >= need:
-            # 조기 인정: 후보가 유지되는 동안 매 틱 수형 규칙까지 검사해, 전부
-            # 통과하면 구간 종료를 기다리지 않고 그 자리에서 확정한다. 규칙은
-            # 윈도우 자체에 대해 검사되므로 윈도우 안에 완결된 수행(필요한
-            # 사이클 수 등)이 담겨야만 통과한다 — 실패 시 Stage B로 폴백.
-            if self.early_accept and label != "wrong":
-                arr = seg_to_arrays(frames)
-                rule_ok, _ = self.hand_rules.check(label, arr)
-                if rule_ok:
-                    self._early_accepted = True
-                    return {"stage": "final", "word": label, "confidence": conf,
-                            "top3": top3, "guard_fails": [], "rule_fails": [],
-                            "duration_s": round(max(0.0, ts - self._onset_ts - 0.4), 2),
-                            "early": True}
-            if not self._cand_emitted:
-                self._cand_emitted = True
-                return {"stage": "live", "word": label, "confidence": conf, "top3": top3}
+        # 조기 인정용 규칙 검사 — 후보가 있는 '매 틱' 수행한다 (sustained 충족
+        # 이후에만 검사하면, 후보 리셋 직후 첫 검사가 우연히 위반이 안 보이는
+        # 틱에 떨어져 래치가 무력화될 수 있다).
+        if self.early_accept and label != "wrong":
+            # 규칙은 판정 윈도우(2.2s)가 아니라 구간 시작~현재 누적으로
+            # 검사한다 — 반복 수/요동 전환처럼 누적되는 메트릭이 짧은
+            # 윈도우에서 과소 측정돼 위반이 빠져나가는 것을 막는다
+            # (최종 확정과 같은 근거로 판정).
+            seg = self._recent(ts, ts - self._onset_ts + self.pre_roll_s)
+            arr = seg_to_arrays(seg)
+            # require_evaluable: 메트릭이 '판정 불가'(증거 부족)면 통과가
+            # 아니라 인정 보류 — 둘째 손이 늦게 들어오는 경우 위반 검사를
+            # 건너뛴 채 확정하는 구멍 방지.
+            rule_ok, rule_fails = self.hand_rules.check(
+                label, arr, require_evaluable=True)
+            # 위반 래치: latch 표시된 규칙(고정손 요동 등 위반 관측형)이
+            # 한 번이라도 걸리면 이 구간의 조기 인정을 막는다 — 매 틱
+            # 재시도가 '노이즈로 운 좋게 통과하는 틱'을 골라잡는 것 방지.
+            # cycles처럼 시간이 지나며 차오르는 메트릭은 래치하지 않는다.
+            if not rule_ok and rule_fails:
+                latch_msgs = {r.get("msg") for r in
+                              self.hand_rules.rules.get(label, [])
+                              if r.get("latch")}
+                if latch_msgs & {f[0] for f in rule_fails}:
+                    self._rule_violated = True
+            if (sustained >= need and rule_ok and not self._rule_violated):
+                self._early_accepted = True
+                return {"stage": "final", "word": label, "confidence": conf,
+                        "top3": top3, "guard_fails": [], "rule_fails": [],
+                        "duration_s": round(max(0.0, ts - self._onset_ts - 0.4), 2),
+                        "early": True}
+        if sustained >= need and not self._cand_emitted:
+            self._cand_emitted = True
+            return {"stage": "live", "word": label, "confidence": conf, "top3": top3}
         return None
 
     # ---------- Stage B: 구간 확정 ----------
@@ -191,6 +209,7 @@ class RollingGrader:
         self._refractory_until = ts + self.refractory_s
         early = self._early_accepted
         self._early_accepted = False
+        self._rule_violated = False
         if early:  # 이미 조기 인정된 구간 — 이중 판정 방지
             return None
 
@@ -239,6 +258,7 @@ class RollingGrader:
         self._onset_ts = self._last_motion_ts = None
         self._cand_label, self._cand_since, self._cand_emitted = None, None, False
         self._early_accepted = False
+        self._rule_violated = False
         self._last_infer_ts = -1e9
         self._refractory_until = -1e9
 

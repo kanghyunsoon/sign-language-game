@@ -173,16 +173,20 @@
     {
       "metric": "rot_ratio",
       "max": 0.965,
+      "latch": true,
       "msg": "한 손은 고정하고 한 손만 비틀어야 해요"
     },
     {
       "metric": "rot_min",
       "max": 32,
+      "latch": true,
       "msg": "한 손은 핸들을 잡듯 고정해야 해요"
     },
     {
-      "metric": "bob_min",
-      "max": 4,
+      "metric": "bob_pair",
+      "ratio": 0.7,
+      "max": 0.2,
+      "latch": true,
       "msg": "한 손은 고정해야 해요 (양손을 같이 까닥이면 안 돼요)"
     },
     {

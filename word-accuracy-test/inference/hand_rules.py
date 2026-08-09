@@ -18,6 +18,8 @@
   rot_min               덜 회전하는 손의 회전량(도) — 고정 손이 크게 비틀리면 위반
   bob_min               양손의 유의미한 상하 요동 전환 수 중 작은 값 — 고정
                         손이 위아래로 까닥이면 위반 (저주파 드리프트·지터 무시)
+  bob_pair              양손 요동 진폭이 비슷하면(비율>ratio) 작은 쪽 진폭,
+                        아니면 0 — 양손을 같이 까닥이는 오수행 검출
   cycles                반복 횟수(왕복 수) — 두 번 이상 반복 단어
   y_corr                양손 손목 높이(어깨 기준) 상관계수. 함께 위아래 +1, 번갈아 -1
   vert_frac             손목 이동량 중 상하 성분 비율. 상하 1.0 ↔ 좌우 0.0
@@ -195,7 +197,12 @@ def two_hand_metrics(arr):
 
 
 def _highpass(y, k=9):
-    """저주파(팔 드리프트) 제거 — 가장자리 정규화된 이동평균 차감."""
+    """저주파(팔 드리프트) 제거 — 가장자리 정규화된 이동평균 차감.
+    k가 시리즈보다 길면 convolve('same')의 길이가 k로 늘어나 broadcast가
+    깨지므로 시리즈 길이에 맞춰 줄인다."""
+    k = min(k, len(y))
+    if k < 3:
+        return y - float(np.mean(y))
     kernel = np.ones(k)
     smooth = np.convolve(y, kernel, mode="same") \
         / np.convolve(np.ones_like(y), kernel, mode="same")
@@ -233,6 +240,25 @@ def bob_min_metric(arr, prom=0.15):
     if len(counts) < 2:
         return None
     return min(counts)
+
+
+def bob_pair_metric(arr, ratio_gate=0.7):
+    """양손이 '비슷한 크기로 함께 요동'하는지 — 고주파 상하 진폭(p95-p5,
+    손단위)을 손별로 재서, 진폭 비율(min/max)이 ratio_gate를 넘으면 작은 쪽
+    진폭을, 아니면 0을 반환한다. 의도적 양손 까닥은 양손 진폭이 비슷하고
+    (비율 높음) 절대 크기도 실질적이라 값이 커진다. 정답 수행의 반동은
+    움직이는 손 대비 작아(비율 낮음) 0으로 떨어진다. 한손 검출이면 None.
+    보정(2026-08-08, 학습 76클립+합성+실측 오수행 영상 2개): 비율 0.7 +
+    상한 0.2에서 정답 오거절 23.7%, 합성 차단 82.9%, 실측 영상 2/2 차단."""
+    amps = []
+    for h in valid_hands(arr, min_frames=8):
+        scale = float(np.median(np.linalg.norm(h[:, 9] - h[:, 0], axis=1))) + EPS
+        hp = _highpass(h[:, 9, 1] / scale)
+        amps.append(float(np.percentile(hp, 95) - np.percentile(hp, 5)))
+    if len(amps) < 2:
+        return None
+    mn, mx = min(amps), max(amps)
+    return mn if mn / (mx + EPS) > ratio_gate else 0.0
 
 
 def valid_hands(arr, min_frames=5):
@@ -325,14 +351,20 @@ class HandRules:
                 self.rules = {k: v for k, v in json.load(f).items()
                               if not k.startswith("_")}
 
-    def check(self, word, arr):
-        """(통과 여부, 위반 목록[(설명, 측정값, min, max)])"""
+    def check(self, word, arr, require_evaluable=False):
+        """(통과 여부, 위반 목록[(설명, 측정값, min, max)])
+
+        require_evaluable=True(조기 인정 경로): 메트릭이 '판정 불가(None)'면
+        통과가 아니라 (False, [])를 반환한다 — 증거가 덜 쌓인 상태(예: 둘째
+        손이 방금 들어와 프레임 부족)에서 위반 검사를 건너뛴 채 확정해 버리는
+        구멍을 막는다. 최종 판정(구간 종료)에서는 기존대로 None=통과 — 더
+        기다릴 수 없기 때문."""
         rules = self.rules.get(word)
         if not rules:
             return True, []
         hand = active_hand(arr)
         if hand is None:
-            return True, []
+            return (False, []) if require_evaluable else (True, [])
         n_hands, rot_ratio, rot_min = None, None, None
         fails = []
         for r in rules:
@@ -344,31 +376,52 @@ class HandRules:
                     val = n_hands
                 else:
                     val = rot_ratio if m == "rot_ratio" else rot_min
-                    if val is None:
-                        continue  # 한 손만 검출 -> hands 규칙이 담당
+                    if val is None:  # 한 손만 검출 -> hands 규칙이 담당
+                        if require_evaluable:
+                            return False, []
+                        continue
             elif m == "cycles":  # 반복 횟수 규칙
                 val = cycles_metric(arr)
                 if val is None:
+                    if require_evaluable:
+                        return False, []
                     continue
             elif m == "y_corr":  # 양손 상하 동기 규칙
                 val = y_sync(arr)
                 if val is None:
+                    if require_evaluable:
+                        return False, []
                     continue
             elif m == "vert_frac":  # 이동 방향(상하 비율) 규칙
                 val = vert_frac_metric(arr)
                 if val is None:
+                    if require_evaluable:
+                        return False, []
                     continue
             elif m == "alt_frac":  # 양손 교대(진폭 가중) 규칙
                 val = alt_frac_metric(arr)
                 if val is None:
+                    if require_evaluable:
+                        return False, []
                     continue
             elif m == "bob_min":  # 고정손 상하 요동 규칙 (양손 까닥 차단)
                 val = bob_min_metric(arr)
                 if val is None:
+                    if require_evaluable:
+                        return False, []
+                    continue
+            elif m == "bob_pair":  # 양손 동반 요동 규칙 (진폭 결합 조건)
+                val = bob_pair_metric(arr, ratio_gate=r.get("ratio", 0.7))
+                if val is None:
+                    if require_evaluable:
+                        return False, []
                     continue
             elif m == "anyhand":  # 어느 한 손이라도 조건 전부 만족하면 통과
+                hands_list = valid_hands(arr)
+                if not hands_list and require_evaluable:
+                    return False, []
                 best = None  # (위반량 합, 최다 위반 조건의 (값, 조건))
-                for h in valid_hands(arr):
+                for h in hands_list:
                     viol, worst = 0.0, None
                     for c in r["conditions"]:
                         v = _agg(_series(h, c), c.get("agg", "med"))
