@@ -96,13 +96,7 @@ def resolve(symbol: str, landmarks: Sequence[Landmark], handedness: str) -> str 
     """
     if not GATE_ENABLED or symbol not in PAIR:
         return None
-    try:
-        points = np.asarray([(item.x, item.y, item.z) for item in landmarks], dtype=np.float64)
-        if points.shape != (21, 3):
-            return None
-        spread = _spread_degrees(points)
-    except (ValueError, IndexError, TypeError, AttributeError):
-        return None
+    spread = measure_spread(landmarks)
     if spread is None:
         return None
     if spread <= TOGETHER_MAX_DEGREES:
@@ -110,6 +104,73 @@ def resolve(symbol: str, landmarks: Sequence[Landmark], handedness: str) -> str 
     if spread >= SPREAD_MIN_DEGREES:
         return "ㄹ"
     return None
+
+
+def measure_spread(landmarks: Sequence[Landmark]) -> float | None:
+    """Raw per-frame spread in degrees, or None when the frame can't be judged."""
+    try:
+        points = np.asarray([(item.x, item.y, item.z) for item in landmarks], dtype=np.float64)
+        if points.shape != (21, 3):
+            return None
+        return _spread_degrees(points)
+    except (ValueError, IndexError, TypeError, AttributeError):
+        return None
+
+
+# Smoothing weight of the NEW frame in the resolver's EMA. The sideways ㄹ/ㅌ
+# hand stacks the three fingers vertically toward the camera, so MediaPipe
+# jitters the per-frame spread by several degrees; 0.4 damps a single outlier
+# frame to under half its excursion while following a real pose change within
+# ~3 frames.
+SPREAD_SMOOTHING_ALPHA = float(os.getenv("HANDPRACTICE_AI_LT_SMOOTHING_ALPHA", "0.4"))
+
+
+class RieulTieutResolver:
+    """Per-connection stateful resolver: EMA smoothing plus hysteresis.
+
+    The first shipped gate was stateless per frame, and in the ambiguous band
+    it fell back to the model's label. With the smoothed spread hovering near a
+    band edge that alternated ㅌ(geometry) → ㄹ(model) → ㅌ… frame to frame,
+    which the user saw as worse flicker than before the gate. This resolver is
+    a Schmitt trigger instead: once the pair decision is made it STAYS through
+    the ambiguous band, and only crossing the opposite threshold (24°/35°,
+    calibrated in this module's header) can change it.
+
+    State resets when the hand leaves the frame (RecognitionSession wires this
+    to its release handling), so a fresh attempt starts unbiased.
+    """
+
+    def __init__(self) -> None:
+        self._smoothed: float | None = None
+        self._decision: str | None = None
+
+    def reset(self) -> None:
+        self._smoothed = None
+        self._decision = None
+
+    def resolve(self, symbol: str, landmarks: Sequence[Landmark], handedness: str) -> str | None:
+        """Return ㄹ/ㅌ per the smoothed geometry, or None to leave the model alone.
+
+        An unmeasurable frame (folded fingers, malformed landmarks) neither
+        updates nor drops the state: it simply defers to the model for that
+        frame, so a one-frame tracking glitch cannot erase an ongoing decision.
+        """
+        if not GATE_ENABLED or symbol not in PAIR:
+            return None
+        spread = measure_spread(landmarks)
+        if spread is None:
+            return None
+        if self._smoothed is None:
+            self._smoothed = spread
+        else:
+            self._smoothed += (spread - self._smoothed) * SPREAD_SMOOTHING_ALPHA
+        if self._smoothed <= TOGETHER_MAX_DEGREES:
+            self._decision = "ㅌ"
+        elif self._smoothed >= SPREAD_MIN_DEGREES:
+            self._decision = "ㄹ"
+        # Ambiguous band: keep the previous decision (hysteresis). None until
+        # the geometry has been unambiguous at least once.
+        return self._decision
 
 
 def reassign_candidates(

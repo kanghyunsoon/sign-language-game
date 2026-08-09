@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import unittest
-from unittest import mock
 
 import numpy as np
 
 from app.messages import Landmark
-from app.rieul_tieut_gate import reassign_candidates, resolve
+from app.rieul_tieut_gate import RieulTieutResolver, reassign_candidates, resolve
 
 
 def hand(spread_degrees: float, finger_length: float = 0.10) -> tuple[Landmark, ...]:
@@ -92,6 +91,60 @@ class ReassignCandidatesTests(unittest.TestCase):
         self.assertEqual(candidates[1], {"symbol": "ㄷ", "confidence": 0.3})
 
 
+class ResolverTests(unittest.TestCase):
+    """EMA + hysteresis: the decision must not flicker near a band edge."""
+
+    def test_decision_sticks_through_the_ambiguous_band(self) -> None:
+        resolver = RieulTieutResolver()
+        self.assertEqual(resolver.resolve("ㄹ", hand(10.0), "RIGHT"), "ㅌ")
+        # Jittered frames inside the ambiguous band keep the ㅌ decision
+        # instead of falling back to the model's ㄹ (the flicker bug).
+        for spread in (28.0, 31.0, 27.0, 33.0):
+            self.assertEqual(resolver.resolve("ㄹ", hand(spread), "RIGHT"), "ㅌ")
+
+    def test_sustained_opposite_pose_flips_the_decision(self) -> None:
+        resolver = RieulTieutResolver()
+        self.assertEqual(resolver.resolve("ㄹ", hand(10.0), "RIGHT"), "ㅌ")
+        decisions = [resolver.resolve("ㄹ", hand(44.0), "RIGHT") for _ in range(6)]
+        self.assertEqual(decisions[-1], "ㄹ")  # EMA가 따라온 뒤에는 전환된다
+
+    def test_single_outlier_frame_does_not_flip(self) -> None:
+        resolver = RieulTieutResolver()
+        for _ in range(4):
+            resolver.resolve("ㄹ", hand(10.0), "RIGHT")
+        # 한 프레임 지터(40°)로는 스무딩 값이 35°를 못 넘는다.
+        self.assertEqual(resolver.resolve("ㄹ", hand(40.0), "RIGHT"), "ㅌ")
+
+    def test_unmeasurable_frame_defers_without_dropping_state(self) -> None:
+        resolver = RieulTieutResolver()
+        self.assertEqual(resolver.resolve("ㄹ", hand(10.0), "RIGHT"), "ㅌ")
+        folded = hand(10.0, finger_length=0.03)
+        self.assertIsNone(resolver.resolve("ㄹ", folded, "RIGHT"))
+        self.assertEqual(resolver.resolve("ㄹ", hand(10.0), "RIGHT"), "ㅌ")
+
+    def test_reset_clears_the_decision(self) -> None:
+        resolver = RieulTieutResolver()
+        self.assertEqual(resolver.resolve("ㄹ", hand(10.0), "RIGHT"), "ㅌ")
+        resolver.reset()
+        self.assertIsNone(resolver.resolve("ㄹ", hand(29.0), "RIGHT"))
+
+    def test_no_decision_before_first_unambiguous_frame(self) -> None:
+        resolver = RieulTieutResolver()
+        self.assertIsNone(resolver.resolve("ㄹ", hand(29.0), "RIGHT"))
+
+
+class StubResolver:
+    def __init__(self, result: str | None) -> None:
+        self._result = result
+        self.reset_count = 0
+
+    def resolve(self, symbol, landmarks, handedness):
+        return self._result
+
+    def reset(self) -> None:
+        self.reset_count += 1
+
+
 class WiringTests(unittest.TestCase):
     """A reassigned frame must keep the frontend wire-format invariants."""
 
@@ -102,12 +155,9 @@ class WiringTests(unittest.TestCase):
 
         runner = MockModelRunner([np.asarray(probabilities, dtype=np.float32)], labels=labels)
         session = RecognitionSession(runner, none_checker=None)
+        session._rieul_tieut_resolver = StubResolver(resolve_result)
         request = parse_request(landmark_frame(1, 1000))
-        with mock.patch(
-            "app.recognition_session.rieul_tieut_gate.resolve",
-            return_value=resolve_result,
-        ):
-            return session.process_landmark_frame(1, 1000, request.landmarks)[0]
+        return session.process_landmark_frame(1, 1000, request.landmarks)[0]
 
     def test_reassigned_frame_keeps_wire_invariants(self) -> None:
         event = self._event("ㅌ", ("ㄹ", "ㅌ", "ㄷ"), [0.7, 0.2, 0.1])
