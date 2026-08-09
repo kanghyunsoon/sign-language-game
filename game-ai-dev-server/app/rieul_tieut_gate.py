@@ -8,44 +8,37 @@ import numpy as np
 from .messages import Landmark
 
 
-# ㄹ↔ㅌ disambiguation by measured finger spread.
+# ㄹ↔ㅌ disambiguation by measured finger geometry.
 #
-# ㄹ and ㅌ share the same silhouette — index/middle/ring extended sideways —
-# and differ only in whether the three fingers are spread (ㄹ) or held together
-# (ㅌ). That is the convention the app teaches (guide texts and the reference
-# drawings in frontend consonant-rieul/tieut assets).
+# The correct poses (per the app's guide and the user's KSL reference):
 #
-# The legacy training videos have it REVERSED: dataset/output_video/ㄹ/ㄹ_1.avi
-# holds the three fingers together and ㅌ_1.avi spreads them (verified visually
-# and by measurement, 2026-08). A model trained on that data therefore answers
-# ㄹ for the exact pose the app tells the user to make for ㅌ — which is the
-# live bug this module fixes: signing ㅌ per the guide scores as a confident ㄹ.
+#   ㄹ  index/middle/ring extended sideways, ALL THREE spread apart evenly.
+#   ㅌ  index SPREAD AWAY while middle and ring are pressed TOGETHER.
 #
-# Because the model cannot be trusted on this axis, the gate REASSIGNS between
-# the two letters (a controlled promotion inside a closed 2-symbol pair, unlike
-# the veto-only gates) when the geometry is unambiguous.
+# The legacy training videos confuse the two, so the model's ㄹ/ㅌ answer is
+# unreliable; this gate REASSIGNS between the two letters (a controlled
+# promotion inside a closed 2-symbol pair) from raw-landmark geometry.
 #
-# THE MEASURE IS THE MIDDLE–RING ANGLE ALONE (full-finger MCP→TIP directions).
+# THE MEASURE uses both inter-finger angles (full-finger MCP→TIP directions):
 #
-# Two earlier metrics failed live and the failures were measured, not guessed:
-# the sum of index–middle and middle–ring angles was dominated by the index
-# finger (the legacy "spread" video only splays the index: index–middle
-# 24-41° while middle–ring stays 3-13°), so the app tracked incidental index
-# abduction instead of the actual ㄹ/ㅌ distinction, which is whether the
-# middle and ring fingers are apart.
+#   im = index–middle angle,  mr = middle–ring angle,  d = im − mr
 #
-# Thresholds are calibrated on user-recorded reference videos of the correct
-# poses (2026-08-09, ~10s each, per-frame MediaPipe raw landmarks):
+# Calibrated on user-recorded reference videos of the correct poses
+# (2026-08-09, per-frame MediaPipe raw landmarks):
 #
-#   middle–ring angle    ㄹ(벌림, n=125)  p1=12.4  p50=15.6  p99=19.0
-#                        ㅌ(붙임, n=144)  p1=5.6   p50=7.4   p99=9.7
+#              im               mr               d = im − mr
+#   ㄹ n=125   p5=18.2 p99=21.6  p5=13.2 p99=19.2  p5=0.3  p99=8.0
+#   ㅌ n=144   p5=35.7 p99=47.5  p5=6.2  p99=9.7   p5=29.1 p99=39.0
 #
-# The classes separate with a clean gap (9.7 vs 12.4). Index–middle measured
-# 18-22° for ㄹ but 36-47° for ㅌ on the same recordings — anti-correlated —
-# which is why the index is excluded entirely.
+# d separates the classes with a ~20° gap (ㄹ ≤8 vs ㅌ ≥28.6) because it
+# encodes exactly the defining contrast: for ㅌ the index splays while the
+# middle–ring pair stays closed; for ㄹ all gaps are similar so d ≈ 0.
 #
-# End-to-end verification (real TFLite ensemble + all gates over the same
-# recordings): ㄹ video 55/55 frames → ㄹ at ≥0.75, ㅌ video 55/55 → ㅌ ≥0.75.
+# Decision rules (on EMA-smoothed angles), strict about ㅌ by design:
+#   1. mr ≥ 13°                 → ㄹ   (middle–ring clearly apart → never ㅌ)
+#   2. d ≥ 20° AND mr ≤ 10.5°   → ㅌ   (index clearly splayed AND mr closed)
+#   3. d ≤ 14°                  → ㄹ   (even spread — the ㄹ shape)
+#   4. otherwise                → keep previous decision; initially ㄹ
 #
 # Coordinates: raw screen landmarks. Angles between 3-D directions are
 # invariant to the left-hand x-mirror, so handedness needs no special-casing.
@@ -55,20 +48,31 @@ from .messages import Landmark
 # server the defaults are what runs.
 GATE_ENABLED = os.getenv("HANDPRACTICE_AI_RIEUL_TIEUT_GATE", "1").strip().lower() in {"1", "true", "on"}
 
-# Hysteresis thresholds on the middle–ring angle — deliberately ASYMMETRIC
-# toward ㄹ. ㅌ is the letter with the strict requirement (middle and ring
-# fully together), so anything not clearly together must NOT score as ㅌ: a
-# wider band with a sticky ㅌ decision let slightly-apart hands keep passing
-# as ㅌ (live report). Calibrated reference poses measure ㅌ ≤ 9.0° (p95,
-# p99 = 9.7°) and ㄹ ≥ 12.4° (p1); the 9.5°/10.5° switch points keep a true
-# ㅌ (smoothed ~7-8°) safely inside while a hand at 10.5°+ is already ㄹ.
-TOGETHER_MAX_DEGREES = float(os.getenv("HANDPRACTICE_AI_LT_TOGETHER_MAX_DEG", "9.5"))
-SPREAD_MIN_DEGREES = float(os.getenv("HANDPRACTICE_AI_LT_SPREAD_MIN_DEG", "10.5"))
+# Rule thresholds (see the calibration table above).
+MR_RIEUL_MIN_DEGREES = float(os.getenv("HANDPRACTICE_AI_LT_MR_RIEUL_MIN_DEG", "13"))
+D_TIEUT_MIN_DEGREES = float(os.getenv("HANDPRACTICE_AI_LT_D_TIEUT_MIN_DEG", "20"))
+MR_TIEUT_MAX_DEGREES = float(os.getenv("HANDPRACTICE_AI_LT_MR_TIEUT_MAX_DEG", "10.5"))
+D_RIEUL_MAX_DEGREES = float(os.getenv("HANDPRACTICE_AI_LT_D_RIEUL_MAX_DEG", "14"))
 
-# Guard: only judge the spread when index/middle/ring are actually extended.
+# Guard: only judge when index/middle/ring are actually extended.
 # MCP→TIP length in palm-scale units: extended fingers in the calibration
 # videos measure 0.9-1.2 on steady frames; folded fingers ~0.3-0.5.
 EXTENDED_MIN_LENGTH = float(os.getenv("HANDPRACTICE_AI_LT_EXTENDED_MIN", "0.75"))
+
+# Smoothing weight of the NEW frame in the resolver's EMAs. The sideways hand
+# stacks the fingers toward the camera, so MediaPipe jitters the per-frame
+# angles by several degrees; 0.25 keeps single outliers inside the bands while
+# following a real pose change within ~4 frames.
+SPREAD_SMOOTHING_ALPHA = float(os.getenv("HANDPRACTICE_AI_LT_SMOOTHING_ALPHA", "0.25"))
+
+# Confidence assigned when the resolver has decided the pair but the model's
+# own confidence is lower. Measured end-to-end: the model is torn between ㄹ
+# and ㅌ on guide-correct poses, so the runner's decision-margin gate
+# suppressed every frame to 0.05 and the browser decoder could never confirm
+# the (correctly relabelled) letter. The geometry has resolved the ambiguity,
+# so the frame is not ambiguous; 0.85 clears the decoder threshold the way the
+# model's own confident frames (0.84-0.95 measured) do.
+DECIDED_CONFIDENCE = float(os.getenv("HANDPRACTICE_AI_LT_DECIDED_CONFIDENCE", "0.85"))
 
 PAIR = ("ㄹ", "ㅌ")
 
@@ -76,16 +80,19 @@ _PALM_LANDMARKS = (5, 9, 13, 17)
 _FINGERS = ((5, 8), (9, 12), (13, 16))  # index, middle, ring as (mcp, tip)
 
 
-def _spread_degrees(points: np.ndarray) -> float | None:
-    """Middle–ring full-finger direction angle (the ㄹ/ㅌ discriminator).
+def measure_angles(landmarks: Sequence[Landmark]) -> tuple[float, float] | None:
+    """Per-frame (index–middle, middle–ring) angles in degrees.
 
-    The index finger still participates in the extension guard — ㄹ/ㅌ both
-    extend all three fingers — but NOT in the angle: measured on reference
-    recordings its abduction is anti-correlated with the distinction.
-
-    Returns None when the pose cannot be judged: invalid palm scale, a
-    degenerate finger direction, or any of the three fingers not extended.
+    Returns None when the pose cannot be judged: malformed landmarks, invalid
+    palm scale, a degenerate finger direction, or any of the three fingers not
+    extended — the gate must never be the thing that breaks recognition.
     """
+    try:
+        points = np.asarray([(item.x, item.y, item.z) for item in landmarks], dtype=np.float64)
+        if points.shape != (21, 3):
+            return None
+    except (ValueError, TypeError, AttributeError):
+        return None
     wrist = points[0]
     palm_scale = float(np.mean(np.linalg.norm(points[list(_PALM_LANDMARKS)] - wrist, axis=1)))
     if palm_scale <= 1e-6:
@@ -97,59 +104,32 @@ def _spread_degrees(points: np.ndarray) -> float | None:
         if length <= 1e-9 or length / palm_scale < EXTENDED_MIN_LENGTH:
             return None
         directions.append(vector / length)
-    middle, ring = directions[1], directions[2]
-    cosine = float(np.clip(float(np.dot(middle, ring)), -1.0, 1.0))
-    return float(np.degrees(np.arccos(cosine)))
+
+    def angle(a: np.ndarray, b: np.ndarray) -> float:
+        return float(np.degrees(np.arccos(np.clip(float(np.dot(a, b)), -1.0, 1.0))))
+
+    return angle(directions[0], directions[1]), angle(directions[1], directions[2])
 
 
-def resolve(symbol: str, landmarks: Sequence[Landmark], handedness: str) -> str | None:
-    """Return the letter the geometry supports, or None to leave the model alone.
-
-    Only called into action when the model already answered ㄹ or ㅌ; the gate
-    never moves probability toward the pair from outside it. A malformed frame,
-    non-extended fingers, or a spread inside the ambiguous band all return
-    None — the model's answer stands.
-    """
-    if not GATE_ENABLED or symbol not in PAIR:
-        return None
-    spread = measure_spread(landmarks)
-    if spread is None:
-        return None
-    if spread <= TOGETHER_MAX_DEGREES:
+def classify(im: float, mr: float) -> str | None:
+    """Apply the decision rules to one (im, mr) pair; None = ambiguous."""
+    if mr >= MR_RIEUL_MIN_DEGREES:
+        return "ㄹ"
+    if im - mr >= D_TIEUT_MIN_DEGREES and mr <= MR_TIEUT_MAX_DEGREES:
         return "ㅌ"
-    if spread >= SPREAD_MIN_DEGREES:
+    if im - mr <= D_RIEUL_MAX_DEGREES:
         return "ㄹ"
     return None
 
 
-def measure_spread(landmarks: Sequence[Landmark]) -> float | None:
-    """Raw per-frame spread in degrees, or None when the frame can't be judged."""
-    try:
-        points = np.asarray([(item.x, item.y, item.z) for item in landmarks], dtype=np.float64)
-        if points.shape != (21, 3):
-            return None
-        return _spread_degrees(points)
-    except (ValueError, IndexError, TypeError, AttributeError):
+def resolve(symbol: str, landmarks: Sequence[Landmark], handedness: str) -> str | None:
+    """Stateless single-frame resolve; None = ambiguous or unjudgeable."""
+    if not GATE_ENABLED or symbol not in PAIR:
         return None
-
-
-# Smoothing weight of the NEW frame in the resolver's EMA. The sideways ㄹ/ㅌ
-# hand stacks the three fingers vertically toward the camera, so MediaPipe
-# jitters the per-frame spread by several degrees. 0.25 keeps a single outlier
-# frame from crossing the (narrow, asymmetric) 1° hysteresis band while still
-# following a real pose change within ~4 frames.
-SPREAD_SMOOTHING_ALPHA = float(os.getenv("HANDPRACTICE_AI_LT_SMOOTHING_ALPHA", "0.25"))
-
-# Confidence assigned when the resolver has decided the pair but the model's
-# own confidence is lower. Measured end-to-end on the calibration recordings:
-# the model is torn between ㄹ and ㅌ on a guide-correct ㄹ, so the
-# decision-margin gate inside the runner suppressed every frame to 0.05 and
-# the browser decoder could never confirm the (correctly relabelled) ㄹ. The
-# margin gate exists to block ambiguous frames — but for this pair the
-# geometry has already resolved the ambiguity, so the frame is not ambiguous.
-# 0.85 clears the decoder threshold the way the model's own confident ㅌ
-# frames (0.84-0.95 measured) do.
-DECIDED_CONFIDENCE = float(os.getenv("HANDPRACTICE_AI_LT_DECIDED_CONFIDENCE", "0.85"))
+    angles = measure_angles(landmarks)
+    if angles is None:
+        return None
+    return classify(*angles)
 
 
 def restore_confidence(
@@ -175,28 +155,26 @@ def restore_confidence(
 
 
 class RieulTieutResolver:
-    """Per-connection stateful resolver: EMA smoothing plus hysteresis.
+    """Per-connection stateful resolver: EMA smoothing plus a sticky decision.
 
-    The first shipped gate was stateless per frame, and in the ambiguous band
-    it fell back to the model's label. With the smoothed spread hovering near a
-    band edge that alternated ㅌ(geometry) → ㄹ(model) → ㅌ… frame to frame,
-    which the user saw as worse flicker than before the gate. This resolver is
-    a Schmitt trigger instead: once the pair decision is made it STAYS through
-    the (narrow) ambiguous band, and only crossing the opposite threshold
-    (9.5°/10.5°, calibrated in this module's header) can change it. The band
-    is asymmetric on purpose: ㅌ requires fully-together fingers, so the ㅌ
-    zone is tight and everything else resolves to ㄹ.
+    Stateless per-frame swaps flickered near band edges (live report), so the
+    smoothed angles drive the rules and an ambiguous frame keeps the previous
+    decision. The first ambiguous frames resolve to ㄹ: a hand that is not
+    clearly in the ㅌ shape must not score as ㅌ (deferring to the model is not
+    an option — it was trained with the pair confused).
 
     State resets when the hand leaves the frame (RecognitionSession wires this
     to its release handling), so a fresh attempt starts unbiased.
     """
 
     def __init__(self) -> None:
-        self._smoothed: float | None = None
+        self._im: float | None = None
+        self._mr: float | None = None
         self._decision: str | None = None
 
     def reset(self) -> None:
-        self._smoothed = None
+        self._im = None
+        self._mr = None
         self._decision = None
 
     def resolve(self, symbol: str, landmarks: Sequence[Landmark], handedness: str) -> str | None:
@@ -208,27 +186,21 @@ class RieulTieutResolver:
         """
         if not GATE_ENABLED or symbol not in PAIR:
             return None
-        spread = measure_spread(landmarks)
-        if spread is None:
+        angles = measure_angles(landmarks)
+        if angles is None:
             return None
-        if self._smoothed is None:
-            self._smoothed = spread
+        im, mr = angles
+        if self._im is None or self._mr is None:
+            self._im, self._mr = im, mr
         else:
-            self._smoothed += (spread - self._smoothed) * SPREAD_SMOOTHING_ALPHA
-        if self._smoothed <= TOGETHER_MAX_DEGREES:
-            self._decision = "ㅌ"
-        elif self._smoothed >= SPREAD_MIN_DEGREES:
-            self._decision = "ㄹ"
+            self._im += (im - self._im) * SPREAD_SMOOTHING_ALPHA
+            self._mr += (mr - self._mr) * SPREAD_SMOOTHING_ALPHA
+        verdict = classify(self._im, self._mr)
+        if verdict is not None:
+            self._decision = verdict
         elif self._decision is None:
-            # No decision yet and the first frames land mid-band: strict rule —
-            # a hand that is not clearly together is NOT ㅌ, so start as ㄹ.
-            # (Deferring to the model is not an option: it was trained with
-            # ㄹ/ㅌ reversed, so its answer is anti-correlated with the pose.)
-            # If the user then closes the fingers the smoothed spread drops
-            # under TOGETHER_MAX and the decision flips to ㅌ.
+            # Ambiguous from the start: strict rule — not clearly ㅌ means ㄹ.
             self._decision = "ㄹ"
-        # Otherwise: inside the narrow anti-flicker band with an existing
-        # decision — keep it.
         return self._decision
 
 
