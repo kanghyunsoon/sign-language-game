@@ -112,6 +112,9 @@ class RecognitionSession:
             if RecognitionSession._SHARED_NONE_CHECKER is False:
                 RecognitionSession._SHARED_NONE_CHECKER = load_none_checker()
             self._none_checker = RecognitionSession._SHARED_NONE_CHECKER
+        # Per-connection: the ㄹ/ㅌ resolver carries EMA + hysteresis state so
+        # the pair decision cannot flicker frame to frame near a band edge.
+        self._rieul_tieut_resolver = rieul_tieut_gate.RieulTieutResolver()
         length = runner.contract.sequence_length
         self._sequence_v2: deque[np.ndarray] = deque(maxlen=length)
         self._sequence_v3: deque[np.ndarray] = deque(maxlen=length)
@@ -204,9 +207,11 @@ class RecognitionSession:
         # with the spread/together convention reversed relative to what the app
         # teaches, so the model answers ㄹ for a guide-correct ㅌ. When the
         # measured finger spread is unambiguous the label is swapped within the
-        # pair (confidences untouched); ambiguous frames pass through unchanged.
-        # See app/rieul_tieut_gate.py for the calibration numbers.
-        corrected = rieul_tieut_gate.resolve(symbol, landmarks, handedness)
+        # pair (confidences untouched). The resolver smooths the spread and
+        # holds the decision through the ambiguous band (hysteresis), because a
+        # stateless per-frame swap flickered ㅌ↔ㄹ near the band edges. See
+        # app/rieul_tieut_gate.py for the calibration numbers.
+        corrected = self._rieul_tieut_resolver.resolve(symbol, landmarks, handedness)
         if corrected is not None and corrected != symbol:
             rieul_tieut_gate.reassign_candidates(symbol, corrected, top_candidates)
             symbol = corrected
@@ -272,6 +277,7 @@ class RecognitionSession:
             self._sequence_v3.clear()
             self._smoothed = None
             self._smoothed_handedness = None
+            self._rieul_tieut_resolver.reset()
         return []
 
     def reset(self) -> None:
@@ -280,3 +286,4 @@ class RecognitionSession:
         self._missing_since = None
         self._smoothed = None
         self._smoothed_handedness = None
+        self._rieul_tieut_resolver.reset()
