@@ -72,12 +72,16 @@ class ClassifyTests(unittest.TestCase):
         """검지가 아무리 벌어져도 중지-약지가 떨어져 있으면 ㅌ이 아니다."""
         self.assertEqual(classify(45.0, 13.5), "ㄹ")
 
-    def test_evenly_together_fingers_are_not_tieut(self) -> None:
-        """검지까지 다 붙인 손은 ㅌ이 아니다 — ㅌ은 검지를 벌려야 한다."""
-        self.assertEqual(classify(8.0, 5.0), "ㄹ")
+    def test_mildly_ajar_index_still_counts_as_tieut(self) -> None:
+        """실전에서는 검지를 조금만 벌린다 — mr만 붙어 있으면 ㅌ."""
+        self.assertEqual(classify(14.0, 8.0), "ㅌ")
+
+    def test_evenly_together_fingers_are_ambiguous(self) -> None:
+        """검지까지 다 붙인 손은 ㅌ 확정이 아니다 (리졸버 기본값 ㄹ)."""
+        self.assertIsNone(classify(8.0, 5.0))
 
     def test_narrow_ambiguous_zone_returns_none(self) -> None:
-        # d=28.5 ≥ 20 이지만 mr가 10.5~13 사이: 어느 쪽도 확정하지 않는다.
+        # mr가 10~12.5 사이: 어느 쪽도 확정하지 않는다.
         self.assertIsNone(classify(40.0, 11.5))
 
 
@@ -93,6 +97,7 @@ class ResolveTests(unittest.TestCase):
     def test_slightly_apart_middle_ring_is_not_tieut(self) -> None:
         self.assertIsNone(resolve("ㅌ", hand(11.5, index_degrees=40.0), "RIGHT"))
         self.assertEqual(resolve("ㅌ", hand(13.5, index_degrees=40.0), "RIGHT"), "ㄹ")
+        self.assertEqual(resolve("ㄹ", hand(8.0, index_degrees=14.0), "RIGHT"), "ㅌ")
 
     def test_symbols_outside_the_pair_are_never_touched(self) -> None:
         self.assertIsNone(resolve("ㄷ", tieut_pose(), "RIGHT"))
