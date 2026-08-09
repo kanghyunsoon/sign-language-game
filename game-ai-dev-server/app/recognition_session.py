@@ -8,6 +8,7 @@ import numpy as np
 
 from . import handshape_gate
 from . import orientation_gate
+from . import rieul_tieut_gate
 from .diagnostics import PredictionDiagnostics
 from .none_checker import VETO_FEEDBACK, NoneChecker, load_none_checker
 from .feature_adapter import LANDMARK_COUNT, landmarks_to_features
@@ -199,6 +200,17 @@ class RecognitionSession:
             {"symbol": self._runner.contract.labels[int(index)], "confidence": float(prediction[int(index)])}
             for index in candidate_indexes
         ]
+        # ㄹ↔ㅌ reassignment. The legacy training data holds these two letters
+        # with the spread/together convention reversed relative to what the app
+        # teaches, so the model answers ㄹ for a guide-correct ㅌ. When the
+        # measured finger spread is unambiguous the label is swapped within the
+        # pair (confidences untouched); ambiguous frames pass through unchanged.
+        # See app/rieul_tieut_gate.py for the calibration numbers.
+        corrected = rieul_tieut_gate.resolve(symbol, landmarks, handedness)
+        if corrected is not None and corrected != symbol:
+            rieul_tieut_gate.reassign_candidates(symbol, corrected, top_candidates)
+            symbol = corrected
+
         # Geometric veto for ㅎ and ㅂ, which the model confuses with a plain fist
         # and a fully open hand respectively — the difference is the thumb alone,
         # and the thumb is a small part of the feature vector. Measured on the raw
