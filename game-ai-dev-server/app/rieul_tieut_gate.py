@@ -34,11 +34,14 @@ from .messages import Landmark
 # encodes exactly the defining contrast: for ㅌ the index splays while the
 # middle–ring pair stays closed; for ㄹ all gaps are similar so d ≈ 0.
 #
-# Decision rules (on EMA-smoothed angles), strict about ㅌ by design:
-#   1. mr ≥ 13°                 → ㄹ   (middle–ring clearly apart → never ㅌ)
-#   2. d ≥ 20° AND mr ≤ 10.5°   → ㅌ   (index clearly splayed AND mr closed)
-#   3. d ≤ 14°                  → ㄹ   (even spread — the ㄹ shape)
-#   4. otherwise                → keep previous decision; initially ㄹ
+# Decision rules (on EMA-smoothed angles), strict about ㅌ by design.
+# NOTE: the first shipped rule demanded d ≥ 20°, taken from the reference
+# video where the performer splayed the index dramatically; live users splay
+# it far less, so correct ㅌ poses fell through to ㄹ. The index requirement
+# is now only "more open than the middle–ring gap":
+#   1. mr ≥ 12.5°                    → ㄹ   (middle–ring apart → never ㅌ)
+#   2. mr ≤ 10° AND im ≥ mr + 4°     → ㅌ   (mr closed, index at least ajar)
+#   3. otherwise                     → keep previous decision; initially ㄹ
 #
 # Coordinates: raw screen landmarks. Angles between 3-D directions are
 # invariant to the left-hand x-mirror, so handedness needs no special-casing.
@@ -49,10 +52,9 @@ from .messages import Landmark
 GATE_ENABLED = os.getenv("HANDPRACTICE_AI_RIEUL_TIEUT_GATE", "1").strip().lower() in {"1", "true", "on"}
 
 # Rule thresholds (see the calibration table above).
-MR_RIEUL_MIN_DEGREES = float(os.getenv("HANDPRACTICE_AI_LT_MR_RIEUL_MIN_DEG", "13"))
-D_TIEUT_MIN_DEGREES = float(os.getenv("HANDPRACTICE_AI_LT_D_TIEUT_MIN_DEG", "20"))
-MR_TIEUT_MAX_DEGREES = float(os.getenv("HANDPRACTICE_AI_LT_MR_TIEUT_MAX_DEG", "10.5"))
-D_RIEUL_MAX_DEGREES = float(os.getenv("HANDPRACTICE_AI_LT_D_RIEUL_MAX_DEG", "14"))
+MR_RIEUL_MIN_DEGREES = float(os.getenv("HANDPRACTICE_AI_LT_MR_RIEUL_MIN_DEG", "12.5"))
+MR_TIEUT_MAX_DEGREES = float(os.getenv("HANDPRACTICE_AI_LT_MR_TIEUT_MAX_DEG", "10"))
+IM_TIEUT_MIN_MARGIN_DEGREES = float(os.getenv("HANDPRACTICE_AI_LT_IM_TIEUT_MIN_MARGIN_DEG", "4"))
 
 # Guard: only judge when index/middle/ring are actually extended.
 # MCP→TIP length in palm-scale units: extended fingers in the calibration
@@ -115,10 +117,8 @@ def classify(im: float, mr: float) -> str | None:
     """Apply the decision rules to one (im, mr) pair; None = ambiguous."""
     if mr >= MR_RIEUL_MIN_DEGREES:
         return "ㄹ"
-    if im - mr >= D_TIEUT_MIN_DEGREES and mr <= MR_TIEUT_MAX_DEGREES:
+    if mr <= MR_TIEUT_MAX_DEGREES and im >= mr + IM_TIEUT_MIN_MARGIN_DEGREES:
         return "ㅌ"
-    if im - mr <= D_RIEUL_MAX_DEGREES:
-        return "ㄹ"
     return None
 
 
