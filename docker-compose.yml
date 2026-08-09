@@ -59,6 +59,9 @@ services:
       # word-19-v1(구 모델, PyTorch .pt)은 폐기.
       HANDPRACTICE_WORD_MODEL_DIR: /app/models/ksl-word-v7
       HANDPRACTICE_WORD_MODEL_SHA256: 2c739f8c9e08d52d48b44c586f9b32930b2e9543b4084896a9043d238acaf337
+      # 조기 인정: 동작 중 가드·수형규칙 전부 통과 시 즉시 확정 (손 내릴 필요 없음).
+      # 문제 시 0으로 바꾸면 재빌드 없이 기존 구간-확정 방식으로 롤백.
+      HANDPRACTICE_WORD_EARLY_ACCEPT: ${HANDPRACTICE_WORD_EARLY_ACCEPT:-1}
 
     ports:
       - "127.0.0.1:8767:8767"

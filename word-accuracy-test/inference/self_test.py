@@ -45,7 +45,8 @@ WORD_KO = {"airplane": "비행기", "bad": "나쁘다", "bicycle": "자전거", 
 def append_result(row):
     exists = os.path.exists(RESULT_CSV)
     with open(RESULT_CSV, "a", newline="", encoding="utf-8-sig") as f:
-        w = csv.DictWriter(f, fieldnames=["time", "target", "pred", "conf", "verdict", "frames", "top3"])
+        w = csv.DictWriter(f, fieldnames=["time", "target", "pred", "conf", "verdict",
+                                          "frames", "top3", "detail"])
         if not exists:
             w.writeheader()
         w.writerow(row)
@@ -141,22 +142,26 @@ def rolling_main(args):
                 verdict = rolling_judge(target, ev, args.conf)
                 stats[target][0] += 1
                 stats[target][1] += (verdict == "correct")
-                row = {"time": time.strftime("%H:%M:%S"), "target": target,
-                       "pred": ev["word"], "conf": round(ev["confidence"], 3),
-                       "verdict": verdict, "frames": ev["duration_s"], "top3": str(ev["top3"])}
-                append_result(row)
-                session.append(row)
                 gtxt = ", ".join(f"{METRIC_KO.get(n, n)} {v} (허용 {lo}~{hi})"
                                  for n, v, lo, hi in ev["guard_fails"])
                 rtxt = "; ".join(f"{msg} (측정 {v}, 기준 {lo}~{hi})"
                                  for msg, v, lo, hi in ev.get("rule_fails", []))
                 if rtxt:
                     gtxt = (gtxt + " | " if gtxt else "") + rtxt
+                row = {"time": time.strftime("%H:%M:%S"), "target": target,
+                       "pred": ev["word"], "conf": round(ev["confidence"], 3),
+                       "verdict": verdict, "frames": ev["duration_s"],
+                       "top3": str(ev["top3"]), "detail": gtxt}
+                append_result(row)
+                session.append(row)
                 last_result = {"verdict": verdict, "pred": ev["word"],
-                               "conf": ev["confidence"], "top3": ev["top3"], "guard": gtxt}
+                               "conf": ev["confidence"], "top3": ev["top3"], "guard": gtxt,
+                               "early": bool(ev.get("early"))}
                 last_result_at = time.time()
+                early_tag = " (early)" if ev.get("early") else ""
                 print(f"  {target:<12} -> {ev['word']:<12} {ev['confidence']:.2f} "
-                      f"dur={ev['duration_s']}s [{verdict}]" + (f"  가드: {gtxt}" if gtxt else ""))
+                      f"dur={ev['duration_s']}s [{verdict}]{early_tag}"
+                      + (f"  가드: {gtxt}" if gtxt else ""))
 
         vis = frame.copy()
         draw_skeleton(vis, lm)
@@ -178,10 +183,12 @@ def rolling_main(args):
                         f, 0.6, (80, 220, 80), 2)
             cv2.rectangle(vis, (10, h - 32), (210, h - 24), (60, 60, 60), -1)
             cv2.rectangle(vis, (10, h - 32), (10 + int(200 * frac), h - 24), (80, 220, 80), -1)
-        if last_result and time.time() - last_result_at < 3.0 and d["state"] != "active":
+        # 조기 인정은 동작이 진행 중일 때 뜨므로 state와 무관하게 배너를 보여준다
+        if last_result and time.time() - last_result_at < 3.0:
             v = last_result
+            label_txt = VERDICT_LABEL[v["verdict"]] + (" - EARLY" if v.get("early") else "")
             cv2.rectangle(vis, (0, 66), (w, 152 if v["guard"] else 130), (30, 30, 30), -1)
-            cv2.putText(vis, VERDICT_LABEL[v["verdict"]], (10, 96), f, 0.9,
+            cv2.putText(vis, label_txt, (10, 96), f, 0.9,
                         VERDICT_COLOR[v["verdict"]], 2)
             cv2.putText(vis, f"pred: {v['pred']} ({v['conf']:.2f})  top3: {v['top3']}",
                         (10, 122), f, 0.5, (220, 220, 220), 1)
@@ -343,7 +350,7 @@ def main():
                 stats[target][1] += (verdict == "correct")
                 row = {"time": time.strftime("%H:%M:%S"), "target": target, "pred": pred,
                        "conf": round(conf, 3), "verdict": verdict, "frames": len(seg),
-                       "top3": str(top3)}
+                       "top3": str(top3), "detail": guard_info}
                 append_result(row)
                 session.append(row)
                 last_result = {"verdict": verdict, "pred": pred, "conf": conf, "top3": top3,

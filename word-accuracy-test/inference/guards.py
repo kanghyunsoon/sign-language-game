@@ -112,8 +112,14 @@ class Guard:
                 return cls(p)
         return None
 
-    def check(self, word, metrics):
-        """(통과 여부, 위반 목록[(항목, 값, 하한, 상한)]) 반환. 통계 없는 단어는 통과."""
+    def check(self, word, metrics, lo_relax=None):
+        """(통과 여부, 위반 목록[(항목, 값, 하한, 상한)]) 반환. 통계 없는 단어는 통과.
+
+        lo_relax: {항목: 계수} — 해당 항목의 하한에 곱해 완화한다. 롤링 윈도우/
+        강제 마감 꼬리처럼 동작의 시작·끝 전이가 안 담기는 구간은 진폭(amp)·
+        손가락 동작량(art)이 학습 클립(전이 포함)보다 낮게 측정되므로, 연속
+        반복 수행의 정속 구간을 거절하지 않으려면 하한을 낮춰 봐야 한다.
+        """
         st = self.stats.get(word)
         if st is None or metrics is None:
             return True, []
@@ -124,6 +130,8 @@ class Guard:
             if name not in metrics or name not in st:
                 continue
             lo, hi = st[name]
+            if lo_relax and name in lo_relax:
+                lo = round(lo * lo_relax[name], 4)
             v = metrics[name]
             if name.startswith("curl_"):
                 # 손가락은 개별 판정 대신 위반량 합산 — 한 손가락 경계선 이탈은 허용,
