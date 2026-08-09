@@ -653,6 +653,42 @@
   background: rgba(27, 37, 41, 0.72);
 }
 
+/* 인식이 한동안 안 될 때 카메라 위에 얹는 자세 팁 배너.
+   LIVE 뱃지와 겹치지 않게 그 아래에 두고, 어두운 카메라 배경에서 눈에 띄는
+   주의 문구 색(.practice-caution 계열)을 쓴다. 테스트 화면도 이 클래스를 쓴다. */
+.practice-recognition-tip {
+  position: absolute;
+  top: min(2.916667vw, 4.666667vh);
+  right: min(0.833333vw, 1.333333vh);
+  left: min(0.833333vw, 1.333333vh);
+  z-index: 5;
+  margin: 0;
+  padding: min(0.520833vw, 0.833333vh) min(0.729167vw, 1.166667vh);
+  border: min(0.052083vw, 0.083333vh) solid #eadf9f;
+  border-radius: min(0.625vw, 1vh);
+  color: #4c3a13;
+  font-size: min(0.9375vw, 1.5vh);
+  font-weight: 800;
+  text-align: center;
+  word-break: keep-all;
+  background: rgba(255, 249, 220, 0.95);
+  box-shadow: 0 min(0.416667vw, 0.666667vh) min(1.041667vw, 1.666667vh) rgba(63, 43, 32, 0.18);
+  animation: practice-recognition-tip-in 0.25s ease;
+  pointer-events: none;
+}
+
+@keyframes practice-recognition-tip-in {
+  from {
+    opacity: 0;
+    transform: translateY(max(-0.416667vw, -0.666667vh));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .practice-camera-guide-text {
   position: absolute;
   right: min(1.041667vw, 1.666667vh);

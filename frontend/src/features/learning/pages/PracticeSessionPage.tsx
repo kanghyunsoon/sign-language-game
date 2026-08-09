@@ -21,6 +21,7 @@ import {
   findFingerspellingEntry,
   fingerspellingItems,
 } from "../data/fingerspelling";
+import { findRecognitionTip } from "../data/recognitionTips";
 import { PracticeCompletionActions } from "../components/PracticeCompletionActions";
 import { PracticeSessionHeader } from "../components/PracticeSessionHeader";
 import type { PracticeFlowCategoryId } from "../data/practiceFlow";
@@ -28,6 +29,13 @@ import { PracticeWebSocketSignRecognizer } from "../recognition/PracticeWebSocke
 import { useFixedCanvasScale } from "../../../shared/layout/fixedCanvas";
 
 type PracticeCategoryId = FingerspellingCategoryId;
+
+/**
+ * 카메라가 켜진 채 이 시간 동안 정답이 나오지 않으면 자세 팁을 띄운다.
+ * 글자 카드의 설명문에 같은 내용이 있지만, 플레이 중에는 시선이 카메라에
+ * 가 있어 잘 읽히지 않는다는 피드백을 반영했다.
+ */
+const RECOGNITION_TIP_DELAY_MS = 7000;
 
 interface PracticeSessionPageProps {
   category?: PracticeCategoryId;
@@ -98,7 +106,9 @@ export function PracticeSessionPage({
     useState("AI 연결을 준비하고 있습니다.");
   const [cameraMessage, setCameraMessage] =
     useState("카메라 영역을 눌러주세요.");
+  const [showRecognitionTip, setShowRecognitionTip] = useState(false);
   const targetSymbol = practiceItems[currentIndex]?.symbol ?? "";
+  const recognitionTip = findRecognitionTip(targetSymbol);
 
   useEffect(() => {
     targetSymbolRef.current = targetSymbol;
@@ -111,6 +121,23 @@ export function PracticeSessionPage({
         : "AI 연결을 준비하고 있습니다.",
     );
   }, [recognizer, targetSymbol]);
+
+  // 카메라가 켜진 채 한동안 정답이 나오지 않으면 자세 팁을 띄운다.
+  // 정답이 나오거나 글자가 바뀌면 즉시 내린다.
+  useEffect(() => {
+    setShowRecognitionTip(false);
+
+    if (!recognitionTip || !isCameraActive || isCorrect) {
+      return;
+    }
+
+    const timerId = window.setTimeout(
+      () => setShowRecognitionTip(true),
+      RECOGNITION_TIP_DELAY_MS,
+    );
+
+    return () => window.clearTimeout(timerId);
+  }, [recognitionTip, targetSymbol, isCameraActive, isCorrect]);
 
   useEffect(() => {
     const unsubscribe = recognizer.subscribe((event) => {
@@ -529,6 +556,15 @@ export function PracticeSessionPage({
               {isCameraActive && (
                 <span className="practice-camera-live">● LIVE</span>
               )}
+
+              {isCameraActive &&
+                showRecognitionTip &&
+                recognitionTip &&
+                !isCorrect && (
+                  <p className="practice-recognition-tip" role="status">
+                    💡 {recognitionTip}
+                  </p>
+                )}
 
               {!isCameraActive && (
                 <p className="practice-camera-message">{cameraMessage}</p>
