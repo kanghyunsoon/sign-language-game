@@ -15,6 +15,7 @@ import {
 } from "../data/aiRecognition";
 import { PracticeWebSocketSignRecognizer } from "../recognition/PracticeWebSocketSignRecognizer";
 import { WordWebSocketSignRecognizer } from "../recognition/WordWebSocketSignRecognizer";
+import { findRecognitionTip } from "../data/recognitionTips";
 import { findSentenceSign } from "../data/sentenceSigns";
 import type {
   TestAnswerState,
@@ -26,6 +27,11 @@ import { TEST_TIME_LIMIT_SECONDS } from "../data/testSession";
 const TIME_LIMIT_MS = TEST_TIME_LIMIT_SECONDS * 1000;
 /** 남은 시간 표시 갱신 주기. */
 const TICK_INTERVAL_MS = 100;
+/**
+ * 이 시간 동안 정답이 나오지 않으면 자세 팁을 띄운다. 제한 시간이 10초라
+ * 연습 화면(7초)보다 짧게 잡아, 남은 시간 안에 자세를 고칠 수 있게 한다.
+ */
+const RECOGNITION_TIP_DELAY_MS = 4000;
 
 interface TestProgressViewProps {
   readonly questions: readonly TestQuestion[];
@@ -69,8 +75,10 @@ export function TestProgressView({
     "AI 연결을 준비하고 있습니다.",
   );
   const [isCorrectFeedbackOpen, setIsCorrectFeedbackOpen] = useState(false);
+  const [showRecognitionTip, setShowRecognitionTip] = useState(false);
 
   const currentQuestion = questions[currentIndex];
+  const recognitionTip = findRecognitionTip(currentQuestion?.symbol ?? "");
   const useWordEndpoint =
     currentQuestion?.categoryId === "word" ||
     currentQuestion?.categoryId === "sentence";
@@ -346,6 +354,23 @@ export function TestProgressView({
     return () => window.clearInterval(timerId);
   }, [currentIndex, currentQuestion, isCameraSettled]);
 
+  // 카메라가 켜진 채 한동안 정답이 나오지 않으면 자세 팁을 띄운다.
+  // 정답 팝업이 뜨거나 문항이 바뀌면 즉시 내린다.
+  useEffect(() => {
+    setShowRecognitionTip(false);
+
+    if (!recognitionTip || !cameraStream || isCorrectFeedbackOpen) {
+      return;
+    }
+
+    const timerId = window.setTimeout(
+      () => setShowRecognitionTip(true),
+      RECOGNITION_TIP_DELAY_MS,
+    );
+
+    return () => window.clearTimeout(timerId);
+  }, [currentIndex, recognitionTip, cameraStream, isCorrectFeedbackOpen]);
+
   if (!currentQuestion) {
     return null;
   }
@@ -433,6 +458,15 @@ export function TestProgressView({
             )}
 
             {cameraStream && <span className="test-camera-live">● LIVE</span>}
+
+            {cameraStream &&
+              showRecognitionTip &&
+              recognitionTip &&
+              !isCorrectFeedbackOpen && (
+                <p className="practice-recognition-tip" role="status">
+                  💡 {recognitionTip}
+                </p>
+              )}
           </div>
 
           <div className="test-camera-footer">
