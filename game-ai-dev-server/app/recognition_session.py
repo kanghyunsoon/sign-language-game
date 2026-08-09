@@ -7,6 +7,7 @@ import os
 import numpy as np
 
 from . import handshape_gate
+from . import orientation_gate
 from .diagnostics import PredictionDiagnostics
 from .none_checker import VETO_FEEDBACK, NoneChecker, load_none_checker
 from .feature_adapter import LANDMARK_COUNT, landmarks_to_features
@@ -213,6 +214,17 @@ class RecognitionSession:
         if verdict.rejected:
             handshape_hint = verdict.feedback
             confidence, top_candidates = _suppress(confidence, top_candidates)
+
+        # Orientation veto for the downward-pointing letters (ㄱㅅㅈㅊㅋㅜㅠ). A
+        # flipped pose whose upward variant is not a class keeps the downward
+        # letter as argmax, so the model alone confirms it; up-versus-down is
+        # gross geometry the gate can check reliably. Also vetoes a ㅋ whose
+        # thumb is unmistakably tucked. See app/orientation_gate.py.
+        if handshape_hint is None:
+            orientation_verdict = orientation_gate.verify(symbol, landmarks, handedness)
+            if orientation_verdict.rejected:
+                handshape_hint = orientation_verdict.feedback
+                confidence, top_candidates = _suppress(confidence, top_candidates)
 
         # Learned none-veto (T-161). Runs on the raw landmarks, only for letters
         # the checker was trained on, and only rejects — see app/none_checker.py.
