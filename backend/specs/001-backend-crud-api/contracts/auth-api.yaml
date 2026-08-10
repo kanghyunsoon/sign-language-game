@@ -1,0 +1,143 @@
+openapi: 3.0.3
+info:
+  title: 회원/인증 API (auth)
+  version: "1.0.0"
+  description: >
+    회원가입, 로그인/로그아웃, 토큰 재발급. spec.md User Story 2 / FR-005~FR-010 대응.
+    구현 시 {Domain}Api 인터페이스(AuthApi)에 이 명세에 대응하는 @Operation 어노테이션을 붙인다.
+tags:
+  - name: Auth
+paths:
+  /auth/signup:
+    post:
+      tags: [Auth]
+      summary: 회원가입
+      operationId: signup
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+      responses:
+        "201":
+          description: 가입 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        "409":
+          description: 이미 사용 중인 이메일 (FR-006)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: 로그인
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        "200":
+          description: 로그인 성공 - 인증/재발급 토큰 발급 (FR-007)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        "401":
+          description: 이메일/비밀번호 불일치 또는 탈퇴 계정 (FR-010)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: 토큰 재발급
+      operationId: refresh
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        "200":
+          description: 새 인증 토큰 발급 (FR-008)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        "401":
+          description: 만료/무효화된 재발급 토큰 (Edge Case)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: 로그아웃
+      operationId: logout
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: 로그아웃 처리, 재발급 토큰 무효화 (FR-009)
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    SignupRequest:
+      type: object
+      required: [email, password, nickname]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password, minLength: 8 }
+        nickname: { type: string, maxLength: 50 }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+    RefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken: { type: string }
+    TokenResponse:
+      type: object
+      properties:
+        accessToken: { type: string }
+        refreshToken: { type: string }
+    UserProfileResponse:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        email: { type: string }
+        nickname: { type: string }
+        profileImageUrl: { type: string, nullable: true }
+        winCount: { type: integer }
+        lossCount: { type: integer }
+    ErrorResponse:
+      type: object
+      properties:
+        code: { type: string }
+        message: { type: string }

@@ -1,0 +1,213 @@
+openapi: 3.0.3
+info:
+  title: 게임방 매칭 API (game-rooms)
+  version: "1.0.0"
+  description: >
+    1:1 대전용 게임방 생성/입장/퇴장/준비/시작/결과 저장 (REST, CRUD 범위).
+    spec.md User Story 4 / FR-019~FR-029 대응. 실시간 목록 구독(SSE)·방 내 실시간 동기화(WebSocket)는
+    1차 범위 밖(Out of Scope)이라 이 문서에 포함하지 않는다.
+tags:
+  - name: GameRooms
+paths:
+  /game-rooms:
+    post:
+      tags: [GameRooms]
+      summary: 게임방 생성
+      operationId: createGameRoom
+      security:
+        - bearerAuth: []
+      responses:
+        "201":
+          description: 고유 참가 코드가 발급된 방 생성, 요청자가 방장이 됨 (FR-019)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameRoomResponse'
+
+  /game-rooms/join:
+    post:
+      tags: [GameRooms]
+      summary: 참가 코드로 게임방 입장
+      operationId: joinGameRoom
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JoinRoomRequest'
+      responses:
+        "200":
+          description: 입장 성공, 현재 인원/정원/방 상태 포함 (FR-020)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameRoomResponse'
+        "404":
+          description: 존재하지 않는 참가 코드 (Edge Case)
+        "409":
+          description: 정원 초과 또는 이미 진행 중인 방 (FR-020)
+
+  /game-rooms/{roomId}/leave:
+    post:
+      tags: [GameRooms]
+      summary: 게임방 나가기
+      operationId: leaveGameRoom
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RoomId'
+      responses:
+        "204":
+          description: >
+            즉시 퇴장 처리. 대기 중(WAITING)인 방이면 방장 위임(FR-022) 또는 마지막 인원 시 CLOSED 전환(FR-023).
+            진행 중(IN_PROGRESS)인 방이면 나간 사람이 누구든 위임 없이 즉시 방을 CLOSED로 전환해
+            게임을 무효화한다(결과 미저장) — 명시적으로 나가지 않고 응답이 없어진 경우와 동일하게 취급하기 위함.
+        "403":
+          description: 해당 방 참가자가 아님 (Edge Case)
+
+  /game-rooms/{roomId}/ready:
+    post:
+      tags: [GameRooms]
+      summary: 준비 상태 표시
+      operationId: setReady
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RoomId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReadyRequest'
+      responses:
+        "200":
+          description: 준비 상태 갱신 (FR-025)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameRoomResponse'
+
+  /game-rooms/{roomId}/start:
+    post:
+      tags: [GameRooms]
+      summary: 게임 시작 요청 (방장 전용)
+      operationId: startGame
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RoomId'
+      responses:
+        "200":
+          description: 전원 준비 완료 시 방 상태 IN_PROGRESS로 전환 (FR-026)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameRoomResponse'
+        "409":
+          description: 준비되지 않은 참가자 존재 (FR-026)
+
+  /game-rooms/{roomId}/results:
+    post:
+      tags: [GameRooms]
+      summary: 게임 결과 보고
+      operationId: reportGameResult
+      description: >
+        점수는 위치(player1/player2)가 아니라 **역할(host/guest) 기준**으로 받는다 — 클라이언트가
+        순서를 실수로 바꿔 보내 승패가 영구적으로 뒤바뀌는 사고를 막기 위함(게임 결과 API 리뷰에서 확정).
+        승자는 요청으로 받지 않고 두 점수를 비교해 서버가 계산한다(동점이면 무승부, winnerUserId는 null).
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RoomId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameResultRequest'
+      responses:
+        "201":
+          description: >
+            매치 결과 저장, 참가자 승/패 갱신, 방 상태 CLOSED 전환 (FR-027).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameResultResponse'
+        "403":
+          description: 해당 게임 참가자가 아님 (Edge Case)
+        "409":
+          description: >
+            방이 이미 진행 중(IN_PROGRESS)이 아님 — 결과가 이미 보고되어 CLOSED된 경우(중복 보고, FR-028)와
+            IN_PROGRESS 중 나가기로 무효화되어 CLOSED된 경우(FR-023) 모두 동일하게 거부된다.
+            `game_sessions`가 `game_rooms`를 참조하지 않는 구조상 서버는 두 사유를 구분하지 않고
+            "IN_PROGRESS 상태에서만 결과 보고를 허용"하는 단일 규칙으로 처리한다(재반영 없음, 항상 거부).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    RoomId:
+      name: roomId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+  schemas:
+    GameRoomResponse:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        roomCode: { type: string }
+        hostUserId: { type: integer, format: int64 }
+        guestUserId: { type: integer, format: int64, nullable: true }
+        hostReady: { type: boolean }
+        guestReady: { type: boolean }
+        status: { type: string, enum: [WAITING, IN_PROGRESS, CLOSED] }
+        participantCount: { type: integer }
+        capacity: { type: integer, example: 2 }
+    JoinRoomRequest:
+      type: object
+      required: [roomCode]
+      properties:
+        roomCode: { type: string }
+    ReadyRequest:
+      type: object
+      required: [isReady]
+      properties:
+        isReady: { type: boolean }
+    GameResultRequest:
+      type: object
+      description: >
+        요청자는 반드시 해당 방의 host 또는 guest여야 하며, 점수는 위치가 아닌 역할로 매핑된다
+        (host_user_id → player1, guest_user_id → player2, data-model.md 참고).
+      required: [hostScore, guestScore]
+      properties:
+        hostScore: { type: integer, minimum: 0 }
+        guestScore: { type: integer, minimum: 0 }
+    GameResultResponse:
+      type: object
+      properties:
+        gameSessionId: { type: integer, format: int64 }
+        winnerUserId:
+          type: integer
+          format: int64
+          nullable: true
+          description: 두 점수가 같으면 null(무승부)
+        hostScore: { type: integer }
+        guestScore: { type: integer }
+    ErrorResponse:
+      type: object
+      properties:
+        code: { type: string }
+        message: { type: string }
