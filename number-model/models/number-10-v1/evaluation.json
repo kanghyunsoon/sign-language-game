@@ -1,0 +1,1150 @@
+{
+  "attemptId": "T-163c",
+  "modelVersion": "number-10-v1",
+  "seed": 42,
+  "labels": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "none"
+  ],
+  "featureVersion": "v3",
+  "featureSize": 78,
+  "frameInput": true,
+  "missingTrainClasses": [],
+  "labelGranularity": "10 merged",
+  "internalLabels": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "none"
+  ],
+  "selectionRule": "forced to extra-trees",
+  "selectedCandidate": "extra-trees",
+  "candidateValidation": {
+    "extra-trees": {
+      "samples": 109,
+      "accuracy": 0.926606,
+      "macroF1": 0.947571,
+      "numberMacroF1": 0.958328,
+      "numberMacroRecall": 1.0,
+      "numberMinRecall": 1.0,
+      "classesBelowFloor": [
+        "1",
+        "6"
+      ],
+      "classesBelowFloorCount": 2,
+      "noneFalseAcceptRate": 0.275862,
+      "numberRejectedAsNoneRate": 0.0,
+      "ninePredictedAsEight": 0,
+      "eightPredictedAsNine": 0,
+      "classes": [
+        {
+          "label": "1",
+          "precision": 0.727273,
+          "recall": 1.0,
+          "f1": 0.842105,
+          "support": 8
+        },
+        {
+          "label": "2",
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        {
+          "label": "3",
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        {
+          "label": "4",
+          "precision": 0.888889,
+          "recall": 1.0,
+          "f1": 0.941176,
+          "support": 8
+        },
+        {
+          "label": "5",
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        {
+          "label": "6",
+          "precision": 0.666667,
+          "recall": 1.0,
+          "f1": 0.8,
+          "support": 8
+        },
+        {
+          "label": "7",
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        {
+          "label": "8",
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        {
+          "label": "9",
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        {
+          "label": "10",
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        {
+          "label": "none",
+          "precision": 1.0,
+          "recall": 0.724138,
+          "f1": 0.84,
+          "support": 29
+        }
+      ],
+      "confusionMatrix": [
+        [
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0
+        ],
+        [
+          3,
+          0,
+          0,
+          1,
+          0,
+          4,
+          0,
+          0,
+          0,
+          0,
+          21
+        ]
+      ],
+      "confirmation": {
+        "candidateConfidence": 0.8,
+        "numberConfirmationRate": 0.9,
+        "numberMinConfirmationRate": 0.0,
+        "perClassConfirmationRate": {
+          "1": 1.0,
+          "2": 1.0,
+          "3": 1.0,
+          "4": 1.0,
+          "5": 1.0,
+          "6": 1.0,
+          "7": 1.0,
+          "8": 0.0,
+          "9": 1.0,
+          "10": 1.0
+        },
+        "negativeFalseConfirmationRate": 0.0,
+        "meanConfidenceOnNumbers": 0.937925
+      },
+      "trainingSeconds": 0.528
+    },
+    "knn": {
+      "samples": 109,
+      "accuracy": 0.798165,
+      "macroF1": 0.833778,
+      "numberMacroF1": 0.862155,
+      "numberMacroRecall": 0.95,
+      "numberMinRecall": 0.5,
+      "classesBelowFloor": [
+        "1",
+        "4",
+        "6",
+        "8",
+        "9",
+        "10"
+      ],
+      "classesBelowFloorCount": 6,
+      "noneFalseAcceptRate": 0.62069,
+      "numberRejectedAsNoneRate": 0.0,
+      "ninePredictedAsEight": 0,
+      "eightPredictedAsNine": 4,
+      "classes": [
+        {
+          "label": "1",
+          "precision": 0.727273,
+          "recall": 1.0,
+          "f1": 0.842105,
+          "support": 8
+        },
+        {
+          "label": "2",
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        {
+          "label": "3",
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        {
+          "label": "4",
+          "precision": 0.727273,
+          "recall": 1.0,
+          "f1": 0.842105,
+          "support": 8
+        },
+        {
+          "label": "5",
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        {
+          "label": "6",
+          "precision": 0.5,
+          "recall": 1.0,
+          "f1": 0.666667,
+          "support": 8
+        },
+        {
+          "label": "7",
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        {
+          "label": "8",
+          "precision": 1.0,
+          "recall": 0.5,
+          "f1": 0.666667,
+          "support": 8
+        },
+        {
+          "label": "9",
+          "precision": 0.615385,
+          "recall": 1.0,
+          "f1": 0.761905,
+          "support": 8
+        },
+        {
+          "label": "10",
+          "precision": 0.727273,
+          "recall": 1.0,
+          "f1": 0.842105,
+          "support": 8
+        },
+        {
+          "label": "none",
+          "precision": 1.0,
+          "recall": 0.37931,
+          "f1": 0.55,
+          "support": 29
+        }
+      ],
+      "confusionMatrix": [
+        [
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          4,
+          4,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0
+        ],
+        [
+          3,
+          0,
+          0,
+          3,
+          0,
+          8,
+          0,
+          0,
+          1,
+          3,
+          11
+        ]
+      ],
+      "confirmation": {
+        "candidateConfidence": 0.8,
+        "numberConfirmationRate": 0.95,
+        "numberMinConfirmationRate": 0.5,
+        "perClassConfirmationRate": {
+          "1": 1.0,
+          "2": 1.0,
+          "3": 1.0,
+          "4": 1.0,
+          "5": 1.0,
+          "6": 1.0,
+          "7": 1.0,
+          "8": 0.5,
+          "9": 1.0,
+          "10": 1.0
+        },
+        "negativeFalseConfirmationRate": 0.241379,
+        "meanConfidenceOnNumbers": 0.986698
+      },
+      "trainingSeconds": 0.003
+    },
+    "mlp": {
+      "samples": 109,
+      "accuracy": 0.963303,
+      "macroF1": 0.964065,
+      "numberMacroF1": 0.964042,
+      "numberMacroRecall": 0.975,
+      "numberMinRecall": 0.75,
+      "classesBelowFloor": [
+        "8",
+        "9"
+      ],
+      "classesBelowFloorCount": 2,
+      "noneFalseAcceptRate": 0.068966,
+      "numberRejectedAsNoneRate": 0.0,
+      "ninePredictedAsEight": 0,
+      "eightPredictedAsNine": 2,
+      "classes": [
+        {
+          "label": "1",
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        {
+          "label": "2",
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        {
+          "label": "3",
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        {
+          "label": "4",
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        {
+          "label": "5",
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        {
+          "label": "6",
+          "precision": 0.888889,
+          "recall": 1.0,
+          "f1": 0.941176,
+          "support": 8
+        },
+        {
+          "label": "7",
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        {
+          "label": "8",
+          "precision": 1.0,
+          "recall": 0.75,
+          "f1": 0.857143,
+          "support": 8
+        },
+        {
+          "label": "9",
+          "precision": 0.727273,
+          "recall": 1.0,
+          "f1": 0.842105,
+          "support": 8
+        },
+        {
+          "label": "10",
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        {
+          "label": "none",
+          "precision": 1.0,
+          "recall": 0.931034,
+          "f1": 0.964286,
+          "support": 29
+        }
+      ],
+      "confusionMatrix": [
+        [
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6,
+          2,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          1,
+          0,
+          27
+        ]
+      ],
+      "confirmation": {
+        "candidateConfidence": 0.8,
+        "numberConfirmationRate": 0.9625,
+        "numberMinConfirmationRate": 0.625,
+        "perClassConfirmationRate": {
+          "1": 1.0,
+          "2": 1.0,
+          "3": 1.0,
+          "4": 1.0,
+          "5": 1.0,
+          "6": 1.0,
+          "7": 1.0,
+          "8": 0.625,
+          "9": 1.0,
+          "10": 1.0
+        },
+        "negativeFalseConfirmationRate": 0.034483,
+        "meanConfidenceOnNumbers": 0.979864
+      },
+      "trainingSeconds": 2.551
+    }
+  },
+  "split": {
+    "signerIndependent": true,
+    "policy": "participant-held-out; public rows are training-only",
+    "participants": [
+      "captured-2026-07-video:p01",
+      "captured-2026-07-video:p02",
+      "captured-2026-07-video:p03",
+      "captured-2026-07-video:p04",
+      "captured-2026-07-video:p05",
+      "captured-2026-07-video:p06",
+      "holdout2-2026-07-29:p14",
+      "holdout2-2026-07-29:p15",
+      "new7-2026-07-28:p08",
+      "new7-2026-07-28:p09",
+      "new7-2026-07-28:p10",
+      "new7-2026-07-28:p11",
+      "new7-2026-07-28:p12",
+      "new7-2026-07-28:p13"
+    ],
+    "validParticipants": [
+      "new7-2026-07-28:p13"
+    ],
+    "testParticipants": [
+      "holdout2-2026-07-29:p14",
+      "holdout2-2026-07-29:p15"
+    ],
+    "publicTrainingRows": 1265,
+    "noneHoldoutPolicy": "whole source folders held out; measures rejection of unseen hand shapes",
+    "noneHoldoutValidFolders": [
+      "emotion",
+      "o",
+      "ui",
+      "yae"
+    ],
+    "noneHoldoutTestFolders": [
+      "eu",
+      "u",
+      "ya",
+      "yu"
+    ],
+    "droppedSourceFolders": [
+      "space",
+      "bieup",
+      "nieun",
+      "a",
+      "ieung"
+    ],
+    "droppedRows": 129,
+    "noneSampledTo": 200,
+    "train": 1995,
+    "valid": 109,
+    "test": 177,
+    "sources": [
+      "captured-2026-07-video",
+      "holdout2-2026-07-29",
+      "ksl-numbers",
+      "new7-2026-07-28",
+      "roboflow-jamo-as-none"
+    ]
+  },
+  "meanBatchInferenceMsPerSample": 1.2825,
+  "test": {
+    "samples": 177,
+    "accuracy": 0.937853,
+    "macroF1": 0.93875,
+    "numberMacroF1": 0.946911,
+    "numberMacroRecall": 0.95625,
+    "numberMinRecall": 0.75,
+    "classesBelowFloor": [
+      "2",
+      "8",
+      "9"
+    ],
+    "classesBelowFloorCount": 3,
+    "noneFalseAcceptRate": 0.210526,
+    "numberRejectedAsNoneRate": 0.006329,
+    "ninePredictedAsEight": 4,
+    "eightPredictedAsNine": 0,
+    "classes": [
+      {
+        "label": "1",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 16
+      },
+      {
+        "label": "2",
+        "precision": 0.789474,
+        "recall": 1.0,
+        "f1": 0.882353,
+        "support": 15
+      },
+      {
+        "label": "3",
+        "precision": 0.9375,
+        "recall": 0.9375,
+        "f1": 0.9375,
+        "support": 16
+      },
+      {
+        "label": "4",
+        "precision": 1.0,
+        "recall": 0.9375,
+        "f1": 0.967742,
+        "support": 16
+      },
+      {
+        "label": "5",
+        "precision": 1.0,
+        "recall": 0.9375,
+        "f1": 0.967742,
+        "support": 16
+      },
+      {
+        "label": "6",
+        "precision": 0.9375,
+        "recall": 1.0,
+        "f1": 0.967742,
+        "support": 15
+      },
+      {
+        "label": "7",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 16
+      },
+      {
+        "label": "8",
+        "precision": 0.8,
+        "recall": 1.0,
+        "f1": 0.888889,
+        "support": 16
+      },
+      {
+        "label": "9",
+        "precision": 1.0,
+        "recall": 0.75,
+        "f1": 0.857143,
+        "support": 16
+      },
+      {
+        "label": "10",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 16
+      },
+      {
+        "label": "none",
+        "precision": 0.9375,
+        "recall": 0.789474,
+        "f1": 0.857143,
+        "support": 19
+      }
+    ],
+    "confusionMatrix": [
+      [
+        16,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        15,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        15,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        15,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        15,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        15,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        16,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        16,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        4,
+        12,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        16,
+        0
+      ],
+      [
+        0,
+        3,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        15
+      ]
+    ],
+    "confirmation": {
+      "candidateConfidence": 0.8,
+      "numberConfirmationRate": 0.810127,
+      "numberMinConfirmationRate": 0.5625,
+      "perClassConfirmationRate": {
+        "1": 0.875,
+        "2": 0.866667,
+        "3": 0.9375,
+        "4": 0.9375,
+        "5": 0.875,
+        "6": 1.0,
+        "7": 0.75,
+        "8": 0.6875,
+        "9": 0.5625,
+        "10": 0.625
+      },
+      "negativeFalseConfirmationRate": 0.105263,
+      "meanConfidenceOnNumbers": 0.881076
+    }
+  },
+  "targetMet": false
+}

@@ -1,0 +1,5 @@
+-r requirements.txt
+# Only needed to turn images into landmarks. The server does not import these.
+mediapipe==0.10.21
+Pillow==10.4.0
+pillow-heif==1.4.0
