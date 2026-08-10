@@ -55,3 +55,8 @@ word-model/models/word-13-v1/*
 !word-model/models/word-13-v1/best_model.pt
 
 /node_modules/
+
+### WebRTC / TLS ###
+*.pem
+*.key
+certs/
