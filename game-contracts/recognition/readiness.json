@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "modelVersion": "jamo-31-v1",
+  "modelVersionNote": "modelVersion is the CLASS CONTRACT version — the 31-jamo label set and output order that app/model_adapter.py verifies at startup (mismatch raises ValueError). It is intentionally NOT the trained-weights version: retraining the head keeps the same contract, so this stays jamo-31-v1. Bump it only when a label is added/removed or the output order changes. The weights that produced the numbers below are recorded in evaluation.measuredModel.",
+  "confirmationAuthority": "FRONTEND_TEMPORAL_DECODER",
+  "evaluation": {
+    "sampleCount": 1900,
+    "sampling": "locked test split of the jamo capture videos (last 30% of each clip), sequence window 10 stride 1",
+    "measuredModel": "jamo-31-ensemble-v2 (dual head: feature_v2 55 + feature_v3 78, probability average w=0.5, rotation-augmented)",
+    "trainingIndependent": false,
+    "warning": "Train and test come from the same capture video per jamo (front 70% / back 30%), so this is not signer-independent. Treat these numbers as a provisional safety gate, not independent certification. Real-use robustness (occlusion, new signers) still needs separate verification."
+  },
+  "criteria": {
+    "minimumConfirmationRate": 0.85,
+    "minimumCompetitivePrecision": 0.90
+  },
+  "classes": [
+    { "symbol": "ㄱ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㄴ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㄷ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㄹ", "threshold": 0.5, "precision": 0.9688, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅁ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅂ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅅ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅇ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅈ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅊ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅋ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅌ", "threshold": 0.5, "precision": 1.0, "recall": 0.9483, "confirmationRate": 0.9483, "competitiveEligible": true },
+    { "symbol": "ㅍ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅎ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅏ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅑ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅓ", "threshold": 0.5, "precision": 1.0, "recall": 0.7049, "confirmationRate": 0.6885, "competitiveEligible": false, "reason": "confirmation rate below 85%; misread as ㅡ. Needs more ㅓ samples — margin tuning regressed ㅡ in T-152, so do not lower the threshold instead" },
+    { "symbol": "ㅕ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅗ", "threshold": 0.5, "precision": 1.0, "recall": 0.9, "confirmationRate": 0.8333, "competitiveEligible": false, "reason": "confirmation rate below 85%" },
+    { "symbol": "ㅛ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅜ", "threshold": 0.5, "precision": 1.0, "recall": 0.9538, "confirmationRate": 0.6769, "competitiveEligible": false, "reason": "confirmation rate below 85%; predictions are correct but confidence stays under 0.5 on part of the samples" },
+    { "symbol": "ㅠ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅡ", "threshold": 0.5, "precision": 0.8356, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": false, "reason": "precision below 90%; absorbs part of ㅓ" },
+    { "symbol": "ㅣ", "threshold": 0.5, "precision": 0.9825, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅐ", "threshold": 0.5, "precision": 0.9841, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅒ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅔ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅖ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 0.9153, "competitiveEligible": true },
+    { "symbol": "ㅢ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅚ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true },
+    { "symbol": "ㅟ", "threshold": 0.5, "precision": 1.0, "recall": 1.0, "confirmationRate": 1.0, "competitiveEligible": true }
+  ]
+}

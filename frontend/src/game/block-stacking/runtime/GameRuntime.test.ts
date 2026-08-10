@@ -1,0 +1,377 @@
+import { describe, expect, it } from "vitest";
+
+import type { PhysicsEvent, PhysicsLetterState, PhysicsWorld } from "../physics/types";
+import type { GameRenderer } from "../render/types";
+import { GameRuntime } from "./GameRuntime";
+import { DEFAULT_SOLO_GAME_CONFIG } from "./types";
+
+class FakePhysicsWorld implements PhysicsWorld {
+  readonly states = new Map<string, PhysicsLetterState>();
+  readonly queuedEvents: PhysicsEvent[] = [];
+  readonly removedIds: string[] = [];
+  resizedTo: { readonly width: number; readonly height: number } | null = null;
+
+  createLetter(spec: { readonly id: string; readonly symbol: string; readonly x: number; readonly y: number }): PhysicsLetterState {
+    const state: PhysicsLetterState = { ...spec, angle: 0, velocityX: 0, velocityY: 0, angularVelocity: 0, settled: false };
+    this.states.set(spec.id, state);
+    return state;
+  }
+  update(): readonly PhysicsEvent[] { return this.queuedEvents.splice(0); }
+  getLetterState(id: string): PhysicsLetterState | undefined { return this.states.get(id); }
+  getLetterStates(): readonly PhysicsLetterState[] { return [...this.states.values()]; }
+  removeLetter(id: string): boolean { this.removedIds.push(id); return this.states.delete(id); }
+  resize(width: number, height: number): void { this.resizedTo = { width, height }; }
+  clear(): void { this.states.clear(); }
+  destroy(): void { this.clear(); }
+}
+
+class FakeRenderer implements GameRenderer {
+  readonly highlightedIds: string[] = [];
+  readonly finishedIds: string[] = [];
+  readonly targetIds: Array<string | null> = [];
+  render(): void {}
+  resize(): void {}
+  highlightRemoval(id: string): void { this.highlightedIds.push(id); }
+  startSpawnEffect(): void {}
+  setTarget(id: string | null): void { this.targetIds.push(id); }
+  updateEffects() { return this.finishedIds.splice(0).map((id) => ({ type: "REMOVAL_EFFECT_FINISHED" as const, id })); }
+  clear(): void {}
+  destroy(): void {}
+}
+
+function createRuntime(): { readonly runtime: GameRuntime; readonly world: FakePhysicsWorld; readonly renderer: FakeRenderer } {
+  const world = new FakePhysicsWorld();
+  const renderer = new FakeRenderer();
+  return {
+    world,
+    renderer,
+    runtime: new GameRuntime({
+      physics: () => world,
+      renderer,
+      symbols: ["A"],
+      now: () => 100,
+      random: () => 0,
+      soloConfig: { spawnIntervalMs: 1 },
+      requestFrame: () => 1,
+      cancelFrame: () => undefined,
+    }),
+  };
+}
+
+describe("GameRuntime", () => {
+  it("uses weighted random selection without ever repeating the previous symbol", () => {
+    const world = new FakePhysicsWorld();
+    const renderer = new FakeRenderer();
+    const randomValues = [0, 0.5];
+    const runtime = new GameRuntime({
+      physics: () => world,
+      renderer,
+      symbols: ["A", "B", "C"],
+      random: () => randomValues.shift() ?? 0,
+      soloConfig: { autoDropEnabled: false },
+      requestFrame: () => 1,
+      cancelFrame: () => undefined,
+    });
+    runtime.setSymbolWeights({ A: 1, B: 1.2, C: 1 });
+
+    runtime.start();
+    expect(runtime.snapshot().queuedSymbol).toBe("A");
+    runtime.submitSymbol("A");
+    runtime.advance(32);
+    runtime.advance(32);
+    runtime.advance(32);
+    runtime.submitSymbol("A");
+    for (let elapsed = 0; elapsed < 768; elapsed += 32) runtime.advance(32);
+    const released = world.getLetterState("letter-1");
+    if (released) world.states.set(released.id, { ...released, y: DEFAULT_SOLO_GAME_CONFIG.letterHeight * 1.2 });
+    runtime.advance(1);
+
+    // A is excluded because it was the previous target. Within the remaining
+    // B/C candidates, 0.5 selects the mildly weighted B (1.2 vs 1.0).
+    expect(runtime.snapshot().queuedSymbol).toBe("B");
+    runtime.dispose();
+  });
+
+  it("selects a settled matching letter before a falling letter", () => {
+    const { runtime, world, renderer } = createRuntime();
+    runtime.start();
+    runtime.advance(1);
+    runtime.advance(1);
+    world.queuedEvents.push({ type: "LETTER_SETTLED", id: "letter-2" });
+    runtime.advance(1);
+    runtime.submitSymbol("A");
+    expect(renderer.highlightedIds).toEqual(["letter-2"]);
+    runtime.dispose();
+  });
+
+  it("falls back to the oldest falling letter and prevents held-input duplicates", () => {
+    const { runtime, world, renderer } = createRuntime();
+    runtime.start();
+    runtime.advance(1);
+    runtime.advance(1);
+    runtime.submitSymbol("A");
+    runtime.submitSymbol("A");
+    expect(renderer.highlightedIds).toEqual(["letter-1"]);
+    expect(runtime.snapshot().lastMessage).toContain("locked");
+    runtime.dispose();
+  });
+
+  it("highlights the oldest active letter as the board target", () => {
+    const { runtime, renderer } = createRuntime();
+    runtime.start();
+    runtime.advance(1);
+    runtime.advance(1);
+    expect(renderer.targetIds.at(-1)).toBe("letter-1");
+    runtime.submitSymbol("A");
+    expect(renderer.targetIds.at(-1)).toBe("letter-2");
+    runtime.dispose();
+  });
+
+  it("removes the body after the renderer effect and awards combo score", () => {
+    const { runtime, world, renderer } = createRuntime();
+    runtime.start();
+    runtime.advance(1);
+    runtime.submitSymbol("A");
+    renderer.finishedIds.push("letter-1");
+    runtime.advance(1);
+    expect(world.removedIds).toEqual(["letter-1"]);
+    expect(runtime.snapshot()).toMatchObject({ score: 100, combo: 1, removedCount: 1 });
+    runtime.dispose();
+  });
+
+  it("ends the game only when a settled letter reaches the danger line", () => {
+    const { runtime, world } = createRuntime();
+    runtime.start();
+    world.states.set("danger", { id: "danger", symbol: "A", x: 100, y: 180, angle: 0, velocityX: 0, velocityY: 0, angularVelocity: 0, settled: true });
+    world.queuedEvents.push({ type: "LETTER_SETTLED", id: "danger" });
+    runtime.advance(1);
+    expect(runtime.snapshot().runState).toBe("GAME_OVER");
+    runtime.dispose();
+  });
+
+  it("ends quickly when a letter remains nearly still across the danger line", () => {
+    const world = new FakePhysicsWorld();
+    const runtime = new GameRuntime({
+      physics: () => world,
+      renderer: new FakeRenderer(),
+      symbols: ["A"],
+      soloConfig: { spawnIntervalMs: 10_000 },
+      requestFrame: () => 1,
+      cancelFrame: () => undefined,
+    });
+    runtime.start();
+    world.states.set("stable-danger", {
+      id: "stable-danger",
+      symbol: "A",
+      x: 100,
+      y: 180,
+      angle: 0,
+      velocityX: 0.01,
+      velocityY: 0.01,
+      angularVelocity: 0.001,
+      settled: false,
+    });
+
+    for (let elapsed = 0; elapsed < 288; elapsed += 32) runtime.advance(32);
+    expect(runtime.snapshot().runState).toBe("RUNNING");
+    runtime.advance(32);
+    expect(runtime.snapshot().runState).toBe("GAME_OVER");
+    runtime.dispose();
+  });
+
+  it("keeps playing while a letter crossing the danger line is still moving", () => {
+    const world = new FakePhysicsWorld();
+    const runtime = new GameRuntime({
+      physics: () => world,
+      renderer: new FakeRenderer(),
+      symbols: ["A"],
+      soloConfig: { spawnIntervalMs: 10_000 },
+      requestFrame: () => 1,
+      cancelFrame: () => undefined,
+    });
+    runtime.start();
+    world.states.set("moving-danger", {
+      id: "moving-danger",
+      symbol: "A",
+      x: 100,
+      y: 180,
+      angle: 0,
+      velocityX: 0.2,
+      velocityY: 0.1,
+      angularVelocity: 0.02,
+      settled: false,
+    });
+
+    for (let elapsed = 0; elapsed < 640; elapsed += 32) runtime.advance(32);
+    expect(runtime.snapshot().runState).toBe("RUNNING");
+    runtime.dispose();
+  });
+
+  it("keeps the danger line at the same board ratio after resize", () => {
+    const { runtime, world } = createRuntime();
+    runtime.resizeViewport(640, 480);
+    runtime.start();
+    // Default danger ratio is 160 / 960. With a 480px board the line is 80px;
+    // a block far below the visible line must remain playable.
+    world.states.set("safe", { id: "safe", symbol: "A", x: 100, y: 155, angle: 0, velocityX: 0, velocityY: 0, angularVelocity: 0, settled: true });
+    runtime.advance(1);
+    expect(runtime.snapshot().runState).toBe("RUNNING");
+    world.states.set("danger", { id: "danger", symbol: "A", x: 200, y: 110, angle: 0, velocityX: 0, velocityY: 0, angularVelocity: 0, settled: true });
+    world.queuedEvents.push({ type: "LETTER_SETTLED", id: "danger" });
+    runtime.advance(1);
+    expect(runtime.snapshot().runState).toBe("GAME_OVER");
+    runtime.dispose();
+  });
+
+  it("records play time only while the game is running", () => {
+    const { runtime } = createRuntime();
+    runtime.start();
+    runtime.advance(25);
+    runtime.pause();
+    runtime.advance(25);
+    expect(runtime.snapshot().playTimeMs).toBe(25);
+    runtime.dispose();
+  });
+
+  it("keeps the full elapsed time when a render frame arrives late", () => {
+    const { runtime } = createRuntime();
+    runtime.start();
+    runtime.advance(1_000);
+    expect(runtime.snapshot().playTimeMs).toBe(1_000);
+    runtime.dispose();
+  });
+
+  it("resizes the physics floor with the rendered viewport", () => {
+    const { runtime, world } = createRuntime();
+    runtime.resizeViewport(640, 800);
+    expect(world.resizedTo).toEqual({ width: 640, height: 800 });
+    runtime.dispose();
+  });
+
+  it("preserves the current viewport dimensions after restart", () => {
+    const { runtime, world } = createRuntime();
+    runtime.resizeViewport(640, 800);
+    world.resizedTo = null;
+
+    runtime.restart();
+
+    expect(world.resizedTo).toEqual({ width: 640, height: 800 });
+    runtime.dispose();
+  });
+
+  it("releases the grown paper glyph from the same visible position before showing the next target", () => {
+    const world = new FakePhysicsWorld();
+    const renderer = new FakeRenderer();
+    const runtime = new GameRuntime({
+      physics: () => world,
+      renderer,
+      symbols: ["A"],
+      now: () => 100,
+      random: () => 0,
+      soloConfig: { autoDropEnabled: false },
+      requestFrame: () => 1,
+      cancelFrame: () => undefined,
+    });
+
+    runtime.start();
+    expect(runtime.snapshot().queuedSymbol).toBe("A");
+    runtime.submitSymbol("A");
+    expect(runtime.snapshot()).toMatchObject({ queuedSymbol: "A", paperBurstSymbol: null });
+    for (let elapsed = 0; elapsed < 96; elapsed += 32) runtime.advance(32);
+    runtime.submitSymbol("A");
+    expect(runtime.snapshot()).toMatchObject({ queuedSymbol: null, paperBurstSymbol: "A" });
+
+    for (let elapsed = 0; elapsed < 768; elapsed += 32) runtime.advance(32);
+
+    const released = world.getLetterState("letter-1");
+    expect(released?.x).toBe(DEFAULT_SOLO_GAME_CONFIG.boardWidth / 2);
+    expect(released?.y).toBeCloseTo(DEFAULT_SOLO_GAME_CONFIG.letterHeight * .35);
+    expect(runtime.snapshot()).toMatchObject({ queuedSymbol: null, paperBurstSymbol: null });
+
+    runtime.submitSymbol("A");
+    expect(world.getLetterState("letter-1")).toBeDefined();
+    expect(runtime.snapshot().removedCount).toBe(0);
+
+    if (released) world.states.set(released.id, { ...released, y: DEFAULT_SOLO_GAME_CONFIG.letterHeight * 1.2 });
+    runtime.advance(1);
+    expect(runtime.snapshot().queuedSymbol).toBe("A");
+    runtime.dispose();
+  });
+
+  it("queues the next paper target when a released glyph settles on a tall but safe stack", () => {
+    const world = new FakePhysicsWorld();
+    const runtime = new GameRuntime({
+      physics: () => world,
+      renderer: new FakeRenderer(),
+      symbols: ["A"],
+      now: () => 100,
+      random: () => 0,
+      soloConfig: {
+        autoDropEnabled: false,
+        letterHeight: 220,
+        dangerLineY: 160,
+      },
+      requestFrame: () => 1,
+      cancelFrame: () => undefined,
+    });
+
+    runtime.start();
+    for (let elapsed = 0; elapsed < 96; elapsed += 32) runtime.advance(32);
+    runtime.submitSymbol("A");
+    for (let elapsed = 0; elapsed < 768; elapsed += 32) runtime.advance(32);
+
+    const released = world.getLetterState("letter-1");
+    expect(runtime.snapshot().queuedSymbol).toBeNull();
+    if (released) {
+      world.states.set(released.id, { ...released, y: 240, settled: true });
+      world.queuedEvents.push({ type: "LETTER_SETTLED", id: released.id });
+    }
+    runtime.advance(1);
+
+    expect(runtime.snapshot()).toMatchObject({
+      runState: "RUNNING",
+      queuedSymbol: "A",
+    });
+    runtime.dispose();
+  });
+
+  it("discards an immediate stale confirmation until the first paper target is armed", () => {
+    const world = new FakePhysicsWorld();
+    const renderer = new FakeRenderer();
+    const runtime = new GameRuntime({
+      physics: () => world,
+      renderer,
+      symbols: ["A"],
+      now: () => 100,
+      random: () => 0,
+      soloConfig: { autoDropEnabled: false },
+      requestFrame: () => 1,
+      cancelFrame: () => undefined,
+    });
+
+    runtime.start();
+    runtime.submitSymbol("A");
+    expect(runtime.snapshot()).toMatchObject({
+      queuedSymbol: "A",
+      paperBurstSymbol: null,
+      activeLetterCount: 0,
+    });
+
+    runtime.advance(32);
+    runtime.advance(32);
+    expect(runtime.snapshot().paperBurstSymbol).toBeNull();
+    runtime.advance(32);
+    expect(runtime.snapshot()).toMatchObject({
+      queuedSymbol: "A",
+      paperBurstSymbol: null,
+      activeLetterCount: 0,
+    });
+    runtime.submitSymbol("A");
+    expect(runtime.snapshot()).toMatchObject({
+      queuedSymbol: null,
+      paperBurstSymbol: "A",
+      activeLetterCount: 0,
+    });
+    runtime.dispose();
+  });
+});

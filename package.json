@@ -1,0 +1,10 @@
+{
+  "name": "signmaster-vercel-deployment",
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "build": "npm --prefix frontend ci && npm --prefix frontend run build"
+  }
+}

@@ -1,0 +1,2 @@
+import { defineJamoObstacleTemplate } from "../JamoObstacleTemplate";
+export const GIYEOK_TEMPLATE = defineJamoObstacleTemplate({ templateId: "jamo-giyeok-v1", symbol: "ㄱ", tier: 1, normalizedPath: [{ x: 0, y: 1 }, { x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }], visualBounds: { width: .13, height: .25 }, entryOffset: { x: 0, y: 1 }, exitOffset: { x: 1, y: 1 }, penaltyMs: 1700, fallDurationMs: 520 });

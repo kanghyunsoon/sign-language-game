@@ -1,0 +1,156 @@
+.word-answer-guide {
+  min-width: 0;
+  overflow: hidden;
+  justify-content: center;
+}
+
+/*
+ * 단어 설명은 지문자보다 문장이 길어 지문자와 같은 크기(24px)로는 카드 폭
+ * (약 616px)을 넘긴다. 데이터가 나눠 둔 줄이 그대로 한 줄에 들어가도록 줄인다.
+ * 상자 높이는 지문자와 같은 3줄 기준을 그대로 쓴다.
+ */
+.word-answer-guide .practice-item-description {
+  font-size: min(1.041667vw, 1.666667vh);
+}
+
+.word-guide-placeholder {
+  width: min(19.270833vw, 30.833333vh);
+  height: min(15.625vw, 25vh);
+  max-width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: min(0.833333vw, 1.333333vh);
+  border: min(0.104167vw, 0.166667vh) dashed #cbbda9;
+  border-radius: min(1.145833vw, 1.833333vh);
+  color: #7d6d61;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.68);
+  overflow: hidden;
+}
+
+.word-guide-placeholder p {
+  margin: 0;
+}
+
+.word-guide-video {
+  width: min(23.125vw, 37vh);
+  height: min(18.75vw, 30vh);
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: min(1.145833vw, 1.833333vh);
+  background: #000000;
+}
+
+.word-guide-video video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.word-guide-video.word-guide-video-sentence .word-sign-video-player video {
+  object-fit: cover;
+}
+
+/* 연습 화면은 영상 크기를 vw/vh로 계산하므로 컨트롤도 같은 단위를 사용한다.
+   브라우저 확대·축소 시 영상만 고정되고 조작부만 커지는 현상을 막는다. */
+.word-guide-video .word-sign-video-controls {
+  min-height: min(3.229167vw, 5.166667vh);
+  gap: min(.625vw, 1vh);
+  padding: min(.416667vw, .666667vh) min(.625vw, 1vh);
+}
+
+.word-guide-video .word-sign-video-controls button {
+  width: min(2.395833vw, 3.833333vh);
+  height: min(2.395833vw, 3.833333vh);
+  flex-basis: min(2.395833vw, 3.833333vh);
+  border-radius: min(.46875vw, .75vh);
+}
+
+.word-guide-video .word-sign-video-controls button svg {
+  width: min(1.458333vw, 2.333333vh);
+  height: min(1.458333vw, 2.333333vh);
+}
+
+.word-guide-video .word-sign-video-time {
+  font-size: min(.885417vw, 1.416667vh);
+}
+
+.word-guide-video .word-sign-video-controls input[type="range"] {
+  min-width: min(3.125vw, 5vh);
+  height: min(1.458333vw, 2.333333vh);
+}
+
+.word-guide-video .word-sign-video-controls input[type="range"]::-webkit-slider-runnable-track {
+  height: min(.3125vw, .5vh);
+}
+
+.word-guide-video .word-sign-video-controls input[type="range"]::-webkit-slider-thumb {
+  width: min(.9375vw, 1.5vh);
+  height: min(.9375vw, 1.5vh);
+  margin-top: calc(min(.3125vw, .5vh) * -1);
+}
+
+.word-guide-video .word-sign-video-controls input[type="range"]::-moz-range-track {
+  height: min(.3125vw, .5vh);
+}
+
+.word-guide-video .word-sign-video-controls input[type="range"]::-moz-range-thumb {
+  width: min(.9375vw, 1.5vh);
+  height: min(.9375vw, 1.5vh);
+}
+
+.word-guide-placeholder p {
+  width: 100%;
+  padding: 0 min(0.625vw, 1vh);
+  font-size: min(1.041667vw, 1.666667vh);
+  font-weight: 700;
+  line-height: 1.45;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.word-hand-camera,
+.word-hand-camera video,
+.word-hand-camera canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.word-hand-camera {
+  overflow: hidden;
+  background: #1f2528;
+}
+
+.word-hand-camera video,
+.word-hand-camera canvas {
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.word-hand-camera canvas {
+  pointer-events: none;
+}
+
+.word-camera-error {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  z-index: 3;
+  margin: 0;
+  width: 80%;
+  color: #ffffff;
+  font-size: min(0.989583vw, 1.583333vh);
+  font-weight: 800;
+  line-height: 1.45;
+  text-align: center;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  transform: translate(-50%, -50%);
+}
+

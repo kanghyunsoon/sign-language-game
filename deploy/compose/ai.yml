@@ -1,0 +1,70 @@
+services:
+  ai:
+    image: sudal-ai:latest
+    container_name: sudal-ai
+    restart: unless-stopped
+    init: true
+
+    environment:
+      HANDPRACTICE_AI_HOST: ${HANDPRACTICE_AI_HOST:-0.0.0.0}
+      HANDPRACTICE_AI_PORT: ${HANDPRACTICE_AI_PORT:-8765}
+      HANDPRACTICE_AI_MODEL: ${HANDPRACTICE_AI_MODEL:-baseline}
+      # Decision-margin gate (top1 - top2). Raise to 0.3~0.4 to demand a more
+      # precise handshape; 0 disables the gate. See game-ai-dev-server/README.md.
+      HANDPRACTICE_AI_MIN_MARGIN: ${HANDPRACTICE_AI_MIN_MARGIN:-0.25}
+      # Landmark EMA before feature extraction. Weight of the NEW frame, so a
+      # smaller value smooths harder and lags more; 1.0 disables it.
+      # OFF by default (T-155): 0.3 measured well against synthetic jitter but
+      # made real use worse. See game-ai-dev-server/README.md.
+      HANDPRACTICE_AI_LANDMARK_SMOOTHING: ${HANDPRACTICE_AI_LANDMARK_SMOOTHING:-1.0}
+      # Prediction diagnostics (T-156). Empty path disables it entirely.
+      # "blocked" records only the frames the browser cannot confirm, which is the
+      # frontal-jamo failure being chased. Landmark coordinates and probabilities
+      # only - never imagery. Bounded by DIAG_MAX_FRAMES per process.
+      HANDPRACTICE_AI_DIAG_PATH: ${HANDPRACTICE_AI_DIAG_PATH:-/app/diagnostics/predictions.jsonl}
+      HANDPRACTICE_AI_DIAG_MODE: ${HANDPRACTICE_AI_DIAG_MODE:-blocked}
+      HANDPRACTICE_AI_DIAG_MAX_FRAMES: ${HANDPRACTICE_AI_DIAG_MAX_FRAMES:-20000}
+
+    ports:
+      - "127.0.0.1:${AI_PORT:-8765}:${AI_PORT:-8765}"
+
+    volumes:
+      - ${AI_MODEL_DIR:-/opt/sudal/ai/models}:/app/models:ro
+      # Writable: the diagnostics capture lands here so it survives a restart.
+      - ${AI_DIAG_DIR:-/opt/sudal/ai/diagnostics}:/app/diagnostics
+  number-ai:
+    image: sudal-number-ai:latest
+    container_name: sudal-number-ai
+    restart: unless-stopped
+    init: true
+
+    environment:
+      HANDPRACTICE_NUMBER_HOST: 0.0.0.0
+      HANDPRACTICE_NUMBER_PORT: 8766
+      HANDPRACTICE_NUMBER_PATH: /number
+
+    ports:
+      - "127.0.0.1:8766:8766"
+  word-ai:
+    image: sudal-word-ai:latest
+    container_name: sudal-word-ai
+    restart: unless-stopped
+    init: true
+
+    environment:
+      HANDPRACTICE_WORD_HOST: 0.0.0.0
+      HANDPRACTICE_WORD_PORT: 8767
+      HANDPRACTICE_WORD_PATH: /word
+      # ksl-word-v7(pose 정규화 + 물리량 가드 + 수형규칙, wrong 클래스 포함)로 교체.
+      # word-19-v1(구 모델, PyTorch .pt)은 폐기.
+      HANDPRACTICE_WORD_MODEL_DIR: /app/models/ksl-word-v7
+      HANDPRACTICE_WORD_MODEL_SHA256: 2c739f8c9e08d52d48b44c586f9b32930b2e9543b4084896a9043d238acaf337
+      # 조기 인정: 동작 중 가드·수형규칙 전부 통과 시 즉시 확정 (손 내릴 필요 없음).
+      # 문제 시 0으로 바꾸면 재빌드 없이 기존 구간-확정 방식으로 롤백.
+      HANDPRACTICE_WORD_EARLY_ACCEPT: ${HANDPRACTICE_WORD_EARLY_ACCEPT:-1}
+
+    ports:
+      - "127.0.0.1:8767:8767"
+
+    volumes:
+      - ${AI_MODEL_DIR:-/opt/sudal/ai/models}:/app/models:ro

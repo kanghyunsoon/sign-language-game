@@ -1,0 +1,955 @@
+.practice-session-page {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: #3f2b20;
+  background: #faf7f1;
+}
+
+.practice-session-canvas {
+  position: relative;
+  width: min(100vw, 177.777778vh);
+  aspect-ratio: 16 / 9;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: #3f2b20;
+  background: #faf7f1;
+}
+
+/* 메인페이지와 동일한 네비게이션바 */
+
+.practice-session-header-canvas {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+  transform-origin: center center;
+}
+
+.practice-session-header {
+  position: relative;
+  z-index: 5;
+  height: 86px;
+  flex: 0 0 86px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #e7d9c7;
+  background: rgba(255, 250, 242, 0.94);
+  box-shadow: 0 4px 18px rgba(85, 57, 37, 0.05);
+  pointer-events: auto;
+}
+
+.practice-session-header-spacer {
+  height: min(4.479167vw, 7.962963vh);
+  flex: 0 0 min(4.479167vw, 7.962963vh);
+}
+
+.practice-page-back-button {
+  position: absolute;
+  top: 50%;
+  left: 32px;
+  z-index: 1;
+  width: 59px;
+  height: 59px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  color: #3f2b20;
+  font-size: 41px;
+  line-height: 1;
+  text-decoration: none;
+  background: transparent;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.practice-page-back-button:hover {
+  transform: translateY(-50%);
+}
+
+.practice-session-nav {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 58px;
+}
+
+.practice-session-nav a,
+.practice-session-nav button {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #7d746b;
+  font-family: inherit;
+  font-size: 24px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.practice-session-nav a.active {
+  color: #3f2b20;
+}
+
+
+.practice-session-nav a.active::after {
+  position: absolute;
+  right: 0;
+  bottom: 17px;
+  left: 0;
+  height: 4px;
+  border-radius: 999px;
+  background: #9B6B43;
+  content: "";
+}
+
+.practice-session-mypage-button {
+  position: absolute;
+  top: 20px;
+  right: 58px;
+  width: 155px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #dbc8b1;
+  border-radius: 999px;
+  color: #5f402b;
+  font-size: 21px;
+  font-weight: 800;
+  text-decoration: none;
+  background: #fffaf2;
+  cursor: pointer;
+}
+
+/* 연습 진행 화면 전체 */
+
+.practice-session-header .app-bgm-toggle-viewport {
+  left: min(2.395833vw, 3.833333vh);
+  width: min(3.072917vw, 4.916667vh);
+  height: min(3.072917vw, 4.916667vh);
+}
+
+.practice-session-header .app-bgm-toggle-viewport.app-bgm-toggle-offset {
+  left: min(5.208333vw, 8.333333vh);
+}
+
+.practice-session-header .app-bgm-toggle-viewport svg {
+  width: min(2.192708vw, 3.508333vh);
+  height: min(2.192708vw, 3.508333vh);
+}
+
+.practice-session-main {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  padding: min(2.5vw, 4vh) min(2.916667vw, 4.666667vh) min(2.1875vw, 3.5vh);
+  background:
+    linear-gradient(
+      180deg,
+      #faf7f1 0%,
+      #faf7f1 52%,
+      #f3efe7 52%,
+      #f3efe7 100%
+    );
+}
+
+/* 상단 진행률 */
+
+.practice-progress-area {
+  width: min(min(75vw, 120vh), 100%);
+  margin: 0 auto min(1.354167vw, 2.166667vh);
+  display: flex;
+  align-items: center;
+  gap: min(1.145833vw, 1.833333vh);
+}
+
+.practice-progress-track {
+  height: min(0.572917vw, 0.916667vh);
+  flex: 1;
+  overflow: hidden;
+  border: min(0.052083vw, 0.083333vh) solid #ebe4dc;
+  border-radius: min(52.03125vw, 83.25vh);
+  background: #ffffff;
+  box-shadow:
+    inset 0 min(0.052083vw, 0.083333vh) min(0.15625vw, 0.25vh) rgba(63, 43, 32, 0.08),
+    0 min(0.104167vw, 0.166667vh) min(0.3125vw, 0.5vh) rgba(63, 43, 32, 0.04);
+}
+
+.practice-progress-bar {
+  height: 100%;
+  border-radius: inherit;
+  background: #342922;
+  transition: width 0.3s ease;
+}
+
+.practice-progress-count {
+  min-width: min(4.0625vw, 6.5vh);
+  padding: min(0.520833vw, 0.833333vh) min(0.833333vw, 1.333333vh);
+  border-radius: min(52.03125vw, 83.25vh);
+  color: #625950;
+  font-size: min(0.989583vw, 1.583333vh);
+  font-weight: 800;
+  text-align: center;
+  background: #ffffff;
+  box-shadow: 0 min(0.364583vw, 0.583333vh) min(0.9375vw, 1.5vh) rgba(63, 43, 32, 0.1);
+}
+
+.practice-session-panel-complete {
+  filter: blur(min(0.208333vw, 0.333333vh));
+  opacity: 0.5;
+  pointer-events: none;
+  user-select: none;
+}
+
+.practice-completion-overlay {
+  position: absolute;
+  top: min(5.416667vw, 8.666667vh);
+  right: 0;
+  bottom: min(1.041667vw, 1.666667vh);
+  left: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: min(1.354167vw, 2.166667vh);
+  background: rgba(250, 247, 241, 0.32);
+}
+
+.practice-completion-card {
+  width: min(min(31.25vw, 50vh), calc(100vw - min(2.083333vw, 3.333333vh)));
+  min-height: min(20.833333vw, 33.333333vh);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: min(1.458333vw, 2.333333vh) min(1.770833vw, 2.833333vh) min(1.25vw, 2vh);
+  border-radius: min(1.25vw, 2vh);
+  text-align: center;
+  background: #ffffff;
+  box-shadow: 0 min(1.041667vw, 1.666667vh) min(2.1875vw, 3.5vh) rgba(59, 42, 35, 0.2);
+}
+
+.practice-completion-character {
+  width: min(8.333333vw, 13.333333vh);
+  height: min(8.333333vw, 13.333333vh);
+  object-fit: contain;
+}
+
+.practice-completion-card h2 {
+  margin: min(0.520833vw, 0.833333vh) 0 min(0.364583vw, 0.583333vh);
+  color: #4c4037;
+  font-size: min(1.40625vw, 2.25vh);
+  line-height: 1.45;
+}
+
+.practice-completion-card > p {
+  margin: 0;
+  color: #91867d;
+  font-size: min(1.041667vw, 1.666667vh);
+}
+
+/* 버튼 묶음은 완료 카드 안, 제목 아래에 둔다. */
+.practice-completion-actions {
+  margin-top: min(1.25vw, 2vh);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: min(0.833333vw, 1.333333vh);
+}
+
+/* 이름 길이가 버튼마다 달라, 좌우 여백을 두고 글자 수에 따라 너비가 늘어나게 한다.
+   줄바꿈은 막아 세 버튼의 높이를 같게 유지한다. */
+.practice-completion-actions button,
+.practice-completion-actions a {
+  min-width: min(7.552083vw, 12.083333vh);
+  height: min(2.5vw, 4vh);
+  padding: 0 min(1.041667vw, 1.666667vh);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: min(0.677083vw, 1.083333vh);
+  color: #62574e;
+  font-size: min(0.989583vw, 1.583333vh);
+  font-weight: 800;
+  text-decoration: none;
+  background: #e8e2d8;
+  box-shadow: 0 min(0.416667vw, 0.666667vh) min(0.9375vw, 1.5vh) rgba(63, 43, 32, 0.12);
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.practice-completion-actions button:hover,
+.practice-completion-actions a:hover {
+  color: #ffffff;
+  background: #7c6a5b;
+  transform: translateY(max(-0.104167vw, -0.166667vh));
+}
+
+
+/* 좌우 카드를 감싸는 큰 흰색 패널 */
+
+.practice-session-panel {
+  width: min(min(75vw, 120vh), 100%);
+  /* 카드 안 요소가 늘어나 답답해 보여 세로를 680px 기준에서 760px 기준으로 키운다. */
+  min-height: min(39.583333vw, 63.333333vh);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: min(3.75vw, 6vh);
+  padding: min(1.25vw, 2vh) min(3.541667vw, 5.666667vh);
+  border-radius: min(1.770833vw, 2.833333vh);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 min(1.25vw, 2vh) min(2.604167vw, 4.166667vh) rgba(59, 42, 35, 0.13);
+}
+
+/* 좌우 카드 공통 */
+
+.practice-answer-panel,
+.practice-camera-panel {
+  min-width: 0;
+  min-height: min(32.8125vw, 52.5vh);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: min(1.302083vw, 2.083333vh);
+  background: #ffffff;
+  box-shadow: 0 min(0.520833vw, 0.833333vh) min(1.354167vw, 2.166667vh) rgba(63, 43, 32, 0.1);
+}
+
+.practice-panel-label {
+  position: relative;
+  min-height: min(3.645833vw, 5.833333vh);
+  display: flex;
+  align-items: center;
+  gap: min(0.677083vw, 1.083333vh);
+  padding: 0 min(1.458333vw, 2.333333vh);
+  border-bottom: min(0.052083vw, 0.083333vh) solid #eee7de;
+  color: #3f2b20;
+  font-size: min(1.197917vw, 1.916667vh);
+  font-weight: 900;
+}
+
+.practice-answer-panel .practice-panel-label::before,
+.practice-camera-panel .practice-panel-label::before {
+  width: min(2.34375vw, 3.75vh);
+  height: min(2.34375vw, 3.75vh);
+  display: grid;
+  place-items: center;
+  border-radius: min(0.572917vw, 0.916667vh);
+  font-size: min(1.041667vw, 1.666667vh);
+}
+
+.practice-answer-panel .practice-panel-label::before {
+  background: #eff7d9;
+  content: "✋";
+}
+
+.practice-camera-panel .practice-panel-label::before {
+  background: #eaf4fc;
+  content: "📷";
+}
+
+/* 분류명이 글자마다 달라지므로 CSS content가 아니라 실제 요소로 넣는다. */
+.practice-answer-panel .practice-panel-tag {
+  position: absolute;
+  right: min(1.25vw, 2vh);
+  padding: min(0.416667vw, 0.666667vh) min(0.677083vw, 1.083333vh);
+  border-radius: min(52.03125vw, 83.25vh);
+  color: #88908c;
+  font-size: min(0.833333vw, 1.333333vh);
+  font-weight: 800;
+  background: #f2f5f4;
+}
+
+/* 왼쪽 정답 동작 카드 */
+
+.practice-answer-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: min(0.833333vw, 1.333333vh);
+  padding: min(1.145833vw, 1.833333vh) min(1.25vw, 2vh) min(0.729167vw, 1.166667vh);
+}
+
+.practice-answer-guide {
+  position: relative;
+  flex: 1;
+  min-height: min(25vw, 40vh);
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: min(0.833333vw, 1.333333vh) min(1.145833vw, 1.833333vh) min(0.9375vw, 1.5vh);
+  border-radius: min(1.145833vw, 1.833333vh);
+  background: #eee7dc;
+}
+
+.practice-current-symbol {
+  position: absolute;
+  top: min(1.458333vw, 2.333333vh);
+  left: min(1.458333vw, 2.333333vh);
+  z-index: 2;
+  width: min(4.322917vw, 6.916667vh);
+  height: min(4.322917vw, 6.916667vh);
+  display: grid;
+  place-items: center;
+  border-radius: min(0.885417vw, 1.416667vh);
+  color: #485052;
+  font-size: min(2.135417vw, 3.416667vh);
+  font-weight: 900;
+  background: #ffffff;
+  box-shadow: 0 min(0.416667vw, 0.666667vh) min(1.041667vw, 1.666667vh) rgba(63, 43, 32, 0.1);
+}
+
+/* 정답 이미지가 들어갈 원형 영역 */
+
+/* 왼쪽 상단 [ㄱ] 라벨과 겹치지 않게 아래로 내린다. 아래 요소들도 함께 밀리며,
+   넘치지 않도록 정답 영역과 카드 높이를 같이 키웠다. */
+.practice-answer-placeholder {
+  width: min(16.145833vw, 25.833333vh);
+  height: min(16.145833vw, 25.833333vh);
+  flex: 0 0 min(16.145833vw, 25.833333vh);
+  display: grid;
+  place-items: center;
+  margin-top: min(2.083333vw, 3.333333vh);
+  overflow: hidden;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.practice-answer-placeholder img {
+  width: 85%;
+  height: 85%;
+  object-fit: contain;
+}
+
+/* 옆모습을 함께 보여주는 글자(ㅓ·ㅕ·ㅔ·ㅖ)는 정면 그림을 조금 줄인다.
+   원은 그대로 두고 그림만 작아져, 오른쪽 위 옆모습과 함께 봐도 빽빽하지 않다. */
+.practice-answer-placeholder-with-side img {
+  width: 74%;
+  height: 74%;
+}
+
+/* 손끝이 앞을 향하는 글자는 정면 그림만으로 방향을 알기 어려워 옆모습을 덧붙인다.
+   왼쪽 위 글자 라벨과 마주 보는 자리에, 정면 그림보다 작은 흰 카드로 놓는다. */
+/* 옆모습 사진과 그 아래 [측면] 라벨을 한 묶음으로 둔다. */
+.practice-answer-side {
+  position: absolute;
+  top: min(1.458333vw, 2.333333vh);
+  right: min(1.458333vw, 2.333333vh);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: min(.208333vw, .333333vh);
+}
+
+/* 글자 색은 문제 이름(.practice-item-navigation strong)과 같은 값을 쓴다. */
+.practice-answer-side-label {
+  color: #3f2b20;
+  font-size: min(1.197917vw, 1.916667vh);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.practice-answer-side-image {
+  width: min(5.729167vw, 9.166667vh);
+  height: min(5.729167vw, 9.166667vh);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 min(0.416667vw, 0.666667vh) min(1.041667vw, 1.666667vh) rgba(63, 43, 32, 0.1);
+}
+
+.practice-answer-side img {
+  width: 82%;
+  height: 82%;
+  object-fit: contain;
+}
+
+/* 현재 문제 이름 */
+
+.practice-item-navigation {
+  width: 100%;
+  min-height: min(2.708333vw, 4.333333vh);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: min(2.5vw, 1.5vh);
+}
+
+.practice-item-navigation strong {
+  color: #3f2b20;
+  font-size: min(1.927083vw, 3.083333vh);
+  line-height: 1;
+  text-align: center;
+}
+
+/* 디귿 아래 손동작 설명 */
+
+.practice-item-description {
+  /*
+   * 지문자 설명은 2줄과 3줄이 섞여 있다. 글자를 넘길 때 카드가 들썩이지 않도록
+   * 3줄 높이(font-size x line-height 1.65 x 3줄)로 고정하고 짧은 설명은 가운데 정렬한다.
+   */
+  min-height: min(6.1875vw, 9.9vh);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  color: #8a7e73;
+  font-size: min(1.25vw, 2vh);
+  line-height: 1.65;
+  text-align: center;
+  word-break: keep-all;
+}
+
+.practice-item-description p {
+  margin: 0;
+  white-space: nowrap;
+}
+
+/* 왼쪽 하단 주의 문구 */
+
+.practice-caution {
+  min-height: min(4.0625vw, 6.5vh);
+  display: flex;
+  align-items: flex-start;
+  gap: min(0.625vw, 1vh);
+  padding: min(0.833333vw, 1.333333vh) min(0.9375vw, 1.5vh);
+  border: min(0.052083vw, 0.083333vh) solid #eadf9f;
+  border-radius: min(0.833333vw, 1.333333vh);
+  color: #6f665b;
+  font-size: min(0.885417vw, 1.416667vh);
+  line-height: 1.65;
+  background: #fff9dc;
+}
+
+.practice-caution-icon {
+  width: min(1.458333vw, 2.333333vh);
+  height: min(1.458333vw, 2.333333vh);
+  flex: 0 0 min(1.458333vw, 2.333333vh);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: min(0.833333vw, 1.333333vh);
+  font-weight: 900;
+  background: #d7b85f;
+}
+
+.practice-caution p {
+  margin: 0;
+}
+
+/* 오른쪽 카메라 카드 */
+
+.practice-camera-panel {
+  padding-bottom: 0;
+}
+
+.practice-camera-placeholder {
+  position: relative;
+  flex: 1;
+  min-height: min(23.177083vw, 37.083333vh);
+  margin: min(1.145833vw, 1.833333vh) min(1.25vw, 2vh) min(0.729167vw, 1.166667vh);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: min(1.09375vw, 1.75vh);
+  color: transparent;
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(135, 148, 154, 0.26) 0%,
+      rgba(47, 59, 64, 0.93) 55%,
+      #29353a 100%
+    );
+}
+
+.practice-camera-placeholder {
+  position: relative;
+  flex: 1;
+  min-height: min(23.177083vw, 37.083333vh);
+  margin: min(1.145833vw, 1.833333vh) min(1.25vw, 2vh) min(0.729167vw, 1.166667vh);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: min(1.09375vw, 1.75vh);
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(135, 148, 154, 0.26) 0%,
+      rgba(47, 59, 64, 0.93) 55%,
+      #29353a 100%
+    );
+}
+
+.practice-camera-scale-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: calc(100% / var(--practice-camera-scale));
+  height: calc(100% / var(--practice-camera-scale));
+  overflow: hidden;
+  transform: scale(var(--practice-camera-scale));
+  transform-origin: top left;
+}
+
+.practice-camera-scale-layer > .camera-workspace {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+}
+
+.practice-camera-placeholder .camera-stage {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: inherit;
+  aspect-ratio: auto;
+}
+
+.practice-camera-live {
+  position: absolute;
+  top: min(0.885417vw, 1.416667vh);
+  left: min(0.885417vw, 1.416667vh);
+  z-index: 4;
+  padding: min(0.3125vw, 0.5vh) min(0.520833vw, 0.833333vh);
+  border-radius: min(52.03125vw, 83.25vh);
+  color: #ffffff;
+  font-size: min(0.78125vw, 1.25vh);
+  font-weight: 900;
+  background: rgba(27, 37, 41, 0.72);
+}
+
+/* 인식이 한동안 안 될 때 카메라 위에 얹는 자세 팁 배너.
+   LIVE 뱃지와 겹치지 않게 그 아래에 두고, 어두운 카메라 배경에서 눈에 띄는
+   주의 문구 색(.practice-caution 계열)을 쓴다. 테스트 화면도 이 클래스를 쓴다. */
+.practice-recognition-tip {
+  position: absolute;
+  top: min(2.916667vw, 4.666667vh);
+  right: min(0.833333vw, 1.333333vh);
+  left: min(0.833333vw, 1.333333vh);
+  z-index: 5;
+  margin: 0;
+  padding: min(0.520833vw, 0.833333vh) min(0.729167vw, 1.166667vh);
+  border: min(0.052083vw, 0.083333vh) solid #eadf9f;
+  border-radius: min(0.625vw, 1vh);
+  color: #4c3a13;
+  font-size: min(0.9375vw, 1.5vh);
+  font-weight: 800;
+  text-align: center;
+  word-break: keep-all;
+  background: rgba(255, 249, 220, 0.95);
+  box-shadow: 0 min(0.416667vw, 0.666667vh) min(1.041667vw, 1.666667vh) rgba(63, 43, 32, 0.18);
+  animation: practice-recognition-tip-in 0.25s ease;
+  pointer-events: none;
+}
+
+@keyframes practice-recognition-tip-in {
+  from {
+    opacity: 0;
+    transform: translateY(max(-0.416667vw, -0.666667vh));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.practice-camera-guide-text {
+  position: absolute;
+  right: min(1.041667vw, 1.666667vh);
+  bottom: min(1.25vw, 2vh);
+  left: min(1.041667vw, 1.666667vh);
+  z-index: 4;
+  color: #d9dfe1;
+  font-size: min(0.833333vw, 1.333333vh);
+  font-weight: 700;
+  text-align: center;
+  pointer-events: none;
+}
+
+.practice-camera-message {
+  position: relative;
+  z-index: 2;
+  max-width: min(13.020833vw, 20.833333vh);
+  margin: 0;
+  padding: min(0.833333vw, 1.333333vh) min(1.041667vw, 1.666667vh);
+  /* 글자 색은 문제 이름(.practice-item-navigation strong)과 같은 값을 쓴다. */
+  color: #3f2b20;
+  font-size: min(1.25vw, 2vh);
+  font-weight: 700;
+  line-height: 1.6;
+  text-align: center;
+  word-break: keep-all;
+}
+
+.practice-recognition-message {
+  position: absolute;
+  right: min(0.833333vw, 1.333333vh);
+  bottom: min(0.833333vw, 1.333333vh);
+  left: min(0.833333vw, 1.333333vh);
+  z-index: 5;
+  margin: 0;
+  padding: min(0.520833vw, 0.833333vh) min(0.729167vw, 1.166667vh);
+  border-radius: min(0.625vw, 1vh);
+  color: #ffffff;
+  font-size: min(0.885417vw, 1.416667vh);
+  font-weight: 800;
+  text-align: center;
+  background: rgba(35, 45, 49, 0.78);
+  backdrop-filter: blur(min(0.208333vw, 0.333333vh));
+}
+
+.practice-correct-overlay {
+  position: absolute;
+  z-index: 12;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(63, 43, 32, 0.28);
+  backdrop-filter: blur(min(0.260417vw, 0.416667vh));
+}
+
+.correct-feedback-modal-overlay {
+  position: fixed;
+}
+
+.practice-correct-card {
+  position: relative;
+  width: min(min(31.25vw, 50vh), calc(100% - min(2.083333vw, 3.333333vh)));
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: min(1.875vw, 3vh);
+  border: min(0.15625vw, 0.25vh) solid #d8c8a9;
+  border-radius: min(1.25vw, 2vh);
+  color: #4c4037;
+  text-align: center;
+  background: #fffdf7;
+  box-shadow: 0 min(1.041667vw, 1.666667vh) min(2.1875vw, 3.5vh) rgba(59, 42, 35, 0.25);
+}
+
+.practice-correct-card .practice-correct-close {
+  position: absolute;
+  top: min(0.625vw, 1vh);
+  right: min(0.625vw, 1vh);
+  width: min(2.083333vw, 3.333333vh);
+  min-width: 0;
+  height: min(2.083333vw, 3.333333vh);
+  min-height: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #827368;
+  font-size: min(1.5625vw, 2.5vh);
+  font-weight: 400;
+  line-height: 1;
+  background: #f2eee7;
+  box-shadow: none;
+}
+
+.practice-correct-card img {
+  width: min(11.458333vw, 18.333333vh);
+  height: min(11.458333vw, 18.333333vh);
+  object-fit: contain;
+}
+
+.practice-correct-card h2 {
+  margin: min(0.416667vw, 0.666667vh) 0;
+  color: #5f402b;
+  font-size: min(2.5vw, 4vh);
+}
+
+.practice-correct-card p {
+  margin: 0 0 min(1.041667vw, 1.666667vh);
+  color: #827368;
+  font-size: min(1.458333vw, 2.333333vh);
+}
+
+.practice-correct-card button {
+  min-width: min(7.8125vw, 12.5vh);
+  min-height: min(2.5vw, 4vh);
+  border: 0;
+  border-radius: min(0.677083vw, 1.083333vh);
+  color: #ffffff;
+  font: inherit;
+  font-size: min(1.041667vw, 1.666667vh);
+  font-weight: 900;
+  background: #8fa071;
+  box-shadow: 0 min(0.260417vw, 0.416667vh) 0 #6f8052;
+  cursor: pointer;
+}
+
+/* 카메라 인식 결과 */
+
+.practice-feedback {
+  min-height: min(3.854167vw, 6.166667vh);
+  margin: 0 min(1.041667vw, 1.666667vh);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  flex-direction: column;
+  padding: min(0.677083vw, 1.083333vh) min(0.9375vw, 1.5vh);
+  border-radius: min(0.833333vw, 1.333333vh);
+  color: #8b8178;
+  font-size: min(0.885417vw, 1.416667vh);
+  line-height: 1.55;
+  background: #f2eee7;
+}
+
+.practice-feedback::before {
+  color: #3f2b20;
+  font-size: min(1.09375vw, 1.75vh);
+  font-weight: 900;
+  content: "좋아요! 거의 정확해요";
+}
+
+/* 하단 이전 문제 / 카메라 / 다음 문제 버튼 */
+
+.practice-bottom-navigation {
+  position: relative;
+  width: min(min(75vw, 120vh), 100%);
+  margin: min(1.770833vw, 2.833333vh) auto 0;
+  display: grid;
+  grid-template-columns: min(7.552083vw, 12.083333vh) 1fr min(7.552083vw, 12.083333vh);
+  align-items: center;
+}
+
+.practice-session-page .practice-previous-button,
+.practice-session-page .practice-next-button {
+  width: min(7.552083vw, 12.083333vh);
+  height: min(3.020833vw, 4.833333vh);
+  min-width: min(7.552083vw, 12.083333vh);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: min(0.78125vw, 1.25vh);
+  color: #ffffff;
+  font-size: min(1.041667vw, 1.666667vh);
+  font-weight: 800;
+  background: #857361;
+  box-shadow:
+    0 min(0.416667vw, 0.666667vh) 0 #625448,
+    0 min(0.729167vw, 1.166667vh) min(1.25vw, 2vh) rgba(63, 43, 32, 0.2);
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.practice-previous-button {
+  grid-column: 1;
+  justify-self: start;
+}
+
+.practice-next-button {
+  grid-column: 3;
+  justify-self: end;
+}
+
+.practice-camera-button {
+  position: absolute;
+  top: max(-6.770833vw, -10.833333vh);
+  right: min(4.583333vw, 7.333333vh);
+  width: min(8.854167vw, 14.166667vh);
+  height: min(2.395833vw, 3.833333vh);
+  padding: 0 min(0.625vw, 1vh);
+  border: 0;
+  border-radius: min(0.729167vw, 1.166667vh);
+  color: #66594e;
+  font-size: min(0.9375vw, 1.5vh);
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  background: #fffce8;
+  box-shadow: 0 min(0.416667vw, 0.666667vh) min(0.9375vw, 1.5vh) rgba(63, 43, 32, 0.09);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.practice-session-page .practice-previous-button:hover:not(:disabled),
+.practice-session-page .practice-next-button:hover:not(:disabled) {
+  color: #ffffff;
+  background: #857361;
+  transform: translateY(max(-0.104167vw, -0.166667vh));
+}
+
+.practice-camera-button:hover {
+  transform: translateY(max(-0.104167vw, -0.166667vh));
+}
+
+.practice-session-page .practice-previous-button:active:not(:disabled),
+.practice-session-page .practice-next-button:active:not(:disabled) {
+  color: #ffffff;
+  background: #857361;
+  transform: translateY(min(0.208333vw, 0.333333vh));
+  box-shadow:
+    0 min(0.15625vw, 0.25vh) 0 #625448,
+    0 min(0.416667vw, 0.666667vh) min(0.729167vw, 1.166667vh) rgba(63, 43, 32, 0.16);
+}
+
+.practice-session-page .practice-previous-button:disabled {
+  color: #ffffff;
+  background: #857361;
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* 잘못된 주소 */
+
+.practice-session-error {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: min(0.9375vw, 1.5vh);
+  color: #3f2b20;
+  background: #faf7f1;
+}
+
+.practice-session-error a {
+  color: #5f402b;
+  font-weight: 800;
+}
+
+/* 태블릿 */

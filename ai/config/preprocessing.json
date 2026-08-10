@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1.0.0",
+  "mediaPipe": {
+    "task": "HandLandmarker",
+    "runningMode": "IMAGE",
+    "numHands": 1,
+    "minHandDetectionConfidence": 0.5,
+    "minHandPresenceConfidence": 0.5,
+    "minTrackingConfidence": 0.5,
+    "modelUrl": "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+    "modelSha256": "fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1"
+  },
+  "quality": {
+    "minHandednessScore": 0.5,
+    "minBoundingBoxAreaRatio": 0.01,
+    "landmarkBoundaryTolerance": 0.05,
+    "maxOutOfBoundsLandmarks": 4
+  },
+  "normalization": {
+    "originLandmarkIndex": 0,
+    "scaleLandmarkIndices": [5, 9, 13, 17],
+    "canonicalHandedness": "Right",
+    "scaleEpsilon": 0.000001,
+    "applyRotationNormalization": false
+  },
+  "dataset": {
+    "splits": ["train", "validation", "test"],
+    "imageExtensions": [".jpg", ".jpeg", ".png", ".webp", ".bmp"],
+    "requireParticipantForEvaluation": true,
+    "minimumAcceptedTrainSamplesPerClass": 1
+  }
+}

@@ -1,0 +1,2 @@
+Placeholder so the versioned number-model bundle directory exists before training.
+Training writes number-10.joblib, manifest.json, and evaluation.json here.
