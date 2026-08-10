@@ -1,0 +1,1088 @@
+:root {
+  --main-bg-top: #faf8f3;
+  --main-bg-bottom: #f5f2eb;
+  --main-line: #e7dfd4;
+  --main-text: #40372d;
+  --main-muted: #8e877e;
+  --main-brown: #564131;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  color: var(--main-text);
+  font-family:
+    "Pretendard",
+    "Noto Sans KR",
+    "Apple SD Gothic Neo",
+    Arial,
+    sans-serif;
+}
+
+button,
+a {
+  font: inherit;
+}
+
+.main-page {
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: var(--main-bg-bottom);
+}
+
+.main-canvas {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0 auto;
+  background: var(--main-bg-top);
+}
+
+.main-header {
+  position: relative;
+  z-index: 10;
+  height: min(4.479167vw, 7.166667vh);
+  flex: 0 0 min(4.479167vw, 7.166667vh);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: min(0.052083vw, 0.083333vh) solid #e7d9c7;
+  background: rgba(255, 250, 242, 0.94);
+  box-shadow: 0 min(0.208333vw, 0.333333vh) min(0.9375vw, 1.5vh)
+    rgba(85, 57, 37, 0.05);
+}
+
+.main-nav {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: min(3.020833vw, 4.833333vh);
+}
+
+.main-nav a {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  color: #7d746b;
+  font-size: min(1.25vw, 2vh);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.main-nav a.active {
+  color: #3f2b20;
+}
+
+.main-nav a.active::after {
+  position: absolute;
+  right: 0;
+  bottom: min(0.885417vw, 1.416667vh);
+  left: 0;
+  height: min(0.208333vw, 0.333333vh);
+  border-radius: min(52.03125vw, 83.25vh);
+  background: #9b6b43;
+  content: "";
+}
+
+.main-mypage-button {
+  position: absolute;
+  top: min(1.041667vw, 1.666667vh);
+  right: min(3.020833vw, 4.833333vh);
+  width: min(8.072917vw, 12.916667vh);
+  height: min(2.291667vw, 3.666667vh);
+  display: grid;
+  place-items: center;
+  border: min(0.052083vw, 0.083333vh) solid #dbc8b1;
+  border-radius: min(52.03125vw, 83.25vh);
+  color: #5f402b;
+  font-size: min(1.09375vw, 1.75vh);
+  font-weight: 800;
+  text-decoration: none;
+  background: #fffaf2;
+}
+
+.main-content {
+  background:
+    linear-gradient(
+      180deg,
+      var(--main-bg-top) 0,
+      var(--main-bg-top) 54%,
+      var(--main-bg-bottom) 54%,
+      var(--main-bg-bottom) 100%
+    );
+}
+
+.main-hero {
+  position: relative;
+  height: clamp(440px, 61vh, 720px);
+  min-height: 440px;
+  overflow: hidden;
+}
+
+.main-hero-heading {
+  position: relative;
+  z-index: 2;
+  padding-top: clamp(28px, 3.8vh, 46px);
+  text-align: center;
+}
+
+.main-hero-heading h1 {
+  margin: 0;
+  color: var(--main-text);
+  font-size: clamp(32px, 3vw, 58px);
+  line-height: 1.25;
+  letter-spacing: -0.045em;
+}
+
+.main-hero-heading p {
+  margin: clamp(12px, 1.6vh, 19px) 0 0;
+  color: var(--main-muted);
+  font-size: clamp(13px, 1vw, 19px);
+}
+
+.learning-menu-section {
+  position: relative;
+  z-index: 4;
+  width: min(1280px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: clamp(18px, 2.3vh, 28px) 0 clamp(28px, 4vh, 48px);
+}
+
+.learning-menu-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin: 0 clamp(64px, 7.5vw, 145px) 10px;
+}
+
+.learning-menu-heading h2 {
+  margin: 0;
+  font-size: clamp(20px, 1.7vw, 32px);
+  letter-spacing: -0.035em;
+}
+
+.learning-menu-heading p {
+  margin: 0;
+  color: var(--main-muted);
+  font-size: clamp(12px, 0.85vw, 16px);
+}
+
+.learning-carousel {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.learning-menu-cards {
+  width: calc(100% - clamp(100px, 12vw, 180px));
+  min-height: clamp(150px, 18vh, 216px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.learning-menu-card {
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 1.4vw, 26px);
+  padding: clamp(20px, 2.4vw, 46px) clamp(16px, 2vw, 38px);
+  border: 1px solid #e5ddd1;
+  color: inherit;
+  text-decoration: none;
+  background: rgba(255, 254, 251, 0.98);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.learning-menu-card:first-child {
+  border-radius: 18px 0 0 18px;
+}
+
+.learning-menu-card + .learning-menu-card {
+  border-left: 0;
+}
+
+.learning-menu-card:last-child {
+  border-radius: 0 18px 18px 0;
+}
+
+.learning-menu-card:hover {
+  z-index: 1;
+  background: #fff;
+  transform: translateY(-3px);
+}
+
+.learning-menu-icon {
+  width: clamp(40px, 3.7vw, 70px);
+  aspect-ratio: 1;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  font-size: clamp(20px, 1.7vw, 32px);
+  font-weight: 800;
+}
+
+.learning-menu-icon.practice {
+  color: #d2a847;
+  background: #f8efd8;
+}
+
+.learning-menu-icon.game {
+  color: #84634e;
+  background: #efe3d9;
+}
+
+.learning-menu-icon.test {
+  color: #70835a;
+  background: #e6ecd9;
+}
+
+.learning-menu-icon.dictionary {
+  color: #6b5140;
+  background: #eae2da;
+}
+
+.learning-menu-icon.review {
+  color: #a56f59;
+  background: #f2dfd7;
+}
+
+.learning-menu-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.learning-menu-copy strong {
+  font-size: clamp(16px, 1.3vw, 25px);
+}
+
+.learning-menu-copy > span {
+  color: var(--main-muted);
+  font-size: clamp(11px, 0.79vw, 15px);
+  line-height: 1.55;
+  word-break: keep-all;
+}
+
+.carousel-button {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  width: clamp(44px, 4vw, 76px);
+  height: clamp(74px, 9vw, 140px);
+  padding: 0;
+  border: 0;
+  color: var(--main-text);
+  font-size: clamp(52px, 5vw, 96px);
+  font-weight: 200;
+  line-height: 1;
+  background: transparent;
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: transform 0.2s ease;
+}
+
+.carousel-button:hover {
+  transform: translateY(-50%) scale(1.08);
+}
+
+.carousel-button-prev {
+  left: 0;
+}
+
+.carousel-button-next {
+  right: 0;
+}
+
+.learning-guide-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 70px;
+  background: rgba(39, 31, 25, 0.52);
+}
+
+.learning-guide-modal {
+  position: relative;
+  width: 1660px;
+  min-height: 780px;
+  padding: 70px 72px 54px;
+  border: 1px solid #e3d9cc;
+  border-radius: 30px;
+  color: #40372d;
+  background: #fffdf9;
+  box-shadow: 0 28px 80px rgba(44, 34, 27, 0.25);
+}
+
+.learning-guide-close {
+  position: absolute;
+  top: 28px;
+  right: 34px;
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  padding: 0 0 5px;
+  border: 0;
+  color: #6f645a;
+  font-size: 44px;
+  line-height: 1;
+  background: transparent;
+  cursor: pointer;
+}
+
+.learning-guide-modal h2 {
+  margin: 0 0 46px;
+  color: #40372d;
+  font-size: 54px;
+  letter-spacing: -0.04em;
+}
+
+.learning-guide-intro {
+  margin: 0;
+  color: #756c63;
+  font-size: 31px;
+  font-weight: 600;
+  line-height: 1.62;
+  letter-spacing: -0.025em;
+}
+
+.learning-guide-steps {
+  margin: 72px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 46px;
+  list-style: none;
+}
+
+.learning-guide-steps li {
+  position: relative;
+  min-width: 0;
+}
+
+.learning-guide-steps li:not(:last-child)::after {
+  position: absolute;
+  top: 48px;
+  right: -38px;
+  width: 30px;
+  height: 2px;
+  background: #d8cec2;
+  content: "";
+}
+
+.learning-guide-steps li > span {
+  width: 100px;
+  height: 100px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 24px;
+  border: 3px solid #c8beb1;
+  border-radius: 50%;
+  color: #7d7065;
+  font-size: 30px;
+  font-weight: 800;
+  background: #f7f3ed;
+}
+
+.learning-guide-steps li > span.active {
+  border-color: #8e7b63;
+  color: #fff;
+  background: #8e7b63;
+}
+
+.learning-guide-steps strong {
+  display: block;
+  margin-bottom: 16px;
+  font-size: 27px;
+}
+
+.learning-guide-steps p {
+  margin: 0;
+  color: #746a61;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.55;
+  word-break: keep-all;
+}
+
+@media (max-width: 900px) {
+  .main-nav {
+    gap: 18px;
+  }
+
+  .main-mypage-button {
+    right: 14px;
+    width: 92px;
+  }
+
+  .learning-menu-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 680px) {
+  .main-header {
+    height: auto;
+    min-height: 64px;
+    padding: 0 12px;
+  }
+
+  .main-nav {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 20px;
+    overflow-x: auto;
+    padding-right: 104px;
+    scrollbar-width: none;
+  }
+
+  .main-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .main-nav a {
+    min-height: 64px;
+  }
+
+  .main-hero {
+    height: 500px;
+  }
+
+  .main-hero-heading {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .learning-menu-section {
+    width: calc(100% - 20px);
+  }
+
+  .learning-menu-heading {
+    margin-right: 48px;
+    margin-left: 48px;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .learning-menu-cards {
+    width: calc(100% - 84px);
+    grid-template-columns: 1fr;
+  }
+
+  .learning-menu-card {
+    display: none;
+    min-height: 150px;
+    border: 1px solid #e5ddd1;
+    border-radius: 18px;
+  }
+
+  .learning-menu-card:first-child {
+    display: flex;
+    border-radius: 18px;
+  }
+}
+
+/*
+ * 다른 고정 캔버스 페이지와 동일한 1920 × 1200 기준 레이아웃.
+ * 화면 크기가 달라져도 내부 요소를 재배치하지 않고 캔버스 전체만 확대/축소한다.
+ */
+.main-page {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  overflow: hidden;
+  color: #3f2b20;
+  background: #faf7f1;
+}
+
+.main-canvas {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1920px;
+  height: 1080px;
+  min-height: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform-origin: center;
+}
+
+.main-header {
+  height: 86px;
+  flex: 0 0 86px;
+  border-bottom-width: 1px;
+  box-shadow: 0 4px 18px rgba(85, 57, 37, 0.05);
+}
+
+.main-nav {
+  width: auto;
+  justify-content: center;
+  gap: 58px;
+  overflow: visible;
+  padding-right: 0;
+}
+
+.main-nav a {
+  min-height: 0;
+  font-size: 24px;
+}
+
+.main-nav a.active::after {
+  bottom: 17px;
+  height: 4px;
+}
+
+.main-mypage-button {
+  top: 20px;
+  right: 58px;
+  width: 155px;
+  height: 44px;
+  border-width: 1px;
+  font-size: 21px;
+}
+
+.main-content {
+  height: calc(1080px - 86px);
+  flex: 0 0 calc(1080px - 86px);
+}
+
+.main-hero {
+  height: 680px;
+  min-height: 680px;
+}
+
+.main-hero-heading {
+  padding: 26px 0 0;
+}
+
+.main-hero-heading h1 {
+  font-size: 58px;
+}
+
+.main-hero-heading p {
+  margin-top: 19px;
+  font-size: 19px;
+}
+
+.main-otter {
+  position: absolute;
+  z-index: 2;
+  bottom: -180px;
+  left: 50%;
+  width: 780px;
+  aspect-ratio: 1 / 1;
+  height: auto;
+  object-fit: contain;
+  transform: translateX(-50%);
+}
+
+.main-rocks {
+  position: absolute;
+  z-index: 1;
+  display: block;
+  bottom: 54px;
+  width: 230px;
+  object-fit: contain;
+}
+
+.main-rocks-left {
+  left: 150px;
+}
+
+.main-rocks-right {
+  right: 150px;
+}
+
+
+.learning-menu-section {
+  width: 1600px;
+  margin: 0 auto;
+  padding: 10px 0 12px;
+  transform: translateY(-32px);
+}
+
+.learning-menu-heading {
+  margin: 0 100px 10px;
+  align-items: baseline;
+  flex-direction: row;
+  gap: 14px;
+}
+
+.learning-menu-heading h2 {
+  font-size: 38px;
+}
+
+.learning-menu-heading p {
+  font-size: 18px;
+}
+
+.learning-menu-cards {
+  width: 1400px;
+  min-height: 220px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.learning-menu-card,
+.learning-menu-card:first-child {
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  gap: 26px;
+  padding: 38px 48px;
+}
+
+.learning-menu-icon {
+  width: 70px;
+  font-size: 32px;
+}
+
+.learning-menu-copy strong {
+  font-size: 30px;
+}
+
+.learning-menu-copy > span {
+  font-size: 18px;
+}
+
+.carousel-button {
+  width: 76px;
+  height: 140px;
+  font-size: 96px;
+}
+
+/* ---------------- 출석체크 (모달 안) ---------------- */
+
+/*
+ * 학습 메뉴 카드와 같은 테두리·배경·라운딩 토큰을 쓴다.
+ * 이 페이지는 1920x1200 캔버스를 transform으로 축소하므로 치수는 px로 적는다.
+ */
+.attendance-card {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+.attendance-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.attendance-streak {
+  color: var(--main-text);
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.attendance-total {
+  color: var(--main-muted);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* 7열 2행. 1행이 지난주, 2행이 이번주다. */
+.attendance-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.attendance-day {
+  position: relative;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  padding: 10px;
+  border: 1px solid #e5ddd1;
+  border-radius: 18px;
+  background: rgba(255, 254, 251, 0.98);
+}
+
+/* 날짜는 칸 좌상단에 작게. */
+.attendance-day-label {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  color: var(--main-muted);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* 오늘 칸은 옅은 포인트 색으로 구분한다. */
+.attendance-day-today {
+  border-color: #cbb89c;
+  background: #fdf4e4;
+}
+
+.attendance-day-today .attendance-day-label {
+  color: var(--main-brown);
+}
+
+/* 아직 오지 않은 날은 눌러도 소용이 없으므로 톤을 낮춘다. */
+.attendance-day-future {
+  background: rgba(245, 242, 235, 0.7);
+  opacity: 0.55;
+}
+
+/* 좌상단 날짜와 겹치지 않도록 아래로 내린다. */
+.attendance-stamp {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 70%;
+  height: 70%;
+  margin-top: 16%;
+}
+
+.attendance-stamp img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* 스탬프만으로는 보조기기가 내용을 알 수 없어 텍스트를 숨겨 둔다. */
+.attendance-day-reader {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.attendance-check-button {
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 800;
+  background: var(--main-brown);
+  box-shadow: 0 3px 0 #3f2f22;
+  cursor: pointer;
+}
+
+.attendance-check-button:hover {
+  background: #6b5140;
+}
+
+.attendance-check-button:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #3f2f22;
+}
+
+/* 출석체크 모달은 학습 방법 모달보다 좁다. */
+.attendance-modal {
+  width: 900px;
+  min-height: 0;
+  padding: 42px 46px 36px;
+}
+
+.attendance-modal .learning-guide-close {
+  top: 18px;
+  right: 22px;
+  width: 42px;
+  height: 42px;
+  padding-bottom: 4px;
+  font-size: 34px;
+}
+
+.attendance-modal h2 {
+  margin-bottom: 24px;
+  font-size: 40px;
+}
+
+.attendance-modal .attendance-card {
+  gap: 18px;
+}
+
+.attendance-modal .attendance-streak {
+  font-size: 27px;
+}
+
+.attendance-modal .attendance-total {
+  font-size: 17px;
+}
+
+.attendance-modal .attendance-month {
+  gap: 20px;
+}
+
+.attendance-modal .attendance-month-title {
+  min-width: 180px;
+  font-size: 23px;
+}
+
+.attendance-modal .attendance-month-button {
+  width: 40px;
+  height: 40px;
+  font-size: 25px;
+}
+
+.attendance-modal .attendance-grid,
+.attendance-modal .attendance-weekdays {
+  gap: 10px;
+}
+
+.attendance-modal .attendance-weekdays > li {
+  font-size: 16px;
+}
+
+.attendance-modal .attendance-day {
+  padding: 8px;
+  border-radius: 14px;
+}
+
+.attendance-modal .attendance-day-label {
+  top: 8px;
+  left: 9px;
+  font-size: 15px;
+}
+
+.attendance-modal .attendance-check-button {
+  padding: 8px 13px;
+  font-size: 15px;
+}
+
+/* 달력 상단: 가운데 연·월, 양옆 이동 화살표 */
+.attendance-month {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+}
+
+.attendance-month-title {
+  min-width: 220px;
+  color: var(--main-text);
+  font-size: 28px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.attendance-month-button {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  padding: 0 0 4px;
+  border: 1px solid #e5ddd1;
+  border-radius: 50%;
+  color: var(--main-brown);
+  font-size: 30px;
+  line-height: 1;
+  background: #fffefb;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.attendance-month-button:hover {
+  background: #f4eee4;
+}
+
+/* 요일 줄. 날짜 칸과 같은 7열을 써서 열이 어긋나지 않는다. */
+.attendance-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.attendance-weekdays > li {
+  color: var(--main-muted);
+  font-size: 19px;
+  font-weight: 800;
+  text-align: center;
+}
+
+/* 앞뒤 달에서 끌어온 칸은 흐리게 두어 이번 달과 구분한다. */
+.attendance-day-outside {
+  background: rgba(245, 242, 235, 0.55);
+}
+
+.attendance-day-outside .attendance-day-label {
+  opacity: 0.6;
+}
+
+/* ---------------- 히어로 수달 (839) ---------------- */
+
+/* 수달 이미지와 [이사하기]를 함께 감싸는 프레임. 위치는 프레임이 맡고
+   이미지는 프레임을 채운다(선택자가 더 구체적이라 위 .main-otter 규칙을 덮는다). */
+.main-otter-frame {
+  position: absolute;
+  /*
+   * 히어로 문구(.main-hero-heading)와 같은 2층에 있으면 DOM 뒤쪽인 이 프레임이
+   * 위에 그려져, 위로 뻗은 그림(숲속동굴)이 문구를 가린다. 그림만 한 층 내린다.
+   * 문구 쪽을 올리면 전폭 블록인 문구 박스가 그림 위에 얹혀 클릭을 가로챈다.
+   */
+  z-index: 1;
+  bottom: -180px;
+  left: 50%;
+  width: 780px;
+  aspect-ratio: 1 / 1;
+  transform: translateX(-50%);
+}
+
+.main-otter-frame .main-otter {
+  position: static;
+  bottom: auto;
+  left: auto;
+  width: 100%;
+  height: 100%;
+  transform: none;
+}
+
+/* 여백이 좁아 같은 칸을 채우면 다른 집보다 크게 보이는 그림들의 보정.
+   프레임은 그대로 두고 그림만 줄여, [이사하기] 위치가 흔들리지 않게 한다.
+   translateY를 scale보다 앞에 둬서 올리는 거리가 함께 줄지 않는다. */
+.main-otter-frame .main-otter-log {
+  transform: translateY(-3%) scale(0.95);
+}
+
+.main-otter-frame .main-otter-on-log {
+  transform: translateY(-6%) scale(0.8);
+}
+
+.main-otter-frame .main-otter-cave {
+  transform: translateY(-4%) scale(0.7);
+}
+
+/* 포근한 침실은 다른 집보다 커 보여 크기를 0.85에서 그 90%로 한 번 더 줄인다. */
+.main-otter-frame .main-otter-riverside {
+  transform: translateY(-3%) scale(0.765);
+}
+
+/* 수달 그림 오른쪽에 붙인다(프레임 기준). 말풍선 꼬리도 왼쪽 아래를 향하게 뒤집는다. */
+.main-otter-attendance-button {
+  position: absolute;
+  top: 23%;
+  right: -1%;
+  z-index: 3;
+  height: 56px;
+  padding: 0 24px;
+  border: 1px solid #d8cfc2;
+  border-radius: 999px;
+  color: var(--main-brown);
+  font-size: 20px;
+  font-weight: 800;
+  background: #fff;
+  box-shadow:
+    0 3px 6px rgba(72, 55, 41, 0.09),
+    0 10px 22px rgba(72, 55, 41, 0.12);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.main-otter-attendance-button:hover {
+  background: #f7f1e7;
+  transform: translateY(-2px);
+}
+
+.main-otter-attendance-button:active {
+  transform: none;
+}
+
+.main-otter-attendance-button::before,
+.main-otter-attendance-button::after {
+  position: absolute;
+  width: 0;
+  height: 0;
+  content: "";
+}
+
+.main-otter-attendance-button::before {
+  bottom: -16px;
+  left: 24px;
+  border-top: 16px solid #d8cfc2;
+  border-right: 16px solid transparent;
+}
+
+.main-otter-attendance-button::after {
+  bottom: -13px;
+  left: 25px;
+  border-top: 14px solid #fff;
+  border-right: 14px solid transparent;
+}
+
+/* [이사하기]도 히어로의 다른 버튼과 같은 흰 알약으로 맞추고, 화면 끝이 아니라
+   수달 왼쪽 위에 붙인다. */
+/* ---------------- 학습 메뉴 캐러셀 (839) ---------------- */
+
+/*
+ * 카드 한 칸의 폭과 간격. 트랙을 옮기는 거리도 이 값으로 계산하므로,
+ * 카드 폭과 이동 거리가 어긋날 수 없다.
+ *
+ * 창 폭이 고정(1400px)이라 칸 폭도 px로 정한다. 트랙은 자기 폭 기준으로
+ * %가 계산되어 카드가 15장 늘어선 트랙에서는 100%를 쓸 수 없다.
+ */
+.learning-menu-viewport {
+  --menu-card-gap: 0px;
+  --menu-slot: calc((1400px - var(--menu-card-gap) * 2) / 3);
+  width: 1400px;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 18px;
+}
+
+/* 띠 전체를 한 줄로 늘어놓는다. 창을 넘는 부분은 잘려 보이지 않는다. */
+.learning-menu-track {
+  display: flex;
+  gap: var(--menu-card-gap);
+  width: max-content;
+}
+
+/*
+ * 미끄러지는 동안에만 전환을 건다. 이동이 끝나고 기준점을 가운데 벌로
+ * 되돌릴 때는 전환이 없어야 순간이동해 눈에 띄지 않는다.
+ */
+.learning-menu-track[data-sliding="true"] {
+  transition: transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.learning-menu-track .learning-menu-card {
+  flex: 0 0 var(--menu-slot);
+  min-height: 220px;
+  border-radius: 0;
+}
+
+/* 트랙 안에서는 첫·마지막 칸의 둥근 모서리를 뷰포트가 대신 맡는다. */
+.learning-menu-track .learning-menu-card:first-child,
+.learning-menu-track .learning-menu-card:last-child {
+  border-radius: 0;
+}
+
+.carousel-button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}

@@ -1,0 +1,205 @@
+// @vitest-environment jsdom
+
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+
+import { GameModuleContext, type GameModuleContextValue } from "../../app/GameModuleContext";
+import type { BattleRoomGateway, BattleRoomSession, BattleRoomSummary } from "../battle/room";
+import type { GameModuleServices } from "../../contracts";
+import { MockBattleMediaSession } from "../../media/mock/MockBattleMediaSession";
+import { BattleRoomListPage } from "./BattleRoomListPage";
+
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
+
+describe("BattleRoomListPage", () => {
+  it("shows room status, host, range and player count", async () => {
+    renderPage(gateway({ getRooms: vi.fn(async () => [summary()]) }));
+    expect(await screen.findByRole("heading", { name: "입문 연습방" })).toBeTruthy();
+    expect(screen.getAllByText("나사용자")).toHaveLength(2);
+    expect(screen.getByText("1/2")).toBeTruthy();
+    expect(screen.getByText("자음")).toBeTruthy();
+  });
+
+  it("polls rooms using the configured interval", async () => {
+    vi.useFakeTimers();
+    const getRooms = vi.fn(async () => [summary()]);
+    renderPage(gateway({ getRooms }), 100);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(getRooms).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(100);
+    expect(getRooms).toHaveBeenCalledTimes(2);
+  });
+
+  it("creates a room and navigates to its waiting room", async () => {
+    const createRoom = vi.fn(async () => session());
+    renderPage(gateway({ createRoom }));
+    fireEvent.click(screen.getByRole("button", { name: "방 만들기" }));
+    fireEvent.change(screen.getByLabelText("방 제목"), { target: { value: "새 연습방" } });
+    fireEvent.click(screen.getAllByRole("button", { name: "방 만들기" })[1]);
+    await waitFor(() => expect(createRoom).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText("WAITING_ROUTE")).toBeTruthy();
+  });
+
+  it("sends only one create request when the form is submitted repeatedly", async () => {
+    let resolveCreate!: (value: BattleRoomSession) => void;
+    const createRoom = vi.fn(() => new Promise<BattleRoomSession>((resolve) => { resolveCreate = resolve; }));
+    renderPage(gateway({ createRoom }));
+    fireEvent.click(screen.getByRole("button", { name: "방 만들기" }));
+    fireEvent.change(screen.getByLabelText("방 제목"), { target: { value: "중복 방지" } });
+    const submitButton = screen.getAllByRole("button", { name: "방 만들기" })[1];
+    const form = submitButton.closest("form");
+    if (!form) throw new Error("Create room form was not rendered.");
+
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+
+    expect(createRoom).toHaveBeenCalledTimes(1);
+    resolveCreate(session());
+    expect(await screen.findByText("WAITING_ROUTE")).toBeTruthy();
+  });
+
+  it("keeps creation locked when the server rejects before the second click", async () => {
+    const createRoom = vi.fn(async () => {
+      throw new Error("Game room request failed (500).");
+    });
+    renderPage(gateway({ createRoom }));
+    const openButton = document.querySelector("button[class*='createButton']");
+    if (!openButton) throw new Error("Create room button was not rendered.");
+    fireEvent.click(openButton);
+    const dialog = screen.getByRole("dialog");
+    const titleInput = dialog.querySelector("input[required]");
+    const submitButton = dialog.querySelector("button[type='submit']");
+    if (!titleInput || !submitButton) throw new Error("Create room form was not rendered.");
+    fireEvent.change(titleInput, { target: { value: "rapid failure" } });
+
+    fireEvent.click(submitButton);
+    await screen.findByRole("alert");
+    fireEvent.click(submitButton);
+
+    expect(createRoom).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not create another room while the user has an active room session", async () => {
+    const createRoom = vi.fn(async () => session());
+    const joinRoom = vi.fn(async () => session());
+    renderPage(gateway({ createRoom, joinRoom }), 2_500, session());
+    fireEvent.click(screen.getByRole("button", { name: "방 만들기" }));
+    fireEvent.change(screen.getByLabelText("방 제목"), { target: { value: "중복 방지" } });
+    fireEvent.click(screen.getAllByRole("button", { name: "방 만들기" })[1]);
+
+    expect((await screen.findByRole("alert")).textContent).toContain("이미 참가 중인 방이 있습니다.");
+    expect(joinRoom).toHaveBeenCalledWith("room-1");
+    expect(createRoom).not.toHaveBeenCalled();
+  });
+
+  it("clears a stale room session and creates a new room in the same submission", async () => {
+    const createRoom = vi.fn(async () => session());
+    const joinRoom = vi.fn(async () => {
+      throw new Error("Game room request failed (404).");
+    });
+    renderPage(gateway({ createRoom, joinRoom }), 2_500, session());
+    fireEvent.click(screen.getByRole("button", { name: "방 만들기" }));
+    fireEvent.change(screen.getByLabelText("방 제목"), { target: { value: "새 방" } });
+    fireEvent.click(screen.getAllByRole("button", { name: "방 만들기" })[1]);
+
+    await waitFor(() => expect(joinRoom).toHaveBeenCalledWith("room-1"));
+    await waitFor(() => expect(createRoom).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText("WAITING_ROUTE")).toBeTruthy();
+  });
+
+  it("uses the server-provided title and host nickname on the re-entry card", async () => {
+    const activeSession = {
+      ...session(),
+      roomCode: "ABC123",
+      title: "내가 입력한 방 제목",
+      hostName: "실제 방장 닉네임",
+    };
+    const fallbackRoom: BattleRoomSummary = {
+      ...summary(),
+      roomId: "ABC123",
+      roomCode: "ABC123",
+      title: "서버 방 제목",
+      hostName: "서버 방장",
+    };
+    renderPage(gateway({ getRooms: vi.fn(async () => [fallbackRoom]) }), 2_500, activeSession);
+
+    expect(await screen.findByRole("heading", { name: "서버 방 제목" })).toBeTruthy();
+    expect(screen.getByText("서버 방장")).toBeTruthy();
+  });
+
+  it("joins an available room", async () => {
+    const joinRoom = vi.fn(async () => session());
+    renderPage(gateway({ getRooms: vi.fn(async () => [summary()]), joinRoom }));
+    fireEvent.click(await screen.findByRole("button", { name: "입장" }));
+    await waitFor(() => expect(joinRoom).toHaveBeenCalledWith("room-1"));
+    expect(await screen.findByText("WAITING_ROUTE")).toBeTruthy();
+  });
+
+  it("carries the listed host nickname into the waiting-room session", async () => {
+    const listedRoom = { ...summary(), hostUserId: "host-2", hostName: "수달왕" };
+    const joined = {
+      ...session(),
+      hostUserId: "host-2",
+      hostName: "방장",
+      participants: [
+        { userId: "host-2", displayName: "방장", isHost: true },
+        { userId: "user-1", displayName: "나사용자", isHost: false },
+      ],
+    };
+    const rememberSession = vi.fn();
+    renderPage(
+      gateway({ getRooms: vi.fn(async () => [listedRoom]), joinRoom: vi.fn(async () => joined) }),
+      2_500,
+      null,
+      rememberSession,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "입장" }));
+
+    await waitFor(() => expect(rememberSession).toHaveBeenCalledWith(expect.objectContaining({
+      hostName: "수달왕",
+      participants: expect.arrayContaining([expect.objectContaining({ userId: "host-2", displayName: "수달왕" })]),
+    })));
+  });
+
+  it("does not allow entry into an unavailable room", async () => {
+    const fullRoom: BattleRoomSummary = { ...summary(), status: "FULL", canJoin: false, playerCount: 2 };
+    renderPage(gateway({ getRooms: vi.fn(async () => [fullRoom]) }));
+    expect(await screen.findByRole("button", { name: "입장 불가" })).toHaveProperty("disabled", true);
+  });
+
+  it("clears its polling timer when leaving the page", () => {
+    const clearInterval = vi.spyOn(window, "clearInterval");
+    const view = renderPage(gateway());
+    view.unmount();
+    expect(clearInterval).toHaveBeenCalledTimes(2);
+  });
+});
+
+function renderPage(roomGateway: BattleRoomGateway, interval = 2_500, activeSession: BattleRoomSession | null = null, rememberSession = vi.fn()) {
+  const value = contextValue(roomGateway, interval, activeSession, rememberSession);
+  return render(<GameModuleContext.Provider value={value}><MemoryRouter initialEntries={["/game/battle"]}><Routes><Route path="/game/battle" element={<BattleRoomListPage />} /><Route path="/game/battle/:roomId" element={<span>WAITING_ROUTE</span>} /></Routes></MemoryRouter></GameModuleContext.Provider>);
+}
+
+function contextValue(roomGateway: BattleRoomGateway, interval: number, activeSession: BattleRoomSession | null, rememberSession: GameModuleContextValue["setBattleRoomSession"]): GameModuleContextValue {
+  return {
+    user: { userId: "user-1", displayName: "나사용자" }, accessToken: undefined,
+    config: { soloApiBaseUrl: "/solo", roomApiBaseUrl: "/rooms", gameWebSocketUrl: "ws://game", rtcConfigApiBaseUrl: "/rtc", aiWebSocketUrl: "ws://ai", battleRoomPollingIntervalMs: interval },
+    services: { battleRoomGateway: roomGateway } as unknown as GameModuleServices,
+    battleMediaSession: new MockBattleMediaSession(), sharedCameraSession: { start: vi.fn(), getStream: () => null, getVideoTrack: () => null, stop: vi.fn() },
+    battleRoomSession: activeSession, setBattleRoomSession: rememberSession,
+  };
+}
+
+function gateway(overrides: Partial<BattleRoomGateway> = {}): BattleRoomGateway {
+  return { getRooms: vi.fn(async () => []), createRoom: vi.fn(), joinRoom: vi.fn(), getRoom: vi.fn(), leaveRoom: vi.fn(async () => undefined), startGame: vi.fn(async () => undefined), returnToWaiting: vi.fn(async () => undefined), ...overrides };
+}
+
+function summary(): BattleRoomSummary {
+  return { roomId: "room-1", title: "입문 연습방", status: "WAITING", playerCount: 1, maxPlayers: 2, hostUserId: "user-1", hostName: "나사용자", symbolRange: "CONSONANT", createdAt: null, canJoin: true };
+}
+
+function session(): BattleRoomSession {
+  return { ...summary(), participants: [{ userId: "user-1", displayName: "나사용자", isHost: true }], canStart: false, startBlockReason: "상대방 대기", rematch: false, activeMatchId: null, matchStartAt: null, currentUser: { userId: "user-1", displayName: "나사용자" } };
+}

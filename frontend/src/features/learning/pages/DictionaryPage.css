@@ -1,0 +1,518 @@
+.dictionary-page {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  color: #3f2b20;
+  background: #faf7f1;
+}
+
+.dictionary-canvas {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1920px;
+  height: 1080px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: #3f2b20;
+  /* /dictionary로 바로 진입하면 MainPage.css의 body 규칙이 없으므로 여기서 지정한다. */
+  font-family:
+    "Pretendard",
+    "Noto Sans KR",
+    "Apple SD Gothic Neo",
+    Arial,
+    sans-serif;
+  background: #faf7f1;
+  transform-origin: center center;
+}
+
+/* 메인페이지와 동일한 네비게이션바 (기존 페이지와 동일하게 복제) */
+.dictionary-header {
+  position: relative;
+  z-index: 5;
+  height: 86px;
+  flex: 0 0 86px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #e7d9c7;
+  background: rgba(255, 250, 242, 0.94);
+  box-shadow: 0 4px 18px rgba(85, 57, 37, 0.05);
+}
+
+.dictionary-nav {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 58px;
+}
+
+.dictionary-nav a,
+.dictionary-nav button {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #7d746b;
+  font-family: inherit;
+  font-size: 24px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.dictionary-nav a.active {
+  color: #3f2b20;
+}
+
+.dictionary-nav a.active::after {
+  position: absolute;
+  right: 0;
+  bottom: 17px;
+  left: 0;
+  height: 4px;
+  border-radius: 999px;
+  background: #9B6B43;
+  content: "";
+}
+
+.dictionary-mypage-button {
+  position: absolute;
+  top: 20px;
+  right: 58px;
+  width: 155px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #dbc8b1;
+  border-radius: 999px;
+  color: #5f402b;
+  font-size: 21px;
+  font-weight: 800;
+  text-decoration: none;
+  background: #fffaf2;
+}
+
+/*
+ * 목록을 모두 펼쳐도 페이지 전체가 스크롤되지 않도록 본문에서 넘침을 막는다.
+ * 늘어나는 쪽은 왼쪽 사이드바뿐이고, 스크롤은 그 안(.dictionary-tree)에서만 생긴다.
+ */
+.dictionary-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 34px 62px 40px;
+  overflow: hidden;
+  background: #faf7f1;
+}
+
+.dictionary-heading {
+  width: min(1440px, 100%);
+  margin: 0 auto 22px;
+}
+
+.dictionary-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #eef2e3;
+  color: #5f724a;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.dictionary-heading h1 {
+  margin: 12px 0 6px;
+  color: #3f2b20;
+  font-size: 40px;
+  letter-spacing: -0.03em;
+}
+
+.dictionary-heading p {
+  margin: 0;
+  color: #827368;
+  font-size: 20px;
+}
+
+.dictionary-layout {
+  width: min(1440px, 100%);
+  flex: 1;
+  min-height: 0;
+  margin: 0 auto;
+  display: grid;
+  /*
+   * 왼쪽 목록 폭은 지문자 칩 6개가 한 줄에 들어가도록 400px로 둔다.
+   * 400 - 52(카드 패딩) - 12(스크롤 여백) - 16(분류 들여쓰기와 선) - 4(그리드 패딩) = 316px
+   * 이고, 칩 6개는 6x44 + 5x8 = 304px를 쓴다.
+   * 오른쪽은 남은 폭을 채우므로 전체 너비는 그대로다.
+   */
+  grid-template-columns: 400px minmax(0, 1fr);
+  gap: 26px;
+  /* 두 카드가 같은 높이로 끝나도록 나란히 늘린다. */
+  align-items: stretch;
+}
+
+/* 메인페이지 .panel과 동일한 패널 토큰 */
+/*
+ * 목록이 아무리 길어져도 카드 자체는 남은 높이에 맞춰 고정하고, 넘치는 부분은
+ * 안쪽 목록(.dictionary-tree)에서 스크롤한다.
+ */
+.dictionary-sidebar {
+  position: relative;
+  top: auto;
+  min-height: 0;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 26px;
+  border: 1px solid #e7d9c7;
+  border-radius: 30px;
+  background: rgba(255, 250, 242, 0.94);
+  box-shadow: 0 18px 38px rgba(82, 54, 35, 0.1);
+}
+
+/* 스크롤은 사이드바 안쪽에서만. min-height가 없으면 flex 자식이 줄지 않아 패널을 넘친다. */
+.dictionary-tree,
+.dictionary-results {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #979797 transparent;
+}
+
+.dictionary-tree::-webkit-scrollbar,
+.dictionary-results::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dictionary-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* 목록이 스크롤바에 붙지 않도록 안쪽 폭만 줄인다. 스크롤바는 제자리에 둔다. */
+.dictionary-tree,
+.dictionary-results {
+  padding-right: 12px;
+}
+
+.dictionary-tree::-webkit-scrollbar-thumb,
+.dictionary-results::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #979797;
+}
+
+.dictionary-search {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.dictionary-search-icon {
+  position: absolute;
+  left: 16px;
+  width: 18px;
+  height: 18px;
+  color: #a3948a;
+  pointer-events: none;
+}
+
+.dictionary-search-input {
+  width: 100%;
+  height: 48px;
+  padding: 0 44px;
+  border: 1px solid #e4d4c2;
+  border-radius: 999px;
+  background: #fffdf8;
+  color: #3f2b20;
+  font: inherit;
+  font-size: 20px;
+}
+
+.dictionary-search-input::placeholder {
+  color: #a99a8e;
+}
+
+.dictionary-search-input:focus-visible {
+  outline: 2px solid #8fa071;
+  outline-offset: 2px;
+}
+
+/* 자체 초기화 버튼을 쓰므로 브라우저 기본 취소 버튼은 숨긴다. */
+.dictionary-search-input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.dictionary-search-clear {
+  position: absolute;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #efe7dc;
+  color: #74675e;
+  cursor: pointer;
+}
+
+.dictionary-search-clear svg {
+  width: 16px;
+  height: 16px;
+}
+
+.dictionary-tree-root {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  border: 1px solid #dfe6d2;
+  border-radius: 16px;
+  background: #eef2e3;
+  color: #4d5c39;
+  font: inherit;
+  font-size: 21px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.dictionary-tree-chevron {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  transition: transform 0.2s ease;
+}
+
+.dictionary-tree-category .dictionary-tree-chevron {
+  width: 16px;
+  height: 16px;
+}
+
+.dictionary-tree-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.dictionary-tree-branch {
+  display: grid;
+  gap: 10px;
+  margin-top: 0;
+  padding-left: 14px;
+  border-left: 2px solid #e7d9c7;
+}
+
+.dictionary-tree-category {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 1px solid #e7d9c7;
+  border-radius: 14px;
+  background: #fffdf8;
+  color: #5f402b;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.dictionary-tree-count {
+  margin-left: auto;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #f1ece4;
+  color: #8a7c70;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* 열 수를 고정하지 않고 들어가는 만큼 채운다. 사이드바 폭(380px)에서는 6개로
+   지금과 같고, 창이 좁아져 목록이 위로 올라가면 가로를 꽉 채운다. */
+.dictionary-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 44px);
+  gap: 8px;
+  justify-content: start;
+  justify-items: start;
+  margin: 10px 0 2px;
+  padding: 0 0 0 4px;
+  list-style: none;
+}
+
+.dictionary-root-chip-grid {
+  margin: 0;
+  padding-left: 14px;
+}
+
+.dictionary-chip-grid > li {
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+}
+
+.dictionary-chip {
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  height: 44px;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  border: 1px solid #e7d9c7;
+  border-radius: 12px;
+  background: #fffaf3;
+  color: #3f2b20;
+  font: inherit;
+  font-size: 23px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.dictionary-chip-grid:has(.dictionary-chip-word) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dictionary-chip-grid > li:has(.dictionary-chip-word),
+.dictionary-chip-word {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+
+.dictionary-chip-word {
+  padding: 0 8px;
+  font-size: 20px;
+  white-space: nowrap;
+}
+
+.dictionary-chip:hover {
+  background: #f3f6ea;
+  transform: translateY(-2px);
+}
+
+/* 선택 표시는 사전 테마 그린 + 기존 버튼과 동일한 입체 그림자 */
+.dictionary-chip-selected {
+  border-color: #8fa071;
+  background: #8fa071;
+  color: #ffffff;
+  box-shadow: 0 4px 0 #6f8052;
+}
+
+.dictionary-chip-selected:hover {
+  background: #8fa071;
+}
+
+.dictionary-results-summary {
+  margin: 0 0 10px;
+  color: #8a7c70;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.dictionary-results-empty {
+  margin: 18px 0;
+  color: #a99a8e;
+  font-size: 19px;
+  text-align: center;
+}
+
+.dictionary-result-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dictionary-result {
+  width: 100%;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  border: 1px solid #e7d9c7;
+  border-radius: 16px;
+  background: #fffdf8;
+  color: #3f2b20;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dictionary-result:hover {
+  background: #f7f3ec;
+}
+
+.dictionary-result-symbol {
+  width: 34px;
+  flex: 0 0 34px;
+  font-size: 27px;
+  font-weight: 900;
+}
+
+.dictionary-result-name {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* 단어는 큰 글자 없이 이름만 보여주므로 그 자리를 대신할 크기로 키운다. */
+.dictionary-result-name-word {
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.dictionary-result-category {
+  margin-left: auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f1ece4;
+  color: #8a7c70;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.dictionary-result-selected {
+  border-color: #8fa071;
+  background: #f3f6ea;
+}
+
+/*
+ * 배치 규칙은 FingerspellingDetail.css가 갖고 있다. 이 화면은 치수만 정한다.
+ * 목록이 400px뿐이라 카드가 넓어 설명 상자와 영상을 크게 쓴다.
+ */
+.fingerspelling-detail.dictionary-detail {
+  --detail-description-width: 680px;
+  --detail-video-width: 470px;
+}
+
+.dictionary-detail .fingerspelling-detail-badge {
+  display: none;
+}
+
+/*
+ * 이 화면은 1920x1200 캔버스를 transform으로 축소해 보여준다.
+ * 미디어 쿼리는 축소 전 뷰포트 너비로 판정되므로, 캔버스 안 배치를 창 크기에 따라
+ * 바꾸면 같은 화면이 두 가지 모습으로 보인다. 배치는 캔버스 기준으로 고정한다.
+ */

@@ -1,0 +1,2 @@
+import{describe,expect,it}from"vitest";import{ActivePlayerStateMachine}from"./ActivePlayerStateMachine";
+describe("ActivePlayerStateMachine",()=>{it("enforces registration, loss and re-identification transitions",()=>{const machine=new ActivePlayerStateMachine();machine.transition("REGISTERING");machine.transition("LOCKED");machine.transition("TEMPORARILY_LOST");machine.transition("REIDENTIFYING");machine.transition("AMBIGUOUS");expect(machine.getState()).toBe("AMBIGUOUS");expect(()=>machine.transition("UNREGISTERED")).toThrow(/Invalid active player transition/);});});

@@ -1,0 +1,275 @@
+import "./TestPage.css";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+
+import { AppNav } from "../../../shared/nav/AppNav";
+import { getAccessToken } from "../../auth/token/tokenStore";
+import { getPetGrowth } from "../../profile/api/profileApi";
+import { HabitatUnlockModal } from "../../profile/components/HabitatUnlockModal";
+import {
+  findNewlyUnlockedHabitatLevel,
+  type HabitatUnlockLevel,
+} from "../../profile/data/habitatUnlock";
+import {
+  completeTestSession,
+  startTestSession,
+} from "../api/testSessionApi";
+import otterClapImage from "../assets/otter_clap.webp";
+import { TestProgressView } from "../components/TestProgressView";
+import { TestResultView } from "../components/TestResultView";
+import { TestSetupView } from "../components/TestSetupView";
+import type {
+  TestQuestion,
+  TestQuestionResult,
+  TestSettings,
+} from "../data/testSession";
+import {
+  buildTestQuestions,
+  buildTestQuestionsFromSymbols,
+} from "../data/testSession";
+import { SYMBOLS_PARAM, parseSymbolSelection } from "../data/symbolSelection";
+
+/** 테스트 진행 단계. 사전/연습과 같이 한 라우트 안에서 상태로 전환한다. */
+type TestPhase = "setup" | "progress" | "result";
+
+export function TestPage() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [testScale, setTestScale] = useState(1);
+  const [phase, setPhase] = useState<TestPhase>("setup");
+  const [questions, setQuestions] = useState<TestQuestion[]>([]);
+  const [results, setResults] = useState<TestQuestionResult[]>([]);
+  const [awardedExp, setAwardedExp] = useState(0);
+  const [rewardAccuracy, setRewardAccuracy] = useState(0);
+  const [unlockedHabitatLevel, setUnlockedHabitatLevel] =
+    useState<HabitatUnlockLevel | null>(null);
+
+  useEffect(() => {
+    if (awardedExp <= 0) return;
+
+    const closeRewardOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setAwardedExp(0);
+    };
+
+    window.addEventListener("keydown", closeRewardOnEscape);
+    return () => window.removeEventListener("keydown", closeRewardOnEscape);
+  }, [awardedExp]);
+  const testSessionRef = useRef<Promise<number | null> | null>(null);
+
+  const beginRewardSession = () => {
+    const accessToken = getAccessToken();
+    setAwardedExp(0);
+    setRewardAccuracy(0);
+    setUnlockedHabitatLevel(null);
+    testSessionRef.current = accessToken
+      ? startTestSession(accessToken)
+          .then((session) => session.testSessionId)
+          .catch(() => null)
+      : Promise.resolve(null);
+  };
+
+  // 오답노트에서 넘어온 글자 묶음. 없으면 평소처럼 설정 화면부터 시작한다.
+  const symbolsParam = searchParams.get(SYMBOLS_PARAM);
+  const selectedQuestions = useMemo(
+    () => parseSymbolSelection(symbolsParam),
+    [symbolsParam],
+  );
+  const hasSelection = selectedQuestions.length > 0;
+
+  // 오답노트로 진입하면 설정 화면을 건너뛰고 그 글자들로 바로 출제한다.
+  useEffect(() => {
+    if (!hasSelection) return;
+
+    const builtQuestions = buildTestQuestionsFromSymbols(selectedQuestions);
+    if (builtQuestions.length === 0) return;
+
+    setQuestions(builtQuestions);
+    setResults([]);
+    beginRewardSession();
+    setPhase("progress");
+  }, [hasSelection, selectedQuestions]);
+
+  useEffect(() => {
+    const updateTestScale = () => {
+      setTestScale(
+        Math.min(window.innerWidth / 1920, window.innerHeight / 1080),
+      );
+    };
+
+    updateTestScale();
+    window.addEventListener("resize", updateTestScale);
+    return () => window.removeEventListener("resize", updateTestScale);
+  }, []);
+
+  const handleStart = (settings: TestSettings) => {
+    const builtQuestions = buildTestQuestions(settings);
+
+    if (builtQuestions.length === 0) {
+      return;
+    }
+
+    setQuestions(builtQuestions);
+    setResults([]);
+    beginRewardSession();
+    setPhase("progress");
+  };
+
+  const handleFinish = (finalResults: TestQuestionResult[]) => {
+    setResults(finalResults);
+    setPhase("result");
+
+    const accessToken = getAccessToken();
+    const session = testSessionRef.current;
+    if (!accessToken || !session) return;
+
+    const correctCount = finalResults.filter(
+      (result) => result.state === "correct",
+    ).length;
+
+    void (async () => {
+      const testSessionId = await session;
+      if (testSessionId === null) return;
+
+      const previousGrowth = await getPetGrowth(accessToken).catch(() => null);
+      const completion = await completeTestSession(
+        accessToken,
+        testSessionId,
+        {
+          correctCount,
+          totalCount: finalResults.length,
+        },
+      );
+
+      if (
+        completion.passedRewardThreshold &&
+        completion.awardedExp > 0
+      ) {
+        const currentGrowth = await getPetGrowth(accessToken).catch(() => null);
+        const unlockedLevel =
+          previousGrowth && currentGrowth
+            ? findNewlyUnlockedHabitatLevel(
+                previousGrowth.level,
+                currentGrowth.level,
+              )
+            : null;
+
+        if (unlockedLevel) {
+          setUnlockedHabitatLevel(unlockedLevel);
+          return;
+        }
+
+        const completedCorrectCount = completion.correctCount ?? correctCount;
+        const completedTotalCount =
+          completion.totalCount ?? finalResults.length;
+        setAwardedExp(completion.awardedExp);
+        setRewardAccuracy(
+          Math.round((completedCorrectCount / completedTotalCount) * 100),
+        );
+      }
+    })().catch(() => {
+      // 결과 화면은 유지하고, 보상 저장 실패 시 XP 성공 화면만 표시하지 않는다.
+    });
+  };
+
+  /**
+   * 진행 화면에서 한 단계 뒤로. 들어온 경로로 되돌린다.
+   * 오답노트에서 왔으면 오답노트로, 설정 화면에서 왔으면 설정 화면으로 간다.
+   */
+  const handleBackFromProgress = () => {
+    setQuestions([]);
+    setResults([]);
+    setAwardedExp(0);
+    setRewardAccuracy(0);
+    setPhase("setup");
+
+    if (hasSelection) {
+      navigate("/test");
+    }
+  };
+
+  const handleRetry = () => {
+    setResults([]);
+
+    // 오답노트로 들어왔다면 설정 화면 대신 같은 글자들을 다시 출제한다.
+    if (hasSelection) {
+      const builtQuestions = buildTestQuestionsFromSymbols(selectedQuestions);
+
+      if (builtQuestions.length > 0) {
+        setQuestions(builtQuestions);
+        beginRewardSession();
+        setPhase("progress");
+        return;
+      }
+    }
+
+    setQuestions([]);
+    setPhase("setup");
+  };
+
+  return (
+    <div className="test-page">
+      <div
+        className="test-canvas"
+        style={{ transform: `translate(-50%, -50%) scale(${testScale})` }}
+      >
+        <header className="test-header">
+          {phase === "progress" && (
+            <button
+              className="test-page-back-button"
+              type="button"
+              aria-label="뒤로 가기"
+              onClick={handleBackFromProgress}
+            >
+              ←
+            </button>
+          )}
+
+          <AppNav prefix="test" metric="fixed" hasBackButton={phase === "progress"} />
+        </header>
+
+        {phase === "setup" && <TestSetupView onStart={handleStart} />}
+
+        {phase === "progress" && (
+          <TestProgressView questions={questions} onFinish={handleFinish} />
+        )}
+
+        {phase === "result" && (
+          <TestResultView results={results} onRetry={handleRetry} />
+        )}
+
+        {awardedExp > 0 && (
+          <div
+            className="test-reward-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="test-reward-title"
+          >
+            <section className="test-reward-card">
+              <button
+                className="test-reward-close"
+                type="button"
+                aria-label="경험치 획득 창 닫기"
+                onClick={() => setAwardedExp(0)}
+              >
+                ×
+              </button>
+              <img src={otterClapImage} alt="" aria-hidden="true" />
+              <h2 id="test-reward-title">{awardedExp}XP를 얻었어요!</h2>
+              <p>
+                정답률 {rewardAccuracy}% 달성! 보상으로 {awardedExp}XP를
+                받았어요.
+              </p>
+            </section>
+          </div>
+        )}
+        {unlockedHabitatLevel && (
+          <HabitatUnlockModal
+            unlockedLevel={unlockedHabitatLevel}
+            onClose={() => setUnlockedHabitatLevel(null)}
+          />
+        )}
+
+      </div>
+    </div>
+  );
+}

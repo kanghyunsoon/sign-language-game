@@ -1,0 +1,1345 @@
+.test-page {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  color: #3f2b20;
+  background: #faf7f1;
+}
+
+.test-canvas {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1920px;
+  height: 1080px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: #3f2b20;
+  /* /test로 바로 진입하면 MainPage.css의 body 규칙이 없으므로 여기서 지정한다. */
+  font-family:
+    "Pretendard",
+    "Noto Sans KR",
+    "Apple SD Gothic Neo",
+    Arial,
+    sans-serif;
+  background: #faf7f1;
+  transform-origin: center center;
+}
+
+/* 메인페이지와 동일한 네비게이션바 (기존 페이지와 동일하게 복제) */
+.test-header {
+  position: relative;
+  z-index: 5;
+  height: 86px;
+  flex: 0 0 86px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #e7d9c7;
+  background: rgba(255, 250, 242, 0.94);
+  box-shadow: 0 4px 18px rgba(85, 57, 37, 0.05);
+}
+
+/* 연습 진행 화면의 뒤로가기 버튼과 같은 규격 */
+.test-page-back-button {
+  position: absolute;
+  top: 50%;
+  left: 32px;
+  z-index: 1;
+  width: 59px;
+  height: 59px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  color: #3f2b20;
+  font-size: 41px;
+  line-height: 1;
+  background: transparent;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.test-page-back-button:hover {
+  transform: translateY(-50%);
+}
+
+.test-nav {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 58px;
+}
+
+.test-nav a,
+.test-nav button {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #7d746b;
+  font-family: inherit;
+  font-size: 24px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.test-nav a.active {
+  color: #3f2b20;
+}
+
+.test-nav a.active::after {
+  position: absolute;
+  right: 0;
+  bottom: 17px;
+  left: 0;
+  height: 4px;
+  border-radius: 999px;
+  background: #9B6B43;
+  content: "";
+}
+
+.test-mypage-button {
+  position: absolute;
+  top: 20px;
+  right: 58px;
+  width: 155px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #dbc8b1;
+  border-radius: 999px;
+  color: #5f402b;
+  font-size: 21px;
+  font-weight: 800;
+  text-decoration: none;
+  background: #fffaf2;
+}
+
+.test-main {
+  flex: 1;
+  /* 캔버스 높이를 넘지 않도록 가둔다. 스크롤은 각 화면 내부에서만 만든다. */
+  min-height: 0;
+  overflow: hidden;
+  padding: 40px 62px 48px;
+  background: #faf7f1;
+}
+
+/* 연습 페이지 모드 라벨과 같은 채운 알약. 포인트색은 테스트의 녹색을 유지한다. */
+.test-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: #8fa071;
+  color: #ffffff;
+  /* 연습 페이지 .practice-mode-badge와 같은 크기 */
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+/* ---------------- 설정 화면 ---------------- */
+
+/* 연습 페이지와 동일한 투톤 배경 */
+.test-setup {
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(
+      180deg,
+      #faf7f1 0%,
+      #faf7f1 54%,
+      #f5f1e9 54%,
+      #f5f1e9 100%
+    );
+}
+
+/* 연습 페이지와 동일한 하얀 카드. 테두리 없이 그림자만 쓴다. */
+/* 간격은 gap 없이 요소별 margin으로 잡는다. 연습 페이지도 같은 방식이라
+   [TEST MODE]-수달-제목 간격을 그쪽과 똑같이 맞출 수 있다. */
+.test-setup-panel {
+  /* 연습 페이지 .practice-panel과 같은 폭(설계 기준 1040px) */
+  width: min(1040px, 100%);
+  /* 카드만 넓히고 안쪽 요소는 넓히지 않는다. 폭이 100%인 요소들이 카드에 맞춰
+     늘어나지 않도록, 카드가 760px이던 때의 콘텐츠 폭을 그대로 유지한다. */
+  --test-setup-content-width: 648px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 52px 56px 58px;
+  border-radius: 34px;
+  background: #ffffff;
+  box-shadow: 0 24px 50px rgba(59, 42, 35, 0.14);
+  text-align: center;
+  transform: scale(0.9);
+  transform-origin: center;
+}
+
+/* 연습 페이지와 동일한 수달 원형 프레임 */
+.test-setup-character-circle {
+  width: 180px;
+  height: 180px;
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 11px solid #a5ac93;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.test-setup-character {
+  width: 180px;
+  height: 180px;
+  object-fit: contain;
+  transform: translateY(5%);
+}
+
+/* 위쪽 24px은 연습 페이지 .practice-title과 같은 값이다. */
+.test-setup-title {
+  margin: 24px 0 0;
+  color: #3f2b20;
+  font-size: 42px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+/* 아래쪽은 [분류 선택]과 확실히 떨어뜨린다. */
+.test-setup-description {
+  width: min(var(--test-setup-content-width), 100%);
+  margin: 24px 0 46px;
+  color: #827368;
+  font-size: 21px;
+}
+
+/* [분류 선택]과 [문항 수] 사이도 같은 간격으로 벌린다. */
+.test-setup-section + .test-setup-section {
+  margin-top: 46px;
+}
+
+.test-setup-section {
+  width: min(var(--test-setup-content-width), 100%);
+  display: grid;
+  gap: 12px;
+  text-align: left;
+}
+
+.test-setup-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: #3f2b20;
+  font-size: 23px;
+  font-weight: 800;
+}
+
+.test-setup-section-hint {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #f1ece4;
+  color: #8a7c70;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.test-category-carousel {
+  width: calc(100% + 120px);
+  margin-left: -60px;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: 12px;
+}
+
+.test-category-carousel-button {
+  width: 48px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  color: #3f2b20;
+  font-family: inherit;
+  font-size: 58px;
+  font-weight: 300;
+  line-height: 1;
+  background: transparent;
+  cursor: pointer;
+}
+
+.test-category-carousel-button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.test-category-viewport {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.test-category-list {
+  width: 100%;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 36px) / 4);
+  gap: 12px;
+  transform: translateX(0);
+  transition: transform 0.32s ease-in-out;
+  will-change: transform;
+}
+
+.test-category-list-shifted {
+  transform: translateX(calc(-1 * (((100% - 36px) / 4) + 12px)));
+}
+
+.test-camera-placeholder .word-hand-camera,
+.test-camera-placeholder .word-hand-camera video,
+.test-camera-placeholder .word-hand-camera canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.test-camera-placeholder .word-hand-camera {
+  overflow: hidden;
+  background: #1f2528;
+}
+
+.test-camera-placeholder .word-hand-camera video,
+.test-camera-placeholder .word-hand-camera canvas {
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.test-camera-placeholder .word-hand-camera canvas {
+  pointer-events: none;
+}
+
+/* 글자를 왼쪽에 두고 분류명·글자 수를 그 오른쪽에 쌓아 세로 높이를 줄인다. */
+.test-category {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid #e7d9c7;
+  border-radius: 20px;
+  background: #fffdf8;
+  color: #3f2b20;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.test-category:hover {
+  background: #f3f6ea;
+  transform: translateY(-3px);
+}
+
+/* 선택 표시는 테스트 테마 그린 + 기존 버튼과 동일한 입체 그림자 */
+.test-category-selected {
+  border-color: #8fa071;
+  background: #8fa071;
+  color: #ffffff;
+  box-shadow: 0 4px 0 #6f8052;
+}
+
+.test-category-selected:hover {
+  background: #8fa071;
+}
+
+/* AI 인식이 아직 지원하지 않는 분류 */
+.test-category:disabled {
+  background: #f1ece4;
+  color: #a99a8e;
+  cursor: not-allowed;
+}
+
+.test-category:disabled:hover {
+  background: #f1ece4;
+  transform: none;
+}
+
+/* 테두리 없는 둥근 사각형 안에 글자를 담는다. 분류명(21px)보다 조금 크게. */
+.test-category-symbol {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: #f1ece4;
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+/* 선택·비활성 상태에서도 사각형이 배경과 구분되게 한다. */
+.test-category-selected .test-category-symbol {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.test-category:disabled .test-category-symbol {
+  background: #e6ddd1;
+}
+
+.test-category-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  text-align: left;
+}
+
+.test-category-label {
+  font-size: 21px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.test-category-count {
+  font-size: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+  opacity: 0.75;
+}
+
+.test-count-list {
+  display: flex;
+  gap: 12px;
+}
+
+.test-count {
+  min-width: 90px;
+  min-height: 48px;
+  padding: 0 20px;
+  border: 1px solid #e7d9c7;
+  border-radius: 999px;
+  background: #fffdf8;
+  color: #3f2b20;
+  font: inherit;
+  font-size: 21px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.test-count:hover {
+  background: #f3f6ea;
+}
+
+.test-count-selected {
+  border-color: #8fa071;
+  background: #8fa071;
+  color: #ffffff;
+  box-shadow: 0 4px 0 #6f8052;
+}
+
+/* 이미 고른 항목은 마우스를 올려도 색이 바뀌지 않는다.
+   .test-count:hover가 클래스 하나 더 구체적이라 여기서 다시 못 박아야 한다. */
+.test-count-selected:hover {
+  background: #8fa071;
+}
+
+/* [직접 입력] 버튼과 같은 줄에 놓이므로 인라인으로 둔다. */
+.test-count-custom {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.test-count-custom-input {
+  width: 110px;
+  /* 문항 수 버튼과 높이를 맞춘다. */
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid #e4d4c2;
+  border-radius: 14px;
+  background: #fffdf8;
+  color: #3f2b20;
+  font: inherit;
+  font-size: 21px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.test-count-custom-input:focus-visible {
+  outline: 2px solid #8fa071;
+  outline-offset: 2px;
+}
+
+.test-count-custom-unit {
+  color: #8a7c70;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.test-setup-notice {
+  margin: 2px 0 0;
+  color: #8a7c70;
+  font-size: 19px;
+}
+
+.test-start-button {
+  width: min(var(--test-setup-content-width), 100%);
+  min-height: 62px;
+  /* 패널 gap을 없앴으므로 위 간격을 직접 준다. */
+  margin-top: 34px;
+  border: 0;
+  border-radius: 18px;
+  background: #8fa071;
+  box-shadow: 0 5px 0 #6f8052;
+  color: #ffffff;
+  font: inherit;
+  font-size: 25px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.test-start-button:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 #6f8052;
+}
+
+.test-start-button:disabled {
+  background: #cfc6ba;
+  box-shadow: 0 5px 0 #b3a99c;
+  cursor: not-allowed;
+}
+
+/* ---------------- 진행 화면 ---------------- */
+
+/* 연습 진행 화면과 동일한 투톤 배경 */
+.test-progress {
+  position: relative;
+  background:
+    linear-gradient(
+      180deg,
+      #faf7f1 0%,
+      #faf7f1 52%,
+      #f3efe7 52%,
+      #f3efe7 100%
+    );
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+}
+
+.test-progress-area {
+  width: min(1296px, 100%);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.test-progress-track {
+  flex: 1;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #ece4d9;
+}
+
+.test-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: #8fa071;
+  transition: width 0.3s ease;
+}
+
+.test-progress-count {
+  color: #5f402b;
+  font-size: 21px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* 연습 진행 화면이 사용하는 16:9 기준의 실제 카드 규격과 맞춘다. */
+.test-progress-panel {
+  width: min(1296px, 100%);
+  min-height: 684px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 65px;
+  padding: 22px 61px;
+  border-radius: 31px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 24px 50px rgba(59, 42, 35, 0.13);
+}
+
+/* 좌우 카드 공통 */
+.test-question-panel,
+.test-camera-panel {
+  min-width: 0;
+  min-height: 567px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 23px;
+  background: #ffffff;
+  box-shadow: 0 10px 26px rgba(63, 43, 32, 0.1);
+}
+
+/* 카드 상단 머리말 바 — 안쪽에 타원형 뱃지를 얹는다. */
+.test-panel-label {
+  min-height: 63px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0 25px;
+  border-bottom: 1px solid #eee7de;
+}
+
+/* 결과 화면 뱃지와 동일한 타원형 필 */
+.test-panel-label > span {
+  padding: 7px 16px;
+  border-radius: 999px;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+/* 문제 뱃지 — TEST RESULT 뱃지와 동일한 베이지 계열 */
+.test-question-panel .test-panel-label > span {
+  background: #f1ece4;
+  color: #6b5c50;
+}
+
+/* 내 동작 뱃지 — 기존 그린 계열 유지 */
+.test-camera-panel .test-panel-label > span {
+  background: #e2ead8;
+  color: #5f724a;
+}
+
+.test-question-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px 24px 28px;
+}
+
+/* 글자 위 식별 정보(분류 · 이름) */
+.test-question-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.test-question-tag {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #f1ece4;
+  color: #6b5c50;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.test-question-tag-category {
+  background: #e2ead8;
+  color: #5f724a;
+}
+
+/* 문제 화면에는 사진·설명 없이 글자만 크게 보여준다. */
+.test-question-symbol {
+  color: #3f2b20;
+  font-size: 220px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.test-question-symbol-word {
+  max-width: 100%;
+  font-size: 96px;
+  line-height: 1.15;
+  letter-spacing: -0.06em;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* 머리말 바와 하단 컨트롤 사이를 카메라가 가득 채운다. */
+.test-camera-placeholder {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  margin: 18px 20px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 21px;
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(135, 148, 154, 0.26) 0%,
+      rgba(47, 59, 64, 0.93) 55%,
+      #29353a 100%
+    );
+}
+
+/* HandCamera 내부 래퍼가 자체 여백·배경을 갖고 있어 영상이 작게 중첩된다.
+   연습 화면과 동일하게 걷어내 영상이 영역을 꽉 채우도록 한다. */
+.test-camera-placeholder > .camera-workspace {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+}
+
+.test-camera-placeholder .camera-stage {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: inherit;
+  aspect-ratio: auto;
+}
+
+.test-camera-live {
+  position: absolute;
+  top: 17px;
+  left: 17px;
+  z-index: 4;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(27, 37, 41, 0.72);
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.test-camera-message {
+  position: relative;
+  z-index: 2;
+  max-width: 260px;
+  margin: 0;
+  padding: 16px 20px;
+  color: #d9dfe1;
+  font-size: 20px;
+  line-height: 1.6;
+  text-align: center;
+  word-break: keep-all;
+}
+
+/* 영상 아래 독립 영역: 안내 문구 + 타이머·넘어가기 */
+.test-camera-footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 20px 16px;
+}
+
+.test-recognition-message {
+  min-height: 29px;
+  margin: 0;
+  color: #6b5c50;
+  font-size: 19px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.test-camera-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.test-timer {
+  min-width: 96px;
+  padding: 12px 18px;
+  border-radius: 16px;
+  background: #f1ece4;
+  color: #5f402b;
+  font-size: 27px;
+  font-weight: 900;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.test-timer-urgent {
+  background: #f7e0d6;
+  color: #b4523a;
+}
+
+/* 임시 채점 버튼. 점선 테두리로 정식 버튼과 구분한다. */
+.test-mark-correct-button {
+  margin-left: auto;
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1px dashed #8fa071;
+  border-radius: 14px;
+  background: #f3f6ea;
+  color: #5f724a;
+  font: inherit;
+  font-size: 19px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* 임시 버튼이 앞에 있으면 오른쪽 정렬은 그쪽이 맡는다. */
+.test-mark-correct-button + .test-skip-button {
+  margin-left: 0;
+}
+
+.test-skip-button {
+  margin-left: auto;
+  min-height: 48px;
+  padding: 0 26px;
+  border: 0;
+  border-radius: 14px;
+  background: #5f402b;
+  box-shadow: 0 4px 0 #43301f;
+  color: #ffffff;
+  font: inherit;
+  font-size: 21px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.test-skip-button:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #43301f;
+}
+
+/* ---------------- 결과 화면 ---------------- */
+
+.test-result-layout {
+  width: min(1440px, 100%);
+  height: 100%;
+  min-height: 0;
+  margin: 0 auto;
+  display: grid;
+  /* 사전 페이지와 같은 폭, 좌우 3:2 */
+  grid-template-columns: 3fr 2fr;
+  gap: 28px;
+  /* stretch로 두 카드가 같은 높이를 갖게 한다. start면 카드가 내용만큼
+     늘어나 캔버스를 넘치고, 내부 스크롤 영역이 동작하지 않는다. */
+  align-items: stretch;
+}
+
+.test-result-list-panel {
+  height: 100%;
+  /* flex 자식(문항 목록)이 줄어들 수 있어야 내부 스크롤이 생긴다. */
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 34px 34px 28px;
+  border: 1px solid #e7d9c7;
+  border-radius: 30px;
+  background: rgba(255, 250, 242, 0.94);
+  box-shadow: 0 18px 38px rgba(82, 54, 35, 0.1);
+}
+
+/* 상단 안내 영역은 높이를 고정한다. */
+.test-result-list-panel > .test-badge,
+.test-result-headline {
+  flex-shrink: 0;
+}
+
+/*
+ * 제목과 요약을 한 줄에 나란히 둔다. 요약은 제목의 글자 아래선에 맞춰
+ * 붙여 읽히도록 baseline으로 정렬한다.
+ */
+.test-result-headline {
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin: 18px 0 20px;
+}
+
+.test-result-title {
+  margin: 0;
+  color: #3f2b20;
+  font-size: 40px;
+  letter-spacing: -0.03em;
+}
+
+.test-result-summary {
+  margin: 0;
+  color: #827368;
+  font-size: 20px;
+  white-space: nowrap;
+}
+
+/* 상단·하단 고정 영역 사이 남은 공간을 모두 쓰고, 넘칠 때만 여기서 스크롤한다. */
+.test-result-list {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  margin: 0;
+  /* 스크롤바가 항목을 가리지 않도록 오른쪽만 띄운다. */
+  padding: 0 8px 0 0;
+  list-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: #d5c5b1 transparent;
+}
+
+.test-result-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.test-result-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.test-result-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #d5c5b1;
+}
+
+.test-result-list::-webkit-scrollbar-thumb:hover {
+  background: #bda98d;
+}
+
+.test-result-item {
+  width: 100%;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px;
+  border: 1px solid #e7d9c7;
+  border-radius: 18px;
+  background: #fffdf8;
+  color: #3f2b20;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.test-result-item:hover {
+  background: #f7f3ec;
+}
+
+.test-result-item-selected {
+  border-color: #8fa071;
+  background: #f3f6ea;
+  box-shadow: 0 0 0 2px rgba(143, 160, 113, 0.35);
+}
+
+.test-result-order {
+  width: 26px;
+  flex: 0 0 26px;
+  color: #a3948a;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.test-result-symbol {
+  width: 44px;
+  flex: 0 0 44px;
+  font-size: 35px;
+  font-weight: 900;
+}
+
+/* 테스트는 1920×1200 고정 캔버스가 한 번 더 축소되므로,
+   정답 카드는 연습 화면에서 보이는 실제 크기에 맞춰 보정한다. */
+.test-result-symbol-word {
+  width: auto;
+  flex: 1;
+  /* 지문자는 한 글자라 35px이 맞지만 단어는 길어 목록에서 과하게 커 보인다. */
+  font-size: 26px;
+  white-space: nowrap;
+}
+
+.test-result-name {
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.test-result-mark {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.test-result-mark-text {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.test-result-mark-correct {
+  background: #e2ead8;
+  color: #4d7a3a;
+}
+
+.test-result-mark-wrong {
+  background: #f7e0d6;
+  color: #b4523a;
+}
+
+/* 하단 버튼은 항상 카드 바닥에 붙여 둔다. */
+.test-result-actions {
+  width: 100%;
+  flex-shrink: 0;
+  display: flex;
+  gap: 12px;
+  padding-top: 14px;
+  padding-bottom: 4px;
+}
+
+.test-result-retry-button,
+.test-result-note-button,
+.test-result-main-button {
+  flex: 1;
+  min-height: 56px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 16px;
+  font: inherit;
+  font-size: 21px;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.test-result-retry-button {
+  border: 1px solid #dbc8b1;
+  background: #fffaf2;
+  color: #5f402b;
+}
+
+.test-result-note-button {
+  background: #8fa071;
+  box-shadow: 0 4px 0 #6f8052;
+  color: #ffffff;
+}
+
+.test-result-note-button:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #6f8052;
+}
+
+.test-result-main-button {
+  background: #5f402b;
+  box-shadow: 0 4px 0 #43301f;
+  color: #ffffff;
+}
+
+.test-result-main-button:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #43301f;
+}
+
+/* 우측 카드는 좌측 카드와 같은 높이를 쓰고, 넘치면 카드 안에서만 스크롤한다.
+   FingerspellingDetail의 min-height(640px)를 확실히 덮으려고 두 클래스를 겹쳐 쓴다. */
+.fingerspelling-detail.test-result-detail {
+  height: 100%;
+  min-height: 0;
+  /*
+   * 좌우 여백을 공용값 40px에서 24px로 좁혀 600px 설명 상자가 세로 스크롤바와
+   * 함께 있어도 들어가게 한다. 그래도 남지 않는 폭은 잘라 가로 스크롤을 막는다.
+   */
+  padding-right: 20px;
+  padding-left: 20px;
+  /*
+   * 단어 카드의 영상이 왼쪽 1번 문항 버튼과 같은 높이에서 시작하도록 맞춘다.
+   * 왼쪽: 패널 여백 32 + 배지 35 + 10 + 제목 여백 22 + 제목 48 + 10 + 요약 여백 12
+   *       + 요약 24 + 26 + 10 = 229px
+   * 오른쪽: 카드 여백 P + 배지 35 + 20 + 글자 행 100 + 20 = P + 175
+   * 두 값이 같아지는 P = 54px. 세로 가운데 정렬을 끄고 위에서부터 쌓아야
+   * 이 계산이 유지된다.
+   */
+  padding-top: 24px;
+  padding-bottom: 24px;
+  align-content: center;
+  overflow: hidden;
+}
+
+/*
+ * 배치 규칙은 FingerspellingDetail.css가 갖고 있다. 이 화면은 치수만 정한다.
+ * 문항 목록과 카드를 나눠 쓰므로 오답노트와 같은 크기를 쓴다.
+ */
+.fingerspelling-detail.test-result-detail {
+  --detail-symbol-row: 96px;
+  --detail-name-row: 36px;
+  --detail-image-size: 270px;
+  --detail-video-width: 400px;
+  --detail-row-gap: 12px;
+  /*
+   * 카드가 좁으므로(3:2에서 약 565px) 상자도 그 안에 들어가는 폭으로 둔다.
+   * 565 - 좌우 여백 48 - 세로 스크롤바 8 = 509px.
+   * 이 폭에 맞춰 일부 단어는 narrowDescription으로 줄을 더 나눠 둔다.
+   *
+   * 상자 안쪽 좌우 여백을 24px에서 12px로 좁혀, 같은 문장을 담으면서 상자를
+   * 460px까지 줄였다. 가장 긴 줄인 버스 넷째 줄이 약 429px이다.
+   */
+  --detail-description-width: 460px;
+  /* 네 줄까지 들어가야 한다. 4x32 + 줄 사이 24 + 상자 안쪽 42 = 194px */
+  --detail-description-height: 170px;
+}
+
+.test-result-detail .fingerspelling-detail-badge {
+  display: none;
+}
+
+.test-result-detail .fingerspelling-detail-description {
+  padding: 18px 14px;
+}
+
+.test-result-detail .fingerspelling-detail-symbol {
+  font-size: 96px;
+}
+
+.test-result-detail.word-sign-detail .fingerspelling-detail-symbol {
+  font-size: 64px;
+}
+
+.test-result-detail .fingerspelling-detail-name {
+  margin-top: -32px;
+  font-size: 27px;
+}
+
+.test-result-detail .fingerspelling-detail-description h3 {
+  font-size: 18px;
+}
+
+.test-result-detail .fingerspelling-detail-description p {
+  font-size: 19px;
+  line-height: 1.6;
+}
+
+/* 오답노트 담기·빼기 토글. 기존 버튼 시스템(입체 그림자 + active 눌림)을 따른다. */
+/*
+ * 오답노트 페이지의 삭제 버튼(.review-notes-detail-delete)과 같은 규격을 쓴다.
+ * 두 화면에서 같은 일을 하는 버튼이라 크기·모양·위치를 맞춘다.
+ */
+.test-wrong-note-toggle {
+  min-height: 52px;
+  padding: 0 34px;
+  border: 1px solid #b6c496;
+  border-radius: 999px;
+  background: #8fa071;
+  box-shadow: 0 4px 0 #6f8052;
+  color: #ffffff;
+  font: inherit;
+  font-size: 21px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.test-wrong-note-toggle:hover {
+  background: #7f9063;
+}
+
+.test-wrong-note-toggle:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #6f8052;
+}
+
+/* 삭제 상태는 오답노트 페이지의 삭제 버튼과 완전히 같은 색을 쓴다. */
+.test-wrong-note-toggle-remove {
+  border-color: #e8b8a4;
+  background: #fbeee8;
+  box-shadow: 0 4px 0 #e8c4b6;
+  color: #b4523a;
+}
+
+.test-wrong-note-toggle-remove:hover {
+  background: #f7e0d6;
+}
+
+.test-wrong-note-toggle-remove:active {
+  box-shadow: 0 2px 0 #e8c4b6;
+}
+
+/* 버튼 위치도 오답노트 카드와 같게 맞춘다. */
+.test-result-detail .fingerspelling-detail-footer {
+  padding-top: 8px;
+}
+
+/* 오답노트 변경 알림 — 기존 개발중 팝업과 같은 두툼한 테두리·입체 그림자 결 */
+.test-toast {
+  position: fixed;
+  bottom: 46px;
+  left: 50%;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  border: 3px solid #8fa071;
+  border-radius: 999px;
+  background: #fffdf5;
+  box-shadow:
+    0 6px 0 #6f8052,
+    0 16px 32px rgba(82, 54, 35, 0.22);
+  color: #5f402b;
+  font-size: 21px;
+  font-weight: 800;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  animation: testToastPop 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+/* 삭제 알림은 버튼과 같은 옅은 로즈 계열로 맞춘다. */
+.test-toast[data-tone="remove"] {
+  border-color: #e8b8a4;
+  box-shadow:
+    0 6px 0 #d8a48e,
+    0 16px 32px rgba(82, 54, 35, 0.22);
+  color: #b4523a;
+}
+
+.test-toast-face {
+  font-size: 23px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.test-toast-sparkle {
+  color: #e8b938;
+}
+
+.test-toast[data-tone="remove"] .test-toast-sparkle {
+  color: #e0917a;
+}
+
+@keyframes testToastPop {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(14px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+.test-coming-soon-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(72,56,45,.28); backdrop-filter: blur(5px); }
+.test-coming-soon-dialog { position: relative; display: grid; width: min(390px, 100%); justify-items: center; padding: 30px 30px 27px; border: 4px solid #8fa071; border-radius: 28px; background: #fffdf5; box-shadow: 0 12px 0 #6f8052, 0 24px 50px rgba(82,54,35,.28); text-align: center; animation: testComingSoonPop .25s cubic-bezier(.2,.9,.3,1.2); }
+.test-coming-soon-dialog::before, .test-coming-soon-dialog::after { position: absolute; color: #f0c84d; content: "✦"; font-size: 29px; }
+.test-coming-soon-dialog::before { top: 26px; left: 32px; transform: rotate(-14deg); }
+.test-coming-soon-dialog::after { top: 76px; right: 28px; transform: rotate(13deg); }
+.test-coming-soon-dialog img { width: 148px; height: 148px; object-fit: contain; }
+.test-coming-soon-dialog h2 { margin: 7px 0 8px; color: #5f402b; font-size: 40px; letter-spacing: -.05em; }
+.test-coming-soon-dialog p { margin: 0; color: #827368; font-size: 19px; line-height: 1.6; }
+.test-coming-soon-close { position: absolute; top: 14px; right: 14px; display: grid; width: 36px; height: 36px; place-items: center; border: 0; border-radius: 50%; background: #f1ede8; color: #74675e; cursor: pointer; }
+.test-coming-soon-sparkle { position: absolute; top: 65px; left: 37px; color: #e8b938; transform: rotate(-10deg); }
+.test-coming-soon-confirm { min-width: 142px; min-height: 45px; margin-top: 20px; border: 0; border-radius: 15px; background: #8fa071; box-shadow: 0 5px 0 #6f8052; color: #fff; font: inherit; font-weight: 900; cursor: pointer; }
+.test-coming-soon-confirm:active { transform: translateY(3px); box-shadow: 0 2px 0 #6f8052; }
+@keyframes testComingSoonPop { from { opacity: 0; transform: translateY(18px) scale(.92); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+.test-reward-overlay {
+  position: absolute;
+  z-index: 120;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(63, 43, 32, 0.28);
+  backdrop-filter: blur(5px);
+}
+
+.test-reward-card {
+  position: relative;
+  width: min(480px, calc(100% - 40px));
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: 30px;
+  border: 3px solid #d8c8a9;
+  border-radius: 24px;
+  text-align: center;
+  background: #fffdf7;
+  box-shadow: 0 20px 42px rgba(59, 42, 35, 0.25);
+}
+
+.test-reward-card img {
+  width: 180px;
+  height: 180px;
+  object-fit: contain;
+}
+
+.test-reward-card h2 {
+  margin: 8px 0 10px;
+  color: #5f402b;
+  font-size: 32px;
+}
+
+.test-reward-card p {
+  margin: 0;
+  color: #827368;
+  font-size: 17px;
+  font-weight: 400;
+}
+
+.test-reward-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: #74675e;
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1;
+  background: #f1ede8;
+  cursor: pointer;
+}
+
+.test-reward-close:hover {
+  background: #e8e1d9;
+}
+
+.test-reward-card a {
+  min-width: 210px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 22px;
+  border-radius: 13px;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+  text-decoration: none;
+  background: #8fa071;
+  box-shadow: 0 5px 0 #6f8052;
+}

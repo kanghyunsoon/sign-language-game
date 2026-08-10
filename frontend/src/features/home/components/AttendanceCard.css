@@ -1,0 +1,100 @@
+.attendance-check-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.attendance-check-error {
+  margin: 12px 0 0;
+  color: #c44747;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.attendance-reward-overlay {
+  --attendance-reward-px: min(0.052083vw, 0.092593vh);
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(63, 43, 32, 0.28);
+  backdrop-filter: blur(5px);
+}
+
+.attendance-reward-card {
+  position: relative;
+  width: calc(480 * var(--attendance-reward-px));
+  max-width: calc(100vw - 40 * var(--attendance-reward-px));
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: calc(52 * var(--attendance-reward-px))
+    calc(30 * var(--attendance-reward-px))
+    calc(16 * var(--attendance-reward-px));
+  border: calc(3 * var(--attendance-reward-px)) solid #d8c8a9;
+  border-radius: calc(24 * var(--attendance-reward-px));
+  text-align: center;
+  background: #fffdf7;
+  box-shadow: 0 calc(20 * var(--attendance-reward-px))
+    calc(42 * var(--attendance-reward-px)) rgba(59, 42, 35, 0.25);
+}
+
+.attendance-reward-card img {
+  width: calc(180 * var(--attendance-reward-px));
+  height: calc(180 * var(--attendance-reward-px));
+  object-fit: contain;
+}
+
+.attendance-reward-card #attendance-reward-title {
+  margin: calc(8 * var(--attendance-reward-px)) 0
+    calc(10 * var(--attendance-reward-px));
+  color: #5f402b;
+  font-size: calc(28 * var(--attendance-reward-px));
+}
+
+.attendance-reward-card p {
+  margin: 0;
+  color: #827368;
+  font-size: calc(17 * var(--attendance-reward-px));
+  font-weight: 400;
+}
+
+.attendance-reward-close {
+  position: absolute;
+  top: calc(16 * var(--attendance-reward-px));
+  right: calc(16 * var(--attendance-reward-px));
+  width: calc(40 * var(--attendance-reward-px));
+  height: calc(40 * var(--attendance-reward-px));
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: #74675e;
+  font-size: calc(28 * var(--attendance-reward-px));
+  font-weight: 500;
+  line-height: 1;
+  background: #f1ede8;
+  cursor: pointer;
+}
+
+.attendance-reward-close:hover {
+  background: #e8e1d9;
+}
+
+.attendance-reward-card a {
+  min-width: 210px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 22px;
+  border-radius: 13px;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+  text-decoration: none;
+  background: #8fa071;
+  box-shadow: 0 5px 0 #6f8052;
+}

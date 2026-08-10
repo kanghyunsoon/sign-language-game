@@ -1,0 +1,445 @@
+.practice-page {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: #3f2b20;
+  background: #faf7f1;
+}
+
+.practice-canvas {
+  position: relative;
+  width: min(100vw, 177.777778vh);
+  aspect-ratio: 16 / 9;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #faf7f1;
+}
+
+.practice-home-header {
+  position: relative;
+  z-index: 5;
+  height: min(4.479167vw, 7.962963vh);
+  flex: 0 0 min(4.479167vw, 7.962963vh);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: min(0.052083vw, 0.092593vh) solid #e7d9c7;
+  background: rgba(255, 250, 242, 0.94);
+  box-shadow: 0 min(0.208333vw, 0.37037vh) min(0.9375vw, 1.666667vh) rgba(85, 57, 37, 0.05);
+}
+
+.practice-home-nav {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: min(3.020833vw, 5.37037vh);
+}
+
+.practice-home-nav a,
+.practice-home-nav button {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #7d746b;
+  font-family: inherit;
+  font-size: min(1.25vw, 2.222222vh);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.practice-home-nav a.active {
+  color: #3f2b20;
+}
+
+
+.practice-home-nav a.active::after {
+  position: absolute;
+  right: 0;
+  bottom: min(0.885417vw, 1.574074vh);
+  left: 0;
+  height: min(0.208333vw, 0.37037vh);
+  border-radius: min(52.03125vw, 83.25vh);
+  background: #9B6B43;
+  content: "";
+}
+
+.practice-home-mypage-button {
+  position: absolute;
+  top: min(1.041667vw, 1.851852vh);
+  right: min(3.020833vw, 5.37037vh);
+  width: min(8.072917vw, 14.351852vh);
+  height: min(2.291667vw, 4.074074vh);
+  display: grid;
+  place-items: center;
+  border: min(0.052083vw, 0.092593vh) solid #dbc8b1;
+  border-radius: min(52.03125vw, 83.25vh);
+  color: #5f402b;
+  font-size: min(1.09375vw, 1.944444vh);
+  font-weight: 800;
+  text-decoration: none;
+  background: #fffaf2;
+}
+
+.practice-home-header .app-bgm-toggle-viewport {
+  left: min(2.395833vw, 4.259259vh);
+  width: min(3.072917vw, 5.462963vh);
+  height: min(3.072917vw, 5.462963vh);
+}
+
+.practice-home-header .app-bgm-toggle-viewport svg {
+  width: min(2.192708vw, 3.898148vh);
+  height: min(2.192708vw, 3.898148vh);
+}
+
+.practice-main {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: min(2.604167vw, 4.166667vh) min(2.083333vw, 3.333333vh);
+  background:
+    linear-gradient(
+      180deg,
+      #faf7f1 0%,
+      #faf7f1 54%,
+      #f5f1e9 54%,
+      #f5f1e9 100%
+    );
+}
+
+.practice-panel {
+  position: relative;
+  z-index: 1;
+  width: min(54.166667vw, 86.666667vh);
+  min-height: min(38.020833vw, 60.833333vh);
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: min(2.708333vw, 4.333333vh) min(5.729167vw, 9.166667vh) min(3.020833vw, 4.833333vh);
+  border-radius: min(1.770833vw, 2.833333vh);
+  background: #ffffff;
+  box-shadow: 0 min(1.25vw, 2vh) min(2.604167vw, 4.166667vh) rgba(59, 42, 35, 0.14);
+}
+
+.practice-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: min(0.416667vw, 0.666667vh) min(0.9375vw, 1.5vh);
+  border-radius: min(52.03125vw, 83.25vh);
+  color: #ffffff;
+  font-size: min(0.833333vw, 1.333333vh);
+  font-weight: 800;
+  background: #8f8274;
+}
+
+.practice-character-circle {
+  width: min(9.375vw, 15vh);
+  height: min(9.375vw, 15vh);
+  margin-top: min(1.145833vw, 1.833333vh);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: min(0.572917vw, 0.916667vh) solid #b9afa3;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.practice-character {
+  width: min(9.375vw, 15vh);
+  height: min(9.375vw, 15vh);
+  object-fit: contain;
+  transform: translateY(5%);
+}
+
+.practice-title {
+  margin: min(1.25vw, 2vh) 0 min(1.770833vw, 2.833333vh);
+  color: #3f2b20;
+  font-size: min(2.1875vw, 3.5vh);
+  line-height: 1;
+  letter-spacing: max(-0.078125vw, -0.125vh);
+}
+
+.practice-category-list {
+  width: calc(90% + min(0.833333vw, 1.333333vh));
+  max-height: min(20.625vw, 33vh);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: min(0.625vw, 1vh);
+  padding-right: min(0.625vw, 1vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #8f8274 transparent;
+}
+
+.practice-category-list::-webkit-scrollbar {
+  width: min(0.208333vw, 0.333333vh);
+}
+
+.practice-category-list::-webkit-scrollbar-button,
+.practice-category-list::-webkit-scrollbar-button:single-button,
+.practice-category-list::-webkit-scrollbar-button:vertical:decrement,
+.practice-category-list::-webkit-scrollbar-button:vertical:increment {
+  width: 0;
+  height: 0;
+  min-height: 0;
+  display: none;
+  border: 0;
+  background: transparent;
+  -webkit-appearance: none;
+}
+
+.practice-category-list::-webkit-scrollbar-track {
+  border-radius: min(52.03125vw, 83.25vh);
+  background: transparent;
+}
+
+.practice-category-list::-webkit-scrollbar-thumb {
+  border-radius: min(52.03125vw, 83.25vh);
+  background: #aaa095;
+}
+
+.practice-category {
+  width: 100%;
+  min-height: min(3.645833vw, 5.833333vh);
+  display: flex;
+  align-items: center;
+  gap: min(1.041667vw, 1.666667vh);
+  padding: min(0.416667vw, 0.666667vh) min(1.041667vw, 1.666667vh);
+  border: min(0.104167vw, 0.166667vh) solid transparent;
+  border-radius: min(0.989583vw, 1.583333vh);
+  color: #3f2b20;
+  text-align: left;
+  background: #f3f0ea;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.practice-category:hover {
+  border-color: #b7aa8c;
+  background-color: #d8cfba;
+  box-shadow: 0 min(0.520833vw, 0.833333vh) min(1.041667vw, 1.666667vh) rgba(78, 64, 50, 0.12);
+  transform: translateY(max(-0.208333vw, -0.333333vh));
+}
+
+.practice-category-selected {
+  border-color: #b7aa8c;
+  background-color: #d8cfba;
+  box-shadow: 0 min(0.416667vw, 0.666667vh) min(0.9375vw, 1.5vh) rgba(78, 64, 50, 0.1);
+}
+
+.practice-category-selected:hover {
+  transform: translateY(max(-0.104167vw, -0.166667vh));
+}
+
+.practice-category-symbol {
+  width: min(3.59375vw, 5.75vh);
+  height: min(3.59375vw, 5.75vh);
+  flex: 0 0 min(3.59375vw, 5.75vh);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: min(0.677083vw, 1.083333vh);
+  color: #3f2b20;
+  font-size: min(1.71875vw, 2.75vh);
+  font-weight: 900;
+  background: #ffffff;
+}
+
+.practice-category-content {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: min(0.364583vw, 0.583333vh);
+}
+
+.practice-category-content strong {
+  font-size: min(1.25vw, 2vh);
+}
+
+.practice-category-content > span {
+  color: #93867c;
+  font-size: min(0.885417vw, 1.416667vh);
+}
+
+.practice-category-count {
+  flex-shrink: 0;
+  padding: min(0.416667vw, 0.666667vh) min(0.677083vw, 1.083333vh);
+  border-radius: min(52.03125vw, 83.25vh);
+  color: #ffffff;
+  font-size: min(0.833333vw, 1.333333vh);
+  font-weight: 800;
+  background: #8f8274;
+}
+
+.practice-action-area {
+  width: 70%;
+  margin-top: min(1.458333vw, 2.333333vh);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  justify-content: space-between;
+  gap: min(0.833333vw, 1.333333vh);
+}
+
+.practice-start-button,
+.practice-guide-button {
+  min-width: 0;
+  height: min(3.020833vw, 4.833333vh);
+  flex: 1;
+  border: 0;
+  border-radius: min(0.833333vw, 1.333333vh);
+  color: #51483f;
+  font-size: min(1.197917vw, 1.916667vh);
+  font-weight: 800;
+  background-color: #ffffff;
+  box-shadow: 0 min(0.416667vw, 0.666667vh) min(0.833333vw, 1.333333vh) rgba(78, 64, 50, 0.1);
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+/* 글자 크기는 [연습 시작하기]와 같은 값(위 공통 규칙)을 그대로 쓴다. */
+.practice-guide-button {
+  padding: 0 min(0.833333vw, 1.333333vh);
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.practice-start-button:hover,
+.practice-guide-button:hover {
+  transform: translateY(max(-0.104167vw, -0.166667vh));
+}
+
+.practice-guide-button:hover {
+  color: #ffffff;
+  background: #5f402b;
+}
+
+.practice-start-button:hover {
+  color: #ffffff;
+  background: #5f402b;
+}
+
+.practice-start-button:disabled,
+.practice-category:disabled {
+  color: #aaa39b;
+  background: #eeeae3;
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+.practice-start-button:disabled:hover,
+.practice-category:disabled:hover {
+  color: #aaa39b;
+  border-color: transparent;
+  background: #eeeae3;
+  box-shadow: none;
+  transform: none;
+}
+
+/*
+ * [연습 시작하기]만 배경색을 따로 쓴다. [연습 방법 보기]는 흰 배경 그대로 두고,
+ * 마우스를 올렸을 때 색(#5f402b)은 두 버튼 모두 기존 값을 유지한다.
+ * 지정색을 그대로 보여주려고 비활성 상태의 opacity는 되돌린다.
+ */
+.practice-start-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 min(0.833333vw, 1.333333vh);
+  box-sizing: border-box;
+  line-height: 1;
+  white-space: nowrap;
+  word-break: keep-all;
+  background-color: #ded5c8;
+}
+
+.practice-start-button:disabled,
+.practice-start-button:disabled:hover {
+  background: #ebe9e6;
+  opacity: 1;
+}
+
+.practice-guide-overlay {
+  position: absolute;
+  z-index: 10;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: min(2.083333vw, 3.333333vh);
+  background: rgba(63, 43, 32, 0.42);
+}
+
+.practice-guide-modal {
+  width: min(34.375vw, 55vh);
+  box-sizing: border-box;
+  padding: min(2.083333vw, 3.333333vh);
+  border-radius: min(1.25vw, 2vh);
+  background: #ffffff;
+  box-shadow: 0 min(1.25vw, 2vh) min(2.604167vw, 4.166667vh)
+    rgba(59, 42, 35, 0.24);
+}
+
+.practice-guide-modal h2 {
+  margin: 0;
+  color: #3f2b20;
+  font-size: min(1.770833vw, 2.833333vh);
+}
+
+.practice-guide-intro {
+  margin: min(0.833333vw, 1.333333vh) 0
+    min(1.25vw, 2vh);
+  color: #7d6d61;
+  font-size: min(1.145833vw, 1.833333vh);
+}
+
+.practice-guide-steps {
+  margin: 0;
+  padding-left: min(1.5625vw, 2.5vh);
+  color: #51483f;
+  font-size: min(1.145833vw, 1.833333vh);
+  line-height: 2;
+}
+
+.practice-guide-close-button {
+  width: 100%;
+  height: min(3.75vw, 6vh);
+  margin-top: min(1.458333vw, 2.333333vh);
+  border: 0;
+  border-radius: min(0.833333vw, 1.333333vh);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: min(1.302083vw, 2.083333vh);
+  font-weight: 800;
+  background: #5f402b;
+  cursor: pointer;
+}
+
+.practice-guide-close-button:hover {
+  background: #3f2b20;
+}

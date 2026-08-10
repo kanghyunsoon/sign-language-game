@@ -1,0 +1,2 @@
+import { defineJamoObstacleTemplate } from "../JamoObstacleTemplate";
+export const U_TEMPLATE = defineJamoObstacleTemplate({ templateId: "jamo-u-v1", symbol: "ㅜ", tier: 1, normalizedPath: [{ x: 0, y: .2 }, { x: .5, y: .2 }, { x: .5, y: 1 }, { x: .5, y: .2 }, { x: 1, y: .2 }], visualBounds: { width: .15, height: .27 }, entryOffset: { x: 0, y: .2 }, exitOffset: { x: 1, y: .2 }, penaltyMs: 2000, fallDurationMs: 540 });

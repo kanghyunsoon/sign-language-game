@@ -1,0 +1,2 @@
+export interface ReIdentificationTriggerContext { readonly tracksCrossing:boolean; readonly reappearedAfterOcclusion:boolean; readonly scoreDifference?:number; readonly trackSwitchRisk:boolean; }
+export class ReIdentificationTriggerPolicy { shouldRun(context:ReIdentificationTriggerContext):boolean{return context.tracksCrossing||context.reappearedAfterOcclusion||context.trackSwitchRisk||(context.scoreDifference!==undefined&&context.scoreDifference<.08);} }

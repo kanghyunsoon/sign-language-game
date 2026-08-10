@@ -1,0 +1,561 @@
+import "./DictionaryPage.css";
+import { useEffect, useState } from "react";
+import type { ChangeEvent } from "react";
+import { ChevronDown, Search, X } from "lucide-react";
+import { AppNav } from "../../../shared/nav/AppNav";
+import { FingerspellingDetail } from "../components/FingerspellingDetail";
+import { WordSignDetail } from "../components/WordSignDetail";
+import {
+  DEFAULT_FINGERSPELLING_SYMBOL,
+  fingerspellingCategories,
+  fingerspellingItems,
+} from "../data/fingerspelling";
+import type { LearningCategoryId } from "../data/learningEntries";
+import {
+  findLearningEntry,
+  learningEntries,
+  searchLearningEntries,
+} from "../data/learningEntries";
+import type { WordSignGroupId } from "../data/wordSigns";
+import { wordSignEntries, wordSignEntriesByGroup } from "../data/wordSigns";
+import { sentenceSignEntries } from "../data/sentenceSigns";
+
+/** 분류별 펼침 상태. 사전 진입 시 자음만 펼쳐 둔다. */
+const initialOpenCategoryMap: Record<LearningCategoryId, boolean> = {
+  consonant: true,
+  vowel: false,
+  number: false,
+  word: false,
+  sentence: false,
+};
+
+/** 단어 소분류 펼침 상태. 진입 시에는 모두 접어 둔다. */
+const initialOpenWordGroupMap: Record<WordSignGroupId, boolean> = {
+  vehicle: false,
+  nature: false,
+  motion: false,
+  state: false,
+};
+
+export function DictionaryPage() {
+  const [dictionaryScale, setDictionaryScale] = useState(1);
+  const [selectedSymbol, setSelectedSymbol] = useState(
+    DEFAULT_FINGERSPELLING_SYMBOL,
+  );
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isFingerspellingOpen, setIsFingerspellingOpen] = useState(true);
+  const [isNumberOpen, setIsNumberOpen] = useState(false);
+  const [isWordOpen, setIsWordOpen] = useState(false);
+  const [isSentenceOpen, setIsSentenceOpen] = useState(false);
+  const [openCategoryMap, setOpenCategoryMap] = useState(
+    initialOpenCategoryMap,
+  );
+  const [openWordGroupMap, setOpenWordGroupMap] = useState(
+    initialOpenWordGroupMap,
+  );
+
+  const isSearching = searchQuery.trim().length > 0;
+
+  useEffect(() => {
+    const updateDictionaryScale = () => {
+      setDictionaryScale(
+        Math.min(window.innerWidth / 1920, window.innerHeight / 1080),
+      );
+    };
+
+    updateDictionaryScale();
+    window.addEventListener("resize", updateDictionaryScale);
+    window.visualViewport?.addEventListener("resize", updateDictionaryScale);
+    return () => {
+      window.removeEventListener("resize", updateDictionaryScale);
+      window.visualViewport?.removeEventListener("resize", updateDictionaryScale);
+    };
+  }, []);
+  const searchResults = isSearching
+    ? searchLearningEntries(searchQuery)
+    : [];
+  // 알 수 없는 글자가 남아도 항상 유효한 항목을 보여준다.
+  const selectedEntry =
+    findLearningEntry(selectedSymbol) ?? learningEntries[0];
+
+  const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value);
+  };
+
+  const handleSearchClear = () => {
+    setSearchQuery("");
+  };
+
+  const handleFingerspellingToggle = () => {
+    setIsFingerspellingOpen((previous) => !previous);
+  };
+
+  const handleCategoryToggle = (categoryId: LearningCategoryId) => {
+    setOpenCategoryMap((previous) => ({
+      ...previous,
+      [categoryId]: !previous[categoryId],
+    }));
+  };
+
+  /** 항목을 선택하고, 분류 트리에서 해당 항목이 보이도록 펼친다. */
+  const handleEntrySelect = (
+    symbol: string,
+    categoryId: LearningCategoryId,
+  ) => {
+    setSelectedSymbol(symbol);
+
+    if (categoryId === "number") {
+      setIsNumberOpen(true);
+    } else if (categoryId === "word") {
+      // 이전/다음 이동으로 다른 소분류로 넘어가도 그 소분류가 펼쳐지도록 한다.
+      setIsWordOpen(true);
+      const groupId = wordSignEntries.find(
+        (entry) => entry.symbol === symbol,
+      )?.groupId;
+      if (groupId) {
+        setOpenWordGroupMap((previous) => ({ ...previous, [groupId]: true }));
+      }
+    } else if (categoryId === "sentence") {
+      setIsSentenceOpen(true);
+    } else {
+      setIsFingerspellingOpen(true);
+      setOpenCategoryMap((previous) => ({ ...previous, [categoryId]: true }));
+    }
+  };
+
+  /*
+   * learningEntries는 자음 → 모음 → 지숫자 → 단어 순이라 목록 순서와 그대로 맞는다.
+   * 분류 경계를 넘어 이어지므로 ㅎ 다음은 ㅏ, ㅢ 다음은 1, 10 다음은 첫 단어가 된다.
+   */
+  const selectedIndex = learningEntries.indexOf(selectedEntry);
+  const previousEntry = selectedIndex > 0 ? learningEntries[selectedIndex - 1] : undefined;
+  const nextEntry =
+    selectedIndex >= 0 ? learningEntries[selectedIndex + 1] : undefined;
+
+  const goPreviousEntry = previousEntry
+    ? () => handleEntrySelect(previousEntry.symbol, previousEntry.categoryId)
+    : undefined;
+  const goNextEntry = nextEntry
+    ? () => handleEntrySelect(nextEntry.symbol, nextEntry.categoryId)
+    : undefined;
+
+  return (
+    <div className="dictionary-page">
+      <div
+        className="dictionary-canvas"
+        style={{
+          transform: `translate(-50%, -50%) scale(${dictionaryScale})`,
+        }}
+      >
+      <header className="dictionary-header">
+        <AppNav prefix="dictionary" metric="fixed" />
+      </header>
+
+      <main className="dictionary-main">
+        <div className="dictionary-heading">
+          <span className="dictionary-badge">DICTIONARY</span>
+          <h1>수어 사전</h1>
+          <p>자음·모음·숫자와 단어 수어를 검색하고 동작을 확인해 보세요.</p>
+        </div>
+
+        <div className="dictionary-layout">
+          <aside className="dictionary-sidebar" aria-label="지문자 목록">
+            <div className="dictionary-search">
+              <Search
+                className="dictionary-search-icon"
+                size={18}
+                aria-hidden="true"
+              />
+
+              <input
+                className="dictionary-search-input"
+                type="search"
+                value={searchQuery}
+                onChange={handleSearchChange}
+                aria-label="지문자 검색"
+                placeholder="ㄱ, 기역, 1, 버스처럼 입력하세요."
+              />
+
+              {isSearching && (
+                <button
+                  className="dictionary-search-clear"
+                  type="button"
+                  aria-label="검색어 지우기"
+                  onClick={handleSearchClear}
+                >
+                  <X size={16} aria-hidden="true" />
+                </button>
+              )}
+            </div>
+
+            {isSearching ? (
+              <div className="dictionary-results">
+                <p className="dictionary-results-summary">
+                  검색 결과 {searchResults.length}개
+                </p>
+
+                {searchResults.length === 0 ? (
+                  <p className="dictionary-results-empty">
+                    검색 결과가 없어요.
+                  </p>
+                ) : (
+                  <ul className="dictionary-result-list">
+                    {searchResults.map((entry) => {
+                      const isSelected = entry.symbol === selectedEntry.symbol;
+
+                      return (
+                        <li key={entry.symbol}>
+                          <button
+                            className={`dictionary-result ${
+                              isSelected ? "dictionary-result-selected" : ""
+                            }`}
+                            type="button"
+                            aria-pressed={isSelected}
+                            onClick={() =>
+                              handleEntrySelect(entry.symbol, entry.categoryId)
+                            }
+                          >
+                            {/* 단어는 큰 글자와 이름이 같은 값이라 이름만 크게 보여준다. */}
+                            {entry.categoryId !== "word" &&
+                              entry.categoryId !== "sentence" && (
+                              <span className="dictionary-result-symbol">
+                                {entry.symbol}
+                              </span>
+                            )}
+
+                            <span
+                              className={`dictionary-result-name ${
+                                entry.categoryId === "word" ||
+                                entry.categoryId === "sentence"
+                                  ? "dictionary-result-name-word"
+                                  : ""
+                              }`}
+                            >
+                              {entry.name}
+                            </span>
+
+                            {/* 단어는 모두 "단어"라 구분이 안 되므로 소분류를 보여준다. */}
+                            <span className="dictionary-result-category">
+                              {entry.categoryId === "word"
+                                ? entry.groupLabel
+                                : entry.categoryLabel}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            ) : (
+              <div className="dictionary-tree">
+                <button
+                  className="dictionary-tree-root"
+                  type="button"
+                  aria-expanded={isFingerspellingOpen}
+                  aria-controls="dictionary-tree-branch"
+                  onClick={handleFingerspellingToggle}
+                >
+                  <span>지문자</span>
+
+                  <span className="dictionary-tree-count">
+                    {fingerspellingItems.consonant.length +
+                      fingerspellingItems.vowel.length}
+                  </span>
+
+                  <ChevronDown
+                    className={`dictionary-tree-chevron ${
+                      isFingerspellingOpen ? "is-open" : ""
+                    }`}
+                    size={18}
+                    aria-hidden="true"
+                  />
+                </button>
+
+                {isFingerspellingOpen && (
+                  <div
+                    className="dictionary-tree-branch"
+                    id="dictionary-tree-branch"
+                  >
+                    {fingerspellingCategories
+                      .filter((category) => category.id !== "number")
+                      .map((category) => {
+                      const items = fingerspellingItems[category.id];
+                      const isOpen = openCategoryMap[category.id];
+
+                      return (
+                        <div className="dictionary-tree-group" key={category.id}>
+                          <button
+                            className="dictionary-tree-category"
+                            type="button"
+                            aria-expanded={isOpen}
+                            aria-controls={`dictionary-chips-${category.id}`}
+                            onClick={() => handleCategoryToggle(category.id)}
+                          >
+                            <span>{category.label}</span>
+
+                            <span className="dictionary-tree-count">
+                              {items.length}
+                            </span>
+
+                            <ChevronDown
+                              className={`dictionary-tree-chevron ${
+                                isOpen ? "is-open" : ""
+                              }`}
+                              size={16}
+                              aria-hidden="true"
+                            />
+                          </button>
+
+                          {isOpen && (
+                            <ul
+                              className="dictionary-chip-grid"
+                              id={`dictionary-chips-${category.id}`}
+                            >
+                              {items.map((item) => {
+                                const isSelected =
+                                  item.symbol === selectedEntry.symbol;
+
+                                return (
+                                  <li key={item.symbol}>
+                                    <button
+                                      className={`dictionary-chip ${
+                                        isSelected
+                                          ? "dictionary-chip-selected"
+                                          : ""
+                                      }`}
+                                      type="button"
+                                      aria-pressed={isSelected}
+                                      aria-label={`${item.symbol} ${item.name}`}
+                                      onClick={() =>
+                                        handleEntrySelect(
+                                          item.symbol,
+                                          category.id,
+                                        )
+                                      }
+                                    >
+                                      {item.symbol}
+                                    </button>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <button
+                  className="dictionary-tree-root"
+                  type="button"
+                  aria-expanded={isNumberOpen}
+                  aria-controls="dictionary-chips-number"
+                  onClick={() => setIsNumberOpen((previous) => !previous)}
+                >
+                  <span>지숫자</span>
+                  <span className="dictionary-tree-count">
+                    {fingerspellingItems.number.length}
+                  </span>
+                  <ChevronDown
+                    className={`dictionary-tree-chevron ${
+                      isNumberOpen ? "is-open" : ""
+                    }`}
+                    size={18}
+                    aria-hidden="true"
+                  />
+                </button>
+
+                {isNumberOpen && (
+                  <ul
+                    className="dictionary-chip-grid dictionary-root-chip-grid"
+                    id="dictionary-chips-number"
+                  >
+                    {fingerspellingItems.number.map((item) => {
+                      const isSelected = item.symbol === selectedEntry.symbol;
+
+                      return (
+                        <li key={item.symbol}>
+                          <button
+                            className={`dictionary-chip ${
+                              isSelected ? "dictionary-chip-selected" : ""
+                            }`}
+                            type="button"
+                            aria-pressed={isSelected}
+                            aria-label={`${item.symbol} ${item.name}`}
+                            onClick={() =>
+                              handleEntrySelect(item.symbol, "number")
+                            }
+                          >
+                            {item.symbol}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+
+                <button
+                  className="dictionary-tree-root"
+                  type="button"
+                  aria-expanded={isWordOpen}
+                  aria-controls="dictionary-word-branch"
+                  onClick={() => setIsWordOpen((previous) => !previous)}
+                >
+                  <span>단어</span>
+                  <span className="dictionary-tree-count">
+                    {wordSignEntries.length}
+                  </span>
+                  <ChevronDown
+                    className={`dictionary-tree-chevron ${
+                      isWordOpen ? "is-open" : ""
+                    }`}
+                    size={18}
+                    aria-hidden="true"
+                  />
+                </button>
+
+                {/* 지문자와 같은 구조로 단어도 소분류(탈것·자연·운동·감정)로 나눈다. */}
+                {isWordOpen && (
+                  <div className="dictionary-tree-branch" id="dictionary-word-branch">
+                    {wordSignEntriesByGroup.map((group) => {
+                      const isOpen = openWordGroupMap[group.id];
+
+                      return (
+                        <div className="dictionary-tree-group" key={group.id}>
+                          <button
+                            className="dictionary-tree-category"
+                            type="button"
+                            aria-expanded={isOpen}
+                            aria-controls={`dictionary-words-${group.id}`}
+                            onClick={() =>
+                              setOpenWordGroupMap((previous) => ({
+                                ...previous,
+                                [group.id]: !previous[group.id],
+                              }))
+                            }
+                          >
+                            <span>{group.label}</span>
+
+                            <span className="dictionary-tree-count">
+                              {group.entries.length}
+                            </span>
+
+                            <ChevronDown
+                              className={`dictionary-tree-chevron ${
+                                isOpen ? "is-open" : ""
+                              }`}
+                              size={16}
+                              aria-hidden="true"
+                            />
+                          </button>
+
+                          {isOpen && (
+                            <ul
+                              className="dictionary-chip-grid"
+                              id={`dictionary-words-${group.id}`}
+                            >
+                              {group.entries.map((item) => {
+                                const isSelected =
+                                  item.symbol === selectedEntry.symbol;
+
+                                return (
+                                  <li key={item.id}>
+                                    <button
+                                      className={`dictionary-chip dictionary-chip-word ${
+                                        isSelected ? "dictionary-chip-selected" : ""
+                                      }`}
+                                      type="button"
+                                      aria-pressed={isSelected}
+                                      onClick={() =>
+                                        handleEntrySelect(item.symbol, "word")
+                                      }
+                                    >
+                                      {item.name}
+                                    </button>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <button
+                  className="dictionary-tree-root"
+                  type="button"
+                  aria-expanded={isSentenceOpen}
+                  aria-controls="dictionary-sentence-branch"
+                  onClick={() => setIsSentenceOpen((previous) => !previous)}
+                >
+                  <span>문장</span>
+                  <span className="dictionary-tree-count">
+                    {sentenceSignEntries.length}
+                  </span>
+                  <ChevronDown
+                    className={`dictionary-tree-chevron ${
+                      isSentenceOpen ? "is-open" : ""
+                    }`}
+                    size={18}
+                    aria-hidden="true"
+                  />
+                </button>
+
+                {isSentenceOpen && (
+                  <ul
+                    className="dictionary-chip-grid dictionary-root-chip-grid"
+                    id="dictionary-sentence-branch"
+                  >
+                    {sentenceSignEntries.map((item) => {
+                      const isSelected = item.symbol === selectedEntry.symbol;
+
+                      return (
+                        <li key={item.id}>
+                          <button
+                            className={`dictionary-chip dictionary-chip-word ${
+                              isSelected ? "dictionary-chip-selected" : ""
+                            }`}
+                            type="button"
+                            aria-pressed={isSelected}
+                            onClick={() =>
+                              handleEntrySelect(item.symbol, "sentence")
+                            }
+                          >
+                            {item.name}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            )}
+          </aside>
+
+          {selectedEntry.categoryId === "word" ||
+          selectedEntry.categoryId === "sentence" ? (
+            <WordSignDetail
+              className="dictionary-detail"
+              entry={selectedEntry}
+              onPrevious={goPreviousEntry}
+              onNext={goNextEntry}
+            />
+          ) : (
+            <FingerspellingDetail
+              className="dictionary-detail"
+              entry={selectedEntry}
+              onPrevious={goPreviousEntry}
+              onNext={goNextEntry}
+            />
+          )}
+        </div>
+      </main>
+
+      </div>
+    </div>
+  );
+}

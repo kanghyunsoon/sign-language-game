@@ -1,0 +1,2 @@
+import {describe,expect,it} from "vitest";import {LineRaceClientStateMachine} from "./LineRaceClientStateMachine";
+describe("LineRaceClientStateMachine",()=>{it("accepts network lifecycle and rejects invalid transitions",()=>{const state=new LineRaceClientStateMachine();state.transition("CONNECTING");state.transition("COUNTDOWN");state.transition("PLAYING");state.transition("RECONNECTING");state.transition("PLAYING");state.transition("FINISHED");expect(state.getState()).toBe("FINISHED");expect(()=>state.transition("PLAYING")).toThrow(/Invalid/);});});

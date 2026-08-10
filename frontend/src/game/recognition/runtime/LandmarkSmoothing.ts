@@ -1,0 +1,2 @@
+import type{HandLandmark}from"../types/landmark";
+export function smoothHandLandmarks(previous:readonly HandLandmark[]|undefined,current:readonly HandLandmark[],alpha:number):readonly HandLandmark[]{if(!previous||previous.length!==current.length)return current.map((point)=>({...point}));const responsiveAlpha=Math.max(alpha,.9);return current.map((point,index)=>{const before=previous[index]!;return{x:before.x+(point.x-before.x)*responsiveAlpha,y:before.y+(point.y-before.y)*responsiveAlpha,z:before.z+(point.z-before.z)*responsiveAlpha};});}

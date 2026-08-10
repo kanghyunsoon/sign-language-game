@@ -1,0 +1,10 @@
+node_modules/
+dist/
+*.log
+*.tsbuildinfo
+
+# 로컬 전용 환경변수. 사람마다 백엔드 주소가 달라 공유하지 않는다.
+# 설정 안내(.env.example)와 배포 값(.env.production)은 계속 추적한다.
+.env
+.env.local
+.env.*.local
