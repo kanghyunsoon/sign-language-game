@@ -1,0 +1,108 @@
+spring:
+  application:
+    name: suhwa
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:suhwa}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 커넥션 고갈 시 무한정 대기하지 않고 빠르게 실패시킨다(FR-023, research.md #5).
+    # 풀 크기는 부하 테스트로 확정할 값이라 환경변수로 열어둔다(STABLE-08-14-T02).
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:10}
+      connection-timeout: 3000
+      validation-timeout: 3000
+
+  # 응답을 다 쓸 때까지 영속성 컨텍스트와 커넥션을 붙잡지 않는다(FR-021). 이 코드베이스는 엔티티
+  # 연관관계를 쓰지 않아 뷰에서 지연 로딩이 일어날 여지가 없으므로 끄는 데 회귀 위험이 없다.
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:none}
+    show-sql: ${JPA_SHOW_SQL:false}
+    properties:
+      hibernate:
+        format_sql: ${JPA_FORMAT_SQL:false}
+        # 다건 INSERT/UPDATE를 묶어 왕복을 줄인다. 정렬 옵션이 없으면 배치가 잘게 쪼개진다(FR-023).
+        jdbc:
+          batch_size: 30
+        order_inserts: true
+        order_updates: true
+      jakarta:
+        persistence:
+          query:
+            timeout: 3000
+
+  # 오래 걸리는 트랜잭션이 커넥션을 물고 늘어지지 않게 전역 상한을 둔다(FR-022). 배치성 작업은
+  # 개별 메서드에서 @Transactional(timeout = ...)으로 늘린다(GameRoomCleanupScheduler 참조).
+  transaction:
+    default-timeout: 3s
+
+  # 스키마 이력 관리(spec 004 FR-018, STABLE-08-09). ddl-auto는 none 유지(위 참조)하고
+  # 스키마 변경은 db/migration/V*.sql 로만 관리한다. 기존 운영 DB에 최초 도입하므로
+  # baseline-on-migrate로 V1(baseline) 이후 마이그레이션만 적용한다.
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 1
+
+server:
+  port: ${SERVER_PORT:8080}
+  # 리버스 프록시(nginx)가 X-Forwarded-Prefix: /api 로 보내는 요청을 받는다.
+  # 이 값을 안 켜면 springdoc 등이 프록시 prefix 없이 절대경로(/v3/api-docs 등)를
+  # 생성해, 앞단이 /api/만 백엔드로 라우팅하는 구조에서 그 경로가 404로 떨어진다.
+  forward-headers-strategy: framework
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration-ms: ${JWT_ACCESS_EXPIRATION_MS:3600000}
+  refresh-token-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:1209600000}
+
+game:
+  room:
+    waiting-room-retention-minutes: ${GAME_ROOM_WAITING_RETENTION_MINUTES:30}
+    realtime-ticket-ttl: ${REALTIME_TICKET_TTL_SECONDS:30}
+    leave-grace-seconds: ${GAME_ROOM_LEAVE_GRACE_SECONDS:7}
+    join-confirmation-seconds: ${GAME_ROOM_JOIN_CONFIRMATION_SECONDS:15}
+    # close 프레임 없이 조용히 끊긴 WS 연결을 감지하기 위한 서버발 PING 주기와, PONG(또는
+    # 다른 트래픽)이 그 안에 없으면 컨테이너가 세션을 닫는 idle timeout(버그픽스). idle
+    # timeout은 PING을 2~3번 놓쳐도 봐줄 수 있게 주기보다 넉넉히 크게 잡는다.
+    ws-ping-interval-ms: ${GAME_ROOM_WS_PING_INTERVAL_MS:20000}
+    ws-idle-timeout-ms: ${GAME_ROOM_WS_IDLE_TIMEOUT_MS:60000}
+
+growth:
+  attendance-exp: ${GROWTH_ATTENDANCE_EXP:3}
+  test-exp: ${GROWTH_TEST_EXP:7}
+  solo-fast-score-max: ${GROWTH_SOLO_FAST_SCORE_MAX:60}
+  solo-medium-score-max: ${GROWTH_SOLO_MEDIUM_SCORE_MAX:90}
+  solo-slow-score-max: ${GROWTH_SOLO_SLOW_SCORE_MAX:120}
+  solo-fast-exp: ${GROWTH_SOLO_FAST_EXP:15}
+  solo-medium-exp: ${GROWTH_SOLO_MEDIUM_EXP:10}
+  solo-slow-exp: ${GROWTH_SOLO_SLOW_EXP:5}
+  duel-winner-exp: ${GROWTH_DUEL_WINNER_EXP:10}
+  duel-loser-exp: ${GROWTH_DUEL_LOSER_EXP:3}
+  exp-per-level: ${GROWTH_EXP_PER_LEVEL:20}
+  first-evolution-level: ${GROWTH_FIRST_EVOLUTION_LEVEL:5}
+  second-evolution-level: ${GROWTH_SECOND_EVOLUTION_LEVEL:10}
+  third-evolution-level: ${GROWTH_THIRD_EVOLUTION_LEVEL:15}
+  final-evolution-level: ${GROWTH_FINAL_EVOLUTION_LEVEL:20}
+  max-level: ${GROWTH_MAX_LEVEL:20}
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:}
+
+webrtc:
+  stun-urls: ${WEBRTC_STUN_URLS:}
+  turn-url: ${WEBRTC_TURN_URL:}
+  turn-username: ${WEBRTC_TURN_USERNAME:}
+  turn-credential: ${WEBRTC_TURN_CREDENTIAL:}

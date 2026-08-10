@@ -1,0 +1,57 @@
+openapi: 3.0.3
+info:
+  title: 솔로 결과 보고 API (solo-results)
+  version: "1.0.0"
+  description: >
+    테트리스 솔로 전용, 게임방(game-rooms) 개념과 완전히 무관한 신규 엔드포인트(FR-027/028, US8).
+    방 생성, 실시간 연결(티켓/WebSocket), 준비/시작 등 어떤 사전 절차도 요구하지 않는다 —
+    로그인한 사용자가 플레이를 마친 뒤 이 API 하나만 호출하면 끝난다.
+tags:
+  - name: SoloResults
+paths:
+  /solo-results:
+    post:
+      tags: [SoloResults]
+      summary: 테트리스 솔로 결과(점수) 보고
+      operationId: reportSoloResult
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SoloResultRequest'
+      responses:
+        "201":
+          description: >
+            점수 기록 완료(FR-028). 서버는 이 점수가 실제 플레이에서 나온 것인지 검증하지 않으며
+            (spec.md Assumptions, 의도적 결정), 동일 사용자가 짧은 시간에 여러 번 호출해도 각각
+            개별 기록으로 남는다(중복 방지 없음).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SoloResultResponse'
+        "400":
+          description: score 누락 또는 음수
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    SoloResultRequest:
+      type: object
+      required: [score]
+      properties:
+        score:
+          type: integer
+          minimum: 0
+          description: 승자·상대방 정보는 요구하지 않는다(FR-028) — 솔로는 상대가 없다.
+    SoloResultResponse:
+      type: object
+      properties:
+        resultId: { type: integer, format: int64 }
+        score: { type: integer }

@@ -1,0 +1,113 @@
+openapi: 3.0.3
+info:
+  title: 로비 실시간 목록(SSE) 및 WebRTC 부가 API (game-rooms 확장, webrtc)
+  version: "1.0.0"
+  description: >
+    spec.md User Story 9/10/13 (FR-009~FR-015, FR-022~FR-023) 및 User Story 14 (FR-027) 대응.
+    001의 game-rooms-api.yaml(생성/입장/나가기/준비/시작/결과)은 변경하지 않고 별도 파일로 확장한다.
+    방 내 실시간 연결(WebSocket, /ws/game-rooms/{roomId})의 메시지 계약은 OpenAPI로 표현할 수 없어
+    contracts/realtime-websocket-messages.md에 별도로 정의한다.
+tags:
+  - name: GameRooms
+  - name: WebRTC
+paths:
+  /game-rooms/subscribe:
+    get:
+      tags: [GameRooms]
+      summary: 대기 중인 게임방 목록 실시간 구독 (SSE)
+      operationId: subscribeLobby
+      description: >
+        `EventSource`는 커스텀 헤더를 보낼 수 없어 인증은 `ticket` 쿼리 파라미터(단기 1회용 티켓,
+        auth-ticket-api.yaml 참고)로 검증한다(FR-022). 응답 헤더에 `X-Accel-Buffering: no`를 포함해
+        Nginx 프록시 버퍼링을 방지한다(아키텍처 결정 사항). 연결 유지 중 하트비트 이벤트(`event: heartbeat`)를
+        주기적으로 보낸다.
+
+        **클라이언트 구현 시 유의**: 브라우저 `EventSource` API는 연결 실패 시 `onerror` 콜백만 호출할 뿐
+        HTTP 상태 코드나 아래 401 응답의 JSON 바디를 클라이언트 코드에서 읽을 수 없다. 또한 `EventSource`의
+        기본 자동 재연결은 동일한 URL(= 동일한, 이미 소비된 티켓)로 재시도하므로 티켓의 1회성과 충돌해
+        항상 재실패한다. 따라서 프론트엔드는 `onerror` 발생 시 응답 바디 파싱을 시도하지 말고, 곧바로
+        `POST /auth/sse-ticket`으로 새 티켓을 재발급받아 새 URL로 재연결해야 한다(spec.md Assumptions 참고).
+      parameters:
+        - name: ticket
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: >
+            `text/event-stream`. 최초 연결 시 `event: snapshot`으로 현재 WAITING 방 전체 목록(FR-009),
+            이후 변경 발생 시 `event: update`로 변경분을 전송(FR-010). 방이 IN_PROGRESS/CLOSED로 전환되면
+            해당 방은 다음 `update` 이벤트의 목록에서 제거된 형태로 반영된다(FR-011).
+          headers:
+            X-Accel-Buffering:
+              schema: { type: string, example: "no" }
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/LobbyRoomList'
+        "401":
+          description: 유효하지 않거나 이미 소비된/만료된 티켓 (FR-022)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /webrtc/ice-servers:
+    get:
+      tags: [WebRTC]
+      summary: STUN/TURN 접속 정보 조회
+      operationId: getIceServers
+      description: >
+        방 소속 여부와 무관한 정적 인프라 설정값이라 일반 로그인 인증만 요구한다(FR-027).
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: 영상 통화 연결에 사용할 STUN/TURN 서버 목록
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IceServerListResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    LobbyRoomSummary:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        roomCode: { type: string }
+        status: { type: string, enum: [WAITING] }
+        participantCount: { type: integer }
+        capacity: { type: integer, example: 2 }
+    LobbyRoomList:
+      type: object
+      properties:
+        rooms:
+          type: array
+          items:
+            $ref: '#/components/schemas/LobbyRoomSummary'
+    IceServerEntry:
+      type: object
+      properties:
+        urls:
+          type: array
+          items: { type: string }
+        username: { type: string, nullable: true }
+        credential: { type: string, nullable: true }
+    IceServerListResponse:
+      type: object
+      properties:
+        iceServers:
+          type: array
+          items:
+            $ref: '#/components/schemas/IceServerEntry'
+    ErrorResponse:
+      type: object
+      properties:
+        code: { type: string }
+        message: { type: string }

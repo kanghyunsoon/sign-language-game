@@ -1,0 +1,85 @@
+openapi: 3.0.3
+info:
+  title: 출석 및 펫 성장 API
+  version: "1.1.0"
+  description: 연습 세션과 연습 보상 API를 제외한 출석·펫 성장 계약
+tags:
+  - name: Growth
+paths:
+  /growth/attendance:
+    get:
+      tags: [Growth]
+      summary: 오늘 출석 상태 조회
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: 로그인 사용자의 오늘 출석 여부와 연속 출석
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceResponse"
+        "401": { description: 인증 필요 }
+    post:
+      tags: [Growth]
+      summary: 오늘 출석
+      description: 같은 서비스 날짜의 재요청은 기존 결과를 반환하고 XP를 추가하지 않는다.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: 신규 또는 기존 출석 결과
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceCompletionResponse"
+        "401": { description: 인증 필요 }
+  /growth/pet:
+    get:
+      tags: [Growth]
+      summary: 내 펫 성장 상태 조회
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: 이름과 선택 절차가 없는 단일 펫 상태
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PetStatusResponse"
+        "401": { description: 인증 필요 }
+        "500": { description: 가입 데이터 이상으로 펫이 없으며 복구 가능한 서버 오류 }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    AttendanceResponse:
+      type: object
+      required: [attendanceDate, attendedToday, streakCount]
+      properties:
+        attendanceDate: { type: string, format: date }
+        attendedToday: { type: boolean }
+        streakCount: { type: integer, minimum: 0 }
+    AttendanceCompletionResponse:
+      allOf:
+        - $ref: "#/components/schemas/AttendanceResponse"
+        - type: object
+          required: [newlyAttended, awardedExp, pet]
+          properties:
+            newlyAttended: { type: boolean }
+            awardedExp: { type: integer, enum: [0, 3] }
+            pet: { $ref: "#/components/schemas/PetStatusResponse" }
+    PetStatusResponse:
+      type: object
+      required: [level, currentExp, evolutionStage, maxLevel]
+      properties:
+        level: { type: integer, minimum: 1, maximum: 20 }
+        currentExp: { type: integer, minimum: 0, maximum: 19 }
+        expToNextLevel:
+          type: integer
+          nullable: true
+          description: 최대 레벨인 20이면 null
+        evolutionStage:
+          type: string
+          enum: [STAGE_1, STAGE_2, STAGE_3, STAGE_4, STAGE_5]
+        maxLevel: { type: integer, enum: [20] }

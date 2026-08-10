@@ -1,0 +1,102 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.0.7'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'backend.ssafy'
+version = '0.0.1-SNAPSHOT'
+description = 'suhwa'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    implementation 'com.github.ben-manes.caffeine:caffeine'
+    // Spring Boot 4는 자동설정이 모듈로 쪼개져 있어, flyway-core만 넣으면 라이브러리는 클래스패스에
+    // 있지만 자동설정이 붙지 않아 spring.flyway.* 설정이 통째로 무시된다(마이그레이션이 실행되지 않음).
+    implementation 'org.springframework.boot:spring-boot-flyway'
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-mysql'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+    compileOnly 'org.projectlombok:lombok'
+    runtimeOnly 'com.mysql:mysql-connector-j'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-websocket-test'
+    testImplementation 'com.tngtech.archunit:archunit-junit5:1.3.0'
+    // 인덱스 효과를 실제 MySQL에서 측정하는 벤치마크용(기본 test 실행에서는 제외 — @Tag("benchmark")).
+    testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
+    testImplementation 'org.testcontainers:testcontainers-mysql'
+    testRuntimeOnly 'com.h2database:h2'
+    testCompileOnly 'org.projectlombok:lombok'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+}
+
+tasks.named('test') {
+    // 벤치마크는 Docker가 필요하고 수 분이 걸리므로 일반 테스트 실행에서 제외한다.
+    useJUnitPlatform {
+        excludeTags 'benchmark'
+    }
+    // 테스트에서는 Flyway를 돌리지 않는다. 슬라이스 테스트는 H2 + ddl-auto로 스키마를 만들고
+    // (MySQL 전용 DDL인 V1이 H2에서 실행되면 깨진다), 통합 테스트는 이미 준비된 개발 DB 스키마를
+    // 쓰므로 테스트가 개발자 DB에 마이그레이션을 적용해버리는 것도 막아야 한다.
+    // 마이그레이션 자체의 검증은 전용 컨테이너를 쓰는 FlywayMigrationTest가 담당한다.
+    systemProperty 'spring.flyway.enabled', 'false'
+}
+
+// 인덱스 효과 측정 등 성능 벤치마크 전용. 실행: ./gradlew benchmark
+tasks.register('benchmark', Test) {
+    description = 'Testcontainers 기반 성능 벤치마크(@Tag("benchmark"))만 실행한다.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'benchmark'
+    }
+    testLogging {
+        showStandardStreams = true
+    }
+    outputs.upToDateWhen { false }
+}
+
+// 로컬 개발 편의: .env가 있으면 읽어서 bootRun/test 태스크의 환경 변수로 주입한다.
+// (.env는 gitignore 대상이며, 실제 배포 환경에서는 플랫폼이 환경 변수를 직접 주입한다.)
+def envFile = file('.env')
+if (envFile.exists()) {
+    def envVars = [:]
+    envFile.eachLine { line ->
+        line = line.trim()
+        if (line && !line.startsWith('#') && line.contains('=')) {
+            def parts = line.split('=', 2)
+            envVars[parts[0].trim()] = parts[1].trim()
+        }
+    }
+    tasks.withType(Test).configureEach {
+        environment(envVars)
+    }
+    tasks.named('bootRun') {
+        environment(envVars)
+    }
+}
