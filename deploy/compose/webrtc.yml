@@ -1,0 +1,17 @@
+services:
+  coturn:
+    image: coturn/coturn:4.14.0-r0
+    container_name: sudal-coturn
+    restart: unless-stopped
+    network_mode: host
+
+    volumes:
+      - ./coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
+      - /opt/sudal/webrtc/certs:/run/coturn-certs:ro
+
+    command:
+      - -c
+      - /etc/coturn/turnserver.conf
+      - --external-ip=${TURN_EXTERNAL_IP}/${TURN_RELAY_IP}
+      - --relay-ip=${TURN_RELAY_IP}
+      - --user=${TURN_USERNAME}:${TURN_PASSWORD}
