@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Sudal MySQL Backup Daily
+
+[Timer]
+OnCalendar=*-*-* 18:00:00 UTC
+Persistent=true
+RandomizedDelaySec=10min
+Unit=sudal-mysql-backup.service
+
+[Install]
+WantedBy=timers.target
