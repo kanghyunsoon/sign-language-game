@@ -1,0 +1,13 @@
+apiVersion: 1
+
+providers:
+  - name: Sudal Dashboards
+    orgId: 1
+    folder: Sudal
+    type: file
+    disableDeletion: true
+    editable: true
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false
