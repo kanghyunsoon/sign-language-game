@@ -5,11 +5,11 @@
 | 문서 | 담당 | 내용 |
 | --- | --- | --- |
 | [portfolio-game-frontend.md](./portfolio-game-frontend.md) | 게임 파트 프론트엔드 | 담당 범위, 기술 스택, 구현 상세, 협업 |
-| `ai-model-improvement-report.md` | AI 파트 | 2D 랜드마크 피처의 한계와 3D 피처·앙상블을 통한 인식 성능 개선 |
+| `ai-model-improvement-report.md` — 이 저장소에 없음 | AI 파트 | 2D 랜드마크 피처의 한계와 3D 피처·앙상블을 통한 인식 성능 개선 |
 
 ## 두 문서의 관계
 
-인식 관련은 둘을 같이 읽어야 한다. AI 문서가 **"모델이 무엇을 얼마나 맞히는가"**이고, 게임 문서 5장이 **"그 예측을 언제 게임 입력으로 확정하는가"**다. 두 문서는 `game-contracts/recognition/readiness.json`에서 만난다. 그 파일의 `confirmationAuthority` 필드가 경계다.
+인식 관련은 둘을 같이 읽어야 한다. AI 문서가 **"모델이 무엇을 얼마나 맞히는가"**이고, 게임 문서 5장이 **"그 예측을 언제 게임 입력으로 확정하는가"**다. 두 문서는 `ai/contracts/recognition/readiness.json`에서 만난다. 그 파일의 `confirmationAuthority` 필드가 경계다.
 
 ## 근거 표기 규칙
 
