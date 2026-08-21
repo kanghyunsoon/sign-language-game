@@ -13,13 +13,13 @@
 .env.*
 !.env.example
 
-ai/
-models/
+ai/fingerspelling/
+ai/models/
 
-game-ai-dev-server/tests/
-game-ai-dev-server/docs/
-game-ai-dev-server/scripts/
-game-ai-dev-server/requirements-training.txt
+ai/game-server/tests/
+ai/game-server/docs/
+ai/game-server/scripts/
+ai/game-server/requirements-training.txt
 
 **/work/
 **/datasets/
@@ -28,8 +28,8 @@ game-ai-dev-server/requirements-training.txt
 **/*.png
 **/*.zip
 
-!number-model/models/
-!number-model/models/**
+!ai/number/models/
+!ai/number/models/**
 .gradle/
 **/build/
 **/bin/

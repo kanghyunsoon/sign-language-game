@@ -41,11 +41,11 @@ __pycache__/
 *.py[cod]
 .venv/
 
-ai/models/
-ai/data/raw/
-ai/data/processed/
-ai/data/rejected/
-ai/artifacts/
+ai/fingerspelling/models/
+ai/fingerspelling/data/raw/
+ai/fingerspelling/data/processed/
+ai/fingerspelling/data/rejected/
+ai/fingerspelling/artifacts/
 *.jsonl
 *.npz
 

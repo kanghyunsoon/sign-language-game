@@ -10,15 +10,15 @@ RUN apt-get update \
 
 WORKDIR /app/number-model
 
-COPY number-model/requirements.txt /tmp/requirements.txt
+COPY ai/number/requirements.txt /tmp/requirements.txt
 
 RUN pip install --upgrade pip \
     && pip install -r /tmp/requirements.txt
 
-COPY number-model/numbermodel ./numbermodel
-COPY number-model/server ./server
-COPY number-model/contracts ./contracts
-COPY number-model/models ./models
+COPY ai/number/numbermodel ./numbermodel
+COPY ai/number/server ./server
+COPY ai/number/contracts ./contracts
+COPY ai/number/models ./models
 
 RUN groupadd --gid 10002 number-ai \
     && useradd --uid 10002 --gid number-ai --create-home number-ai \

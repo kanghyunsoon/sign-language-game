@@ -10,13 +10,13 @@ RUN apt-get update \
 
 WORKDIR /app
 
-COPY game-ai-dev-server/requirements.txt /tmp/requirements.txt
+COPY ai/game-server/requirements.txt /tmp/requirements.txt
 
 RUN pip install --upgrade pip \
     && pip install -r /tmp/requirements.txt
 
-COPY game-ai-dev-server /app/game-ai-dev-server
-COPY game-contracts /app/game-contracts
+COPY ai/game-server /app/game-ai-dev-server
+COPY ai/contracts /app/game-contracts
 
 RUN mkdir -p /app/models \
     && groupadd --gid 10001 ai \

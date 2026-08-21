@@ -6,14 +6,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app/word-accuracy-test
 
-COPY word-accuracy-test/server/requirements.txt /tmp/requirements.txt
+COPY ai/word/server/requirements.txt /tmp/requirements.txt
 
 RUN pip install --upgrade pip \
     && pip install -r /tmp/requirements.txt
 
-COPY word-accuracy-test/inference ./inference
-COPY word-accuracy-test/models ./models
-COPY word-accuracy-test/server ./server
+COPY ai/word/inference ./inference
+COPY ai/word/models ./models
+COPY ai/word/server ./server
 
 RUN groupadd --gid 10004 word-v7-ai \
     && useradd --uid 10004 --gid word-v7-ai --create-home word-v7-ai \
