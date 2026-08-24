@@ -15,8 +15,8 @@ COPY ai/game-server/requirements.txt /tmp/requirements.txt
 RUN pip install --upgrade pip \
     && pip install -r /tmp/requirements.txt
 
-COPY ai/game-server /app/game-ai-dev-server
-COPY ai/contracts /app/game-contracts
+COPY ai/game-server /app/game-server
+COPY ai/contracts /app/contracts
 
 RUN mkdir -p /app/models \
     && groupadd --gid 10001 ai \
@@ -25,7 +25,7 @@ RUN mkdir -p /app/models \
 
 USER ai:ai
 
-WORKDIR /app/game-ai-dev-server
+WORKDIR /app/game-server
 
 ENV HANDPRACTICE_AI_HOST=0.0.0.0 \
     HANDPRACTICE_AI_PORT=8765 \
