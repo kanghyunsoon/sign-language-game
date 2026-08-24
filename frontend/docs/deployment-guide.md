@@ -21,6 +21,8 @@ Vercel에 React/Vite 정적 프런트만 배포하고 API, SSE, WebSocket, TURN�
 
 루트의 `package.json`과 `vercel.json`은 monorepo에서 `frontend` 하위 Vite 앱을 빌드하기 위한 배포 어댑터다. Root Directory를 `frontend`로 지정하고 그 안에서 `npm ci`를 실행하는 방식은 사용하지 않는다.
 
+**빌드 설정은 루트 `vercel.json` 하나다.** Vercel은 설정 파일을 Root Directory에서만 읽으므로 하위 폴더의 `vercel.json`은 무시된다. 초기에 `frontend/vercel.json`으로 폴더 단독 배포를 시도했다가(`1e6f839`) 22분 뒤 루트 방식으로 바꿨고(`ba8c308`), 남아 있던 그 파일은 제거했다. 설정을 두 곳에 두지 않는다.
+
 | 항목 | 값 |
 | --- | --- |
 | Node.js | `22.x` |
