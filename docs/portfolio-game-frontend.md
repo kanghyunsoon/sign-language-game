@@ -17,7 +17,7 @@
 | 5 | 인식 파이프라인 | AI 예측을 언제 게임 입력으로 확정하는가 |
 | 6 | 서버 없는 실시간 1:1 | 백엔드가 게임을 중계하지 않는 조건에서의 호스트 권위 구조 |
 
-5장은 AI 파트 문서 `ai-model-improvement-report.md`와 짝이다. 그 문서가 "모델이 무엇을 얼마나 맞히는가"이고 5장이 "그 예측을 언제 게임 입력으로 확정하는가"다. 두 문서는 `game-contracts/recognition/readiness.json`에서 만난다.
+5장은 AI 파트 문서 `ai-model-improvement-report.md`와 짝이다. 그 문서가 "모델이 무엇을 얼마나 맞히는가"이고 5장이 "그 예측을 언제 게임 입력으로 확정하는가"다. 두 문서는 `ai/contracts/recognition/readiness.json`에서 만난다.
 
 ## 근거 표기 규칙
 
@@ -425,7 +425,7 @@ heightLoad      = 1 + (boardHeight - y) / boardHeight   ← 높이 가중
 | 연타 방지 | 손을 유지하는 동안 같은 입력이 반복된다 |
 | 오입력 방지 | 지터나 전환 중 모양이 확정된다 |
 
-세 개가 서로 반대 방향으로 당긴다. 그리고 조건이 하나 더 있다. **모델이 특정 글자를 신뢰할 수 없다.** AI 문서의 결론대로 `ㅅ`/`ㅠ`는 구조적으로 혼동되고, threshold 조정으로 해결되지 않는다.
+세 개가 서로 반대 방향으로 당긴다. 그리고 조건이 하나 더 있다. **모델이 특정 글자를 신뢰할 수 없다.** 설계 당시에는 `ㅅ`/`ㅠ`가 구조적으로 혼동돼 threshold 조정으로 해결되지 않았고, 지금은 재측정으로 그 쌍이 풀린 대신 `ㅓ`/`ㅡ`가 같은 자리를 차지했다. 어느 글자가 막히든 게이팅 구조는 그대로 필요하다는 것이 요점이다.
 
 여기서 중요한 판단을 했다. **인식률 문제를 반응성으로 덮지 않는다.** 처음 논의된 방식은 서버가 cooldown을 두는 것이었다. 확정 후 일정 시간 예측을 무시하면 연타가 막힌다. 하지만:
 
@@ -731,30 +731,32 @@ MediaPipe 쪽도 같은 원칙이다. worker가 실패하면 즉시 main-thread 
 
 #### 계약 파일
 
-`game-contracts/recognition/readiness.json`:
+`ai/contracts/recognition/readiness.json`:
 
 | 필드 | 값 |
 | --- | --- |
 | `schemaVersion` | 1 |
 | `modelVersion` | `jamo-31-v1` |
 | `confirmationAuthority` | `FRONTEND_TEMPORAL_DECODER` |
-| `evaluation.sampleCount` | 2790 |
-| `evaluation.sampling` | 심볼·촬영 세션당 균등 간격 30 시퀀스 |
+| `evaluation.measuredModel` | `jamo-31-ensemble-v2` (dual head, rotation-augmented) |
+| `evaluation.sampleCount` | 1900 |
+| `evaluation.sampling` | 촬영 영상의 고정 test split(각 클립 뒤 30%), 시퀀스 창 10 stride 1 |
 | `evaluation.trainingIndependent` | **false** |
 | `criteria.minimumConfirmationRate` | 0.85 |
 | `criteria.minimumCompetitivePrecision` | 0.90 |
 
-31개 클래스 중 `competitiveEligible`은 **24개**다.
+31개 클래스 중 `competitiveEligible`은 **27개**다.
 
 | 제외 | 사유 (JSON `reason` 필드 그대로) |
 | --- | --- |
-| `ㅅ` | `ㅠ`가 `ㅅ`으로 분류됨; precision을 지키는 threshold가 존재하지 않음 |
-| `ㅠ` | 표본 90개 전부가 `ㅅ`으로 분류됨 |
-| `ㅕ` | `ㅖ`와 혼동 |
-| `ㅖ` | `ㅕ`와 혼동 |
-| `ㅏ` | 확정률 85% 미만 |
-| `ㅓ` | 확정률 85% 미만 |
-| `ㅔ` | 확정률 85% 미만 |
+| `ㅓ` | 확정률 85% 미만; `ㅡ`로 오독됨 — T-152에서 margin 조정이 `ㅡ`를 무너뜨려 threshold 하향으로 대체하지 않음 |
+| `ㅗ` | 확정률 85% 미만 |
+| `ㅜ` | 확정률 85% 미만; 예측은 맞지만 일부 표본에서 confidence가 0.5 아래에 머문다 |
+| `ㅡ` | precision 90% 미만; `ㅓ`를 일부 흡수 |
+
+이 표는 고정값이 아니다. 판정 여유(top1-top2) 게이트를 넣고 전 클래스를 재측정한
+`bfa7f13`에서 `ㅅ ㅏ ㅕ ㅠ ㅔ ㅖ`가 풀리고 `ㅗ ㅜ ㅡ`가 대신 막혔다. 그래서 코드와
+테스트 어느 쪽도 이 목록을 복제하지 않고 계약에서 파생시킨다.
 
 #### 단일 원천
 
@@ -1298,9 +1300,9 @@ MeshBattleMediaSession ── RoomRealtimeSocket (ticket, SIGNAL 전용)
 
 ### AI 팀과의 계약
 
-`game-contracts/`를 프런트와 AI가 공유하는 계약 폴더로 썼다. 현재 이 폴더에 실제로 있는 파일은 `recognition/readiness.json` 하나다. AI가 평가 결과를 채우고 프런트가 출제 범위와 심볼별 임계값으로 읽는다.
+`ai/contracts/`를 프런트와 AI가 공유하는 계약 폴더로 썼다. 현재 이 폴더에 실제로 있는 파일은 `recognition/readiness.json` 하나다. AI가 평가 결과를 채우고 프런트가 출제 범위와 심볼별 임계값으로 읽는다.
 
-밸런스 값도 같은 방식으로 계약화하려 했으나 끝까지 가지 못했다. `glyph-battle/core/LineRaceBalance.ts`의 주석은 `game-contracts/balance/line-race-obstacles.json`의 타입 미러라고 명시하지만 **그 JSON은 저장소에 없다.** drift 테스트(`LineRaceBalance.test.ts`)도 JSON을 import하지 않고 프런트 상수끼리만 비교한다. 계약 파일 없이 주석만 남은 상태이므로, 밸런스는 readiness처럼 단일 원천이 확보되지 않았다.
+밸런스 값도 같은 방식으로 계약화하려 했으나 끝까지 가지 못했다. `glyph-battle/core/LineRaceBalance.ts`의 주석은 `ai/contracts/balance/line-race-obstacles.json`의 타입 미러라고 명시하지만 **그 JSON은 저장소에 없다.** drift 테스트(`LineRaceBalance.test.ts`)도 JSON을 import하지 않고 프런트 상수끼리만 비교한다. 계약 파일 없이 주석만 남은 상태이므로, 밸런스는 readiness처럼 단일 원천이 확보되지 않았다.
 
 역할 분담을 이렇게 정리했다: **AI는 prediction과 후보만, 게임 입력 확정은 프런트.** 초기에는 서버가 cooldown으로 연타를 막는 방식을 논의했지만, 인식률 문제를 서버 지연으로 숨기는 구조가 되고 게임 반응성도 나빠져서 경계를 옮겼다. 대신 프런트는 모델에 없는 글자를 만들어내지 않고, 개인정보 경계(랜드마크만 전송, 영상·외형 descriptor·얼굴 정보 미전송)를 문서로 고정했다.
 
@@ -1365,7 +1367,7 @@ WebRTC는 프런트만으로 완성되지 않는다. 필요한 조건을 목록�
 
 - **몰수패 정책**: 서버가 인증된 peer 연결 상태를 권위 근거로 제공하면 10초 이후 자동 몰수패를 켤 수 있다.
 - **방 메타데이터**: 백엔드 create/response/SSE에 `title`, `hostNickname`, `symbolRange`, `createdAt`이 영속화되면 브라우저 보완 로직을 제거할 수 있다.
-- **모델 재평가**: 현재 readiness는 세션 간 랜덤 분할 결과다. 사용자 분리 validation으로 다시 평가해야 제외된 7개 글자를 되살릴 수 있다.
+- **모델 재평가**: 현재 readiness는 세션 간 랜덤 분할 결과다. 사용자 분리 validation으로 다시 평가해야 제외된 4개 글자를 되살릴 수 있다.
 - **성능 실측**: Hand/Pose/AI p95 지연은 기기·브라우저에 따라 달라진다. 자동 테스트 수치를 실제 성능으로 기록하지 않았고, 다양한 기기의 측정치가 더 필요하다.
 
 ---
@@ -1484,7 +1486,7 @@ WebRTC는 프런트만으로 완성되지 않는다. 필요한 조건을 목록�
 
 | 파일 | 확인한 내용 |
 | --- | --- |
-| `game-contracts/recognition/readiness.json` | 31클래스, 24 eligible, 제외 사유, criteria, `trainingIndependent: false` 경고 |
+| `ai/contracts/recognition/readiness.json` | 31클래스, 24 eligible, 제외 사유, criteria, `trainingIndependent: false` 경고 |
 | `recognition/readiness/recognitionReadiness.ts` | 타입 래핑, 파생 export |
 | `block-stacking/metadata/symbolRegistry.ts` | 자모 31 + 숫자 9, `modelSupported`, 주석 |
 | `block-stacking/battle/room/symbolRange.ts` | `symbolRange` 필터 |

@@ -1,0 +1,137 @@
+# 로컬 전체 스택 (프런트 + 백엔드 + MySQL + AI 3종). 운영 배포용이 아니다.
+#
+#   docker compose -f infra/compose/local.yml up -d --build
+#   http://localhost:8081
+#
+# 운영(infra/compose/*.yml)은 이미 빌드된 이미지를 /opt/sudal 의 설정·모델과 함께
+# 띄우는 반면, 이 파일은 저장소를 그대로 빌드해서 한 번에 올린다. 접속 경로도 운영과
+# 같게 nginx 하나로 모아 두었기 때문에(프런트와 API가 같은 오리진) CORS 설정 없이
+# 동작한다.
+#
+# 비밀값은 전부 로컬 전용 더미다. 이 파일을 배포에 쓰지 말 것.
+
+name: sudal-local
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: local-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: localpw
+      MYSQL_DATABASE: suhwa
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -plocalpw"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    volumes:
+      - local_mysql_data:/var/lib/mysql
+
+  backend:
+    image: sudal-backend:local
+    build:
+      context: ../../backend/suhwa
+      dockerfile: Dockerfile
+    container_name: local-backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8080
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: suhwa
+      DB_USERNAME: root
+      DB_PASSWORD: localpw
+      # 스키마는 Flyway 가 만든다. 빈 DB 로 시작하면 v1 부터 순서대로 적용된다.
+      JPA_DDL_AUTO: none
+      JPA_SHOW_SQL: "false"
+      JPA_FORMAT_SQL: "false"
+      # HS384 서명용 더미 키(32바이트 이상이면 된다). 로컬 전용.
+      JWT_SECRET: local_only_dummy_jwt_secret_value_change_me_32plus
+      JWT_ACCESS_EXPIRATION_MS: 3600000
+      JWT_REFRESH_EXPIRATION_MS: 1209600000
+      GAME_ROOM_WAITING_RETENTION_MINUTES: 30
+      REALTIME_TICKET_TTL_SECONDS: 3
+      GAME_ROOM_LEAVE_GRACE_SECONDS: 7
+      GAME_ROOM_JOIN_CONFIRMATION_SECONDS: 15
+      # nginx 를 거치면 같은 오리진이라 CORS 는 필요 없지만, Vite dev 서버(5173)에서
+      # 이 백엔드로 직접 붙는 경우를 위해 열어 둔다.
+      CORS_ALLOWED_ORIGINS: http://localhost:8081,http://localhost:5173
+      WEBRTC_STUN_URLS: stun:stun.l.google.com:19302
+      WEBRTC_TURN_URL: ""
+      WEBRTC_TURN_USERNAME: ""
+      WEBRTC_TURN_CREDENTIAL: ""
+    ports:
+      # Swagger UI 직접 확인용. nginx 경유(/api)로도 접근할 수 있다.
+      - "127.0.0.1:8080:8080"
+
+  ai:
+    image: sudal-ai:local
+    build:
+      context: ../..
+      dockerfile: ai/game-server/Dockerfile
+    container_name: local-ai
+    init: true
+    environment:
+      HANDPRACTICE_AI_HOST: 0.0.0.0
+      HANDPRACTICE_AI_PORT: 8765
+      HANDPRACTICE_AI_MODEL: baseline
+      # 진단 로그는 쓰기 볼륨이 필요하므로 로컬에서는 끈다.
+      HANDPRACTICE_AI_DIAG_PATH: ""
+    volumes:
+      # 모델은 이미지에 넣지 않고 마운트한다(운영도 동일).
+      - ../../ai/models:/app/models:ro
+    ports:
+      - "127.0.0.1:8765:8765"
+
+  number-ai:
+    image: sudal-number-ai:local
+    build:
+      context: ../..
+      dockerfile: ai/number/Dockerfile
+    container_name: local-number-ai
+    init: true
+    environment:
+      HANDPRACTICE_NUMBER_HOST: 0.0.0.0
+      HANDPRACTICE_NUMBER_PORT: 8766
+      HANDPRACTICE_NUMBER_PATH: /number
+    ports:
+      - "127.0.0.1:8766:8766"
+
+  word-ai:
+    image: sudal-word-ai:local
+    build:
+      context: ../..
+      dockerfile: ai/word/Dockerfile
+    container_name: local-word-ai
+    init: true
+    environment:
+      HANDPRACTICE_WORD_HOST: 0.0.0.0
+      HANDPRACTICE_WORD_PORT: 8767
+      HANDPRACTICE_WORD_PATH: /word
+      HANDPRACTICE_WORD_MODEL_DIR: /app/models/ksl-word-v7
+      HANDPRACTICE_WORD_MODEL_SHA256: 2c739f8c9e08d52d48b44c586f9b32930b2e9543b4084896a9043d238acaf337
+      HANDPRACTICE_WORD_EARLY_ACCEPT: "1"
+    volumes:
+      - ../../ai/word/models:/app/models:ro
+    ports:
+      - "127.0.0.1:8767:8767"
+
+  web:
+    image: sudal-frontend:local
+    build:
+      context: ../..
+      dockerfile: infra/compose/local/frontend.Dockerfile
+    container_name: local-web
+    depends_on:
+      - backend
+      - ai
+      - number-ai
+      - word-ai
+    ports:
+      - "127.0.0.1:8081:80"
+
+volumes:
+  local_mysql_data:

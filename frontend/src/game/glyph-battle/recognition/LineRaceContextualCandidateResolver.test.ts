@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { SignRecognitionEvent } from "../../recognition";
 import type { LineRaceInputContext } from "./LineRaceInputContext";
+import { RECOGNITION_CLASS_READINESS } from "../../recognition/readiness/recognitionReadiness";
 import { LineRaceContextualCandidateResolver } from "./LineRaceContextualCandidateResolver";
 
-const aiSymbols = ["ㄱ", "ㄴ", "ㄷ", "ㄹ", "ㅁ", "ㅅ", "ㅌ"];
+// 제외 자모는 재측정마다 바뀌므로 이름을 적지 않고 계약에서 뽑는다.
+const QUARANTINED_SYMBOL = RECOGNITION_CLASS_READINESS.find((item) => !item.competitiveEligible)!.symbol;
+const aiSymbols = ["ㄱ", "ㄴ", "ㄷ", "ㄹ", "ㅁ", QUARANTINED_SYMBOL, "ㅌ"];
 const base = (): LineRaceInputContext => ({
   matchState: "PLAYING",
   attackHand: ["ㄱ", "ㄴ", "ㄷ"],
@@ -129,11 +132,11 @@ describe("LineRaceContextualCandidateResolver", () => {
       resolver.resolve(prediction([{ symbol: "ㄱ", confidence: .9 }]), aiSymbols, token).diagnostics.rejectionReason,
     ).toBe("STALE_CONTEXT");
 
-    context = { ...context, attackHand: ["ㅅ", "ㄹ", "ㅁ"] };
+    context = { ...context, attackHand: [QUARANTINED_SYMBOL, "ㄹ", "ㅁ"] };
     const current = resolver.captureContext(aiSymbols);
-    const excluded = resolver.resolve(prediction([{ symbol: "ㅅ", confidence: .9999 }]), aiSymbols, current);
+    const excluded = resolver.resolve(prediction([{ symbol: QUARANTINED_SYMBOL, confidence: .9999 }]), aiSymbols, current);
     expect(excluded.selectedCandidate).toBeUndefined();
-    expect(excluded.diagnostics.eligibleSymbols).not.toContain("ㅅ");
+    expect(excluded.diagnostics.eligibleSymbols).not.toContain(QUARANTINED_SYMBOL);
   });
 
   it("returns identical decisions for local and network contexts", () => {

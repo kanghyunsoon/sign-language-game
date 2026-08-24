@@ -26,24 +26,27 @@ SharedGameCameraSession
 
 ## 2. 출제 가능 글자 게이팅
 
-`game-contracts/recognition/readiness.json`이 유일한 원천이다. 서버 threshold, 프런트 출제 범위, 계약 테스트가 모두 이 파일을 읽는다. 상수를 코드에 복제하지 않는다.
+`ai/contracts/recognition/readiness.json`이 유일한 원천이다. 서버 threshold, 프런트 출제 범위, 계약 테스트가 모두 이 파일을 읽는다. 상수를 코드에 복제하지 않는다.
 
 | 필드 | 값 |
 | --- | --- |
-| `modelVersion` | `jamo-31-v1` |
-| `evaluation.sampleCount` | 2790 |
+| `modelVersion` | `jamo-31-v1` (클래스 계약 버전) |
+| `evaluation.measuredModel` | `jamo-31-ensemble-v2` (dual head, rotation-augmented) |
+| `evaluation.sampleCount` | 1900 |
 | `evaluation.trainingIndependent` | **false** |
 | `criteria.minimumConfirmationRate` | 0.85 |
 | `criteria.minimumCompetitivePrecision` | 0.90 |
 
-31개 클래스 중 `competitiveEligible`은 **24개**다.
+31개 클래스 중 `competitiveEligible`은 **27개**다.
 
-| 제외 | 사유 |
-| --- | --- |
-| `ㅅ` | `ㅠ`가 `ㅅ`으로 분류됨. precision을 지키는 threshold가 존재하지 않는다 |
-| `ㅠ` | 표본 90개 전부가 `ㅅ`으로 분류된다 |
-| `ㅕ`, `ㅖ` | 서로 혼동된다 |
-| `ㅏ`, `ㅓ`, `ㅔ` | 확정률 85% 미만 |
+| 제외 | precision | 확정률 | 사유 |
+| --- | --- | --- | --- |
+| `ㅓ` | 1.0 | 0.689 | `ㅡ`로 오독된다. T-152에서 margin을 낮추자 `ㅡ`가 무너져 threshold 하향은 막았다 |
+| `ㅗ` | 1.0 | 0.833 | 확정률 85% 미만 |
+| `ㅜ` | 1.0 | 0.677 | 예측은 맞지만 일부 표본에서 confidence가 0.5를 넘지 못한다 |
+| `ㅡ` | 0.836 | 1.0 | precision 90% 미만. `ㅓ`를 일부 흡수한다 |
+
+제외 목록은 재측정마다 바뀐다. `bfa7f13`(판정 여유 게이트 도입)에서 전 클래스를 다시 재면서 `ㅅ ㅏ ㅕ ㅠ ㅔ ㅖ`가 풀리고 `ㅗ ㅜ ㅡ`가 대신 막혔다. 그래서 프런트 코드도 테스트도 이 목록을 복제하지 않고 계약에서 파생시킨다.
 
 배틀 심볼 풀(`BATTLE_TARGET_SYMBOLS`)과 방 옵션 `symbolRange`(`자음`/`모음`/`기초 혼합`)는 `isCompetitiveRecognitionReady()`를 통과한 글자만 쓴다. 시드 100회로 카드 드로우·spawn까지 게이팅이 관철되는지 검증한다(`LocalBotPracticeReadiness.integration.test.ts`).
 
@@ -100,6 +103,15 @@ SharedGameCameraSession
 카메라 앞에 사람이 여러 명 있을 수 있다. `hands[0]`을 쓰면 뒤에 있는 사람이 손을 들 때 입력 주체가 바뀌고, Pose 배열 index는 영구 ID가 아니라서 두 사람이 교차하면 사용자가 뒤바뀐다.
 
 **얼굴 인식은 쓰지 않는다.** 이 게임에 필요한 것은 "이 손이 등록된 사용자의 것인가"이고 "이 사람이 누구인가"가 아니다. 게임에 필요하지 않은 생체정보 문제를 만들지 않는다.
+
+> **현재 상태: 게임 모드에서 비활성.** 아래 구조는 전부 구현·테스트돼 있지만
+> `88a01df`에서 게임 경로를 껐다. `HandCamera`의 `userRegistrationEnabled = false`가
+> 등록 UI·Pose 추적·소유권 판정을 막고, `DEFAULT_GAME_RECOGNITION_OPTIONS`의
+> `requireActivePlayerLock: false`가 세션 쪽 강제도 끈다. 실제 게임 입력은
+> `safetyMode: "LEGACY_HAND_ONLY"`로 감지된 첫 손을 그대로 받는다. 실기 군중
+> 테스트를 못 한 상태에서 켜면 정상 입력까지 차단할 위험이 있어 내린 결정이고,
+> 지금은 `/game/recognition/crowd-test`(DEV 전용)에서만 동작을 볼 수 있다.
+> 되살리려면 두 값을 함께 켜고 등록 UX와 Pose CPU 비용을 실기에서 재야 한다.
 
 ### 4.1 사람 추적
 

@@ -19,12 +19,21 @@ describe("predictLandmarksForDisplay", () => {
   });
 
   it("caps prediction so sudden detection noise cannot jump across the screen", () => {
+    // 클램프 값 자체는 체감에 맞춰 조정되는 값이다(beb5b25에서 0.065 -> 0.14).
+    // 그래서 결과 좌표를 그대로 박아 두지 않고, 클램프가 살아 있는지만 본다.
+    const current = { x: 0.8, y: 0.8, z: 0.5 };
     const result = predictLandmarksForDisplay(
       { landmarks: [{ x: 0.2, y: 0.2, z: 0 }], capturedAt: 100 },
-      { landmarks: [{ x: 0.8, y: 0.8, z: 0.5 }], capturedAt: 133 },
+      { landmarks: [current], capturedAt: 133 },
       300,
     );
-    expect(result[0]).toEqual({ x: 0.865, y: 0.865, z: 0.575 });
+    // 시간만으로 외삽하면 0.8 + 0.6 * (167 / 33) ≈ 3.8 로 화면을 한참 벗어난다.
+    const SAFETY_CEILING = 0.2;
+    expect(result[0]!.x).toBeGreaterThan(current.x);
+    expect(result[0]!.y).toBeGreaterThan(current.y);
+    expect(result[0]!.x - current.x).toBeLessThanOrEqual(SAFETY_CEILING);
+    expect(result[0]!.y - current.y).toBeLessThanOrEqual(SAFETY_CEILING);
+    expect(result[0]!.z - current.z).toBeLessThanOrEqual(SAFETY_CEILING);
   });
 
   it("smooths tiny palm jitter but lets large palm motion catch up immediately", () => {

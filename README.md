@@ -55,7 +55,7 @@ ai/
   models/          학습된 모델 아티팩트와 매니페스트
   contracts/       인식 확정 계약 — 프론트엔드와 AI의 경계
 infra/
-  compose/         서비스별 Docker Compose 정의
+  compose/         서비스별 Docker Compose 정의 (`local.yml` 은 로컬 전체 스택)
   coturn/          STUN/TURN 서버 설정
   monitoring/      Prometheus + Grafana 구성
   scripts/         DB 백업, 인증서 갱신
@@ -98,7 +98,7 @@ docs/       포트폴리오·기술 문서
 | 서비스 | 내부 바인딩 | 외부 경로 |
 | --- | --- | --- |
 | 백엔드 | `127.0.0.1:8080` | `/api/` |
-| 지문자 AI | `127.0.0.1:8765` | `/ai-ws/` |
+| 지문자 AI | `127.0.0.1:8765` | `/ai/ws` |
 | 숫자 AI | `127.0.0.1:8766` | `/number` |
 | 단어 AI | `127.0.0.1:8767` | `/word` |
 | MySQL | 외부 미공개 | 백엔드 내부 연결 |
@@ -106,27 +106,194 @@ docs/       포트폴리오·기술 문서
 
 ---
 
-## 로컬 실행
+## 실행 방법
+
+### 1) 전체 스택 한 번에 (Docker, 권장)
+
+프런트·백엔드·MySQL·AI 3종을 한 번에 올립니다. 접속 경로를 nginx 하나로 모아
+운영과 같은 "프런트와 API가 같은 오리진" 구조로 띄우기 때문에, 환경변수 설정이나
+CORS 조정 없이 그대로 동작합니다.
+
+필요한 것: Docker Desktop(또는 Docker Engine) + Compose v2. 그 외 준비물은 없습니다.
+Node·JDK·Python을 로컬에 설치하지 않아도 됩니다.
 
 ```bash
-# 프론트엔드 (postinstall이 MediaPipe 에셋을 자동 배치한다)
+docker compose -f infra/compose/local.yml up -d --build
+```
+
+첫 빌드는 이미지를 처음 만들기 때문에 5~10분, 이후에는 캐시가 재사용됩니다.
+프런트엔드 빌드 중 MediaPipe 손·포즈 모델(약 13MB)을 내려받으므로 네트워크가 필요합니다.
+지문자 인식 이미지는 TensorFlow를 포함해 약 3.5GB입니다.
+
+빌드가 끝나면 **http://localhost:8081** 로 접속합니다.
+
+> 반드시 `localhost` 로 접속하세요. 브라우저는 `localhost` 와 HTTPS만 보안 컨텍스트로
+> 취급하므로, LAN IP(`http://192.168.x.x:8081`)로 열면 웹캠 접근이 차단됩니다.
+
+| 경로 | 연결 대상 | 직접 접근 |
+| --- | --- | --- |
+| `http://localhost:8081` | 프런트엔드 (nginx) | — |
+| `/api/**` | 백엔드 REST·SSE·게임방 WebSocket | `http://localhost:8080` |
+| `/api/swagger-ui/index.html` | API 문서 | `http://localhost:8080/swagger-ui/index.html` |
+| `/ai/ws` | 지문자 인식 WebSocket | `ws://localhost:8765` |
+| `/number` | 숫자 인식 WebSocket | `ws://localhost:8766` |
+| `/word` | 단어 인식 WebSocket | `ws://localhost:8767` |
+
+로그인은 회원가입으로 계정을 만들면 됩니다(이메일 형식, 비밀번호 8자 이상, 닉네임 2~10자).
+DB는 빈 상태로 시작하고 Flyway가 스키마를 v11까지 자동 적용합니다.
+
+상태 확인과 종료:
+
+```bash
+docker compose -f infra/compose/local.yml ps            # 상태 (AI 3종은 healthy 로 표시)
+docker compose -f infra/compose/local.yml logs -f backend
+docker compose -f infra/compose/local.yml down          # 중지 (DB 데이터는 볼륨에 남음)
+docker compose -f infra/compose/local.yml down -v       # 중지 + DB까지 삭제
+```
+
+만든 이미지까지 지우려면:
+
+```bash
+docker rmi sudal-frontend:local sudal-backend:local sudal-ai:local sudal-number-ai:local sudal-word-ai:local
+```
+
+막히는 지점:
+
+| 증상 | 원인과 조치 |
+| --- | --- |
+| 카메라가 안 잡힌다 | `127.0.0.1`·LAN IP가 아니라 `localhost` 로 접속. 브라우저 카메라 권한 허용 여부도 확인 |
+| 포트 충돌 | 8081·8080·8765·8766·8767을 쓴다. `infra/compose/local.yml` 의 `ports` 왼쪽 값을 바꾸면 된다(8081을 바꾸면 단어 인식 주소도 함께 바꿔야 한다 — 아래 참고) |
+| `local-backend` 가 안 뜬다 | MySQL healthcheck 통과를 기다리는 중일 수 있다(첫 기동은 30초 이상). `logs -f backend` 로 Flyway 마이그레이션 로그를 확인 |
+| 1:1 대전에서 상대가 안 붙는다 | coturn(TURN)은 이 스택에 없다. 같은 머신의 두 탭·두 브라우저는 host candidate로 연결되지만, 서로 다른 네트워크 간 relay 경로는 확인할 수 없다 |
+| `EOFError: stream ends after 0 bytes` 로그 | Docker healthcheck가 TCP 소켓만 열고 닫아서 나는 정상 로그다 |
+
+단어 인식 주소만 코드 기본값이 배포 호스트로 고정돼 있어서 빌드 시점에 주입합니다
+(`infra/compose/local/frontend.Dockerfile` 의 `VITE_WORD_AI_WEBSOCKET_URL`). 웹 포트를
+8081에서 바꾸면 이 값도 같이 바꿔 다시 빌드해야 합니다. API와 지문자·숫자 주소는
+`window.location` 기준 상대값이라 포트를 바꿔도 그대로 따라갑니다.
+
+### 2) 파트별 개별 실행 (개발용)
+
+코드를 고치면서 HMR·디버거를 쓰려면 파트별로 띄웁니다.
+
+```bash
+# 프런트엔드 — http://localhost:5173 (postinstall이 MediaPipe 에셋을 자동 배치한다)
 cd frontend && npm ci && npm run dev
 
-# 백엔드 (MySQL 필요)
+# 백엔드 — JDK 17과 MySQL이 필요하다. 환경변수는 backend/suhwa/env.sample 참고
+#   (DB_*, 그리고 JWT_SECRET은 32바이트 이상이어야 기동한다)
+#   bootRun은 Flyway가 켜져 있어 빈 DB라도 V1~V11을 알아서 적용한다(테스트는 다르다 — 아래 참고)
 cd backend/suhwa && ./gradlew bootRun
 
-# 지문자 인식 서버
+# 지문자 인식 서버 — ws://localhost:8765
 cd ai/game-server && pip install -r requirements.txt && python -m app.main
 
-# 숫자 인식 서버
+# 숫자 인식 서버 — ws://localhost:8766/number
 cd ai/number && pip install -r requirements.txt && python -m server.main
 
-# 단어 인식 서버
+# 단어 인식 서버 — ws://localhost:8767/word
 cd ai/word && pip install -r server/requirements.txt && python -m server.main
 ```
 
-환경변수는 `.env.example`을 참고하세요. AI 서버 옵션(인식 게이트 임계값, 랜드마크
-스무딩, 진단 로그)의 의미는 각 값에 주석으로 붙여 두었습니다.
+프런트 환경변수는 `frontend/.env.example` 을 복사해 씁니다. 주의할 점:
+
+- **숫자 인식**은 `VITE_AI_WEBSOCKET_URL` 의 경로만 `/number` 로 바꿔 주소를 만듭니다
+  (`aiRecognition.ts`). 즉 개발 기본값 `ws://localhost:8765` 에서는 `ws://localhost:8765/number`
+  가 되어 지문자 서버로 붙습니다. 숫자·단어 연습까지 함께 확인하려면 프록시가 필요하므로
+  위 Docker 스택을 쓰는 편이 낫습니다.
+- **단어 인식**은 `VITE_WORD_AI_WEBSOCKET_URL` 을 지정하지 않으면 배포 서버로 붙습니다.
+  로컬 서버를 쓸 때는 `ws://localhost:8767/word` 를 넣어 주세요.
+- 백엔드를 5173에서 직접 호출하려면 백엔드의 `CORS_ALLOWED_ORIGINS` 에
+  `http://localhost:5173` 이 들어 있어야 합니다(`env.sample` 기본값에 포함).
+
+AI 서버 옵션(인식 게이트 임계값, 랜드마크 스무딩, 진단 로그)의 의미는 각 값에 주석으로
+붙여 두었습니다. `infra/compose/ai.yml` 과 `ai/game-server/README.md` 를 함께 보세요.
+
+### 테스트
+
+세 파트를 마지막으로 함께 돌린 결과입니다.
+
+| 대상 | 결과 |
+| --- | --- |
+| 프런트엔드 (Vitest) | 161개 파일 821개 통과 |
+| 백엔드 (JUnit) | 66개 클래스 264개 통과 |
+| AI 지문자 서버 | 109개 통과 |
+| AI 숫자 서버 | 37개 통과 |
+
+#### 프런트엔드
+
+```bash
+cd frontend && npm ci && npm test
+cd frontend && npx tsc -b        # 타입체크만
+```
+
+#### 백엔드
+
+준비물이 두 개 있습니다. **JDK 17**과 **스키마가 적용된 MySQL**입니다.
+
+통합 테스트는 대부분 `@SpringBootTest`이고 `application.yaml`의 datasource를 그대로
+씁니다(기본값 `localhost:3306`, `root`, 빈 비밀번호). 그리고 `build.gradle`이 테스트
+태스크에서 `spring.flyway.enabled=false`로 마이그레이션을 **끕니다** — 테스트가 개발자
+DB에 마이그레이션을 적용해버리는 것을 막기 위한 의도된 설정입니다. 그래서 빈 DB로
+돌리면 `Table 'suhwa.game_rooms' doesn't exist`로 60여 개가 무너집니다. 스키마를 미리
+넣어 둬야 합니다.
+
+스키마의 단일 원천은 Flyway 마이그레이션입니다.
+
+| 위치 | 내용 |
+| --- | --- |
+| `backend/suhwa/src/main/resources/db/migration/V*.sql` | **현재 스키마의 원천.** `V1`~`V11`(V3 없음), 전부 적용하면 테이블 9개 |
+| `backend/suhwa/scripts/schema.sql` | spec 001 시절의 옛 스냅샷. `game_results`·`test_sessions`가 없고 폐기된 `game_sessions`가 남아 있다. 테스트 DB 준비에 쓰지 말 것 |
+
+> **새 볼륨에 배포할 때 주의.** `infra/compose/backend.yml`은 `/opt/sudal/schema.sql`을
+> MySQL 초기화 스크립트로 마운트합니다. 여기에 위의 옛 스냅샷을 넣으면, 애플리케이션의
+> `baseline-on-migrate: true` 때문에 Flyway가 이미 스키마가 있다고 보고 `V1`을 건너뛰어
+> `game_results`가 만들어지지 않고 `V6`에서 기동이 실패합니다. **빈 DB로 시작해 Flyway가
+> `V1`부터 적용하게 두는 편이 안전합니다**(로컬 스택 `infra/compose/local.yml`이 그 방식).
+
+컨테이너로 준비해서 돌리는 전체 절차입니다(3306이 이미 쓰이고 있어도 되도록 33306에
+띄웁니다).
+
+```bash
+# 1. 테스트용 MySQL
+docker run -d --name suhwa-test-mysql -p 127.0.0.1:33306:3306 \
+  -e MYSQL_ROOT_PASSWORD=testpw -e MYSQL_DATABASE=suhwa mysql:8.4
+
+# 2. 마이그레이션 적용 (번호 순서를 지킨다)
+cd backend/suhwa
+for v in 1 2 4 5 6 7 8 9 10 11; do
+  docker exec -i suhwa-test-mysql mysql -uroot -ptestpw suhwa \
+    < src/main/resources/db/migration/V${v}__*.sql
+done
+
+# 3. 실행
+DB_HOST=127.0.0.1 DB_PORT=33306 DB_NAME=suhwa DB_USERNAME=root DB_PASSWORD=testpw \
+JWT_SECRET=local_only_dummy_jwt_secret_value_change_me_32plus \
+  ./gradlew test
+
+# 4. 정리
+docker rm -f -v suhwa-test-mysql
+```
+
+`FlywayMigrationTest`와 동시성 테스트 4개는 Testcontainers로 자기 DB를 직접 띄우므로
+Docker 데몬이 필요합니다(위 절차를 따르면 이미 충족).
+
+환경변수를 매번 넘기는 대신 `backend/suhwa/.env`를 두면 `build.gradle`이 `test`와
+`bootRun` 태스크에 자동 주입합니다. `backend/suhwa/env.sample`을 복사해 쓰고, 이 파일은
+gitignore 대상이라 저장소에 올라오지 않습니다.
+
+#### AI 서버
+
+requirements를 설치한 환경에서 각 서버 디렉터리에서 실행합니다. 설치 없이 돌리려면
+위 Docker 스택의 이미지를 그대로 씁니다.
+
+```bash
+docker compose -f infra/compose/local.yml build ai number-ai
+docker run --rm -v "$PWD:/repo:ro" -w /repo/ai/game-server --entrypoint python \
+  sudal-ai:local -m unittest discover -s tests -t .
+docker run --rm -v "$PWD:/repo:ro" -w /repo/ai/number --entrypoint python \
+  sudal-number-ai:local -m unittest discover -s tests -t .
+```
 
 ---
 

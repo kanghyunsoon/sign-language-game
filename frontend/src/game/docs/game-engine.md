@@ -15,7 +15,7 @@
 
 ### AI 지원 여부의 권위
 
-등록부는 실시간 모델 라벨 순서를 정의하지 않는다. 런타임 `CAPABILITIES.supportedSymbols`와 `game-contracts/recognition/readiness.json`이 권위다. 등록부의 `modelSupported`는 기본값 힌트일 뿐이다. 경쟁 출제 가능 글자는 readiness의 `competitiveEligible`로 결정하며, 현재 31개 자모 중 24개다. 지숫자는 readiness 클래스가 없어 AI 경쟁 출제에서 제외된다.
+등록부는 실시간 모델 라벨 순서를 정의하지 않는다. 런타임 `CAPABILITIES.supportedSymbols`와 `ai/contracts/recognition/readiness.json`이 권위다. 등록부의 `modelSupported`는 기본값 힌트일 뿐이다. 경쟁 출제 가능 글자는 readiness의 `competitiveEligible`로 결정하며, 현재 31개 자모 중 27개다. 지숫자는 readiness 클래스가 없어 AI 경쟁 출제에서 제외된다.
 
 ### 안내 자산
 
@@ -70,7 +70,7 @@
 
 외곽선 두께나 색을 바꿔도 물리 치수는 바뀌지 않아야 한다. `createGlyphRaster()`는 별도 소스 캔버스에 그린 뒤 원래 잉크 박스 크기로 축소해 넣는다. 콜라이더 산출용 폰트(`COLLISION_REFERENCE_FONT`)와 표시용 폰트(`DISPLAY_FONT`)는 같은 face로 고정한다.
 
-예외 하나는 의도적이다. `ㅣ`는 외곽선 때문에 보이는 폭이 획보다 넓어서 콜라이더도 아트워크에 맞춰 넓혔다. 테스트 `"widens the single vertical vowel collider to match its artwork"`가 이 예외를 명시한다.
+한때 예외가 하나 있었다. 표시 폰트를 Jua로 바꾼 `dc1acd3`에서 `ㅣ`의 세로획이 얇아 보여 콜라이더를 1.45배(34 → 49.3)로 넓혔다. 폰트를 Noto Sans KR로 되돌린 `f1a6525`에서 그 보정도 함께 제거했고, 지금은 모든 글자가 `glyphCollisionDefaults.json` 값을 그대로 쓴다. 테스트 `"uses the committed default collider for the single vertical vowel"`가 보정이 되살아나지 않는지 지킨다.
 
 ### 2.4 콜라이더 감사 도구
 

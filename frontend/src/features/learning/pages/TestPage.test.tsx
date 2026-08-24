@@ -4,7 +4,9 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { TestPage } from "./TestPage";
-import { fingerspellingItems } from "../data/fingerspelling";
+import { TestResultView } from "../components/TestResultView";
+import type { TestQuestionResult } from "../data/testSession";
+import { fingerspellingEntries, fingerspellingItems } from "../data/fingerspelling";
 
 afterEach(() => {
   cleanup();
@@ -346,18 +348,25 @@ describe("TestPage 결과 화면", () => {
     }
   };
 
-  /** 임시 채점 버튼으로 5문항을 모두 맞춘다. */
-  const finishAllCorrect = () => {
-    for (let index = 0; index < 5; index += 1) {
-      fireEvent.click(screen.getByRole("button", { name: "정답 처리 (임시)" }));
-      fireEvent.click(screen.getByRole("button", { name: "정답 안내 닫기" }));
-    }
-  };
+  /**
+   * 전부 정답인 결과를 만든다.
+   *
+   * 예전에는 진행 화면의 `정답 처리 (임시)` 버튼을 눌러 만들었지만 그 버튼은
+   * 88e50d2에서 제거됐다. 정답 경로는 AI 인식(`SIGN_CONFIRMED`)뿐이고 jsdom에는
+   * 카메라도 인식 서버도 없다. 그래서 결과 화면 자체를 직접 렌더해 검증한다.
+   */
+  const allCorrectResults = (count: number): TestQuestionResult[] =>
+    fingerspellingEntries
+      .filter((entry) => entry.categoryId === "consonant")
+      .slice(0, count)
+      .map((question) => ({ question, state: "correct" as const }));
 
   it("모든 문제를 맞추면 개수 대신 축하 문구를 보여준다", () => {
-    renderPage();
-    startConsonantOnly("5개");
-    finishAllCorrect();
+    render(
+      <MemoryRouter>
+        <TestResultView results={allCorrectResults(5)} onRetry={() => undefined} />
+      </MemoryRouter>,
+    );
 
     expect(screen.getByText("모든 문제를 맞췄어요!")).toBeTruthy();
     expect(screen.getByText("총 5문항 중 정답 5개 · 오답 0개")).toBeTruthy();

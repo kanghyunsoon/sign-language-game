@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { RECOGNITION_CLASS_READINESS } from "../../recognition/readiness/recognitionReadiness";
 import { DefaultLineRaceInputResolver } from "./LineRaceInputResolver";
 import type { LineRaceInputContext } from "./LineRaceInputContext";
+
+// 제외 자모는 재측정마다 바뀌므로 이름을 적지 않고 계약에서 뽑는다.
+const QUARANTINED_SYMBOL = RECOGNITION_CLASS_READINESS.find((item) => !item.competitiveEligible)!.symbol;
 
 const resolver = new DefaultLineRaceInputResolver();
 const base: LineRaceInputContext = {
@@ -17,8 +21,9 @@ describe("DefaultLineRaceInputResolver", () => {
   });
 
   it("rejects a recognition-excluded symbol even when a malformed context contains it", () => {
-    const malformed = { ...base, attackHand: ["ㄱ", "ㅏ", "ㅁ"], supportedSymbols: ["ㄱ", "ㅏ", "ㅁ"] };
-    expect(resolver.resolveConfirmedSymbol("ㅏ", malformed)).toMatchObject({ type: "INVALID", reason: "NO_AVAILABLE_ACTION" });
+    const hand = ["ㄱ", QUARANTINED_SYMBOL, "ㅁ"];
+    const malformed = { ...base, attackHand: hand, supportedSymbols: hand };
+    expect(resolver.resolveConfirmedSymbol(QUARANTINED_SYMBOL, malformed)).toMatchObject({ type: "INVALID", reason: "NO_AVAILABLE_ACTION" });
   });
 
   it("prioritizes the nearest matching counter even during attack cooldown", () => {

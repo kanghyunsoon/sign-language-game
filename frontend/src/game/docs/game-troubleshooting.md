@@ -51,7 +51,12 @@
 
 **쓰지 않은 접근.** `hands[0]`/`poses[0]` 고정, 화면 중앙 우선, 얼굴 인식 식별, handedness 단독 판정, 사용자를 잃었을 때 가장 가까운 사람으로 자동 전환. 교차·가림에 약하거나 게임에 필요하지 않은 생체정보 문제를 만든다.
 
-**조치.**
+**조치(구현했으나 게임에서는 비활성).** 아래 구조를 다 만든 뒤 게임 모드에서는 껐다.
+`88a01df`에서 `HandCamera`의 `userRegistrationEnabled = false`와
+`DEFAULT_GAME_RECOGNITION_OPTIONS`의 `requireActivePlayerLock: false`로 UI·세션 두
+층에서 함께 비활성화했고, 지금은 디버그 도구(`/game/recognition/crowd-test`)로만
+쓴다. 게임 입력은 감지된 첫 손을 그대로 받는다(`safetyMode: "LEGACY_HAND_ONLY"`).
+따라서 **이 증상 자체는 아직 열려 있다.** 아래는 되살릴 때 쓰는 구현 기록이다.
 
 - 경기 전 한쪽 손을 머리 위로 일정 시간 유지해 Active Player를 등록한다.
 - `PersonTrackManager`가 위치, bounding box, Pose 특징, 움직임, 몸통 appearance descriptor를 함께 사용해 내부 Track ID를 유지한다.
@@ -67,7 +72,7 @@
 
 **관련 구현.** `active-player/PersonTrackManager.ts`, `ActivePlayerSession.ts`, `ActivePlayerRegistrationController.ts`, `HandOwnerResolver.ts`, `ActiveHandTracker.ts`, `PersonReIdentificationAdapter.ts`
 
-**남은 경계.** 실제 여러 사람이 교차·가리는 장면은 조명, 옷 색상, 카메라 화각의 영향을 크게 받는다. 합성 좌표 테스트는 통과했지만 실제 군중 테스트의 ID switch 횟수는 플레이테스트로 계속 기록한다.
+**남은 경계.** 실제 여러 사람이 교차·가리는 장면은 조명, 옷 색상, 카메라 화각의 영향을 크게 받는다. 합성 좌표 테스트는 통과했지만 실제 군중 테스트의 ID switch 횟수는 측정하지 못했다. 그 검증 없이 켜면 정상 입력까지 차단할 수 있어 게임에서는 끈 상태로 뒀다. 다시 켜려면 `userRegistrationEnabled`와 `requireActivePlayerLock`을 함께 되살리고, 등록 UX와 Pose 추적 CPU 비용을 실기에서 재야 한다.
 
 ### 1.3 카메라 카드에 보이지 않는 손이 인식됨
 
@@ -121,7 +126,7 @@
 - worker 실패 시 즉시 main-thread tracker로 전환한다. main-thread의 일시 실패는 해당 프레임만 버리고 다음 프레임에서 tracker를 다시 초기화한다.
 - 사용자 추적 grace/re-identification과 손 소유권 grace를 늘리고 pose/ownership 임계값을 실사용 흔들림에 맞게 완화한다. 손이 잠시 사라진 동안은 세션만 유지하고 게임 입력은 차단한다.
 - 상태 문구를 `AI 인식 서버`로 명시해 카메라/MediaPipe 상태와 구분한다.
-- 방 생성, bot 출제, 게임 spawn은 `game-contracts/recognition/readiness.json`에서 `competitiveEligible`인 글자만 허용한다.
+- 방 생성, bot 출제, 게임 spawn은 `ai/contracts/recognition/readiness.json`에서 `competitiveEligible`인 글자만 허용한다.
 
 모델이 좋아졌다고 기록하지 않는다.
 
@@ -129,18 +134,22 @@
 
 인식 성능이 검증되지 않은 글자를 경기에 넣으면 승패가 모델 오류에 좌우된다. 그래서 출제 범위를 코드 상수가 아니라 계약 파일 하나로 통제한다.
 
-`game-contracts/recognition/readiness.json`이 유일한 원천이다. 현재 값은 다음과 같다.
+`ai/contracts/recognition/readiness.json`이 유일한 원천이다. 현재 값은 다음과 같다.
 
 - `modelVersion`: `jamo-31-v1`, `confirmationAuthority`: `FRONTEND_TEMPORAL_DECODER`
-- 평가 표본 2790개, 기준은 `minimumConfirmationRate 0.85`, `minimumCompetitivePrecision 0.90`
-- 31개 자모 가운데 `competitiveEligible`은 24개다. 제외된 7개와 사유는 다음과 같다.
+- 평가 표본 1900개(`jamo-31-ensemble-v2` 측정), 기준은 `minimumConfirmationRate 0.85`, `minimumCompetitivePrecision 0.90`
+- 31개 자모 가운데 `competitiveEligible`은 27개다. 제외된 4개와 사유는 다음과 같다.
 
 | 제외 글자 | 사유 |
 | --- | --- |
-| `ㅅ` | `ㅠ`가 `ㅅ`으로 분류되어 precision을 지키는 threshold가 존재하지 않는다 |
-| `ㅠ` | 표본 90개 전부가 `ㅅ`으로 분류된다 |
-| `ㅕ`, `ㅖ` | 서로 혼동된다 |
-| `ㅏ`, `ㅓ`, `ㅔ` | 확정률이 85% 미만이다 |
+| `ㅓ` | 확정률 85% 미만. `ㅡ`로 오독된다 |
+| `ㅗ` | 확정률 85% 미만이다 |
+| `ㅜ` | 확정률 85% 미만. 예측은 맞지만 일부 표본의 confidence가 0.5를 넘지 못한다 |
+| `ㅡ` | precision 90% 미만. `ㅓ`를 일부 흡수한다 |
+
+위 목록은 재측정마다 바뀐다. 판정 여유 게이트를 넣고 전 클래스를 다시 측정한
+`bfa7f13`에서 `ㅅ ㅏ ㅕ ㅠ ㅔ ㅖ`가 풀리고 `ㅗ ㅜ ㅡ`가 대신 막혔다(1.6의 `ㅅ`/`ㅠ`
+기록은 그 이전 상태다).
 
 배틀 심볼 풀(`P2pBattleTransport.BATTLE_TARGET_SYMBOLS`)과 방 옵션 `symbolRange`(`자음`/`모음`/`기초 혼합`)는 모두 `isCompetitiveRecognitionReady()`를 통과한 글자만 사용한다. 서버 threshold, 프런트 출제 범위, 계약 테스트가 같은 파일을 읽으므로 한쪽만 바뀌는 drift가 생기지 않는다.
 

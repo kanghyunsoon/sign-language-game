@@ -2,7 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 import type { SignDecoderSnapshot } from "../../recognition/temporal";
 import type { LineRaceMatchSnapshot, LineRaceServerEvent } from "../contracts";
 import type { LineRaceInputContext, LineRaceInputState } from "../recognition";
+import { COMPETITIVE_RECOGNITION_SYMBOLS, RECOGNITION_CLASS_READINESS } from "../../recognition/readiness/recognitionReadiness";
 import { deriveLineRaceActionTarget, LineRaceFeedbackPresenter } from "./LineRaceFeedbackPresenter";
+
+// 제외 자모는 재측정마다 바뀌므로 이름을 적지 않고 계약에서 뽑는다.
+const ELIGIBLE_SYMBOL = COMPETITIVE_RECOGNITION_SYMBOLS[0];
+const QUARANTINED_SYMBOL = RECOGNITION_CLASS_READINESS.find((item) => !item.competitiveEligible)!.symbol;
 
 const baseContext = (): LineRaceInputContext => ({
   matchState: "PLAYING", attackHand: ["ㄱ", "ㄴ", "ㄷ"], attackCooldownEndsAt: 0, now: 1_000,
@@ -73,10 +78,11 @@ describe("LineRaceFeedbackPresenter", () => {
   });
 
   it("never exposes readiness-excluded symbols as user targets", () => {
-    const context = { ...baseContext(), attackHand: ["ㅅ", "ㄱ"], supportedSymbols: ["ㅅ", "ㄱ"] };
-    expect(deriveLineRaceActionTarget(context)).toMatchObject({ kind: "ATTACK", symbols: ["ㄱ"] });
-    const counter = { ...context, counterableObstacles: [{ obstacleId: "x", symbol: "ㅅ", distanceToRunner: 1, counterDeadlineAt: 2_000, state: "ACTIVE" as const }] };
-    expect(deriveLineRaceActionTarget(counter)).toMatchObject({ kind: "ATTACK", symbols: ["ㄱ"] });
+    const hand = [QUARANTINED_SYMBOL, ELIGIBLE_SYMBOL];
+    const context = { ...baseContext(), attackHand: hand, supportedSymbols: hand };
+    expect(deriveLineRaceActionTarget(context)).toMatchObject({ kind: "ATTACK", symbols: [ELIGIBLE_SYMBOL] });
+    const counter = { ...context, counterableObstacles: [{ obstacleId: "x", symbol: QUARANTINED_SYMBOL, distanceToRunner: 1, counterDeadlineAt: 2_000, state: "ACTIVE" as const }] };
+    expect(deriveLineRaceActionTarget(counter)).toMatchObject({ kind: "ATTACK", symbols: [ELIGIBLE_SYMBOL] });
   });
 
   it("preserves CONFIRMED then ACTION_PENDING and waits for an authoritative server success", () => {

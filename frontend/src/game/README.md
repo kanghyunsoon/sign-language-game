@@ -71,8 +71,8 @@ import { GameModule } from "./game";
 ### 2026-07-23 게임·MediaPipe 통합 반영 상태
 
 - 블록 쌓기 선택·모드·솔로 화면을 같은 시각 언어로 정리하고, Pixi 게임판과 카메라·목표·현재 인식·가이드 패널을 독립적으로 유지한다.
-- 경쟁 출제 가능 글자는 `game-contracts/recognition/readiness.json`이 결정한다. 현재 `modelVersion`은 `jamo-31-v1`이고 31개 자모 중 24개만 `competitiveEligible`이다. 지숫자 `1`~`9`는 심볼 등록부에 `modelSupported: false`로 있고 `assets/guides/number-1.png`~`number-9.png` 안내 이미지도 있으나 readiness 클래스가 없어 AI 경쟁 출제에는 넣지 않는다. `0`과 `10`은 등록하지 않는다.
-- `game-contracts/recognition/readiness.json`은 MediaPipe 공용 모듈이 아닌 AI 모델 계약의 원천이다. 서버의 threshold·경쟁 가능 글자, 프런트의 출제 범위, 계약 테스트가 같은 파일을 읽는다. 확정 권위는 서버가 아니라 프런트 연속 지문자 Decoder다.
+- 경쟁 출제 가능 글자는 `ai/contracts/recognition/readiness.json`이 결정한다. 현재 `modelVersion`은 `jamo-31-v1`이고 31개 자모 중 27개가 `competitiveEligible`이다. 지숫자 `1`~`9`는 심볼 등록부에 `modelSupported: false`로 있고 `assets/guides/number-1.png`~`number-9.png` 안내 이미지도 있으나 readiness 클래스가 없어 AI 경쟁 출제에는 넣지 않는다. `0`과 `10`은 등록하지 않는다.
+- `ai/contracts/recognition/readiness.json`은 MediaPipe 공용 모듈이 아닌 AI 모델 계약의 원천이다. 서버의 threshold·경쟁 가능 글자, 프런트의 출제 범위, 계약 테스트가 같은 파일을 읽는다. 확정 권위는 서버가 아니라 프런트 연속 지문자 Decoder다.
 - MediaPipe는 landmark 추출에만 책임을 두고, 프레임 중복 추론 방지·worker 우선 실행·main-thread fallback·스켈레톤 조건부 렌더링으로 게임 화면의 응답성을 유지한다.
 - 학습 이력과 모델 평가는 AI 서버 문서를 정본으로 관리한다. 게임 문서는 계약·카메라 통합·사용자 경험의 영향과 운영 제한만 기록한다.
 

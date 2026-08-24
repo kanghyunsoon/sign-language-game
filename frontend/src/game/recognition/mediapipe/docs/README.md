@@ -64,7 +64,7 @@ MediaPipe WASM과 task 모델 경로는 기존 `createVisionFileset.ts`, `MediaP
 
 ## 모델 버전과 출제 범위
 
-`game-contracts/recognition/readiness.json`이 모델 버전과 경쟁 사용 가능 글자의 유일한 원천이다. 현재 `modelVersion`은 `jamo-31-v1`이고 31개 자모 중 24개만 `competitiveEligible`이다. 확정 권위는 서버가 아니라 프런트의 연속 지문자 Decoder(`confirmationAuthority: FRONTEND_TEMPORAL_DECODER`)다.
+`ai/contracts/recognition/readiness.json`이 모델 버전과 경쟁 사용 가능 글자의 유일한 원천이다. 현재 `modelVersion`은 `jamo-31-v1`이고 31개 자모 중 27개가 `competitiveEligible`이다. 확정 권위는 서버가 아니라 프런트의 연속 지문자 Decoder(`confirmationAuthority: FRONTEND_TEMPORAL_DECODER`)다.
 
 지숫자 1~9는 `GAME_SYMBOL_REGISTRY`에 `modelSupported: false`로 등록되어 있고 안내 이미지도 있으나 readiness 클래스가 없어 AI 경쟁 출제에는 포함되지 않는다. 어댑터는 숫자 예측을 `withoutNumericPrediction()`으로 걸러낸다.
 
