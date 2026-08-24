@@ -123,7 +123,7 @@
 ## 실행 준비
 
 ```powershell
-cd C:\Users\SSAFY\Desktop\Sign_Language_Translation\frontend
+cd frontend
 npm install
 npm run dev
 ```
@@ -180,8 +180,8 @@ Chrome 또는 Edge에서 표시된 localhost 주소를 연다.
 Run the Python server in a separate terminal before starting the frontend.
 
 ```powershell
-cd C:\Users\SSAFY\Desktop\Sign_Language_Translation\game-ai-dev-server
-& C:\Users\SSAFY\miniforge3\envs\nlp\python.exe -m app.main
+cd ai/game-server
+python -m app.main
 ```
 
 - [ ] Select `AI 서버 연결`: state changes from `CONNECTING` to `CONNECTED`.

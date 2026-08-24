@@ -3,7 +3,7 @@
 Deliberately free of imports and filesystem lookups. Feature extraction runs on
 machines that hold the raw images but not a full repository checkout, so the
 label contract has to be usable without `project_paths`, which resolves the
-checkout root by looking for `models/` and `game-contracts/`.
+checkout root by looking for `models/` and `ai/contracts/`.
 
 `number_adapter` re-exports these names, so importing either module gives the
 same contract.

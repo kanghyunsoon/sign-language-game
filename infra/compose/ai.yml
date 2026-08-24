@@ -10,12 +10,12 @@ services:
       HANDPRACTICE_AI_PORT: ${HANDPRACTICE_AI_PORT:-8765}
       HANDPRACTICE_AI_MODEL: ${HANDPRACTICE_AI_MODEL:-baseline}
       # Decision-margin gate (top1 - top2). Raise to 0.3~0.4 to demand a more
-      # precise handshape; 0 disables the gate. See game-ai-dev-server/README.md.
+      # precise handshape; 0 disables the gate. See ai/game-server/README.md.
       HANDPRACTICE_AI_MIN_MARGIN: ${HANDPRACTICE_AI_MIN_MARGIN:-0.25}
       # Landmark EMA before feature extraction. Weight of the NEW frame, so a
       # smaller value smooths harder and lags more; 1.0 disables it.
       # OFF by default (T-155): 0.3 measured well against synthetic jitter but
-      # made real use worse. See game-ai-dev-server/README.md.
+      # made real use worse. See ai/game-server/README.md.
       HANDPRACTICE_AI_LANDMARK_SMOOTHING: ${HANDPRACTICE_AI_LANDMARK_SMOOTHING:-1.0}
       # Prediction diagnostics (T-156). Empty path disables it entirely.
       # "blocked" records only the frames the browser cannot confirm, which is the

@@ -1,6 +1,6 @@
 # 지숫자 전용 인식 모델 (number-10-v1)
 
-지숫자 10종(`1`~`10`)과 `none`을 **한 프레임씩** 판정하는 모델과 서버다. 배포 중인 자모 모델(`game-ai-dev-server`)은 **한 파일도 수정하지 않는다.** 이 폴더 안에서만 동작한다.
+지숫자 10종(`1`~`10`)과 `none`을 **한 프레임씩** 판정하는 모델과 서버다. 배포 중인 자모 모델(`ai/game-server`)은 **한 파일도 수정하지 않는다.** 이 폴더 안에서만 동작한다.
 
 ## 어디서부터 볼지
 
@@ -60,7 +60,7 @@ collection-template/  참가자별 촬영 폴더 템플릿
 ## 실행
 
 ```powershell
-cd number-model
+cd ai/number
 pip install -r requirements.txt        # 서버 + 학습
 python -m server.main                  # ws://localhost:8766/number
 

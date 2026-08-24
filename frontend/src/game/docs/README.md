@@ -19,13 +19,13 @@
 
 같은 주제를 두 문서가 다르게 말하면 아래 순서로 우선한다.
 
-1. **코드와 계약 파일** — `game-contracts/recognition/readiness.json`, 배포 Swagger
+1. **코드와 계약 파일** — `ai/contracts/recognition/readiness.json`, 배포 Swagger
 2. `backend-contracts.md` / `battle-ui-and-rooms.md` — 현재 동작과 서버 경계
 3. `game-spec.md` — 제품 기준
 4. `game-engine.md` / `recognition.md` / `architecture.md` — 구현 세부
 5. `game-troubleshooting.md` — 과거 사고 기록
 
-모델 버전과 경쟁 출제 가능 글자는 문서가 아니라 `game-contracts/recognition/readiness.json`이 원천이다.
+모델 버전과 경쟁 출제 가능 글자는 문서가 아니라 `ai/contracts/recognition/readiness.json`이 원천이다.
 
 ## 여기에 두지 않는 것
 

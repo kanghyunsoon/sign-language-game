@@ -54,7 +54,7 @@ class FeatureParityTests(unittest.TestCase):
         self.assertEqual(
             digest,
             SOURCE_SHA256,
-            "game-ai-dev-server/app/feature_v3.py changed since this copy was taken. "
+            "ai/game-server/app/feature_v3.py changed since this copy was taken. "
             "Compare the two, port the change if it applies to numbers, and update "
             "SOURCE_SHA256 in numbermodel/features.py.",
         )

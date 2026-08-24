@@ -7,7 +7,7 @@ import os
 import numpy as np
 
 from .messages import Landmark
-from .project_paths import REPOSITORY_ROOT
+from .project_paths import AI_ROOT
 
 
 # Learned none-veto for confidently-wrong accepts (T-161).
@@ -40,7 +40,7 @@ from .project_paths import REPOSITORY_ROOT
 # before, so this code can deploy ahead of the model file.
 
 CHECKER_DIRECTORY = Path(
-    os.getenv("HANDPRACTICE_AI_NONE_CHECKER_DIR", str(REPOSITORY_ROOT / "models" / "none-checker-v1")),
+    os.getenv("HANDPRACTICE_AI_NONE_CHECKER_DIR", str(AI_ROOT / "models" / "none-checker-v1")),
 )
 CHECKER_ENABLED = os.getenv("HANDPRACTICE_AI_NONE_VETO", "1").strip().lower() not in {"0", "false", "off"}
 

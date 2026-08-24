@@ -68,7 +68,7 @@
 ## 촬영 후
 
 ```bash
-python number-model/scripts/extract_number_frames.py \
+python ai/number/scripts/extract_number_frames.py \
   --dataset C:\AITraining\number-model\captured \
   --output  C:\AITraining\number-model\features\number_captured_v3.npz \
   --layout participant \
@@ -79,9 +79,9 @@ python number-model/scripts/extract_number_frames.py \
 그 뒤 학습에 공개 데이터와 함께 넘긴다. 참가자 ID가 없는 공개 데이터는 자동으로 train 전용이 되고, valid/test는 촬영 인원에서만 만들어진다.
 
 ```bash
-python number-model/scripts/train_number_model.py \
+python ai/number/scripts/train_number_model.py \
   --features <공개 npz> <촬영 npz> \
-  --output-dir number-model/models/number-10-v1 \
+  --output-dir ai/number/models/number-10-v1 \
   --attempt-id T-1xx
 ```
 

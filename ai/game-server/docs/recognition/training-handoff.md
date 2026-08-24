@@ -139,7 +139,7 @@ CUDA_VISIBLE_DEVICES=2 .venv/bin/python code-v3/scripts/train_aihub_sequence_ctc
 
 ### 다른 컴퓨터 준비 순서
 
-1. 저장소를 받고 `game-ai-dev-server/scripts/extract_roboflow_jamo_features.py`를 사용한다. 원본 데이터는 저장소 밖의 예: `C:\AITraining\korean-fingerspelling\roboflow-v1`에 둔다.
+1. 저장소를 받고 `ai/game-server/scripts/extract_roboflow_jamo_features.py`를 사용한다. 원본 데이터는 저장소 밖의 예: `C:\AITraining\korean-fingerspelling\roboflow-v1`에 둔다.
 2. Roboflow에서 같은 v1 ZIP을 내려받고, 출처 URL·라이선스·ZIP SHA-256을 작업 메모에 기록한다. 원본 이미지와 NPZ는 용량·라이선스 관리 때문에 Git commit/push 대상이 아니다.
 3. Linux GPU 서버에서는 압축 해제 도구가 없을 수 있으므로 Python 표준 라이브러리로 해제한다. 아래 명령은 서버 프로젝트 루트에서 실행한다.
 

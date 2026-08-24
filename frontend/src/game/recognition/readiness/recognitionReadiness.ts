@@ -1,4 +1,4 @@
-import readiness from "../../../../../game-contracts/recognition/readiness.json";
+import readiness from "../../../../../ai/contracts/recognition/readiness.json";
 
 export interface RecognitionClassReadiness {
   readonly symbol: string;

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""ksl-word-v7 websocket 서버 — word-accuracy-test 롤링 판정기를 감싼 얇은 어댑터.
+"""ksl-word-v7 websocket 서버 — ai/word 롤링 판정기를 감싼 얇은 어댑터.
 
 `inference/`의 RollingGrader가 실제 추론·가드·수형규칙을 담당한다. 이 서버는
 JSON 프로토콜 파싱/직렬화와 연결 단위 세션 관리만 한다.

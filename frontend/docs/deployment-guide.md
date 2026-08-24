@@ -28,7 +28,7 @@ Vercel에 React/Vite 정적 프런트만 배포하고 API, SSE, WebSocket, TURN�
 | 산출물 | `frontend/dist` |
 | SPA fallback | 모든 프런트 경로를 `index.html`로 rewrite |
 
-`game-contracts/recognition/readiness.json`은 프런트 빌드가 직접 import하므로 Vercel 소스에 반드시 포함한다. `frontend` 폴더만 단독 업로드하면 TypeScript 모듈 해석이 실패한다.
+`ai/contracts/recognition/readiness.json`은 프런트 빌드가 직접 import하므로 Vercel 소스에 반드시 포함한다. `frontend` 폴더만 단독 업로드하면 TypeScript 모듈 해석이 실패한다.
 
 `vercel.json`의 rewrite가 게임 딥링크를 포함한 모든 SPA 요청을 `index.html`로 돌린다. API와 WebSocket은 Vercel Function이나 rewrite에 의존하지 않는다.
 
@@ -101,7 +101,7 @@ AI는 모델 검증 완료 후 별도 WSS 서비스로 배포한다. 프런트�
 
 `/ai/` reverse proxy로 제공할지 별도 서브도메인으로 제공할지는 인프라·AI 담당이 TLS, WebSocket timeout, 확장 방식을 기준으로 결정한다.
 
-모델 버전과 경쟁 사용 가능 글자는 `game-contracts/recognition/readiness.json`이 원천이다. AI 배포 시 이 파일을 함께 갱신한다.
+모델 버전과 경쟁 사용 가능 글자는 `ai/contracts/recognition/readiness.json`이 원천이다. AI 배포 시 이 파일을 함께 갱신한다.
 
 ## 7. 운영 전 최종 검증
 

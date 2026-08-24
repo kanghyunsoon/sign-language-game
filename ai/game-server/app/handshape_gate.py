@@ -22,7 +22,7 @@ from .messages import Landmark
 # The trained ensemble does not reliably see that difference. The four-finger
 # silhouette dominates the feature vector — 16 of the 20 bone directions and 12 of
 # the 15 joint angles describe the non-thumb fingers — so a plain fist scores as ㅎ
-# and an open hand scores as ㅂ. `number-model/README.md` records the same
+# and an open hand scores as ㅂ. `ai/number/README.md` records the same
 # collision from the other side: ㅂ and the digit 4 are "실질적으로 같은 손모양", and
 # that pipeline works around it by dropping data rather than by separating the
 # classes. Retraining may fix it properly; a geometric check fixes it now and

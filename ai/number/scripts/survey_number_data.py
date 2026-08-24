@@ -9,11 +9,11 @@ directories and hashes files; it never writes, moves, or deletes anything.
 
 Remote use without copying the file first:
 
-    ssh <host> 'python3 -' < game-ai-dev-server/scripts/survey_number_data.py
+    ssh <host> 'python3 -' < ai/game-server/scripts/survey_number_data.py
 
 Local use:
 
-    python3 game-ai-dev-server/scripts/survey_number_data.py --root <extra path>
+    python3 ai/game-server/scripts/survey_number_data.py --root <extra path>
 
 Output is JSON on stdout, so the result can be pasted back verbatim.
 """

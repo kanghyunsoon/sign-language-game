@@ -314,7 +314,7 @@ Validation이 선택한 threshold 0.50에서 T-13은 accepted accuracy 94.86%, c
 - 31자모+숫자 10종으로 겹자음·겹받침·일부 복합모음을 기본 자모 연속열로 정규화하면 총 **158,426 target token**이다. 숫자도 0~9가 모두 존재한다.
 - 희소/부재 예: `ㅔ` 342, `ㅖ` 514, `ㅌ` 570, `ㅋ` 95 token이고 `ㅒ`는 0이다. 반면 `ㄹ` 17,998, `ㅇ` 18,867, `ㅗ` 17,395로 편차가 크다. `ㅔ-ㅖ`, `ㄹ-ㅌ` 분리는 단순 전체 샘플 증가가 아니라 문자 경계와 hard-negative 균형이 필요하다.
 - 미지원 문자가 포함된 label은 133개이며 영문 `k`, `m`, `N`이다. 예: `10km`. 숫자/한글 sequence 평가는 영문 구간을 OOD로 표시하거나 별도 영문 class를 추가하기 전까지 제외 사유와 개수를 기록한다.
-- 재현 분석기: `game-ai-dev-server/scripts/analyze_aihub_morpheme_labels.py`. 원본 데이터는 AI Hub 이용조건에 따라 Git에 넣거나 재배포하지 않는다.
+- 재현 분석기: `ai/game-server/scripts/analyze_aihub_morpheme_labels.py`. 원본 데이터는 AI Hub 이용조건에 따라 Git에 넣거나 재배포하지 않는다.
 
 #### AI Hub 103 CROWD keypoint 감사
 
@@ -324,7 +324,7 @@ Validation이 선택한 threshold 0.50에서 T-13은 accepted accuracy 94.86%, c
 - morpheme 라벨은 train 17,000clip이지만 signer 16의 `NIA_SL_FS0409_CROWD16_F`, `NIA_SL_FS0493_CROWD16_F` 두 디렉터리는 keypoint ZIP에 frame JSON이 하나도 없다. 따라서 이 2개 clip은 sequence 학습에서 명시적으로 제외하고 제외 사유·개수를 기록한다.
 - 매 30번째 archive frame을 뽑은 22,392-frame 표본에서 confidence 0.20 이상인 손 관절이 21개 중 15개 이상일 때 usable로 정의했다. left usable 95.15%, right usable 90.81%, both usable 87.07%, neither usable 1.11%; 평균 confidence는 left 0.624/right 0.573이다.
 - 위 hand quality는 OpenPose confidence 기반 proxy이지 손바닥/손등·상하 정답률이나 문자 인식률이 아니다. 문자별 시작·끝 frame 경계가 없으므로 morpheme start/end를 FPS로 변환한 약한 정렬, CTC, 또는 수동 경계가 필요하다.
-- 재현 분석기: `game-ai-dev-server/scripts/analyze_aihub_keypoint_archive.py`. ZIP을 수십만 개 파일로 풀지 않고 직접 읽으며 `--sample-stride 1`일 때만 전 프레임 hand quality 감사가 된다.
+- 재현 분석기: `ai/game-server/scripts/analyze_aihub_keypoint_archive.py`. ZIP을 수십만 개 파일로 풀지 않고 직접 읽으며 `--sample-stride 1`일 때만 전 프레임 hand quality 감사가 된다.
 
 #### T-15 결과 — hard-negative 분리는 일부 개선됐지만 전체 accuracy 회귀
 
@@ -368,26 +368,26 @@ Validation이 선택한 threshold 0.50에서 T-13은 accepted accuracy 94.86%, c
 
 - UX: validation threshold 0.50에서 test accepted 508/527, coverage **96.39%**, accepted accuracy **94.69%**, false confirmation/all **5.12%**다. T-16보다 accepted accuracy +2.87%p, false confirmation -2.85%p로 회복했다.
 - 한계: 숫자 공통 validation은 provider train에서 만들었고 네 모델이 서로 다른 seed split으로 그 일부를 학습했기 때문에 완전 잠금 validation이 아니다. test도 T-13 이후 반복 관찰한 development-test다. T-17은 다음 실험 후보일 뿐 운영·최종 93% 인증 모델이 아니다.
-- 재현 스크립트: `game-ai-dev-server/scripts/evaluate_roboflow_jamo_ensemble_t17.py`. 연속 CER·전환·지연과 수동 손바닥/손등·상하 조건은 여전히 `not-measured`다.
+- 재현 스크립트: `ai/game-server/scripts/evaluate_roboflow_jamo_ensemble_t17.py`. 연속 CER·전환·지연과 수동 손바닥/손등·상하 조건은 여전히 `not-measured`다.
 
 #### T-18 결과 — validation class bias가 test 문자를 바꾸지 못함
 
 - 방법: T-17 class-expert 확률에 class별 곱셈 bias를 적용하고, validation min/q10 class 지표와 전체 accuracy·macro-F1을 함께 최대화하도록 0.50→0.0625 step 좌표 탐색을 했다.
 - validation accuracy는 약 97.72%에서 98.48%로 개선됐지만 test accuracy **93.55%**, macro-F1 **95.04%**, 미달 class **15개**로 T-17과 동일했다. 즉 보정된 confidence가 test argmax를 하나도 바꾸지 못했다.
 - UX는 threshold 0.50에서 accepted 507/527, coverage 96.20%, accepted accuracy 94.87%, false confirmation/all 4.93%로 T-17보다 coverage -0.19%p, accepted accuracy +0.18%p다. class gate 개선이 없어 채택하지 않는다.
-- 재현 스크립트: `game-ai-dev-server/scripts/calibrate_roboflow_jamo_ensemble_t18.py`. 다음 회차는 좌우 반전 없이 약한 회전·이동 TTA를 validation에서 비교한다.
+- 재현 스크립트: `ai/game-server/scripts/calibrate_roboflow_jamo_ensemble_t18.py`. 다음 회차는 좌우 반전 없이 약한 회전·이동 TTA를 validation에서 비교한다.
 
 #### T-19 결과 — 약한 TTA가 손가락 세부 형태를 흐림
 
 - 방법: center crop과 ±6도 회전, ±6px 수평 이동의 5-view 확률을 평균했다. 좌우 반전은 의미 변형 위험 때문에 사용하지 않았다. T-13~T-16의 single/mean/domain/class expert 후보를 validation min-q10으로 선택했다.
 - validation은 T-15 single model을 선택했다. test accuracy **91.27%**, macro-F1 **93.47%**, 미달 class **17개**로 T-17보다 accuracy -2.28%p다.
-- 해석: 작은 회전·이동도 정적 지문자의 손가락 끝·관절 간격을 보간하며 결정경계를 흐렸다. 각도 robustness가 개선된다는 근거가 없으므로 TTA를 채택하지 않는다. 재현 스크립트는 `game-ai-dev-server/scripts/evaluate_roboflow_jamo_tta_t19.py`다.
+- 해석: 작은 회전·이동도 정적 지문자의 손가락 끝·관절 간격을 보간하며 결정경계를 흐렸다. 각도 robustness가 개선된다는 근거가 없으므로 TTA를 채택하지 않는다. 재현 스크립트는 `ai/game-server/scripts/evaluate_roboflow_jamo_tta_t19.py`다.
 
 #### T-20 결과 — class별 확률 혼합도 test 결정경계를 바꾸지 못함
 
 - 방법: T-13~T-16의 center-crop probability를 저장하고, class마다 single one-hot, 전체 평균, 두 모델 0.5/0.5와 0.75/0.25 후보를 validation min/q10 objective로 좌표 탐색했다.
 - 결과: test accuracy **93.55%**, macro-F1 **95.04%**, 미달 class **15개**로 T-17과 완전히 동일했다. 확률 calibration·convex mixture가 연속 두 회차에서 argmax를 바꾸지 못했으므로 후처리 탐색을 중단한다.
-- 재현 스크립트: `game-ai-dev-server/scripts/optimize_roboflow_jamo_mixture_t20.py`. 다음은 T-13 checkpoint의 낮은 학습률 continuation으로 이미지 특징 자체를 미세 조정한다.
+- 재현 스크립트: `ai/game-server/scripts/optimize_roboflow_jamo_mixture_t20.py`. 다음은 T-13 checkpoint의 낮은 학습률 continuation으로 이미지 특징 자체를 미세 조정한다.
 
 #### T-21 결과 — 낮은 학습률 continuation도 단독 accuracy 회귀
 
@@ -424,8 +424,8 @@ Validation이 선택한 threshold 0.50에서 T-13은 accepted accuracy 94.86%, c
 
 ### 이번 단위에서 해결한 문제
 
-- 학습 스크립트가 삭제된 `prototype/ai-server`를 고정 참조해 재현이 불가능했던 문제를 `game-ai-dev-server/app/model_adapter.py` 기준으로 수정했다.
-- 실험이 운영 `models/multi_hand_gesture_classifier.*`와 `game-contracts/recognition/readiness.json`을 덮어쓰던 문제를 수정했다. 이제 결과는 `work/experiments/`에 격리되며, 별도 검토 없이는 운영 모델을 바꾸지 않는다.
+- 학습 스크립트가 삭제된 `prototype/ai-server`를 고정 참조해 재현이 불가능했던 문제를 `ai/game-server/app/model_adapter.py` 기준으로 수정했다.
+- 실험이 운영 `models/multi_hand_gesture_classifier.*`와 `ai/contracts/recognition/readiness.json`을 덮어쓰던 문제를 수정했다. 이제 결과는 `work/experiments/`에 격리되며, 별도 검토 없이는 운영 모델을 바꾸지 않는다.
 - AI 서버 단위 테스트 16개가 모두 통과했다. hybrid는 숫자 domain router와 자모 TFLite head를 결합하지만, readiness는 자모 head의 안전 gate를 공유한다. 실험 모델은 이 gate를 변경하지 않았다.
 
 ### 다음 학습 단위
@@ -467,7 +467,7 @@ hybrid는 tree가 자모/숫자 영역만 선택하고, 자모로 판단하면 �
 ### 재현 명령
 
 ```powershell
-cd game-ai-dev-server
+cd ai/game-server
 .venv\Scripts\python.exe scripts\extract_number_features.py `
   --dataset ..\work\datasets\ksl-numbers-cc0\raw `
   --output ..\work\training\ksl_numbers_features.npz
@@ -552,7 +552,7 @@ cd game-ai-dev-server
 ## 런타임 변경
 
 - 확정 권한은 `FRONTEND_TEMPORAL_DECODER` 하나다. Python은 `PREDICTION`만 내보내며 `SIGN_CONFIRMED`와 `HAND_RELEASED`를 만들지 않는다.
-- class별 threshold는 `game-contracts/recognition/readiness.json`이 원천이다. 프론트 decoder는 예측 글자별 threshold를 적용한다.
+- class별 threshold는 `ai/contracts/recognition/readiness.json`이 원천이다. 프론트 decoder는 예측 글자별 threshold를 적용한다.
 - `CAPABILITIES`에서 `competitiveSymbols`, `confidenceThresholds`, `confirmationAuthority`를 조회할 수 있다.
 - 프론트 방 생성과 백엔드 서버 Bot은 readiness 경쟁 목록만 사용한다. 요청을 조작해 제외 글자를 보내도 백엔드가 거절한다.
 - 프론트 decoder는 동일 자세 유지 중 중복 확정을 막고, no-hand/중립 자세 release 후 같은 글자를 다시 확정한다. 관련 회귀 테스트가 통과한다.
@@ -560,7 +560,7 @@ cd game-ai-dev-server
 ## 실행 방법
 
 ```powershell
-cd game-ai-dev-server
+cd ai/game-server
 .venv/Scripts/python.exe scripts/evaluate_model.py `
   --calibration-session 1669723415 `
   --validation-session 1669724266 `
@@ -1447,7 +1447,7 @@ T-137이 "숫자는 데이터만 있으면 학습된다"를 보였으므로, 다
 ## T-157 — `ㅎ`/`ㅂ` 엄지 오인식: 기하 검증 게이트
 
 - **증상 (제보):** `ㅎ`은 엄지만 펴는 모양인데 **그냥 주먹**을 줘도 맞다고 판정되고, `ㅂ`은 엄지 하나만 접는 모양인데 **손을 다 펴고 있어도** 맞다고 판정된다.
-- **원인:** 두 쌍 모두 **네 손가락 실루엣이 동일**하고 엄지만 다르다. 그런데 피처는 네 손가락이 지배한다 — bone direction 20개 중 16개, joint angle 15개 중 12개가 엄지 이외의 손가락이다. 모델은 사실상 엄지를 못 본다. `number-model/README.md`에도 같은 충돌이 반대편에서 기록돼 있다(`ㅂ`↔숫자 `4`가 "실질적으로 같은 손모양"이라 **데이터를 드롭**해 회피).
+- **원인:** 두 쌍 모두 **네 손가락 실루엣이 동일**하고 엄지만 다르다. 그런데 피처는 네 손가락이 지배한다 — bone direction 20개 중 16개, joint angle 15개 중 12개가 엄지 이외의 손가락이다. 모델은 사실상 엄지를 못 본다. `ai/number/README.md`에도 같은 충돌이 반대편에서 기록돼 있다(`ㅂ`↔숫자 `4`가 "실질적으로 같은 손모양"이라 **데이터를 드롭**해 회피).
 - **조치 — `app/handshape_gate.py` 신설, `recognition_session.py`에서 호출:** argmax가 `ㅎ`/`ㅂ`일 때만 **원본 랜드마크**로 엄지를 직접 재고, 어긋나면 confidence를 `SUPPRESSED_CONFIDENCE`(0.05)로 내린다. 라벨은 남겨 top-candidate 피드백을 유지하는 방식은 margin 게이트와 동일하다. `model_adapter`가 아니라 세션에 둔 이유는 명확하다 — **adapter는 피처만 받고, 게이트가 필요로 하는 엄지 정보는 바로 그 피처가 잃어버린 것**이다. 스무딩된 사본이 아니라 원본을 쓰는 이유도 같다(스무딩은 지연되므로 엄지 판정이 실제 손을 뒤따르게 된다).
 - **지표 (모두 orientation-invariant):**
   - `thumb_straightness` = `‖4−1‖ / (1→2→3→4 사슬 길이)`. 곧게 펴면 ~1.0, 접으면 0.6~0.75. **두 길이의 비율**이라 엄지 길이·손 크기·카메라 거리에 무관하다.
@@ -1543,7 +1543,7 @@ T-158에서 기하 게이트를 접은 뒤, 배포된 앱 자신의 인식률 �
 
 ### 변경
 
-`game-contracts/recognition/readiness.json` 데이터만. 모델·margin·코드 무변경.
+`ai/contracts/recognition/readiness.json` 데이터만. 모델·margin·코드 무변경.
 
 | 문자 | 이전 | 이후 |
 |---|---|---|

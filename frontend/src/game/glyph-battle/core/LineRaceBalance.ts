@@ -1,4 +1,4 @@
-/** Typed mirror of game-contracts/balance/line-race-obstacles.json. Drift tests compare every field. */
+/** Typed mirror of ai/contracts/balance/line-race-obstacles.json. Drift tests compare every field. */
 export const LINE_RACE_MATCH_BALANCE = Object.freeze({
   raceLength: 1_050,
   baseSpeedPerSecond: 28,

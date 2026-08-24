@@ -6,7 +6,7 @@
 ## 설치 (Python 3.10+)
 
 ```bash
-cd word-accuracy-test
+cd ai/word
 pip install -r requirements.txt
 ```
 

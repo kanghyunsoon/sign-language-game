@@ -6,7 +6,7 @@
 
 ## A. 자동 검증 — 백엔드 1:1 오케스트레이션
 
-`game-ai-dev-server/scripts/e2e_sign_duel.py`가 두 플레이어(host/guest)를 모사해 다음을 계약대로 검증한다.
+`ai/game-server/scripts/e2e_sign_duel.py`가 두 플레이어(host/guest)를 모사해 다음을 계약대로 검증한다.
 
 1. 회원가입 + 로그인 x2 (throwaway 계정)
 2. `POST /game-rooms` (gameType=`SIGN_DUEL`, 응답 `realtimeTicket` 포함) — host 방장
@@ -23,7 +23,7 @@
 ### 실행
 
 ```bash
-cd game-ai-dev-server
+cd ai/game-server
 pip install websockets          # HTTP는 표준 urllib 사용
 python scripts/e2e_sign_duel.py --base-url https://i15a405.p.ssafy.io/api
 # 스테이징 권장:

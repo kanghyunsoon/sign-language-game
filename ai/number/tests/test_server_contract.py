@@ -63,7 +63,7 @@ class ProtocolParityTests(unittest.TestCase):
         self.assertEqual(
             digest,
             msg.SOURCE_SHA256,
-            "game-ai-dev-server/app/messages.py changed. Compare it against "
+            "ai/game-server/app/messages.py changed. Compare it against "
             "server/messages.py, port anything that affects the wire format, and "
             "update SOURCE_SHA256.",
         )

@@ -1,11 +1,11 @@
 """WebSocket server for the number-only model.
 
-`number-model` contains a hyphen, so it can never be a Python package name and
-the sibling `numbermodel` package cannot be reached with a relative import.
+Neither `ai/` nor `ai/number/` is a Python package, so the sibling `numbermodel`
+package cannot be reached with a relative import.
 Putting the folder on `sys.path` here means every module in this package can use
 plain `from numbermodel... import ...` and the run command stays short.
 
-Run from the `number-model` directory:
+Run from the `ai/number` directory:
 
     python -m server.main
 """

@@ -1,6 +1,6 @@
 # 지숫자 인식 WebSocket 서버
 
-`game-ai-dev-server`와 **동일한 WebSocket 계약**을 구현한다. 프런트는 포트만 바꾸면 두 서버 중 어느 쪽에도 붙을 수 있다. 요청 타입, 필드 이름, 오류 코드, 응답 형태가 모두 같다.
+`ai/game-server`와 **동일한 WebSocket 계약**을 구현한다. 프런트는 포트만 바꾸면 두 서버 중 어느 쪽에도 붙을 수 있다. 요청 타입, 필드 이름, 오류 코드, 응답 형태가 모두 같다.
 
 ```
 ws://localhost:8766/number     지숫자 10종 + none  (이 서버)
@@ -18,7 +18,7 @@ ws://localhost:8765            자모 서버           (변경 없음)
 ## 실행
 
 ```powershell
-cd number-model
+cd ai/number
 pip install -r requirements.txt
 python -m server.main
 ```
@@ -93,6 +93,6 @@ python -m unittest discover -s tests -t . -v
 
 ## 프로토콜 사본 관리
 
-`server/messages.py`는 `game-ai-dev-server/app/messages.py`의 사본이다. import가 아니라 사본인 이유는 이 폴더가 독립적이어야 하기 때문이지만, 사본이 조용히 어긋나면 프런트가 깨진다.
+`server/messages.py`는 `ai/game-server/app/messages.py`의 사본이다. import가 아니라 사본인 이유는 이 폴더가 독립적이어야 하기 때문이지만, 사본이 조용히 어긋나면 프런트가 깨진다.
 
 그래서 `tests/test_server_contract.py`가 원본 파일의 SHA-256을 검사하고, 두 구현의 파서를 **같은 payload로 대조**한다. 정상 요청 4종의 파싱 결과, 잘못된 요청 9종의 오류 코드, 응답 빌더 4종의 출력이 모두 일치해야 한다. 원본이 바뀌면 테스트가 실패하면서 "포팅할지, 이 버전을 유지할지"를 결정하게 만든다.

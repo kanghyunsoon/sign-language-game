@@ -28,9 +28,9 @@ frontend/src/
 - `frontend/public/guides/`
 - `frontend/public/mediapipe/`
 - `frontend/scripts/setup-mediapipe-assets.mjs`
-- `game-ai-dev-server/`
+- `ai/game-server/`
 - `game-dev-backend/`
-- `game-contracts/`
+- `ai/contracts/`
 
 다음 파일은 다른 프런트 파트와 공유하는 병합 지점이므로 PR에서 별도로 확인한다.
 

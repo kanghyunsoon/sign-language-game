@@ -7,9 +7,10 @@ from pathlib import Path
 import numpy as np
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+AI_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = AI_ROOT.parent
 DATASET_ROOT = PROJECT_ROOT / "dataset"
-MODEL_ADAPTER = PROJECT_ROOT / "game-ai-dev-server" / "app" / "model_adapter.py"
+MODEL_ADAPTER = AI_ROOT / "game-server" / "app" / "model_adapter.py"
 
 
 @dataclass(frozen=True)

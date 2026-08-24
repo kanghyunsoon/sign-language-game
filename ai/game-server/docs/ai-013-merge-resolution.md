@@ -10,7 +10,7 @@
 ### 1) `app/main.py` — AI-013 버전 채택(theirs)
 #78은 main.py 로직을 바꾸지 않았고, AI-013이 `HANDPRACTICE_AI_HOST/PORT` 검증·`INTERNAL_ERROR` 처리·요청 파이프라인을 추가했다. → **AI-013 버전을 그대로 취한다.**
 ```
-git checkout --theirs game-ai-dev-server/app/main.py    # (AI-013을 병합해 들일 때)
+git checkout --theirs ai/game-server/app/main.py    # (AI-013을 병합해 들일 때)
 ```
 
 ### 2) `app/project_paths.py` — AI-013 버전 채택
@@ -44,7 +44,7 @@ def create_model_runner(profile: str | None = None) -> ModelRunner:
 
 ## 병합 후 검증(필수)
 ```bash
-cd game-ai-dev-server
+cd ai/game-server
 python -m unittest discover -s tests -t . -v   # 16개+추가 전부 green, 기본값 baseline 확인
 HANDPRACTICE_AI_MODEL=baseline python -m app.main   # 로컬 기동 스모크
 # 컨테이너: docker build -f Dockerfile -t sudal-ai .  (모델은 /app/models 볼륨으로 주입)

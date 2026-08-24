@@ -1,10 +1,10 @@
 """WebSocket protocol for the number-only server.
 
-The wire format is deliberately identical to `game-ai-dev-server/app/messages.py`
+The wire format is deliberately identical to `ai/game-server/app/messages.py`
 so a frontend can point at either server without changing a line. Request types,
 field names, error codes, and response shapes all match.
 
-Copied from : game-ai-dev-server/app/messages.py
+Copied from : ai/game-server/app/messages.py
 Source commit: 7b90cfc
 
 Two things differ because this model classifies one frame instead of a ten-frame
@@ -17,7 +17,7 @@ window:
 
 One field is intentionally not copied. The jamo server's `PREDICTION` can carry an
 optional `handshapeHint`, set when its geometric handshape gate vetoes a frame
-(see game-ai-dev-server/app/handshape_gate.py). That gate only ever inspects `ㅎ`
+(see ai/game-server/app/handshape_gate.py). That gate only ever inspects `ㅎ`
 and `ㅂ`, and this model's labels are `1`-`10` and `none`, so the field could
 never be populated here. Adding the parameter would be dead code, and a frontend
 reading `PREDICTION` is unaffected either way because the field is optional.
@@ -36,7 +36,7 @@ from typing import TypeAlias
 
 import numpy as np
 
-SOURCE_FILE = Path(__file__).resolve().parents[2] / "game-ai-dev-server" / "app" / "messages.py"
+SOURCE_FILE = Path(__file__).resolve().parents[2] / "game-server" / "app" / "messages.py"
 SOURCE_SHA256 = "e0c4b597f6041a04147114896e64a98fdb3a7869aa0248f947c21169f491f798"
 
 class ProtocolError(ValueError):

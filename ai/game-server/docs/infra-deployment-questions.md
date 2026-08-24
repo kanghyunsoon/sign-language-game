@@ -1,6 +1,6 @@
 # 배포 아키텍처 확정을 위한 인프라 협의 문서
 
-프론트는 **Vercel**, 백엔드/실시간 계층은 **인프라 nginx(`i15a405.p.ssafy.io`)** 뒤에 배포되는 구성을 가정한다. AI 인식 서버(`game-ai-dev-server`)의 프로덕션 배치가 아직 확정되지 않아, 아래 항목을 인프라 담당과 확정해야 다음 단계(배포)를 진행할 수 있다.
+프론트는 **Vercel**, 백엔드/실시간 계층은 **인프라 nginx(`i15a405.p.ssafy.io`)** 뒤에 배포되는 구성을 가정한다. AI 인식 서버(`ai/game-server`)의 프로덕션 배치가 아직 확정되지 않아, 아래 항목을 인프라 담당과 확정해야 다음 단계(배포)를 진행할 수 있다.
 
 ## 0. 배경 — 지금까지 검증된 것 / 안 된 것
 
@@ -69,7 +69,7 @@
 
 wss 경로가 정해지면 로컬(네트워크 가능 환경)에서:
 ```bash
-python game-ai-dev-server/scripts/e2e_sign_duel.py \
+python ai/game-server/scripts/e2e_sign_duel.py \
   --base-url https://i15a405.p.ssafy.io/api \
   --ai-ws  wss://i15a405.p.ssafy.io/ai-ws/
 ```

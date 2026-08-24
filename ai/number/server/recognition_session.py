@@ -1,6 +1,6 @@
 """Connection-local recognition state for the number-only server.
 
-Mirrors `game-ai-dev-server/app/recognition_session.py` in interface and in the
+Mirrors `ai/game-server/app/recognition_session.py` in interface and in the
 division of responsibility: the server reports what it sees per frame and never
 confirms. Confirmation belongs to the browser decoder, which applies the
 calibrated confidence, hold time, and neutral-release rules from

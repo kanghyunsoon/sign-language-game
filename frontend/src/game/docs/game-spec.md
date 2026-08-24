@@ -17,7 +17,7 @@ frontend/src/game/
 ├─ contracts/
 └─ docs/
 
-game-ai-dev-server/          # 교체 가능한 더미 지문자 AI
+ai/game-server/          # 교체 가능한 더미 지문자 AI
 game-dev-backend/
 ├─ game-module/              # 운영 서버에 붙이는 Match API/도메인
 └─ dev-app/                  # 테스트용 더미 서버 어댑터
@@ -60,9 +60,9 @@ game-dev-backend/
 ```text
 repository-root/
 ├─ frontend/src/game/
-├─ game-ai-dev-server/
+├─ ai/game-server/
 ├─ game-dev-backend/
-├─ game-contracts/
+├─ ai/contracts/
 ├─ 기존 Python 학습 코드와 models/dataset
 └─ README.md
 ```
@@ -795,7 +795,7 @@ export interface RecognitionVisionAdapter {
 ## Python 서버
 
 ```bash
-cd game-ai-dev-server
+cd ai/game-server
 python -m venv .venv
 ```
 

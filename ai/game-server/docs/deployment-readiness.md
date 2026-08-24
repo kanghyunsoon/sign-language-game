@@ -1,6 +1,6 @@
 # AI 배포 준비 검증 및 트러블슈팅 (2026-07-24)
 
-`feature/S15P11A405-370-ai-model-artifacts` 브랜치 기준으로 AI 영역(`game-ai-dev-server`, `ai/` fingerspelling 패키지, `models/`, `game-contracts/`)의 배포 가능 여부와 배포 후 리스크를 실제 실행으로 검증한 기록이다. backend는 범위에서 제외했으며(이미 배포됨: `https://i15a405.p.ssafy.io/api`), 이 브랜치에는 backend·frontend 소스가 추적되지 않는다.
+`feature/S15P11A405-370-ai-model-artifacts` 브랜치 기준으로 AI 영역(`ai/game-server`, `ai/` fingerspelling 패키지, `models/`, `ai/contracts/`)의 배포 가능 여부와 배포 후 리스크를 실제 실행으로 검증한 기록이다. backend는 범위에서 제외했으며(이미 배포됨: `https://i15a405.p.ssafy.io/api`), 이 브랜치에는 backend·frontend 소스가 추적되지 않는다.
 
 ## 검증 환경
 
@@ -12,12 +12,12 @@
 
 | 항목 | 방법 | 결과 |
 | --- | --- | --- |
-| `game-ai-dev-server` 단위 테스트 | `python -m unittest discover -s tests -t .` | **16개 전부 통과** (리스크 1 수정 반영 후 green) |
+| `ai/game-server` 단위 테스트 | `python -m unittest discover -s tests -t .` | **16개 전부 통과** (리스크 1 수정 반영 후 green) |
 | 1:1 동시 접속(대전) 스모크 | 두 클라이언트 동시 연결 + 프레임 인터리브 스트리밍 | 두 세션 각각 **10/10 PREDICTION**, A가 매 스텝 `RESET_SEQUENCE` 해도 **B 6/6 정상**(세션 격리 확인), env 미설정 시 기본 baseline 로드 확인 |
 | `ai/` fingerspelling 테스트 | `PYTHONPATH=src pytest -q` | **15개 전부 통과** |
 | 모델 아티팩트 무결성 | manifest의 SHA-256과 실제 파일 대조 | baseline `.tflite`/`.h5`, tree `.joblib` **4건 전부 일치** |
 | 인식 서버 기동 스모크 | `HANDPRACTICE_AI_MODEL=baseline python -m app.main` + WebSocket 클라이언트 | 기동·리스닝 정상, `GET_CAPABILITIES`→`CAPABILITIES`(jamo-31-v1, seq 10), 15 `LANDMARK_FRAME`→15 `PREDICTION` 정상 |
-| 인식 계약 정합성 | `game-contracts/recognition/readiness.json` ↔ baseline 라벨/버전 | 일치 (관련 테스트 통과) |
+| 인식 계약 정합성 | `ai/contracts/recognition/readiness.json` ↔ baseline 라벨/버전 | 일치 (관련 테스트 통과) |
 | 배포 백엔드 라이브니스·계약 | 읽기 전용 GET 프로브 | `/api/v3/api-docs` OpenAPI 3.1 JSON 정상, `/api/actuator/health` Actuator 응답, 인증 필요 GET(`/users/me`·`/rankings`·`/signs`·`/webrtc/ice-servers`) 비인증 시 빈 응답(라우트 존재 + 인증 enforcement) |
 | 배포 백엔드 1:1 SIGN_DUEL e2e | `scripts/e2e_sign_duel.py` 실측(배포 백엔드 직접 대상) | **13/13 PASS** — 가입·방생성(realtimeTicket)·참가·준비·티켓·게임방 WS 핸드셰이크·`GAME_STARTED`·`SIGNAL` 양방향 중계·결과(201)·랭킹(200)·테스트 계정 teardown(withdraw 204) 전 구간 정상 |
 | 시크릿 노출 | 추적 파일 전체 정규식 스캔 | 토큰/키/자격증명 **없음** |
@@ -44,9 +44,9 @@ selected = (profile or os.getenv("HANDPRACTICE_AI_MODEL", "baseline")).strip().l
 
 `jamo-number-41.joblib`는 `scikit-learn 1.9.0`으로 직렬화되었다. 다른 버전(예: 1.7.2)에서 로드하면 `InconsistentVersionWarning`이 발생하며 "invalid results" 가능성이 경고된다(검증 시 확인됨; 스모크 결과 자체는 정상이었으나 경고 존재). 배포 환경에는 핀과 동일한 `scikit-learn==1.9.0`을 설치할 것(리스크 2와 함께 Python 3.11+ 필요).
 
-### 리스크 4 (경미) — `game-ai-dev-server/work/` 미(未)ignore
+### 리스크 4 (경미) — `ai/game-server/work/` 미(未)ignore
 
-`README.md`는 원본 데이터/중간 feature를 `work/datasets`, `work/training`, `work/experiments`에 두라고 안내하지만, 루트 `.gitignore`에는 `ai/` 경로만 있고 `game-ai-dev-server/work/`가 없다. 대용량 데이터가 실수로 커밋될 여지가 있으니 `.gitignore`에 `game-ai-dev-server/work/`를 추가 권장.
+`README.md`는 원본 데이터/중간 feature를 `work/datasets`, `work/training`, `work/experiments`에 두라고 안내하지만, 루트 `.gitignore`에는 `ai/` 경로만 있고 `ai/game-server/work/`가 없다. 대용량 데이터가 실수로 커밋될 여지가 있으니 `.gitignore`에 `ai/game-server/work/`를 추가 권장.
 
 ### 리스크 5 (경미) — 빈 추적 파일 `AI_TRAINING_HANDOFF.md`
 
@@ -97,8 +97,8 @@ AI-013이 제공하는 것(중복 구현 금지 — 새로 만들지 말고 이�
 ## 재현 절차
 
 ```bash
-# game-ai-dev-server
-cd game-ai-dev-server
+# ai/game-server
+cd ai/game-server
 pip install -r requirements.txt          # Python 3.11+ 필요 (리스크 2)
 python -m unittest discover -s tests -t . -v
 HANDPRACTICE_AI_MODEL=baseline python -m app.main   # 스모크 기동

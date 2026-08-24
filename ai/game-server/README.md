@@ -19,7 +19,7 @@
 ## Run
 
 ```powershell
-cd game-ai-dev-server
+cd ai/game-server
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
@@ -76,6 +76,6 @@ landmark 변환은 `app/feature_adapter.py`가 소유한다. 자모 전용 빌�
 격차가 기준 미달이면 서버가 **확신도를 눌러서**(0.05) 내보내므로 브라우저 시간축 디코더가 확정하지 못한다. **argmax 라벨은 유지**하므로 top-candidate 피드백은 그대로 동작한다. 연습 난이도를 조이려면 `HANDPRACTICE_AI_MIN_MARGIN`을 0.3~0.4로 올린다(프론트 수정 불필요).
 - 숫자 인식은 별도 모델로 분리되었으며, 이 빌드에서 숫자/하이브리드 헤드와 관련 스크립트는 제거되었다.
 
-원본 데이터와 중간 feature는 `.gitignore`의 `work/datasets`, `work/training`, `work/experiments` 아래에만 둔다. Git에는 데이터셋 원본을 올리지 않는다. 정확한 평가 조건과 한계는 `game-ai-dev-server/docs/recognition/model-evaluation.md`가 기준이다.
+원본 데이터와 중간 feature는 `.gitignore`의 `work/datasets`, `work/training`, `work/experiments` 아래에만 둔다. Git에는 데이터셋 원본을 올리지 않는다. 정확한 평가 조건과 한계는 `ai/game-server/docs/recognition/model-evaluation.md`가 기준이다.
 
 다른 PC에서 설치·실행·검증·재학습을 이어가는 절차와 새 Codex 시작 메시지는 `frontend/src/game/docs/other-pc-handoff.md`를 따른다.

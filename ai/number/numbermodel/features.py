@@ -13,7 +13,7 @@ changes on purpose, that test is the place where the decision gets made:
 either port the change here and update the hash, or record why the number model
 stays on the older computation.
 
-Copied from : game-ai-dev-server/app/feature_v3.py
+Copied from : ai/game-server/app/feature_v3.py
 Source commit: 42aced2
 """
 
@@ -27,8 +27,8 @@ import numpy as np
 
 
 NUMBER_MODEL_ROOT = Path(__file__).resolve().parents[1]
-REPOSITORY_ROOT = NUMBER_MODEL_ROOT.parent
-SOURCE_FILE = REPOSITORY_ROOT / "game-ai-dev-server" / "app" / "feature_v3.py"
+AI_ROOT = NUMBER_MODEL_ROOT.parent
+SOURCE_FILE = AI_ROOT / "game-server" / "app" / "feature_v3.py"
 SOURCE_SHA256 = "4cad854812402b8e0ee7a3a2e2f7b10ec44a97b38ff8e22301a5eee8d190ed9c"
 LANDMARK_COUNT = 21
 FEATURE_SIZE = 78

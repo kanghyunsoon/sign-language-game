@@ -15,8 +15,8 @@
 | 모델 단위 | **단일 프레임 분류** |
 | 입력 | `numbermodel/features.py`의 78차원 (3-D bone 60 + 관절각 15 + palm normal 3) |
 | 시간 집계 | 모델이 아니라 `ai/config/recognition-policy.json` + 세션 계층이 담당 |
-| 산출물 | `number-model/models/number-10-v1/` (`number-10.joblib` + `manifest.json` + `evaluation.json`) |
-| 안전 gate | `number-model/contracts/readiness-number.json` (자모 `readiness.json`과 분리) |
+| 산출물 | `ai/number/models/number-10-v1/` (`number-10.joblib` + `manifest.json` + `evaluation.json`) |
+| 안전 gate | `ai/number/contracts/readiness-number.json` (자모 `readiness.json`과 분리) |
 
 `10`은 촬영 변형 `10-1`/`10-2`를 단일 `10`으로 매핑한다. 숫자 `0`은 제외한다 — KSL 데이터에 존재하지 않으며, `model-evaluation.md` T-141이 "이미지 트랙의 `NUM_0`은 숫자 0이 아니라 10"이라고 정정한 바 있다.
 
@@ -107,10 +107,10 @@ number-10-v1은 프레임 단위로 분류하므로 `std`/`delta` 채널 자체�
 
 ```bash
 # 원격 서버 (파일을 미리 옮길 필요 없음, 표준 라이브러리만 사용)
-ssh <host> 'python3 -' < number-model/scripts/survey_number_data.py
+ssh <host> 'python3 -' < ai/number/scripts/survey_number_data.py
 
 # 로컬
-python3 number-model/scripts/survey_number_data.py --root <추가 경로>
+python3 ai/number/scripts/survey_number_data.py --root <추가 경로>
 ```
 
 JSON으로 후보 경로별 존재 여부·이미지 수·라벨 폴더·레이아웃 추정, `hand_landmarker.task`의 SHA-256, 사용 가능한 인터프리터와 `mediapipe`/`scikit-learn` 설치 여부, git 체크아웃 상태를 함께 보고한다. 읽기 전용이며 아무것도 쓰지 않는다.
@@ -123,7 +123,7 @@ JSON으로 후보 경로별 존재 여부·이미지 수·라벨 폴더·레이�
 
 ```bash
 # 공개 데이터 (provider 레이아웃: <split>/<label>/<image>)
-python number-model/scripts/extract_number_frames.py \
+python ai/number/scripts/extract_number_frames.py \
   --dataset  <ksl-numbers 루트> \
   --output   work/training/number_ksl_v3.npz \
   --layout   provider \
@@ -132,7 +132,7 @@ python number-model/scripts/extract_number_frames.py \
   --landmarker <hand_landmarker.task 경로>
 
 # 자체 촬영 (participant 레이아웃: <participantId>/<label>/<image>)
-python number-model/scripts/extract_number_frames.py \
+python ai/number/scripts/extract_number_frames.py \
   --dataset  <촬영 루트> \
   --output   work/training/number_captured_v3.npz \
   --layout   participant \
@@ -140,9 +140,9 @@ python number-model/scripts/extract_number_frames.py \
   --landmarker <hand_landmarker.task 경로>
 
 # 학습·평가 (여러 npz를 함께 전달)
-python number-model/scripts/train_number_model.py \
+python ai/number/scripts/train_number_model.py \
   --features work/training/number_ksl_v3.npz work/training/number_captured_v3.npz \
-  --output-dir number-model/models/number-10-v1 \
+  --output-dir ai/number/models/number-10-v1 \
   --attempt-id T-150 --write-bundle
 ```
 
@@ -152,7 +152,7 @@ GPU는 필요 없다. 78차원 classical 모델이므로 CPU로 충분하며, GP
 
 ## 7. 서버 배선
 
-`number-model/server/`가 자모 서버와 **동일한 WebSocket 계약**을 구현한다. 프런트는 주소만 바꾸면 두 서버 중 어느 쪽에도 붙는다.
+`ai/number/server/`가 자모 서버와 **동일한 WebSocket 계약**을 구현한다. 프런트는 주소만 바꾸면 두 서버 중 어느 쪽에도 붙는다.
 
 ```
 ws://localhost:8766/number     지숫자 10종 + none

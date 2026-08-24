@@ -1,6 +1,6 @@
 """WebSocket server for the number-only model.
 
-Implements the same contract as `game-ai-dev-server/app/main.py`, so a frontend
+Implements the same contract as `ai/game-server/app/main.py`, so a frontend
 can point at either one. Same request types, same field names, same error codes,
 same logging shape. It listens on a different port because the two are meant to
 run side by side while the number model is still being evaluated.
@@ -18,7 +18,7 @@ Like the jamo server it receives only MediaPipe landmarks. No camera, image, or
 video data reaches this process.
 
 Run:
-    cd number-model && python -m server.main
+    cd ai/number && python -m server.main
     HANDPRACTICE_NUMBER_MODEL_DIR=<dir>           # to point at another bundle
     HANDPRACTICE_NUMBER_PATH=/number              # to serve a different path
 """

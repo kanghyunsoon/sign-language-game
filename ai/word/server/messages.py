@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""ksl-word-v7 websocket 프로토콜 — 프론트 `word-accuracy-test`용 최소 구현.
+"""ksl-word-v7 websocket 프로토콜 — 프론트 `ai/word`용 최소 구현.
 
 기존 word-model/server의 프로토콜을 확장한다: LANDMARK_FRAME에 9포인트 pose를
 추가로 받고, PREDICTION 응답에 stage/verdict/feedback을 얹는다.

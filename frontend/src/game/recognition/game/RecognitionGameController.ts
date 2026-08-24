@@ -312,7 +312,7 @@ export class RecognitionGameController {
 }
 
 function classifyRecognitionError(code: string, message: string): { readonly kind: RecognitionErrorKind; readonly message: string } {
-  if (code === "WEBSOCKET_ERROR") return { kind: "SERVER_UNAVAILABLE", message: "Python AI server is unavailable. Start game-ai-dev-server, then reconnect." };
+  if (code === "WEBSOCKET_ERROR") return { kind: "SERVER_UNAVAILABLE", message: "Python AI server is unavailable. Start ai/game-server, then reconnect." };
   if (code.includes("MODEL")) return { kind: "MODEL_LOAD_FAILED", message };
   if (code === "INVALID_SERVER_MESSAGE") return { kind: "PROTOCOL_ERROR", message };
   return { kind: "UNKNOWN", message };

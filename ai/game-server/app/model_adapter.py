@@ -9,7 +9,7 @@ from typing import Protocol
 
 import numpy as np
 
-from .project_paths import REPOSITORY_ROOT
+from .project_paths import AI_ROOT
 
 
 # Jamo-only build. Number recognition has been split out into a separately
@@ -17,7 +17,7 @@ from .project_paths import REPOSITORY_ROOT
 # server recognises the 31 Hangul fingerspelling jamo only.
 #
 # MODEL_VERSION is the *class contract* version (the 31-jamo label set and output
-# order that game-contracts/recognition/readiness.json pins), not the trained
+# order that ai/contracts/recognition/readiness.json pins), not the trained
 # head version. Retraining the heads — including the dual-head ensemble below —
 # keeps the same class contract, so this stays "jamo-31-v1" and readiness.json
 # needs no change. Bump it only when the label set or output order changes.
@@ -31,7 +31,7 @@ LABELS = (
 #   v2 head — feature_v2 (55), trained on session captures + capture video
 #   v3 head — feature_v3 (78), trained on capture video, adds depth/palm normal
 # Probabilities are averaged with ENSEMBLE_WEIGHT on the v2 head.
-MODEL_DIRECTORY = REPOSITORY_ROOT / "models" / "jamo-31-ensemble-v1"
+MODEL_DIRECTORY = AI_ROOT / "models" / "jamo-31-ensemble-v1"
 V2_MODEL_PATH = MODEL_DIRECTORY / "jamo31-v2big.tflite"
 V3_MODEL_PATH = MODEL_DIRECTORY / "jamo31-v3.tflite"
 ENSEMBLE_WEIGHT = 0.5
@@ -63,7 +63,7 @@ SEQUENCE_LENGTH = 10
 # the handshape leaned towards. Tune with HANDPRACTICE_AI_MIN_MARGIN.
 MINIMUM_DECISION_MARGIN = float(os.getenv("HANDPRACTICE_AI_MIN_MARGIN", "0.25"))
 SUPPRESSED_CONFIDENCE = 0.05
-READINESS_PATH = REPOSITORY_ROOT / "game-contracts" / "recognition" / "readiness.json"
+READINESS_PATH = AI_ROOT / "contracts" / "recognition" / "readiness.json"
 
 
 def load_recognition_readiness() -> dict[str, object]:

@@ -15,7 +15,7 @@ from PIL import Image, ImageOps
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 SERVER_ROOT = SCRIPT_DIR.parent
-REPOSITORY_ROOT = SERVER_ROOT.parent
+REPOSITORY_ROOT = SERVER_ROOT.parent.parent  # ai/game-server -> ai -> repo root
 sys.path.insert(0, str(SERVER_ROOT))
 
 from app.feature_v2 import landmarks_to_feature  # noqa: E402

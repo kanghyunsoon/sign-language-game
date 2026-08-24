@@ -15,7 +15,7 @@ Experimental continuous Korean fingerspelling checkpoint selected on AIHub 103 s
 
 `evaluation.json` is the T-92 fixed evaluation of the T-91 checkpoint on signer 18 validation and signer 19 development. The development set was inspected repeatedly during this experiment and is not an untouched final certification set.
 
-The AIHub source archives and compact NPZ features are not redistributed in Git. Recreate them with `prepare_aihub_sequence_manifest.py` and `pack_aihub_sequence_features.py`, or copy the licensed local data separately. Continue training with `game-ai-dev-server/scripts/train_aihub_sequence_ctc_t23.py` and pass:
+The AIHub source archives and compact NPZ features are not redistributed in Git. Recreate them with `prepare_aihub_sequence_manifest.py` and `pack_aihub_sequence_features.py`, or copy the licensed local data separately. Continue training with `ai/game-server/scripts/train_aihub_sequence_ctc_t23.py` and pass:
 
 ```text
 --initial-checkpoint models/continuous-ctc-t91/best.pt
