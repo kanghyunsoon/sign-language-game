@@ -1,325 +1,161 @@
 # 수어의 달인
 
-웹캠으로 한국 수어(KSL)를 인식해 학습과 게임으로 익히는 웹 서비스입니다.
-브라우저에서 손·상체 랜드마크를 추출해 서버의 인식 모델로 보내고, 확정된 예측을
-학습 피드백과 게임 입력으로 사용합니다.
+<p align="center">
+  <img src="frontend/src/game/block-stacking/assets/game-menu-title.webp" width="520" alt="수어의 달인" />
+</p>
 
-SSAFY 15기 공통 프로젝트(A405) · 2026-07-16 ~ 2026-08-21 · 6명 · 커밋 1130개
+<p align="center">
+  지문자 31개 분류 모델을 개선하고, 모델의 예측을 학습과 게임 입력으로 연결한 웹 서비스
+</p>
 
----
+<p align="center">
+  <a href="https://sudal-play.vercel.app">서비스</a> ·
+  <a href="docs/portfolio-ai-fingerspelling.md">AI 개선 기록</a> ·
+  <a href="docs/portfolio-game-frontend.md">게임 프론트엔드 기록</a>
+</p>
 
-## 무엇을 하는 서비스인가
+> SSAFY 15기 공통 프로젝트 · 2026.07.16–2026.08.21 · 6인 팀
+> 강형순 담당: **지문자 인식 모델·AI 서버, 게임 선택 이후 프론트엔드**
 
-| 영역 | 내용 |
-| --- | --- |
-| 학습 | 지문자·숫자·단어를 카드로 학습하고, 웹캠으로 직접 만들어 맞았는지 즉시 확인 |
-| 솔로 프링글수 | 제시된 지문자를 손으로 만들면 그 글자가 물리 블록으로 떨어져 쌓인다. 결승선에 닿으면 종료, 경과 시간으로 랭킹 |
-| 1:1 프링글수 | 두 사람이 같은 목표 글자를 두고 경쟁. 먼저 인식한 사람의 보드에만 블록이 떨어지고, 3연속 성공 시 상대 블록을 빼앗는다 |
-| 지문자 턴 배틀 | 자모를 기술 카드로 쓰는 턴제 대전. 자모 종류별로 공격·방어·결계·공명·필살기 역할이 다르고 3원 상성이 있다 |
-| 성장 | 출석·정답 기록으로 펫이 성장하고, 오답은 복습 대상으로 쌓인다 |
+![담당 결과 수치](docs/assets/portfolio/key-metrics.svg)
 
-게임 진행은 **서버가 중계하지 않습니다.** 백엔드는 방 생성·참가·결과 저장만 REST로
-제공하고, 실제 대전은 WebRTC DataChannel P2P로 돌아갑니다. 시그널링만 서버를 거칩니다.
+## 맡은 일
 
----
-
-## 인식 모델
-
-세 가지 모델이 각각 독립한 WebSocket 서버로 떠 있습니다.
-
-| 대상 | 클래스 | 모델 | 지표 |
-| --- | --- | --- | --- |
-| 지문자 | 자모 31개 | dual-head 앙상블 (feature_v2 55차원 + feature_v3 78차원, 확률 평균) | 정확도 98.4%, 최저 클래스 recall 70.5% |
-| 숫자 | 1~10 + none (11) | scikit-learn Extra Trees, feature_v3 78차원, 프레임 단위 | `ai/number/models/number-10-v1/manifest.json` |
-| 단어 | 단어 21개 + wrong | ONNX Runtime int8, 시퀀스 48프레임 × 300차원, pose 정규화 + 물리량 가드 + 수형 규칙 | `ai/word/models/ksl-word-v7/` |
-
-**정확도는 클래스별로 고르지 않습니다.** 지문자 31자모 중 일부는 신뢰할 수 없는
-수준이어서, 프론트엔드가 모델 예측을 그대로 게임 입력으로 쓰지 않고 별도의 확정
-단계를 둡니다. 그 경계는 `ai/contracts/recognition/readiness.json`의
-`confirmationAuthority` 필드에 계약으로 박아 두었습니다.
-
----
-
-## 디렉터리 구조
-
-```
-frontend/   React 19 + TypeScript + Vite. 학습 UI, 게임 모듈, 브라우저 랜드마크 추출
-backend/    Spring Boot 4. 인증·방·결과·랭킹·성장 REST API + WebSocket 시그널링
-  suhwa/      애플리케이션 소스
-  specs/      기능 명세와 API 계약(OpenAPI)
-ai/
-  fingerspelling/  지문자 학습 파이프라인 (데이터 → 피처 → 학습 → 평가)
-  game-server/     지문자 인식 서버 (배포본)
-  number/          숫자 인식 서버
-  word/            단어 인식 서버
-  models/          학습된 모델 아티팩트와 매니페스트
-  contracts/       인식 확정 계약 — 프론트엔드와 AI의 경계
-infra/
-  compose/         서비스별 Docker Compose 정의 (`local.yml` 은 로컬 전체 스택)
-  coturn/          STUN/TURN 서버 설정
-  monitoring/      Prometheus + Grafana 구성
-  scripts/         DB 백업, 인증서 갱신
-  systemd/         백업 타이머 유닛
-docs/       포트폴리오·기술 문서
-```
-
----
-
-## 기술 스택
-
-| 영역 | 기술 |
-| --- | --- |
-| 프론트엔드 | React 19, TypeScript, Vite, matter-js(2D 물리), PixiJS 8(WebGL) |
-| 손 인식 | @mediapipe/tasks-vision — 손 21점 + 포즈 33점, Web Worker 실행 + 메인 스레드 폴백 |
-| 실시간 | WebRTC DataChannel(게임 진행), WebRTC mesh(영상, 최대 4인), WebSocket(시그널링), SSE(로비) |
-| 백엔드 | Spring Boot 4, Java 17, Gradle, MySQL 8.4, Flyway, JJWT, springdoc OpenAPI |
-| AI 서버 | Python 3.11, TensorFlow, scikit-learn, ONNX Runtime, websockets |
-| 인프라 | Docker Compose, Nginx 리버스 프록시, coturn, Prometheus, Grafana |
-| 테스트 | Vitest(프론트), JUnit(백엔드), pytest(AI) |
-
-상태 관리 라이브러리, 애니메이션 라이브러리, WebRTC 래퍼, HTTP 클라이언트를 쓰지
-않았습니다. 게임 모듈이 호스트 앱의 `package.json`을 오염시키지 않는 것이 병합
-조건이어서, 표준 API와 얇은 어댑터로 구현했습니다.
-
-### 규모
-
-| | 소스 | 테스트 |
+| 영역 | 담당 범위 | 사용 기술 |
 | --- | --- | --- |
-| 프론트엔드 | 614 파일 (ts/tsx) | 161 파일 |
-| 백엔드 | 192 파일 (java) | 67 파일 |
-| AI | 118 파일 (py) | 26 파일 |
+| 지문자 AI | 31자모 피처 설계, LSTM 학습, 듀얼 헤드 앙상블, 회전 증강, TFLite 변환, WebSocket 추론 서버 | Python, TensorFlow, TFLite, MediaPipe |
+| 인식 제품화 | 모델 확률을 게임 입력으로 확정하는 시간축 디코더, 심볼별 출제 게이트, 최신 프레임 우선 처리 | TypeScript, WebSocket, 상태 머신 |
+| 게임 프론트엔드 | 게임 선택 이후 전 화면, 한글 물리 블록, 1:1 P2P 대전, 턴 배틀 | React, Matter.js, PixiJS, WebRTC |
 
----
+게임 코드는 `frontend/src/game` 아래에 모았다. 현재 기준 **TypeScript/TSX 517개, 33,571줄, 테스트 141개 파일**이다.
 
-## 서비스 구성
+## 지문자 모델: 정확도보다 먼저 입력을 바꿨다
 
-프론트엔드는 Vercel, 나머지는 EC2 한 대에 Docker로 올리고 Nginx가 앞에서 분배합니다.
+초기 2D 랜드마크 모델은 손가락의 깊이와 손바닥 방향을 잃었다. `ㅅ/ㅠ`, `ㅔ/ㅕ`처럼 화면에 투영된 모양이 비슷한 자모는 분류기나 손실 함수를 바꿔도 구분되지 않았다. 문제를 모델 크기가 아니라 입력 표현으로 보고 피처를 다시 설계했다.
 
-| 서비스 | 내부 바인딩 | 외부 경로 |
-| --- | --- | --- |
-| 백엔드 | `127.0.0.1:8080` | `/api/` |
-| 지문자 AI | `127.0.0.1:8765` | `/ai/ws` |
-| 숫자 AI | `127.0.0.1:8766` | `/number` |
-| 단어 AI | `127.0.0.1:8767` | `/word` |
-| MySQL | 외부 미공개 | 백엔드 내부 연결 |
-| coturn | host network | `3478`, `5349`, `49160-49200/udp` |
+![지문자 모델 개선 과정](docs/assets/portfolio/model-journey.svg)
 
----
+> 위 수치는 실험 단계의 판단 근거다. 2D 정적 이미지 기준선과 이후 시퀀스 모델은 평가 데이터가 달라 정확도 차이를 직접적인 향상분으로 계산하지 않았다. 운영 모델 수치는 동일 촬영 영상의 앞 70%/뒤 30% 분할이며 신규 사용자 독립 평가가 아니다.
 
-## 실행 방법
+### 1. 2D로 사라지는 정보를 3D 피처에 담았다
 
-### 1) 전체 스택 한 번에 (Docker, 권장)
+**문제**
 
-프런트·백엔드·MySQL·AI 3종을 한 번에 올립니다. 접속 경로를 nginx 하나로 모아
-운영과 같은 "프런트와 API가 같은 오리진" 구조로 띄우기 때문에, 환경변수 설정이나
-CORS 조정 없이 그대로 동작합니다.
+2D bone vector 40개와 관절 각도 15개만으로는 손의 앞뒤와 깊이 차이를 설명할 수 없었다. MLP, Residual MLP, SVM을 바꿔도 혼동쌍이 남았다.
 
-필요한 것: Docker Desktop(또는 Docker Engine) + Compose v2. 그 외 준비물은 없습니다.
-Node·JDK·Python을 로컬에 설치하지 않아도 됩니다.
+**해결**
 
-```bash
-docker compose -f infra/compose/local.yml up -d --build
+같은 MediaPipe 랜드마크에서 3D bone direction 60개, 관절 각도 15개, palm normal 3개를 계산해 78차원 `feature_v3`를 만들었다. 프론트가 이미 `x·y·z`를 전송하고 있어 API 계약은 바꾸지 않았다.
+
+**결과**
+
+v3 LSTM은 locked test 955개에서 93.3%를 기록했다. v2 전이 모델과 비교했을 때 `ㅅ` recall은 0.42→1.00, `ㅠ`는 0.59→1.00, `ㅔ`는 0.53→0.97로 바뀌었다.
+
+### 2. 데이터가 많은 2D와 표현력이 있는 3D를 결합했다
+
+**문제**
+
+v3는 방향을 구분했지만 학습 시퀀스가 2,404개였다. v2는 33,738개 시퀀스를 갖고 있어 자모별 강점이 달랐다. v3 데이터의 stride만 줄여 3,359→6,693개로 늘린 실험은 정확도가 93.3→93.0%로 바뀌어 새 정보가 되지 못했다.
+
+**해결**
+
+한 프레임에서 v2 55차원과 v3 78차원을 함께 만들고, 두 LSTM 헤드의 확률을 0.5씩 평균했다. 혼동행렬에서 `ㅣ-ㅡ`, `ㅗ-ㅑ`, `ㅗ-ㅖ`, `ㅗ-ㅣ`, `ㅜ-ㅏ`를 산출해 hard-negative margin을 적용했다.
+
+**결과**
+
+듀얼 헤드만 적용했을 때 98.1%, hard-negative 2차 적용 후 98.68%를 기록했다. `ㅜ→ㅏ` 혼동은 recall 0.708→1.00으로 바뀌었다. margin을 강하게 준 1차 실험에서는 다른 자모가 밀리는 현상이 생겨 0.35에서 0.25로 낮췄다.
+
+### 3. 테스트가 통과해도 실사용에서 실패할 수 있었다
+
+**문제**
+
+배포 후 `ㅡ`가 잘 인식되지 않았다. 기존 test에서 `ㅡ` recall은 1.00이어서 임계값 문제로 보였지만, 실제 원인은 촬영 영상에 없던 손목 각도였다.
+
+**해결**
+
+학습 샘플 60%에 회전 증강을 적용했다. v2는 화면 평면에서 ±22°, v3는 z축 ±22°와 y축 ±15°로 회전했다. test 입력도 ±10°와 ±20°로 회전해 따로 검증했다.
+
+**결과**
+
+±20°에서 `ㅡ` recall 1.00을 유지했다. locked test 정확도는 98.68→98.42%로 0.26%p 낮아졌지만 실사용 실패를 해결한 모델을 채택했다. `ㅓ`까지 margin으로 보정한 후속 실험은 전체 96.68%, `ㅡ` recall 0.707로 후퇴해 폐기했다.
+
+## 모델 예측을 게임 입력으로 바꾼 경계
+
+AI 서버는 후보와 확률만 반환한다. 최종 입력 확정은 브라우저의 시간축 디코더가 담당한다. 네트워크 지연과 모델의 순간 오인식을 게임 규칙에서 분리하기 위해서다.
+
+```mermaid
+flowchart LR
+    A[카메라] --> B[MediaPipe<br/>손 랜드마크 21점]
+    B --> C1[v2 55차원<br/>LSTM]
+    B --> C2[v3 78차원<br/>LSTM]
+    C1 --> D[확률 평균]
+    C2 --> D
+    D --> E[AI 검증 게이트]
+    E --> F[시간축 디코더<br/>후보·확정·해제]
+    F --> G[학습 피드백 / 게임 입력]
 ```
 
-첫 빌드는 이미지를 처음 만들기 때문에 5~10분, 이후에는 캐시가 재사용됩니다.
-프런트엔드 빌드 중 MediaPipe 손·포즈 모델(약 13MB)을 내려받으므로 네트워크가 필요합니다.
-지문자 인식 이미지는 TensorFlow를 포함해 약 3.5GB입니다.
+- `NO_HAND → TRACKING → MOVING → CANDIDATE → CONFIRMED → RELEASE_WAIT` 6상태로 입력을 관리했다.
+- 4프레임 중 2표와 100ms 안정 시간을 함께 만족해야 확정한다.
+- 추론 요청은 `처리 중 1개 + 대기 중 최신 1개`만 둔다. 오래된 프레임은 버려 지연 누적을 막았다.
+- 1,900개 평가에서 precision 90%, 확정률 85% 기준을 통과한 **27/31개 자모만 경쟁 모드에 출제**했다.
+- 서버에는 손 랜드마크만 보내며 얼굴·영상·이미지는 보내지 않는다.
 
-빌드가 끝나면 **http://localhost:8081** 로 접속합니다.
+## AI를 게임에 적용했다
 
-> 반드시 `localhost` 로 접속하세요. 브라우저는 `localhost` 와 HTTPS만 보안 컨텍스트로
-> 취급하므로, LAN IP(`http://192.168.x.x:8081`)로 열면 웹캠 접근이 차단됩니다.
+<table>
+  <tr>
+    <td width="58%"><img src="frontend/src/game/block-stacking/assets/game-mode-background-2d.webp" alt="프링글수 게임 배경" /></td>
+    <td width="42%"><img src="frontend/src/game/block-stacking/assets/game-menu-hero-otter.webp" alt="프링글수 수달 캐릭터" /></td>
+  </tr>
+</table>
 
-| 경로 | 연결 대상 | 직접 접근 |
-| --- | --- | --- |
-| `http://localhost:8081` | 프런트엔드 (nginx) | — |
-| `/api/**` | 백엔드 REST·SSE·게임방 WebSocket | `http://localhost:8080` |
-| `/api/swagger-ui/index.html` | API 문서 | `http://localhost:8080/swagger-ui/index.html` |
-| `/ai/ws` | 지문자 인식 WebSocket | `ws://localhost:8765` |
-| `/number` | 숫자 인식 WebSocket | `ws://localhost:8766` |
-| `/word` | 단어 인식 WebSocket | `ws://localhost:8767` |
-
-로그인은 회원가입으로 계정을 만들면 됩니다(이메일 형식, 비밀번호 8자 이상, 닉네임 2~10자).
-DB는 빈 상태로 시작하고 Flyway가 스키마를 v11까지 자동 적용합니다.
-
-상태 확인과 종료:
-
-```bash
-docker compose -f infra/compose/local.yml ps            # 상태 (AI 3종은 healthy 로 표시)
-docker compose -f infra/compose/local.yml logs -f backend
-docker compose -f infra/compose/local.yml down          # 중지 (DB 데이터는 볼륨에 남음)
-docker compose -f infra/compose/local.yml down -v       # 중지 + DB까지 삭제
-```
-
-만든 이미지까지 지우려면:
-
-```bash
-docker rmi sudal-frontend:local sudal-backend:local sudal-ai:local sudal-number-ai:local sudal-word-ai:local
-```
-
-막히는 지점:
-
-| 증상 | 원인과 조치 |
+| 모드 | 구현 |
 | --- | --- |
-| 카메라가 안 잡힌다 | `127.0.0.1`·LAN IP가 아니라 `localhost` 로 접속. 브라우저 카메라 권한 허용 여부도 확인 |
-| 포트 충돌 | 8081·8080·8765·8766·8767을 쓴다. `infra/compose/local.yml` 의 `ports` 왼쪽 값을 바꾸면 된다(8081을 바꾸면 단어 인식 주소도 함께 바꿔야 한다 — 아래 참고) |
-| `local-backend` 가 안 뜬다 | MySQL healthcheck 통과를 기다리는 중일 수 있다(첫 기동은 30초 이상). `logs -f backend` 로 Flyway 마이그레이션 로그를 확인 |
-| 1:1 대전에서 상대가 안 붙는다 | coturn(TURN)은 이 스택에 없다. 같은 머신의 두 탭·두 브라우저는 host candidate로 연결되지만, 서로 다른 네트워크 간 relay 경로는 확인할 수 없다 |
-| `EOFError: stream ends after 0 bytes` 로그 | Docker healthcheck가 TCP 소켓만 열고 닫아서 나는 정상 로그다 |
+| 솔로 프링글수 | 인식한 자모를 Matter.js 물리 블록으로 만들어 쌓는다. 캔버스 알파 채널을 8px 셀로 읽어 한글 획 모양의 collider를 생성했다. |
+| 1:1 프링글수 | WebRTC DataChannel과 브라우저 host authority로 진행한다. guest는 입력을 요청하고 host가 검증한 이벤트만 양쪽 보드에 반영한다. |
+| 지문자 턴 배틀 | 자모를 기술 카드로 사용하는 턴제 대전. 결정적 PRNG와 상태 머신으로 로컬 봇·P2P가 같은 규칙을 쓴다. |
 
-단어 인식 주소만 코드 기본값이 배포 호스트로 고정돼 있어서 빌드 시점에 주입합니다
-(`infra/compose/local/frontend.Dockerfile` 의 `VITE_WORD_AI_WEBSOCKET_URL`). 웹 포트를
-8081에서 바꾸면 이 값도 같이 바꿔 다시 빌드해야 합니다. API와 지문자·숫자 주소는
-`window.location` 기준 상대값이라 포트를 바꿔도 그대로 따라갑니다.
+백엔드는 방 생성·참가·결과 저장과 WebRTC signaling만 맡는다. 게임 상태를 서버에서 중계하지 않아 발생한 중복 생성과 재접속 문제는 host authority, 5초 snapshot, FNV-1a checksum, tombstone으로 처리했다. 구현 과정은 [게임 프론트엔드 기록](docs/portfolio-game-frontend.md)에 정리했다.
 
-### 2) 파트별 개별 실행 (개발용)
+## 기술 선택
 
-코드를 고치면서 HMR·디버거를 쓰려면 파트별로 띄웁니다.
-
-```bash
-# 프런트엔드 — http://localhost:5173 (postinstall이 MediaPipe 에셋을 자동 배치한다)
-cd frontend && npm ci && npm run dev
-
-# 백엔드 — JDK 17과 MySQL이 필요하다. 환경변수는 backend/suhwa/env.sample 참고
-#   (DB_*, 그리고 JWT_SECRET은 32바이트 이상이어야 기동한다)
-#   bootRun은 Flyway가 켜져 있어 빈 DB라도 V1~V11을 알아서 적용한다(테스트는 다르다 — 아래 참고)
-cd backend/suhwa && ./gradlew bootRun
-
-# 지문자 인식 서버 — ws://localhost:8765
-cd ai/game-server && pip install -r requirements.txt && python -m app.main
-
-# 숫자 인식 서버 — ws://localhost:8766/number
-cd ai/number && pip install -r requirements.txt && python -m server.main
-
-# 단어 인식 서버 — ws://localhost:8767/word
-cd ai/word && pip install -r server/requirements.txt && python -m server.main
-```
-
-프런트 환경변수는 `frontend/.env.example` 을 복사해 씁니다. 주의할 점:
-
-- **숫자 인식**은 `VITE_AI_WEBSOCKET_URL` 의 경로만 `/number` 로 바꿔 주소를 만듭니다
-  (`aiRecognition.ts`). 즉 개발 기본값 `ws://localhost:8765` 에서는 `ws://localhost:8765/number`
-  가 되어 지문자 서버로 붙습니다. 숫자·단어 연습까지 함께 확인하려면 프록시가 필요하므로
-  위 Docker 스택을 쓰는 편이 낫습니다.
-- **단어 인식**은 `VITE_WORD_AI_WEBSOCKET_URL` 을 지정하지 않으면 배포 서버로 붙습니다.
-  로컬 서버를 쓸 때는 `ws://localhost:8767/word` 를 넣어 주세요.
-- 백엔드를 5173에서 직접 호출하려면 백엔드의 `CORS_ALLOWED_ORIGINS` 에
-  `http://localhost:5173` 이 들어 있어야 합니다(`env.sample` 기본값에 포함).
-
-AI 서버 옵션(인식 게이트 임계값, 랜드마크 스무딩, 진단 로그)의 의미는 각 값에 주석으로
-붙여 두었습니다. `infra/compose/ai.yml` 과 `ai/game-server/README.md` 를 함께 보세요.
-
-### 테스트
-
-세 파트를 마지막으로 함께 돌린 결과입니다.
-
-| 대상 | 결과 |
+| 선택 | 이유 |
 | --- | --- |
-| 프런트엔드 (Vitest) | 161개 파일 821개 통과 |
-| 백엔드 (JUnit) | 66개 클래스 264개 통과 |
-| AI 지문자 서버 | 109개 통과 |
-| AI 숫자 서버 | 37개 통과 |
+| 랜드마크 전송 | 영상 전송 없이 추론하고, 프론트와 AI의 입력 계약을 21개 점으로 고정 |
+| v2 + v3 듀얼 헤드 | 데이터가 많은 2D 헤드와 방향을 보존한 3D 헤드의 자모별 강점을 결합 |
+| TFLite unroll 변환 | Flex 연산 의존을 제거하고 AI 서버의 TensorFlow 버전 제약을 줄임 |
+| 프론트 확정 권위 | 모델 확률, 네트워크 응답, 게임 입력 잠금을 각 계층에서 분리 |
+| WebRTC DataChannel | 1:1 게임 상태를 백엔드에 추가하지 않고 브라우저끼리 교환 |
+| Matter.js + PixiJS | 충돌 계산과 WebGL 효과를 나누고 React 렌더 주기와 게임 루프를 분리 |
 
-#### 프런트엔드
+## 검증
 
-```bash
-cd frontend && npm ci && npm test
-cd frontend && npx tsc -b        # 타입체크만
-```
-
-#### 백엔드
-
-준비물이 두 개 있습니다. **JDK 17**과 **스키마가 적용된 MySQL**입니다.
-
-통합 테스트는 대부분 `@SpringBootTest`이고 `application.yaml`의 datasource를 그대로
-씁니다(기본값 `localhost:3306`, `root`, 빈 비밀번호). 그리고 `build.gradle`이 테스트
-태스크에서 `spring.flyway.enabled=false`로 마이그레이션을 **끕니다** — 테스트가 개발자
-DB에 마이그레이션을 적용해버리는 것을 막기 위한 의도된 설정입니다. 그래서 빈 DB로
-돌리면 `Table 'suhwa.game_rooms' doesn't exist`로 60여 개가 무너집니다. 스키마를 미리
-넣어 둬야 합니다.
-
-스키마의 단일 원천은 Flyway 마이그레이션입니다.
-
-| 위치 | 내용 |
+| 대상 | 확인 항목 |
 | --- | --- |
-| `backend/suhwa/src/main/resources/db/migration/V*.sql` | **현재 스키마의 원천.** `V1`~`V11`(V3 없음), 전부 적용하면 테이블 9개 |
-| `backend/suhwa/scripts/schema.sql` | spec 001 시절의 옛 스냅샷. `game_results`·`test_sessions`가 없고 폐기된 `game_sessions`가 남아 있다. 테스트 DB 준비에 쓰지 말 것 |
+| 지문자 모델 | locked test 1,900개, 클래스별 precision·recall·확정률, ±20° 회전 test |
+| AI 서버 | 모델 계약·feature parity·WebSocket session·handshape gate 회귀 테스트 |
+| 게임 프론트엔드 | 141개 테스트 파일. 타이머·랜덤·소켓·미디어·fetch를 주입해 실제 대기 없이 검증 |
+| 출제 계약 | `ai/contracts/recognition/readiness.json` 하나에서 심볼별 임계값과 경쟁 출제 가능 여부 파생 |
 
-> **새 볼륨에 배포할 때 주의.** `infra/compose/backend.yml`은 `/opt/sudal/schema.sql`을
-> MySQL 초기화 스크립트로 마운트합니다. 여기에 위의 옛 스냅샷을 넣으면, 애플리케이션의
-> `baseline-on-migrate: true` 때문에 Flyway가 이미 스키마가 있다고 보고 `V1`을 건너뛰어
-> `game_results`가 만들어지지 않고 `V6`에서 기동이 실패합니다. **빈 DB로 시작해 Flyway가
-> `V1`부터 적용하게 두는 편이 안전합니다**(로컬 스택 `infra/compose/local.yml`이 그 방식).
+## 한계
 
-컨테이너로 준비해서 돌리는 전체 절차입니다(3306이 이미 쓰이고 있어도 되도록 33306에
-띄웁니다).
+- 98.42%는 자모별 촬영 영상의 앞 70%를 학습하고 뒤 30%를 평가한 결과다. 신규 사용자 독립 성능으로 해석할 수 없다.
+- 최종 모델에서 `ㅓ` recall은 0.7049다. 임계값을 낮추면 `ㅡ` precision이 무너져 경쟁 모드에서는 둘을 포함한 4개 자모를 제외했다.
+- 카메라·MediaPipe·AI 응답의 실제 p95 지연을 수집하는 코드는 있으나 결과를 저장하지 않아 기기별 수치는 미측정이다.
+- 다중 사용자 손 소유권 판정은 구현했지만 실기 군중 테스트가 없어 기본 게임 경로에서는 껐다.
 
-```bash
-# 1. 테스트용 MySQL
-docker run -d --name suhwa-test-mysql -p 127.0.0.1:33306:3306 \
-  -e MYSQL_ROOT_PASSWORD=testpw -e MYSQL_DATABASE=suhwa mysql:8.4
+## 코드 시작점
 
-# 2. 마이그레이션 적용 (번호 순서를 지킨다)
-cd backend/suhwa
-for v in 1 2 4 5 6 7 8 9 10 11; do
-  docker exec -i suhwa-test-mysql mysql -uroot -ptestpw suhwa \
-    < src/main/resources/db/migration/V${v}__*.sql
-done
-
-# 3. 실행
-DB_HOST=127.0.0.1 DB_PORT=33306 DB_NAME=suhwa DB_USERNAME=root DB_PASSWORD=testpw \
-JWT_SECRET=local_only_dummy_jwt_secret_value_change_me_32plus \
-  ./gradlew test
-
-# 4. 정리
-docker rm -f -v suhwa-test-mysql
-```
-
-`FlywayMigrationTest`와 동시성 테스트 4개는 Testcontainers로 자기 DB를 직접 띄우므로
-Docker 데몬이 필요합니다(위 절차를 따르면 이미 충족).
-
-환경변수를 매번 넘기는 대신 `backend/suhwa/.env`를 두면 `build.gradle`이 `test`와
-`bootRun` 태스크에 자동 주입합니다. `backend/suhwa/env.sample`을 복사해 쓰고, 이 파일은
-gitignore 대상이라 저장소에 올라오지 않습니다.
-
-#### AI 서버
-
-requirements를 설치한 환경에서 각 서버 디렉터리에서 실행합니다. 설치 없이 돌리려면
-위 Docker 스택의 이미지를 그대로 씁니다.
-
-```bash
-docker compose -f infra/compose/local.yml build ai number-ai
-docker run --rm -v "$PWD:/repo:ro" -w /repo/ai/game-server --entrypoint python \
-  sudal-ai:local -m unittest discover -s tests -t .
-docker run --rm -v "$PWD:/repo:ro" -w /repo/ai/number --entrypoint python \
-  sudal-number-ai:local -m unittest discover -s tests -t .
-```
-
----
-
-## 문서
-
-| 문서 | 내용 |
+| 보고 싶은 내용 | 위치 |
 | --- | --- |
-| [docs/portfolio-game-frontend.md](docs/portfolio-game-frontend.md) | 게임 파트 프론트엔드 상세 — 포트-어댑터 구조, 한글 자모를 물리 강체로 다루는 방법, 인식 파이프라인의 확정 경계, 서버 중계 없는 1:1 대전, 검증하지 않은 것 |
-| [ai/game-server/README.md](ai/game-server/README.md) | 지문자 인식 서버 프로토콜과 옵션 |
-| [ai/fingerspelling/docs/](ai/fingerspelling/docs/) | 지문자 데이터 계약, 학습 가이드, 파이프라인 구조 |
-| [backend/specs/](backend/specs/) | 기능 명세와 OpenAPI 계약 |
+| v2/v3 피처와 앙상블 | [`ai/game-server/app`](ai/game-server/app) |
+| 모델 학습·평가 기록 | [`model-evaluation.md`](ai/game-server/docs/recognition/model-evaluation.md) |
+| 운영 모델 계약 | [`manifest.json`](ai/models/jamo-31-ensemble-v1/manifest.json) |
+| 경쟁 출제 기준 | [`readiness.json`](ai/contracts/recognition/readiness.json) |
+| 시간축 디코더 | [`frontend/src/game/recognition/temporal`](frontend/src/game/recognition/temporal) |
+| 게임 모듈 | [`frontend/src/game`](frontend/src/game) |
 
-문서에는 근거 표기 규칙이 있습니다. 수치에는 근거 파일 경로나 코드 위치를 붙이고,
-계측하지 않은 항목은 `미측정`, 코드에서 추론한 것은 `코드 기반 추정`으로 표시합니다.
-조건이 다른 결과를 성능 향상처럼 비교하지 않습니다.
+## 팀 프로젝트 표기
 
----
-
-## 이 저장소에 대해
-
-원본은 SSAFY GitLab에서 개발했고, 이 저장소는 공개용 미러입니다. 아래는 옮기지
-않았습니다.
-
-- 실사용자 데이터가 담긴 DB 덤프, 제출용 산출물
-- GitLab CI/CD 파이프라인 정의 (GitLab 전용이라 여기서는 동작하지 않음)
-- 학습에 쓴 촬영 원본 영상과 중간 체크포인트 (용량, 그리고 촬영 참가자 문제)
-- 폐기된 구버전 단어 모델
-
-커밋 1130개와 작성자 6명의 기록은 그대로 보존했습니다.
+이 저장소는 6명이 함께 만든 프로젝트의 포트폴리오용 복제본이다. 서비스 전체 결과와 개인 담당을 구분하기 위해 이 README에는 강형순의 작업을 중심으로 작성했고, 기존 Git 이력과 작성자 정보는 유지한다. 공개 이용 허가를 의미하는 라이선스는 별도 합의 전까지 추가하지 않는다.
