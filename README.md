@@ -14,6 +14,20 @@
   <a href="docs/portfolio-game-frontend.md">게임 프론트엔드 기록</a>
 </p>
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white" alt="Python" />
+  <img src="https://img.shields.io/badge/TensorFlow-FF6F00?style=flat-square&amp;logo=tensorflow&amp;logoColor=white" alt="TensorFlow" />
+  <img src="https://img.shields.io/badge/TFLite-FF6F00?style=flat-square&amp;logo=tensorflow&amp;logoColor=white" alt="TensorFlow Lite" />
+  <img src="https://img.shields.io/badge/MediaPipe-0097A7?style=flat-square" alt="MediaPipe" />
+  <img src="https://img.shields.io/badge/NumPy-013243?style=flat-square&amp;logo=numpy&amp;logoColor=white" alt="NumPy" />
+  <img src="https://img.shields.io/badge/scikit--learn-F7931E?style=flat-square&amp;logo=scikitlearn&amp;logoColor=white" alt="scikit-learn" />
+  <img src="https://img.shields.io/badge/React-61DAFB?style=flat-square&amp;logo=react&amp;logoColor=111827" alt="React" />
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&amp;logo=typescript&amp;logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/WebRTC-333333?style=flat-square&amp;logo=webrtc&amp;logoColor=white" alt="WebRTC" />
+  <img src="https://img.shields.io/badge/PixiJS-E72264?style=flat-square" alt="PixiJS" />
+  <img src="https://img.shields.io/badge/Matter.js-111827?style=flat-square" alt="Matter.js" />
+</p>
+
 > SSAFY 15기 공통 프로젝트 · 2026.07.16–2026.08.21 · 6인 팀
 > 강형순 담당: **지문자 인식 모델·AI 서버, 게임 선택 이후 프론트엔드**
 
