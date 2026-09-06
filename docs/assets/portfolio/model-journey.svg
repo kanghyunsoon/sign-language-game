@@ -1,51 +1,34 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
-  <title id="title">지문자 모델 개선 과정</title>
-  <desc id="desc">2D 입력 한계를 진단하고, 3D 피처, 듀얼 헤드와 하드네거티브, 회전 증강을 적용한 과정</desc>
-  <defs>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L0,6 L9,3 z" fill="#b8aa99"/>
-    </marker>
-  </defs>
-  <rect width="1200" height="420" rx="28" fill="#f8f5ef"/>
-  <g font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, sans-serif">
-    <text x="52" y="58" fill="#53473c" font-size="28" font-weight="800">분류기보다 입력 표현과 데이터 조건을 먼저 바꿨다</text>
-    <text x="52" y="90" fill="#83766a" font-size="17">각 단계의 평가셋이 달라 수치 차이를 그대로 성능 향상분으로 계산하지 않음</text>
-    <path d="M276 226 H326" stroke="#b8aa99" stroke-width="4" marker-end="url(#arrow)"/>
-    <path d="M573 226 H623" stroke="#b8aa99" stroke-width="4" marker-end="url(#arrow)"/>
-    <path d="M870 226 H920" stroke="#b8aa99" stroke-width="4" marker-end="url(#arrow)"/>
-    <g transform="translate(48 126)">
-      <rect width="228" height="205" rx="18" fill="#ffffff" stroke="#e4dbce"/>
-      <text x="22" y="38" fill="#cf7657" font-size="17" font-weight="700">문제 발견</text>
-      <text x="22" y="82" fill="#53473c" font-size="25" font-weight="800">2D 피처</text>
-      <text x="22" y="126" fill="#cf7657" font-size="38" font-weight="800">66.84%</text>
-      <text x="22" y="158" fill="#83766a" font-size="15">정적 이미지 test 190</text>
-      <text x="22" y="184" fill="#83766a" font-size="15">깊이·손바닥 방향 소실</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
+  <title id="title">입력과 학습 조건을 바꾼 과정</title>
+  <desc id="desc">손의 방향을 3D 입력에 담고, 2D와 3D 모델의 예측을 합친 뒤 회전 입력을 학습과 평가에 추가했습니다. 스크립트 작성과 튜닝에는 AI의 도움을 받았습니다.</desc>
+  <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8" fill="#a89a89"/></marker></defs>
+  <rect width="1200" height="360" rx="24" fill="#f8f5ef"/>
+  <g font-family="Malgun Gothic, Apple SD Gothic Neo, sans-serif">
+    <text x="44" y="49" fill="#53473c" font-size="25" font-weight="700">입력과 학습 조건을 바꾼 과정</text>
+    <text x="44" y="79" fill="#74675b" font-size="16">AI로 스크립트를 수정하고, 인식 결과와 실험 기록을 비교했습니다.</text>
+    <g transform="translate(44 111)">
+      <rect width="332" height="177" rx="16" fill="#fff" stroke="#e4dbce"/>
+      <text x="22" y="35" fill="#a85d42" font-size="17">01 / 방향 정보 추가</text>
+      <text x="22" y="81" fill="#53473c" font-size="25" font-weight="700">3D 입력 78개</text>
+      <text x="22" y="119" fill="#74675b" font-size="16">손가락 방향 · 관절 각도</text>
+      <text x="22" y="147" fill="#74675b" font-size="16">손바닥이 향하는 방향</text>
     </g>
-    <g transform="translate(345 126)">
-      <rect width="228" height="205" rx="18" fill="#ffffff" stroke="#e4dbce"/>
-      <text x="22" y="38" fill="#77844b" font-size="17" font-weight="700">입력 재설계</text>
-      <text x="22" y="82" fill="#53473c" font-size="25" font-weight="800">v3 · 78차원</text>
-      <text x="22" y="126" fill="#77844b" font-size="38" font-weight="800">93.3%</text>
-      <text x="22" y="158" fill="#83766a" font-size="15">시퀀스 locked test 955</text>
-      <text x="22" y="184" fill="#83766a" font-size="15">3D bone + palm normal</text>
+    <path d="M386 199H419" stroke="#a89a89" stroke-width="3" marker-end="url(#arrow)"/>
+    <g transform="translate(436 111)">
+      <rect width="332" height="177" rx="16" fill="#fff" stroke="#e4dbce"/>
+      <text x="22" y="35" fill="#5f6f3e" font-size="17">02 / 두 모델 결과 결합</text>
+      <text x="22" y="81" fill="#53473c" font-size="25" font-weight="700">2D + 3D 모델</text>
+      <text x="22" y="119" fill="#74675b" font-size="16">자모별 예측 확률을 절반씩 합산</text>
+      <text x="22" y="147" fill="#74675b" font-size="16">혼동 자모의 학습 조건 조정</text>
     </g>
-    <g transform="translate(642 126)">
-      <rect width="228" height="205" rx="18" fill="#ffffff" stroke="#e4dbce"/>
-      <text x="22" y="38" fill="#77844b" font-size="17" font-weight="700">상호 보완</text>
-      <text x="22" y="82" fill="#53473c" font-size="25" font-weight="800">듀얼 헤드 + HN</text>
-      <text x="22" y="126" fill="#77844b" font-size="38" font-weight="800">98.68%</text>
-      <text x="22" y="158" fill="#83766a" font-size="15">locked test 1,900</text>
-      <text x="22" y="184" fill="#83766a" font-size="15">v2·v3 확률 평균</text>
+    <path d="M778 199H811" stroke="#a89a89" stroke-width="3" marker-end="url(#arrow)"/>
+    <g transform="translate(828 111)">
+      <rect width="328" height="177" rx="16" fill="#fff" stroke="#e4dbce"/>
+      <text x="22" y="35" fill="#a85d42" font-size="17">03 / 각도 변화 확인</text>
+      <text x="22" y="81" fill="#53473c" font-size="25" font-weight="700">회전 입력 추가</text>
+      <text x="22" y="119" fill="#74675b" font-size="16">학습 좌표에 회전 적용</text>
+      <text x="22" y="147" fill="#74675b" font-size="16">±10° · ±20° 변형 입력 평가</text>
     </g>
-    <g transform="translate(939 126)">
-      <rect width="213" height="205" rx="18" fill="#ffffff" stroke="#e4dbce"/>
-      <text x="22" y="38" fill="#cf7657" font-size="17" font-weight="700">실사용 보정</text>
-      <text x="22" y="82" fill="#53473c" font-size="25" font-weight="800">회전 증강</text>
-      <text x="22" y="126" fill="#cf7657" font-size="38" font-weight="800">98.42%</text>
-      <text x="22" y="158" fill="#83766a" font-size="15">locked test 1,900</text>
-      <text x="22" y="184" fill="#83766a" font-size="15">±20° · ㅡ recall 1.00</text>
-    </g>
-    <text x="52" y="380" fill="#6d6258" font-size="17" font-weight="700">선택 기준</text>
-    <text x="150" y="380" fill="#83766a" font-size="17">평균 정확도만 높이는 모델이 아니라, 실사용 실패가 재현되고 해결된 모델을 배포</text>
+    <text x="44" y="328" fill="#74675b" font-size="16">각 단계의 평가 조건과 배포 모델의 한계는 본문에 함께 적었습니다.</text>
   </g>
 </svg>

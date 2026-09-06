@@ -1,175 +1,87 @@
 # 수어의 달인
 
+지문자 인식 모델의 학습·튜닝과 게임 선택 이후 프론트엔드를 맡았습니다. 웹캠으로 만든 손 모양을 인식해 한글 블록을 쌓거나 상대와 대전하는 6인 팀 프로젝트입니다.
+
+학습 스크립트 작성과 튜닝에는 AI의 도움을 받았습니다. 저는 인식이 섞이는 자모를 확인하고, 입력 데이터와 학습 조건을 바꾼 결과를 비교했습니다. 모델의 예측을 게임에서 언제 입력으로 받아들일지도 함께 조정했습니다.
+
 <p align="center">
   <img src="frontend/src/game/block-stacking/assets/game-menu-title.webp" width="520" alt="수어의 달인" />
 </p>
 
-<p align="center">
-  지문자 31개 분류 모델을 개선하고, 모델의 예측을 학습과 게임 입력으로 연결한 웹 서비스
-</p>
+[서비스](https://sudal-play.vercel.app) · [모델 학습·튜닝 기록](docs/portfolio-ai-fingerspelling.md) · [게임 프론트엔드 기록](docs/portfolio-game-frontend.md)
 
-<p align="center">
-  <a href="https://sudal-play.vercel.app">서비스</a> ·
-  <a href="docs/portfolio-ai-fingerspelling.md">AI 개선 기록</a> ·
-  <a href="docs/portfolio-game-frontend.md">게임 프론트엔드 기록</a>
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/Python-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white" alt="Python" />
-  <img src="https://img.shields.io/badge/TensorFlow-FF6F00?style=flat-square&amp;logo=tensorflow&amp;logoColor=white" alt="TensorFlow" />
-  <img src="https://img.shields.io/badge/TFLite-FF6F00?style=flat-square&amp;logo=tensorflow&amp;logoColor=white" alt="TensorFlow Lite" />
-  <img src="https://img.shields.io/badge/MediaPipe-0097A7?style=flat-square" alt="MediaPipe" />
-  <img src="https://img.shields.io/badge/NumPy-013243?style=flat-square&amp;logo=numpy&amp;logoColor=white" alt="NumPy" />
-  <img src="https://img.shields.io/badge/scikit--learn-F7931E?style=flat-square&amp;logo=scikitlearn&amp;logoColor=white" alt="scikit-learn" />
-  <img src="https://img.shields.io/badge/React-61DAFB?style=flat-square&amp;logo=react&amp;logoColor=111827" alt="React" />
-  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&amp;logo=typescript&amp;logoColor=white" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/WebRTC-333333?style=flat-square&amp;logo=webrtc&amp;logoColor=white" alt="WebRTC" />
-  <img src="https://img.shields.io/badge/PixiJS-E72264?style=flat-square" alt="PixiJS" />
-  <img src="https://img.shields.io/badge/Matter.js-111827?style=flat-square" alt="Matter.js" />
-</p>
-
-> SSAFY 15기 공통 프로젝트 · 2026.07.16–2026.08.21 · 6인 팀
-> 강형순 담당: **지문자 인식 모델·AI 서버, 게임 선택 이후 프론트엔드**
-
-![담당 결과 수치](docs/assets/portfolio/key-metrics.svg)
+![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white)
+![TensorFlow](https://img.shields.io/badge/TensorFlow-FF6F00?style=flat-square&logo=tensorflow&logoColor=white)
+![TFLite](https://img.shields.io/badge/TFLite-FF6F00?style=flat-square&logo=tensorflow&logoColor=white)
+![MediaPipe](https://img.shields.io/badge/MediaPipe-0097A7?style=flat-square)
+![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=111827)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![WebRTC](https://img.shields.io/badge/WebRTC-333333?style=flat-square&logo=webrtc&logoColor=white)
 
 ## 맡은 일
 
-| 영역 | 담당 범위 | 사용 기술 |
-| --- | --- | --- |
-| 지문자 AI | 31자모 피처 설계, LSTM 학습, 듀얼 헤드 앙상블, 회전 증강, TFLite 변환, WebSocket 추론 서버 | Python, TensorFlow, TFLite, MediaPipe |
-| 인식 제품화 | 모델 확률을 게임 입력으로 확정하는 시간축 디코더, 심볼별 출제 게이트, 최신 프레임 우선 처리 | TypeScript, WebSocket, 상태 머신 |
-| 게임 프론트엔드 | 게임 선택 이후 전 화면, 한글 물리 블록, 1:1 P2P 대전, 턴 배틀 | React, Matter.js, PixiJS, WebRTC |
+| 구분 | 내용 |
+| --- | --- |
+| 기간·팀 | 2026.07.16–2026.08.21 · SSAFY 6인 팀 |
+| 지문자 모델 | 31개 자모의 학습·튜닝, TFLite 변환과 추론 서버 연결 |
+| 인식 결과 처리 | 예측을 게임 입력으로 확정하는 조건, 중복 입력과 응답 지연 처리 |
+| 게임 프론트엔드 | 게임 선택 이후 화면, 한글 블록 쌓기, 1:1 대전과 턴 배틀 |
 
-게임 코드는 `frontend/src/game` 아래에 모았다. 현재 기준 **TypeScript/TSX 517개, 33,571줄, 테스트 141개 파일**이다.
+아래 내용은 제 담당 작업을 기준으로 정리했습니다. 수어 문장을 번역하는 모델이 아니라 손으로 표현한 자모를 분류하는 모델입니다.
 
-## 지문자 모델: 정확도보다 먼저 입력을 바꿨다
+## 손의 방향 때문에 섞이는 자모를 줄였습니다
 
-초기 2D 랜드마크 모델은 손가락의 깊이와 손바닥 방향을 잃었다. `ㅅ/ㅠ`, `ㅔ/ㅕ`처럼 화면에 투영된 모양이 비슷한 자모는 분류기나 손실 함수를 바꿔도 구분되지 않았다. 문제를 모델 크기가 아니라 입력 표현으로 보고 피처를 다시 설계했다.
+2D 좌표만 사용했을 때 손의 앞뒤와 손바닥 방향이 입력에 남지 않아 일부 자모가 섞였습니다. MediaPipe가 제공하는 x·y·z 좌표에서 손가락 방향, 관절 각도, 손바닥 방향을 계산하도록 스크립트를 수정했습니다. 이렇게 만든 78개 값으로 3D 모델을 학습하고, 기존 2D 모델과 예측 확률을 절반씩 합쳤습니다.
 
-![지문자 모델 개선 과정](docs/assets/portfolio/model-journey.svg)
+테스트에서는 인식되던 `ㅡ`가 직접 사용할 때는 잘 잡히지 않는 문제도 있었습니다. 손목 각도를 바꿔 확인한 뒤 학습 입력에 회전을 추가했습니다. 전체 정확도는 98.68%에서 98.42%로 내려갔지만, 회전시킨 평가 입력에서도 `ㅡ`의 인식을 확인하고 이 모델을 선택했습니다.
 
-> 위 수치는 실험 단계의 판단 근거다. 2D 정적 이미지 기준선과 이후 시퀀스 모델은 평가 데이터가 달라 정확도 차이를 직접적인 향상분으로 계산하지 않았다. 운영 모델 수치는 동일 촬영 영상의 앞 70%/뒤 30% 분할이며 신규 사용자 독립 평가가 아니다.
+![지문자 모델 내부 평가](docs/assets/portfolio/key-metrics.svg)
 
-### 1. 2D로 사라지는 정보를 3D 피처에 담았다
+**98.42%는 동일 촬영 영상의 앞 70%를 학습에, 뒤 30%를 평가에 사용한 결과입니다.** 평가 시퀀스는 1,900개이며, 촬영에 참여하지 않은 사람을 대상으로 측정한 정확도는 아닙니다. 경쟁 모드는 내부 출제 기준을 통과한 27개 자모만 사용했습니다.
 
-**문제**
+[입력과 학습 조건을 바꾼 과정 →](docs/portfolio-ai-fingerspelling.md)
 
-2D bone vector 40개와 관절 각도 15개만으로는 손의 앞뒤와 깊이 차이를 설명할 수 없었다. MLP, Residual MLP, SVM을 바꿔도 혼동쌍이 남았다.
+## 한 번 만든 손 모양이 여러 번 입력되지 않게 했습니다
 
-**해결**
+한 프레임의 예측을 바로 입력으로 쓰면 순간 오인식이 게임에 반영되고, 같은 손 모양을 유지하는 동안 블록이 반복해서 생겼습니다. 후보가 일정 조건을 만족할 때만 확정하고, 확정 후에는 손 모양을 풀거나 다음 입력 조건을 만족해야 다시 입력되도록 했습니다.
 
-같은 MediaPipe 랜드마크에서 3D bone direction 60개, 관절 각도 15개, palm normal 3개를 계산해 78차원 `feature_v3`를 만들었다. 프론트가 이미 `x·y·z`를 전송하고 있어 API 계약은 바꾸지 않았다.
+안정성을 확인하는 기본 설정은 4프레임 중 2표와 100ms 유지 조건입니다. 실제 솔로·대전 화면은 반응을 빠르게 하기 위해 2프레임 중 1표와 35ms 유지 설정을 사용합니다. 이는 입력 확정 설정값이며, 카메라부터 게임 반영까지 측정한 응답 시간은 아닙니다.
 
-**결과**
-
-v3 LSTM은 locked test 955개에서 93.3%를 기록했다. v2 전이 모델과 비교했을 때 `ㅅ` recall은 0.42→1.00, `ㅠ`는 0.59→1.00, `ㅔ`는 0.53→0.97로 바뀌었다.
-
-### 2. 데이터가 많은 2D와 표현력이 있는 3D를 결합했다
-
-**문제**
-
-v3는 방향을 구분했지만 학습 시퀀스가 2,404개였다. v2는 33,738개 시퀀스를 갖고 있어 자모별 강점이 달랐다. v3 데이터의 stride만 줄여 3,359→6,693개로 늘린 실험은 정확도가 93.3→93.0%로 바뀌어 새 정보가 되지 못했다.
-
-**해결**
-
-한 프레임에서 v2 55차원과 v3 78차원을 함께 만들고, 두 LSTM 헤드의 확률을 0.5씩 평균했다. 혼동행렬에서 `ㅣ-ㅡ`, `ㅗ-ㅑ`, `ㅗ-ㅖ`, `ㅗ-ㅣ`, `ㅜ-ㅏ`를 산출해 hard-negative margin을 적용했다.
-
-**결과**
-
-듀얼 헤드만 적용했을 때 98.1%, hard-negative 2차 적용 후 98.68%를 기록했다. `ㅜ→ㅏ` 혼동은 recall 0.708→1.00으로 바뀌었다. margin을 강하게 준 1차 실험에서는 다른 자모가 밀리는 현상이 생겨 0.35에서 0.25로 낮췄다.
-
-### 3. 테스트가 통과해도 실사용에서 실패할 수 있었다
-
-**문제**
-
-배포 후 `ㅡ`가 잘 인식되지 않았다. 기존 test에서 `ㅡ` recall은 1.00이어서 임계값 문제로 보였지만, 실제 원인은 촬영 영상에 없던 손목 각도였다.
-
-**해결**
-
-학습 샘플 60%에 회전 증강을 적용했다. v2는 화면 평면에서 ±22°, v3는 z축 ±22°와 y축 ±15°로 회전했다. test 입력도 ±10°와 ±20°로 회전해 따로 검증했다.
-
-**결과**
-
-±20°에서 `ㅡ` recall 1.00을 유지했다. locked test 정확도는 98.68→98.42%로 0.26%p 낮아졌지만 실사용 실패를 해결한 모델을 채택했다. `ㅓ`까지 margin으로 보정한 후속 실험은 전체 96.68%, `ㅡ` recall 0.707로 후퇴해 폐기했다.
-
-## 모델 예측을 게임 입력으로 바꾼 경계
-
-AI 서버는 후보와 확률만 반환한다. 최종 입력 확정은 브라우저의 시간축 디코더가 담당한다. 네트워크 지연과 모델의 순간 오인식을 게임 규칙에서 분리하기 위해서다.
+추론 응답을 기다리는 동안에는 다음 요청으로 보낼 프레임을 최신 1개로 덮어썼습니다. 응답도 요청 순서와 세션을 확인해 이미 지난 결과가 입력으로 반영되지 않도록 처리했습니다.
 
 ```mermaid
 flowchart LR
-    A[카메라] --> B[MediaPipe<br/>손 랜드마크 21점]
-    B --> C1[v2 55차원<br/>LSTM]
-    B --> C2[v3 78차원<br/>LSTM]
-    C1 --> D[확률 평균]
-    C2 --> D
-    D --> E[AI 검증 게이트]
-    E --> F[시간축 디코더<br/>후보·확정·해제]
-    F --> G[학습 피드백 / 게임 입력]
+    A["카메라 / 손 랜드마크"] --> B["AI 서버: 자모 후보·확률"]
+    B --> C["브라우저: 입력 확정·중복 방지"]
+    C --> D["블록 생성 / 턴 배틀 입력"]
 ```
 
-- `NO_HAND → TRACKING → MOVING → CANDIDATE → CONFIRMED → RELEASE_WAIT` 6상태로 입력을 관리했다.
-- 4프레임 중 2표와 100ms 안정 시간을 함께 만족해야 확정한다.
-- 추론 요청은 `처리 중 1개 + 대기 중 최신 1개`만 둔다. 오래된 프레임은 버려 지연 누적을 막았다.
-- 1,900개 평가에서 precision 90%, 확정률 85% 기준을 통과한 **27/31개 자모만 경쟁 모드에 출제**했다.
-- 서버에는 손 랜드마크만 보내며 얼굴·영상·이미지는 보내지 않는다.
+AI 서버로는 손 랜드마크를 보냅니다. 대전 상대에게 보여주는 영상은 별도의 WebRTC 연결을 사용합니다.
 
-## AI를 게임에 적용했다
+## 대전에서 양쪽 보드가 다르게 바뀌는 문제를 정리했습니다
+
+공통 목표 자모를 두 사람이 거의 동시에 맞히면 양쪽에서 각자 블록을 생성할 수 있었습니다. WebRTC DataChannel로 입력을 교환하되 호스트가 먼저 도착한 유효 입력을 승인하고, 승인 결과에 따라 보드에 반영하도록 했습니다. 호스트가 판정을 맡는 구조이며, 서버에서 치팅까지 검증하는 방식은 아닙니다.
+
+재접속 시 상대방 보드까지 초기화되는 문제는 복구 대상을 재접속한 플레이어로 한정했습니다. 게임 상태의 수명도 영상 연결 상태와 분리해 영상 연결이 바뀔 때 보드까지 정리되지 않도록 수정했습니다.
 
 <table>
   <tr>
-    <td width="58%"><img src="frontend/src/game/block-stacking/assets/game-mode-background-2d.webp" alt="프링글수 게임 배경" /></td>
-    <td width="42%"><img src="frontend/src/game/block-stacking/assets/game-menu-hero-otter.webp" alt="프링글수 수달 캐릭터" /></td>
+    <td width="58%"><img src="frontend/src/game/block-stacking/assets/game-mode-background-2d.webp" alt="한글 블록 쌓기 게임 배경" /></td>
+    <td width="42%"><img src="frontend/src/game/block-stacking/assets/game-menu-hero-otter.webp" alt="게임 캐릭터" /></td>
   </tr>
 </table>
 
-| 모드 | 구현 |
+[중복 입력·대전·재접속 수정 기록 →](docs/portfolio-game-frontend.md)
+
+## 코드와 확인 범위
+
+| 내용 | 위치 |
 | --- | --- |
-| 솔로 프링글수 | 인식한 자모를 Matter.js 물리 블록으로 만들어 쌓는다. 캔버스 알파 채널을 8px 셀로 읽어 한글 획 모양의 collider를 생성했다. |
-| 1:1 프링글수 | WebRTC DataChannel과 브라우저 host authority로 진행한다. guest는 입력을 요청하고 host가 검증한 이벤트만 양쪽 보드에 반영한다. |
-| 지문자 턴 배틀 | 자모를 기술 카드로 사용하는 턴제 대전. 결정적 PRNG와 상태 머신으로 로컬 봇·P2P가 같은 규칙을 쓴다. |
+| 모델 입력·추론 | [AI 서버](ai/game-server/app) |
+| 학습·평가 기록 | [모델 평가 기록](ai/game-server/docs/recognition/model-evaluation.md) |
+| 배포 모델의 평가값 | [모델 manifest](ai/models/jamo-31-ensemble-v1/manifest.json) |
+| 자모별 출제 기준 | [readiness](ai/contracts/recognition/readiness.json) |
+| 입력 확정 조건 | [시간축 디코더](frontend/src/game/recognition/temporal) |
+| 게임 구현·테스트 | [게임 모듈](frontend/src/game) |
 
-백엔드는 방 생성·참가·결과 저장과 WebRTC signaling만 맡는다. 게임 상태를 서버에서 중계하지 않아 발생한 중복 생성과 재접속 문제는 host authority, 5초 snapshot, FNV-1a checksum, tombstone으로 처리했다. 구현 과정은 [게임 프론트엔드 기록](docs/portfolio-game-frontend.md)에 정리했다.
-
-## 기술 선택
-
-| 선택 | 이유 |
-| --- | --- |
-| 랜드마크 전송 | 영상 전송 없이 추론하고, 프론트와 AI의 입력 계약을 21개 점으로 고정 |
-| v2 + v3 듀얼 헤드 | 데이터가 많은 2D 헤드와 방향을 보존한 3D 헤드의 자모별 강점을 결합 |
-| TFLite unroll 변환 | Flex 연산 의존을 제거하고 AI 서버의 TensorFlow 버전 제약을 줄임 |
-| 프론트 확정 권위 | 모델 확률, 네트워크 응답, 게임 입력 잠금을 각 계층에서 분리 |
-| WebRTC DataChannel | 1:1 게임 상태를 백엔드에 추가하지 않고 브라우저끼리 교환 |
-| Matter.js + PixiJS | 충돌 계산과 WebGL 효과를 나누고 React 렌더 주기와 게임 루프를 분리 |
-
-## 검증
-
-| 대상 | 확인 항목 |
-| --- | --- |
-| 지문자 모델 | locked test 1,900개, 클래스별 precision·recall·확정률, ±20° 회전 test |
-| AI 서버 | 모델 계약·feature parity·WebSocket session·handshape gate 회귀 테스트 |
-| 게임 프론트엔드 | 141개 테스트 파일. 타이머·랜덤·소켓·미디어·fetch를 주입해 실제 대기 없이 검증 |
-| 출제 계약 | `ai/contracts/recognition/readiness.json` 하나에서 심볼별 임계값과 경쟁 출제 가능 여부 파생 |
-
-## 한계
-
-- 98.42%는 자모별 촬영 영상의 앞 70%를 학습하고 뒤 30%를 평가한 결과다. 신규 사용자 독립 성능으로 해석할 수 없다.
-- 최종 모델에서 `ㅓ` recall은 0.7049다. 임계값을 낮추면 `ㅡ` precision이 무너져 경쟁 모드에서는 둘을 포함한 4개 자모를 제외했다.
-- 카메라·MediaPipe·AI 응답의 실제 p95 지연을 수집하는 코드는 있으나 결과를 저장하지 않아 기기별 수치는 미측정이다.
-- 다중 사용자 손 소유권 판정은 구현했지만 실기 군중 테스트가 없어 기본 게임 경로에서는 껐다.
-
-## 코드 시작점
-
-| 보고 싶은 내용 | 위치 |
-| --- | --- |
-| v2/v3 피처와 앙상블 | [`ai/game-server/app`](ai/game-server/app) |
-| 모델 학습·평가 기록 | [`model-evaluation.md`](ai/game-server/docs/recognition/model-evaluation.md) |
-| 운영 모델 계약 | [`manifest.json`](ai/models/jamo-31-ensemble-v1/manifest.json) |
-| 경쟁 출제 기준 | [`readiness.json`](ai/contracts/recognition/readiness.json) |
-| 시간축 디코더 | [`frontend/src/game/recognition/temporal`](frontend/src/game/recognition/temporal) |
-| 게임 모듈 | [`frontend/src/game`](frontend/src/game) |
-
-## 팀 프로젝트 표기
-
-이 저장소는 6명이 함께 만든 프로젝트의 포트폴리오용 복제본이다. 서비스 전체 결과와 개인 담당을 구분하기 위해 이 README에는 강형순의 작업을 중심으로 작성했고, 기존 Git 이력과 작성자 정보는 유지한다. 공개 이용 허가를 의미하는 라이선스는 별도 합의 전까지 추가하지 않는다.
+모델 평가는 촬영 데이터 내부 검증까지 진행했습니다. 다른 사람·조명·카메라에서의 인식률과 기기별 전체 응답 시간은 별도로 측정해야 합니다.
