@@ -8,7 +8,7 @@
   <img src="frontend/src/game/block-stacking/assets/game-menu-title.webp" width="520" alt="수어의 달인" />
 </p>
 
-[서비스](https://sudal-play.vercel.app) · [모델 학습·튜닝 기록](docs/portfolio-ai-fingerspelling.md) · [게임 프론트엔드 기록](docs/portfolio-game-frontend.md)
+[시연 영상](https://youtu.be/Y6J_x2KZ0X8) · [서비스](https://sudal-play.vercel.app) · [모델 학습·튜닝 기록](docs/portfolio-ai-fingerspelling.md) · [게임 프론트엔드 기록](docs/portfolio-game-frontend.md)
 
 ![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white)
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-FF6F00?style=flat-square&logo=tensorflow&logoColor=white)
