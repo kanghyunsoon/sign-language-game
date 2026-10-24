@@ -35,6 +35,7 @@ from http import HTTPStatus
 from websockets.asyncio.server import Request, Response, ServerConnection, serve
 
 from .messages import (
+    ClientRequest,
     GetCapabilitiesRequest,
     HandNotDetectedRequest,
     LandmarkFrameRequest,
@@ -80,7 +81,10 @@ def check_path(connection: ServerConnection, request: Request) -> Response | Non
 
 
 def process_request(session: RecognitionSession, raw_message: str) -> list[dict[str, object]]:
-    request = parse_request(raw_message)
+    return dispatch_request(session, parse_request(raw_message))
+
+
+def dispatch_request(session: RecognitionSession, request: ClientRequest) -> list[dict[str, object]]:
     if isinstance(request, GetCapabilitiesRequest):
         contract = session.contract
         return [
@@ -112,6 +116,37 @@ def process_request(session: RecognitionSession, raw_message: str) -> list[dict[
     raise ProtocolError("UNSUPPORTED_MESSAGE", "Unsupported message type")
 
 
+def handle_message(
+    session: RecognitionSession,
+    raw_message: object,
+    connection_label: str = "-",
+) -> tuple[str | None, list[dict[str, object]]]:
+    """Answer one client message without ever raising.
+
+    The message type used to be read with json.loads(raw).get("type") before
+    validation, so a JSON array or number raised AttributeError, escaped the
+    handler and closed the connection. Any other unexpected error did the same.
+    Every failure is now reported as an ERROR message and the connection stays open.
+    """
+    message_type: str | None = None
+    try:
+        if not isinstance(raw_message, str):
+            raise ProtocolError("INVALID_MESSAGE", "Binary messages are not supported")
+        request = parse_request(raw_message)
+        if isinstance(request, LandmarkFrameRequest):
+            message_type = "LANDMARK_FRAME"
+        elif isinstance(request, HandNotDetectedRequest):
+            message_type = "HAND_NOT_DETECTED"
+        return message_type, dispatch_request(session, request)
+    except ProtocolError as error:
+        return message_type, [error_message(error.code, error.message)]
+    except ValueError as error:
+        return message_type, [error_message("INVALID_INPUT", str(error))]
+    except Exception as error:  # noqa: BLE001 - one bad frame must not close the connection
+        print(f"[number:{connection_label}] internal-error={type(error).__name__}: {error}", flush=True)
+        return message_type, [error_message("INTERNAL_ERROR", "Recognition request failed")]
+
+
 async def websocket_handler(connection: ServerConnection, adapter: NumberModelAdapter) -> None:
     session = RecognitionSession(adapter)
     landmark_count = 0
@@ -120,24 +155,16 @@ async def websocket_handler(connection: ServerConnection, adapter: NumberModelAd
     print(f"[number:{connection_label}] connected", flush=True)
     try:
         async for raw_message in connection:
-            try:
-                if not isinstance(raw_message, str):
-                    raise ProtocolError("INVALID_MESSAGE", "Binary messages are not supported")
-                message_type = json.loads(raw_message).get("type")
-                responses = process_request(session, raw_message)
-                if message_type == "LANDMARK_FRAME":
-                    landmark_count += 1
-                    if landmark_count == 1 or landmark_count % 30 == 0:
-                        response_types = ",".join(str(item.get("type")) for item in responses) or "NONE"
-                        print(f"[number:{connection_label}] landmarks={landmark_count} responses={response_types}", flush=True)
-                elif message_type == "HAND_NOT_DETECTED":
-                    missing_count += 1
-                    if missing_count == 1 or missing_count % 30 == 0:
-                        print(f"[number:{connection_label}] hand-missing={missing_count}", flush=True)
-            except ProtocolError as error:
-                responses = [error_message(error.code, error.message)]
-            except ValueError as error:
-                responses = [error_message("INVALID_INPUT", str(error))]
+            message_type, responses = handle_message(session, raw_message, connection_label)
+            if message_type == "LANDMARK_FRAME":
+                landmark_count += 1
+                if landmark_count == 1 or landmark_count % 30 == 0:
+                    response_types = ",".join(str(item.get("type")) for item in responses) or "NONE"
+                    print(f"[number:{connection_label}] landmarks={landmark_count} responses={response_types}", flush=True)
+            elif message_type == "HAND_NOT_DETECTED":
+                missing_count += 1
+                if missing_count == 1 or missing_count % 30 == 0:
+                    print(f"[number:{connection_label}] hand-missing={missing_count}", flush=True)
             for response in responses:
                 await connection.send(json.dumps(json_ready(response), ensure_ascii=False))
     finally:

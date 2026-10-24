@@ -179,6 +179,15 @@ class ServerRequestTests(unittest.TestCase):
         self.assertEqual(server_main.process_request(self.session, '{"type":"HAND_NOT_DETECTED","capturedAt":1}'), [])
         self.assertEqual(server_main.process_request(self.session, '{"type":"RESET_SEQUENCE"}'), [])
 
+    def test_non_object_json_is_an_error_message_not_a_crash(self) -> None:
+        for raw in ("[1, 2]", "3", "null"):
+            message_type, responses = server_main.handle_message(self.session, raw)
+            self.assertIsNone(message_type)
+            self.assertEqual(responses[0]["code"], "INVALID_MESSAGE")
+        message_type, responses = server_main.handle_message(self.session, landmark_frame())
+        self.assertEqual(message_type, "LANDMARK_FRAME")
+        self.assertEqual(responses[0]["type"], "PREDICTION")
+
     def test_unsupported_message_is_rejected(self) -> None:
         with self.assertRaises(msg.ProtocolError) as raised:
             server_main.process_request(self.session, '{"type":"SOMETHING_ELSE"}')
